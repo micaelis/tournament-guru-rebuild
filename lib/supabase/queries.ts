@@ -1,4 +1,4 @@
-import { createServerClient } from "./server";
+import { createServerAuthClient, createServerClient } from "./server";
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -308,7 +308,6 @@ export async function getDashboardEvents({
   try {
     // Use the auth-aware client so profiles / owner_id checks resolve with
     // the actual signed-in session (RLS wants auth.uid()).
-    const { createServerAuthClient } = await import("./server");
     const sb = await createServerAuthClient();
 
     let query = sb
@@ -378,7 +377,6 @@ export async function getDashboardReviews({
   limit?: number;
 }): Promise<{ data: DashboardReviewRow[]; error: string | null }> {
   try {
-    const { createServerAuthClient } = await import("./server");
     const sb = await createServerAuthClient();
 
     let query = sb

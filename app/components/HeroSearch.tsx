@@ -103,23 +103,20 @@ export function HeroSearch({
   // Log only typed submissions (not chip clicks) so the popular list reflects
   // genuine user searches rather than reinforcing the chips themselves.
   function logSearch(term: string) {
-    try {
-      fetch("/api/search-log", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ term }),
-        keepalive: true,
-      }).catch(() => {});
-    } catch {
-      /* logging is best-effort */
-    }
+    // Logging is best-effort; a rejected promise here just drops the log.
+    fetch("/api/search-log", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ term }),
+      keepalive: true,
+    }).catch(() => {});
   }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = query.trim();
     if (trimmed) logSearch(trimmed);
-    go(query);
+    go(trimmed);
   }
 
   /* Mirror the manifesto band: same real values, only show counts > 0 so a
