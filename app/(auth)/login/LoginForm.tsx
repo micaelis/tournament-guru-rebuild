@@ -21,38 +21,10 @@ export function LoginForm({
 
   return (
     <div>
-      {state.code === "migrated" ? (
+      {state.error && (
         <div style={{ marginBottom: 18 }}>
-          <FormMessage tone="info" title="Welcome back!">
-            For security, we’ve upgraded our system and you’ll need to reset your
-            password to continue.
-            <span style={{ display: "block", marginTop: 12 }}>
-              <Link
-                href={`/reset?email=${encodeURIComponent(state.email ?? "")}`}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  padding: "9px 16px",
-                  borderRadius: 10,
-                  background: "var(--color-accent)",
-                  color: "#fff",
-                  fontSize: 13.5,
-                  fontWeight: 700,
-                  textDecoration: "none",
-                }}
-              >
-                Reset password →
-              </Link>
-            </span>
-          </FormMessage>
+          <FormMessage tone="error">{state.error}</FormMessage>
         </div>
-      ) : (
-        state.error && (
-          <div style={{ marginBottom: 18 }}>
-            <FormMessage tone="error">{state.error}</FormMessage>
-          </div>
-        )
       )}
 
       <form action={formAction} noValidate>

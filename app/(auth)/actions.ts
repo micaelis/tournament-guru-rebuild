@@ -6,7 +6,7 @@ import { createServerAuthClient } from "@/lib/supabase/server";
 
 export type AuthState = {
   error?: string;
-  /** Non-error outcomes the UI switches on: "confirm" | "migrated" | "reset-sent" | "password-updated" */
+  /** Non-error outcomes the UI switches on: "confirm" | "exists" | "reset-sent" | "password-updated" */
   code?: string;
   ok?: boolean;
   /** Echo the submitted email so success screens can show it. */
@@ -105,20 +105,9 @@ export async function login(
     if (isNetworkError(signInError)) {
       return { error: NETWORK_MESSAGE };
     }
-    // Migrated users have no usable password yet — detect and guide them to
-    // reset rather than stranding them on a misleading "wrong password".
-    try {
-      const { data: needsSetup } = await supabase.rpc("needs_password_setup", {
-        p_email: email,
-      });
-      if (needsSetup === true) {
-        return { code: "migrated", email };
-      }
-    } catch {
-      // RPC unavailable → fall through to the generic message.
-    }
-    // Same message whether the password is wrong or the email is unknown —
-    // never reveal which, to prevent account enumeration.
+    // Uniform response prevents account enumeration. Pre-migration
+    // (Bubble) accounts and typo'd passwords receive the same message;
+    // the "reset your password" copy in the login form covers both.
     return { error: "Incorrect email or password." };
   }
 
