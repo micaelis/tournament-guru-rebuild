@@ -21,6 +21,7 @@ import type {
   DirectorProfile,
   EventProfileSummary,
 } from "@/lib/supabase/queries";
+import { safeExternalUrl } from "@/lib/url";
 
 /* ───────────────────────────────────────────────────────────────────
    Top-level layout
@@ -1890,12 +1891,13 @@ function SponsorRowUI({ sponsor }: { sponsor: SponsorRow }) {
     </>
   );
 
-  if (sponsor.link) {
+  const sponsorHref = safeExternalUrl(sponsor.link);
+  if (sponsorHref) {
     return (
       <a
-        href={sponsor.link}
+        href={sponsorHref}
         target="_blank"
-        rel="noreferrer"
+        rel="noopener noreferrer"
         className="tg-hover flex items-center gap-2.5 rounded-xl bg-white px-3 py-2.5"
         style={{
           border: "1px solid var(--color-border)",
@@ -1974,8 +1976,9 @@ function ContactPanel({
   concluded: boolean;
 }) {
   const priceRange = derivePriceRange(ageGroups);
-  const registrationHref =
-    event.registration_link || event.this_year_website || event.website;
+  const registrationHref = safeExternalUrl(
+    event.registration_link || event.this_year_website || event.website,
+  );
 
   return (
     <div
@@ -2078,7 +2081,7 @@ function ContactPanel({
           <a
             href={registrationHref}
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
             className="tg-btn-ghost tg-hover font-heading inline-flex items-center justify-center gap-2 rounded-full bg-white"
             style={{
               padding: "10px 16px",
