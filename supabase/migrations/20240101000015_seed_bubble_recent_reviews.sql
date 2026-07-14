@@ -1,4 +1,11 @@
 -- =====================================================================
+-- ⚠️  DEMO SEED — DO NOT RE-RUN ON A LIVE OR ALREADY-SEEDED DATABASE
+--     Attaches four canned reviews to the events at positions 1–4 in
+--     the `(created_at desc, id)` ordering. Re-running after new events
+--     land will attach the seeds to the wrong events. Safe on
+--     `supabase db reset`; do not include in production bootstrap.
+--     See CLAUDE.md · "Demo migrations" for the safe seed procedure.
+-- =====================================================================
 -- Seed the four Bubble.io demo reviews for the /attendees "Recent Reviews"
 -- section. Imported verbatim from the export /Users/.../recent-reviewed.csv.
 --

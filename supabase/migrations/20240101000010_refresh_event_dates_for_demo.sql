@@ -1,4 +1,11 @@
 -- =====================================================================
+-- ⚠️  DEMO SEED — DO NOT RE-RUN ON A LIVE OR ALREADY-SEEDED DATABASE
+--     This migration reorders events by (created_at desc, id) and
+--     rewrites their start/end dates and status. New events inserted
+--     between runs shift buckets, so a second run clobbers prior state.
+--     Safe on a fresh `supabase db reset`; destructive on anything with
+--     real data since it last ran. See CLAUDE.md · "Demo migrations".
+-- =====================================================================
 -- Make events visible again on the landing page + Find Events search.
 --
 -- The seed events are all dated in the past (newest ended 2026-05-24), so the
