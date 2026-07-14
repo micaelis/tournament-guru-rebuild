@@ -2949,3 +2949,282 @@ $$;
 
 grant execute on function public.get_platform_stats() to anon, authenticated;
 
+-- ── 20260714110001_r1_rate_limit_touch_lockdown.sql ──────────────────────────────────────────
+-- =====================================================================
+-- R1 — Close the rate_limit_touch self-DoS
+--
+-- Hostile-review finding: `rate_limit_touch(text, int)` was granted
+-- EXECUTE to `anon` and `authenticated`. Any anon key holder could:
+--
+--   1. Poison the counter for a given bucket by calling
+--      `select rate_limit_touch('search_queries', 999999999)` 1001x —
+--      the counter for the current minute ticks past 1000, and the
+--      very next legitimate insert into `search_queries` fires the
+--      trigger (limit=1000) which now raises. Bucket is DoS'd for the
+--      rest of the minute. Repeat forever. Same for `contact_requests`.
+--   2. Insert arbitrary bucket names to grow `rate_limit_windows`
+--      without bound.
+--
+-- Fix: revoke EXECUTE from `anon` and `authenticated`. The trigger
+-- functions (`trg_search_queries_rate_limit`, `trg_contact_requests_
+-- rate_limit`) are themselves SECURITY DEFINER, so their internal
+-- `perform rate_limit_touch(...)` call runs with the trigger's own
+-- privileges — not the invoker's. Revoking the direct grant closes
+-- the exploit without breaking the triggers.
+--
+-- Defense in depth: also whitelist `p_bucket` inside the function so
+-- even if a future migration re-grants EXECUTE, arbitrary bucket names
+-- and inflated limits are rejected.
+-- =====================================================================
+
+revoke execute on function public.rate_limit_touch(text, int) from anon;
+revoke execute on function public.rate_limit_touch(text, int) from authenticated;
+-- PUBLIC gets EXECUTE on every new function by default; also strip it.
+revoke execute on function public.rate_limit_touch(text, int) from public;
+
+create or replace function public.rate_limit_touch(
+  p_bucket text,
+  p_limit  int
+)
+returns void
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_window  timestamptz := date_trunc('minute', now());
+  v_hits    int;
+begin
+  -- Only the two buckets the triggers use are valid. Any other value
+  -- is a bug or an attack; refuse loudly.
+  if p_bucket not in ('search_queries', 'contact_requests') then
+    raise exception 'rate_limit_touch: unknown bucket %', p_bucket
+      using errcode = '22023';
+  end if;
+
+  -- Cap the limit range so a caller can't ask for effectively unlimited
+  -- headroom. The real per-bucket ceilings live in the trigger callers
+  -- (search_queries → 1000, contact_requests → 60); accepting anything
+  -- outside a sane range is a defense-in-depth signal that the caller
+  -- is not one of our triggers.
+  if p_limit is null or p_limit < 1 or p_limit > 10000 then
+    raise exception 'rate_limit_touch: p_limit out of range: %', p_limit
+      using errcode = '22023';
+  end if;
+
+  insert into public.rate_limit_windows (bucket, window_start, hits)
+  values (p_bucket, v_window, 1)
+  on conflict (bucket, window_start)
+    do update set hits = rate_limit_windows.hits + 1
+  returning hits into v_hits;
+
+  if v_hits > p_limit then
+    raise exception 'rate limit exceeded for %', p_bucket
+      using errcode = '22023';
+  end if;
+end;
+$$;
+
+comment on function public.rate_limit_touch(text, int) is
+  'DB-side burst counter. Callable only from the two trigger functions on search_queries / contact_requests (both SECURITY DEFINER). Never re-grant EXECUTE to anon/authenticated — direct-caller access enables a self-DoS by poisoning the per-minute counter.';
+
+-- ── 20260714110002_r2_reviews_insert_column_lockdown.sql ──────────────────────────────────────────
+-- =====================================================================
+-- R2 — Lock down reviews INSERT the same way UPDATE was locked in C1
+--
+-- Hostile-review finding: C1 (`20260714100001`) revoked/re-granted
+-- UPDATE on `reviews` column-by-column so authors can't flip
+-- `published`, `guru_review`, or `flagged` on their own reviews. But
+-- the INSERT side was untouched — `reviews: author insert` policy only
+-- checks `author_id = auth.uid()`, and Supabase's Data API grants
+-- INSERT-on-all-tables to `authenticated` by default. An attacker with
+-- an authenticated JWT could:
+--
+--   insert into reviews (author_id, event_id, review_title, review_body,
+--                        published, guru_review, flagged, overall_rating)
+--   values (auth.uid(), '<any event id>', 'Fake', '...', true, true, false, 5);
+--
+-- Result: self-published review with the "Guru" badge, no moderation.
+--
+-- Fix — same shape as C1:
+--   1. Revoke INSERT on reviews from authenticated / PUBLIC.
+--   2. Re-grant INSERT column-by-column, excluding the moderation
+--      fields (published, guru_review, flagged) and system fields
+--      (has_promo_code, promo_code, step, username_search, user_email,
+--      event_owner_id — the trigger sets that from the event).
+--   3. Belt-and-braces: the insert policy now WITH CHECKs the
+--      moderation defaults so even a widened grant can't create a
+--      published/guru-branded row.
+--
+-- Service role bypasses both grants and RLS, so admin flows keep
+-- working (that's how a moderator publishes/flags on server actions).
+-- =====================================================================
+
+revoke insert on public.reviews from authenticated;
+revoke insert on public.reviews from public;
+
+-- Author-safe insertable columns. Explicitly OMIT: `id` (default),
+-- `event_owner_id` (denormalized from events.owner_id — set by a
+-- trigger if any, or by the caller from lookup; safer to exclude from
+-- authenticated insert and let it default null / be set server-side),
+-- `published`, `guru_review`, `flagged`, `has_promo_code`, `promo_code`,
+-- `step`, `username_search`, `user_email`, `created_at`, `updated_at`.
+grant insert (
+  event_id,
+  author_id,
+  username,
+  user_club,
+  user_role,
+  review_title,
+  review_body,
+  team1, team2, team3,
+  team_age, team_gender,
+  overall_rating,
+  facilities_rating,
+  fields_rating,
+  management_rating,
+  cost_value_rating,
+  competition_rating,
+  diversity_rating
+) on public.reviews to authenticated;
+
+-- Tighten the insert policy: even if a future migration widens the
+-- column grants, moderation fields must land at their defaults.
+drop policy if exists "reviews: author insert" on public.reviews;
+create policy "reviews: author insert"
+  on public.reviews for insert
+  with check (
+    author_id = auth.uid()
+    -- Moderation fields must be at their table-default values on
+    -- creation. `published` starts false (moderator publishes later);
+    -- `guru_review` is set by admin promotion; `flagged` starts false.
+    and (published is null or published = false)
+    and (guru_review is null or guru_review = false)
+    and (flagged is null or flagged = false)
+  );
+
+comment on policy "reviews: author insert" on public.reviews is
+  'Author may insert reviews as themselves. Moderation fields (published/guru_review/flagged) are pinned to their defaults; column-level INSERT grants also exclude those columns as belt-and-braces.';
+
+-- ── 20260714110003_r3_scope_admin_match_in_definer_surfaces.sql ──────────────────────────────────────────
+-- =====================================================================
+-- R3 — Scope the public DEFINER surfaces to event_director only
+--
+-- Hostile-review finding: `event_host_logos`, `get_director_profile`,
+-- and `review_author_badges` all match `user_type='admin'` alongside
+-- `event_director`. Any admin with an `org_logo` shows up on event
+-- cards; any admin can be crawled through `/directors/<id>`; admins
+-- who authored a review get `user_type='admin'` in the review badge
+-- read.
+--
+-- These are DEFINER surfaces — they bypass profiles RLS by design —
+-- so an over-broad match becomes a public exposure of internal admin
+-- profile fields.
+--
+-- Fix: filter each surface to `user_type='event_director'`. Admin
+-- accounts, if they ever host events themselves, should be modelled
+-- with a proper director profile alongside their admin role (which
+-- the app allows: user_type is one column, is_admin() is a helper
+-- that grants privileges but doesn't preclude also being a director).
+--
+-- Also stop leaking `user_type='admin'` in `review_author_badges` by
+-- coalescing admin authors to 'attendee' — the badge is a display
+-- decoration, not an authorization signal.
+-- =====================================================================
+
+-- ── event_host_logos: only event directors' org_logos surface ──────
+create or replace view public.event_host_logos as
+  select
+    e.id as event_id,
+    p.org_logo
+  from public.events e
+  join public.profiles p
+    on p.id = e.owner_id
+  where e.status <> 'draft'
+    and p.user_type = 'event_director'
+    and p.org_logo is not null;
+
+alter view public.event_host_logos set (security_invoker = false);
+grant select on public.event_host_logos to anon, authenticated;
+
+-- ── review_author_badges: coalesce admin authors to 'attendee' ─────
+create or replace view public.review_author_badges as
+  select distinct
+    p.id,
+    -- Any 'admin' user_type is displayed as 'attendee' in the public
+    -- badge. Admins are not a public reviewer persona; this hides
+    -- which reviewers are staff.
+    case when p.user_type = 'admin' then 'attendee' else p.user_type end as user_type,
+    p.attendee_type
+  from public.profiles p
+  join public.reviews r
+    on r.author_id = p.id
+   and r.published = true;
+
+alter view public.review_author_badges set (security_invoker = false);
+grant select on public.review_author_badges to anon, authenticated;
+
+-- ── get_director_profile: only real event_directors are lookupable ─
+create or replace function public.get_director_profile(p_id uuid)
+returns json
+language sql
+stable
+security definer
+set search_path = public, pg_temp
+as $$
+  with p as (
+    select
+      pr.id,
+      coalesce(nullif(trim(pr.full_name), ''), 'Event Director') as display_name,
+      pr.org_logo,
+      pr.org_description,
+      pr.club_affiliation,
+      pr.profile_picture,
+      pr.guru_badge
+    from public.profiles pr
+    where pr.id = p_id
+      and pr.user_type = 'event_director'
+  ),
+  ev as (
+    select
+      count(*) filter (where status = 'concluded' or (end_date is not null and end_date < current_date)) as completed_events,
+      count(*) filter (where status = 'open') as open_events,
+      count(*) as total_events
+    from public.events e
+    where e.owner_id = p_id
+      and e.status <> 'draft'
+  ),
+  rv as (
+    select
+      round(avg(r.overall_rating) filter (where r.user_role ilike '%coach%')::numeric, 2) as coach_rating,
+      count(*) filter (where r.user_role ilike '%coach%') as coach_reviews,
+      round(avg(r.overall_rating) filter (where r.user_role is null or r.user_role not ilike '%coach%')::numeric, 2) as attendee_rating,
+      count(*) filter (where r.user_role is null or r.user_role not ilike '%coach%') as attendee_reviews
+    from public.reviews r
+    join public.events e on e.id = r.event_id
+    where e.owner_id = p_id
+      and r.published = true
+  )
+  select json_build_object(
+    'id', p.id,
+    'display_name', p.display_name,
+    'org_logo', p.org_logo,
+    'org_description', p.org_description,
+    'club_affiliation', p.club_affiliation,
+    'profile_picture', p.profile_picture,
+    'guru_badge', p.guru_badge,
+    'completed_events', coalesce(ev.completed_events, 0),
+    'open_events', coalesce(ev.open_events, 0),
+    'total_events', coalesce(ev.total_events, 0),
+    'coach_rating', coalesce(rv.coach_rating, 0),
+    'coach_reviews', coalesce(rv.coach_reviews, 0),
+    'attendee_rating', coalesce(rv.attendee_rating, 0),
+    'attendee_reviews', coalesce(rv.attendee_reviews, 0)
+  )
+  from p
+  cross join ev
+  cross join rv;
+$$;
+
+grant execute on function public.get_director_profile(uuid) to anon, authenticated;
+

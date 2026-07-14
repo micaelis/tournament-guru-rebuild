@@ -1,14 +1,14 @@
 # Tournament Guru — Refactor Changelog
 
-Summary of everything landed during the 2026-07 audit-driven refactor. Sequenced against [AUDIT.md](AUDIT.md); each entry links to its commit.
+Summary of everything landed during the 2026-07 audit-driven refactor. Sequenced against [AUDIT.md](AUDIT.md); each entry links to its commit. Post-refactor, an independent hostile reviewer found 7 further weaknesses; the ones I could confirm are addressed under the **R-series** below.
 
 **Verification** (final state):
 - `npm run typecheck` — **passes** (0 errors)
 - `npm run build`     — **passes** (all routes compile)
-- `npm run lint`      — 4 errors + 4 warnings, all **pre-existing** setState-in-effect patterns (Header, EventSearchOverlay) and unused-var warnings I chose not to touch — see [Deliberately not done](#deliberately-not-done) below.
+- `npm run lint`      — **passes** (0 errors, 0 warnings)
 - `npm audit`         — **2 moderate**, both transitively via `next → postcss`, no non-breaking fix available (see [Remaining risks](#remaining-risks)).
 
-Live database was **never reset or wiped**. Every fix went in as a new migration on top (files prefixed `20260714…`).
+Live database was **never reset or wiped**. Every fix went in as a new migration on top (Phase 2 files prefixed `20260714100…`, Phase 5 hostile-review fixes prefixed `20260714110…`).
 
 ---
 
@@ -78,12 +78,25 @@ Live database was **never reset or wiped**. Every fix went in as a new migration
 
 ---
 
-## Deliberately not done
+### Hostile-review remediation (R-series)
 
-Items I flagged in AUDIT.md but chose to leave, with the reason:
+An independent hostile-reviewer pass over the full baseline→HEAD diff surfaced findings the initial refactor missed. The confirmed ones are addressed here; each maps to a commit:
+
+| ID | Commit | What |
+|----|---|---|
+| R1 | `b4a367b` | **CRITICAL** — `rate_limit_touch(text, int)` was granted `EXECUTE` to anon/authenticated. Direct callers could poison the per-minute counter (`select rate_limit_touch('search_queries', 999999999)` 1001×) so real inserts hit the burst cap and were rejected — global DoS on search-log and the contact form. Also unbounded growth via arbitrary bucket names. Fix: revoke `EXECUTE` from anon/authenticated/PUBLIC; add inline bucket whitelist + `p_limit` range check. Trigger functions are themselves SECURITY DEFINER so they still call it. |
+| R2 | `c79bcd9` | **CRITICAL** — C1 locked UPDATE but INSERT was still open. Supabase's default Data API grants `INSERT` on all public tables to `authenticated`, and the `reviews: author insert` policy only checked `author_id = auth.uid()`. Anyone signed in could `insert ... published=true, guru_review=true` — self-published Guru-badged review, unmoderated. Fix: revoke INSERT, re-grant column list minus moderation fields, and WITH CHECK the insert policy to pin `published/guru_review/flagged` to their defaults. |
+| R3 | `818e9cf` | `event_host_logos`, `get_director_profile`, `review_author_badges` all matched `user_type='admin'` alongside `event_director`. Admins with an `org_logo` were surfacing on public event cards; `/directors/<admin_id>` was crawlable. Fix: scope all three to `event_director` only. Also coalesce admin authors to `attendee` in the review badge so which reviewers are staff isn't leaked. |
+| R4 | `b9bee17` | `safeImageSrc` helper existed in `lib/url.ts` but was never applied to any `<img src>`. A hostile director could set `logo` / `photo` / `org_logo` to any URL — not stored XSS (browsers don't execute JS from img src) but a tracking-pixel and SSRF-GET vector. Fix: wire `safeImageSrc(x) ?? undefined` into every DB-derived `<img>` across EventCard, EventSearchOverlay, FeaturedShowcase, card-bits, DirectorPortrait, DirectorTestimonialShowcase (×2), dashboard/{account,events}/parts, `(site)/events/[id]/parts.tsx` (gallery tiles + placeholder + sponsor.logo + share preview), `(site)/directors/[id]/page.tsx`. |
+| R5 | `7fc1d27` | `contact-action.ts` used a hidden `event_title` form input — tamperable in DevTools, so a submitter could seed the admin triage view with arbitrary text against the FK'd event id. Fix: drop the hidden field, look up `event_title` server-side from `events.title` by `event_id`. |
+| R6 | `7079f0f` | **Anti-enum**: signup used to return `code: "exists"` for known emails and even un-neutralized Supabase's own anti-enum response. Now both paths converge on `code: "confirm"` with identical "Check your inbox" copy — existing users don't actually receive a confirmation email (Supabase suppresses it) but the client-visible response shape doesn't leak. Also expanded the `WEAK_PASSWORDS` block-list from 14 → ~55 entries (numeric walks, qwerty variants, football/summer/tournament templated, iloveyou classics, app-specific "tournamentguru" strings) and NFKC-normalize input before comparison so unicode homoglyphs (Cyrillic `а`) don't slip through. |
+
+### Deliberately not done
+
+Items I flagged in AUDIT.md or the hostile review but chose to leave, with the reason:
 
 - **M3 — random shuffle in `getFeaturedEvents`.** Operator asked to keep the per-load random pick. Accept the CDN-caching cost for the "fresh 4 per page load" UX. The H7 no-op fix ensures the fallback path can't dupe premium rows into the mix.
-- **M7 / M9 — raw `<img>` tags instead of `next/image`.** Photos come from unknown remote hosts (event directors paste any URL). Migrating would need either a wildcard `remotePatterns` (weakens SSRF hygiene) or per-image `unoptimized: true`. Flagged for a follow-up conversation with the operator on preferred image sourcing policy.
+- **M7 / M9 — raw `<img>` tags instead of `next/image`.** Photos come from unknown remote hosts (event directors paste any URL). Migrating would need either a wildcard `remotePatterns` (weakens SSRF hygiene) or per-image `unoptimized: true`. R4 hardened the raw `<img>` paths against non-http(s) schemes; the `next/image` migration is a separate follow-up.
 - **P4 — SearchMap fullscreen portal.** The fullscreen mode currently mounts a second Leaflet instance with duplicated tile requests. Portalling a single map node into a fullscreen container is a sizeable refactor with UI behavior implications (map center / zoom / active pin state coordination); left as a follow-up.
 - **CSP (H9 next step).** The site renders several inline `<style>` blocks (`HeroSearch`, `EventsSearch::InfoTooltip`, `parts.tsx` grid override). A strict `Content-Security-Policy` requires nonces on all inline styles. Introducing that requires touching a handful of components in coordination with the CSP rollout — deferred.
 - **Contact form modal focus trap.** Escape + body-scroll lock landed (H12). A full tab-cycle focus trap did NOT — Tab still escapes back into the underlying page. `next/dialog`-style trap would need a shared primitive; noted.
@@ -92,7 +105,9 @@ Items I flagged in AUDIT.md but chose to leave, with the reason:
 - **L4 — centralize env-var validation.** Five `process.env.NEXT_PUBLIC_SUPABASE_URL!` non-null assertions remain. A `getEnv()` helper would validate + parse; not urgent.
 - **L11 — unique constraint on `profiles.contact_email`.** Would need to reconcile any current duplicates first (data question for the operator).
 - **L14 — `.mcp.json` / `.agents/` inventory.** Ripped through the top-level scan; no obvious leaks. Full audit deferred.
-- **Pre-existing lint errors** — 4 `react-hooks/set-state-in-effect` errors and 4 unused-var warnings, all in code I didn't rewrite (`Header.tsx`, `EventSearchOverlay.tsx`, `ContactForm.tsx`, `EventsSearch.tsx`, and one dead-branch destructuring in the existing `contact-action.ts` deploy-order safety path). Fixing them requires the kind of `useEffect` rewrites that need behavioral verification I can't fully do without a preview.
+- **Login-timing side channel (hostile review #10 tail).** `signInWithPassword` on a nonexistent email vs. an existing-but-wrong-password email likely takes measurably different time (bcrypt path vs. no-hash short-circuit). Constant-time comparison at the Auth service layer isn't a Supabase config — it would need a proxy or a fake-bcrypt latency injector, both of which are out of scope for this refactor. Rate limits (H5+R1) bound how much timing signal is extractable.
+- **HIBP / zxcvbn integration (hostile review #6 tail).** The R6 block-list catches the fifty things people actually use but doesn't approach a real strength check. A follow-up commit could add either `zxcvbn` (client-only, ~400 KB) or an HIBP k-anonymity call from the server action; the operator can decide.
+- **Vercel-only IP header trust (hostile review #2 tail).** `lib/rate-limit.ts` trusts `x-vercel-forwarded-for` first. Not exploitable in a Vercel deployment (Vercel strips client-set copies of these headers), but if the app is ever put behind a different reverse proxy that appends rather than overwrites, per-IP limits go to 0. See "Remaining risks" #4 — the DB burst cap catches the overflow.
 
 ---
 
@@ -119,18 +134,28 @@ Promote each to a numbered migration under `supabase/migrations/` once approved.
 1. **The two proposals (H2, H3)** are the biggest still-open items. Until H2 lands, the tables listed above rely on Supabase's default zero-grant posture — safe today but one bad grant away from a leak. Until H3 lands, Storage policies live only in the Supabase Dashboard, undocumented in the migrations tree.
 2. **`npm audit` — 2 moderate CVEs**, both `postcss <8.5.10` reached transitively through `next 16.2.10`. The advisory (`GHSA-qx2v-qp2m-jg93` — XSS via unescaped `</style>` in Stringify output) affects `postcss` CSS generation from untrusted CSS input. This code path is only reached during build (`@tailwindcss/postcss` compiling authored Tailwind sources — no runtime user input), so real-world exposure is low, but a `next` patch release with an updated pin will close it.
 3. **Notification-prefs bulk opt-out (M16)** flipped every existing user to OFF. Users who genuinely wanted notifications will need to re-enable them via `/dashboard/account`.
-4. **Rate limit is in-process, not distributed.** `lib/rate-limit.ts` state is per-Vercel-serverless-instance. A distributed attack across IPs will still eat DB write cycles; the DB-side burst cap (H5) is the ceiling. Move to Upstash / Vercel KV for true distributed limits.
+4. **Rate limit is in-process, not distributed** (hostile review #2). `lib/rate-limit.ts` state is per-Vercel-serverless-instance — same-IP concurrent bursts across cold-start instances get admitted per-instance. The DB-side burst cap in H5 (post-R1 lockdown) is the ceiling: 60/min contact_requests globally, 1000/min search_queries. In practice this bounds legitimate abuse at 8,640 contact rows/day maximum, from any single distributed source. For real per-IP limits, wire Upstash / Vercel KV into the same helper.
 5. **CSP header not shipped** (see H9). All other security headers are in place; if a stored XSS ever slips past the C4 URL allow-list or a new user-content surface bypasses `safeExternalUrl`, browsers won't have a CSP net to catch it.
 6. **`SearchMap` doubles up on Leaflet in fullscreen (P4).** Twice the OSM tile fetch cost during fullscreen sessions. Deferred pending a portal refactor.
 7. **Migrations not verified against a fresh local reset.** I couldn't `supabase db reset --local` from here. The migrations typecheck (via syntax), the schema.sql concatenates correctly, and the code compiles + typechecks; running `supabase db reset --local` on your machine before shipping is the last belt-and-braces check.
+8. **schema.sql brittleness** (hostile review #11). The consolidated file works today because DROP + CREATE OR REPLACE of `get_event_directors` between migrations 000014 and 20260714100004 has no dependents. Add a view / policy that references the RPC's return type and the DROP will fail and abort the whole schema.sql. Regenerate with `bash scripts/build-schema.sh` after any migration change and diff the output before shipping.
+9. **Login timing enumeration** (hostile review #10 tail). `signInWithPassword` against a real email vs. a nonexistent one likely differs measurably (bcrypt vs. no-hash short-circuit). Not addressed here — needs an Auth-layer proxy that pads latency or a Postgres-level fake-bcrypt injection. Rate limits (H5+R1) cap how much signal is extractable per IP per unit time.
 
 ---
 
 ## Commit graph
 
-29 commits. Ordered severity-first, then modernize, then cleanup, then docs.
+Phase 1–4 (initial refactor): 29 commits. Phase 5 (lint cleanup + hostile-review remediation): 8 further commits. Ordered severity-first, then modernize, then cleanup, then docs.
 
 ```
+7079f0f sec(R6): neutral signup response + expanded password blocklist
+7fc1d27 sec(R5): server-derive event_title on contact-host submit
+b9bee17 sec(R4): apply safeImageSrc to every DB-derived <img src>
+818e9cf sec(R3): scope event_host_logos, get_director_profile, review_author_badges to event_director
+c79bcd9 sec(R2): lock down reviews INSERT column-by-column (block self-published Guru reviews)
+b4a367b sec(R1): close rate_limit_touch self-DoS
+92a882c fix: clear all 4 lint errors + 3 warnings; drop dead PromoStrips + promo prop
+417a1b4 docs: CHANGES.md — refactor summary, non-fixes, remaining risks
 873b995 chore: drop unused Image import and unused eslint-disable directives
 dc49bef docs: rewrite README and CLAUDE.md
 d85f785 chore(M4,L6,P5): rename anon-client factory, preserve overflow in Header, parallelize attach helpers
