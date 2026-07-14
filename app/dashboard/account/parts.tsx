@@ -566,8 +566,11 @@ function NotifRow({
   inappDefault: boolean | null;
   striped: boolean;
 }) {
-  const [emailOn, setEmailOn] = useState(emailDefault !== false);
-  const [inappOn, setInappOn] = useState(inappDefault !== false);
+  // Opt-in default: seed strictly from an explicit TRUE. A null or
+  // undefined server value stays OFF, so a user who never touched their
+  // prefs is never silently opted in.
+  const [emailOn, setEmailOn] = useState(emailDefault === true);
+  const [inappOn, setInappOn] = useState(inappDefault === true);
 
   return (
     <div
