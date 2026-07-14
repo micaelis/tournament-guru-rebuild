@@ -53,7 +53,7 @@ function useIsActive() {
   };
 }
 
-export function Header() {
+export function Header({ initialEmail = null }: { initialEmail?: string | null }) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
@@ -179,7 +179,7 @@ export function Header() {
           </nav>
 
           <div className="flex items-center gap-2.5">
-            <HeaderAuth />
+            <HeaderAuth initialEmail={initialEmail} />
             <button
               type="button"
               onClick={() => setMenuOpen((v) => !v)}

@@ -7,8 +7,13 @@ import { signOut } from "@/app/(auth)/actions";
 
 /**
  * Right-hand header slot that reflects auth state: a "Sign in" pill when logged
- * out, or the user's initial + "Log out" when signed in. Subscribes to auth
- * changes so it updates immediately after login/logout.
+ * out, or the user's initial + "Log out" when signed in.
+ *
+ * The initial value is derived server-side in the site layout and passed as
+ * `initialEmail`, so there is no client-side auth round-trip on first render
+ * and no flash of the wrong control. The client-side `onAuthStateChange`
+ * subscription only keeps the header in sync after login/logout during the
+ * current session.
  *
  * Logout uses the server action `signOut` (see `(auth)/actions.ts`) rather than
  * the browser client's `supabase.auth.signOut()` — the server action clears
@@ -16,16 +21,11 @@ import { signOut } from "@/app/(auth)/actions";
  * signup on a different email starts from a truly clean session instead of
  * leaking the previous user's server-side context.
  */
-export function HeaderAuth() {
-  const [email, setEmail] = useState<string | null>(null);
-  const [ready, setReady] = useState(false);
+export function HeaderAuth({ initialEmail }: { initialEmail: string | null }) {
+  const [email, setEmail] = useState<string | null>(initialEmail);
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => {
-      setEmail(data.user?.email ?? null);
-      setReady(true);
-    });
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -33,9 +33,6 @@ export function HeaderAuth() {
     });
     return () => subscription.unsubscribe();
   }, []);
-
-  // Reserve space until we know, to avoid a flash of the wrong control.
-  if (!ready) return <span style={{ width: 76, height: 32 }} aria-hidden="true" />;
 
   if (!email) {
     return (
