@@ -842,6 +842,30 @@ export async function getStats(): Promise<{
   try {
     const sb = createServerClient();
 
+    // Single-trip RPC: two counts + a COUNT(DISTINCT ...) computed in
+    // Postgres, so the homepage doesn't pull every event row just to
+    // dedupe grouping keys. Falls through to the pre-RPC path below
+    // if the RPC isn't deployed yet.
+    const { data: rpcRows, error: rpcErr } = await sb
+      .rpc("get_platform_stats")
+      .maybeSingle<{
+        events_count: number | string;
+        reviews_count: number | string;
+        tournaments_count: number | string;
+      }>();
+
+    if (!rpcErr && rpcRows) {
+      return {
+        data: {
+          eventsCount: Number(rpcRows.events_count ?? 0),
+          reviewsCount: Number(rpcRows.reviews_count ?? 0),
+          tournamentsCount: Number(rpcRows.tournaments_count ?? 0),
+        },
+        error: null,
+      };
+    }
+
+    // Fallback for the deploy window when the RPC isn't live yet.
     const [eventsRes, reviewsRes, tournamentsRes] = await Promise.all([
       sb
         .from("events")
@@ -851,9 +875,6 @@ export async function getStats(): Promise<{
         .from("reviews")
         .select("id", { count: "exact", head: true })
         .eq("published", true),
-      // "Tournaments" = distinct tournament series behind the live events.
-      // The event_profiles table isn't populated yet, so derive the count from
-      // the events' grouping key rather than a (currently empty) head-count.
       sb.from("events").select("event_profile_id").neq("status", "draft"),
     ]);
 
