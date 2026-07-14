@@ -2285,30 +2285,36 @@ end $$;
 
 -- ── 20260714100001_c1_lockdown_profiles_reviews_write_columns.sql ──────────────────────────────────────────
 -- =====================================================================
--- C1 — Privilege escalation lockdown on profiles + reviews updates
+-- C1 — Privilege escalation lockdown on profiles + reviews writes
 --
--- The old policies allowed any authenticated user to UPDATE *any* column on
--- their own row. That let a user run:
+-- The old policies allowed any authenticated user to UPDATE *any*
+-- column on their own row and INSERT reviews with any moderation
+-- flags set. That let a user run:
+--
 --   update profiles set user_type='admin' where id=auth.uid();
--- and be admin. Same shape on reviews let authors flip published /
--- guru_review / flagged on their own reviews.
+--   -- and now is_admin() returns true.
 --
--- Fix: column-level GRANTs. Column privileges are checked BEFORE RLS by
--- Postgres, so this is a hard cap independent of any USING/WITH CHECK
--- adjustments. The RLS policies stay unchanged (they still scope rows to
--- self) — this migration only narrows *which columns* the authenticated
--- role may write.
+--   insert into reviews (author_id, event_id, published, guru_review, ...)
+--   values (auth.uid(), '<any event>', true, true, ...);
+--   -- self-published review with the Guru badge, unmoderated.
+--
+-- Fix: column-level GRANTs on both UPDATE and INSERT. Column privileges
+-- are checked BEFORE RLS by Postgres, so this is a hard cap independent
+-- of any USING/WITH CHECK adjustments. The RLS policies still scope
+-- rows to self — this migration narrows *which columns* the
+-- authenticated role may write on both operations.
 --
 -- Admin / service-side flows keep working:
 --   * service_role bypasses column privileges and RLS.
 --   * No app code currently writes the revoked columns from an
 --     authenticated session; verified across app/(auth|onboarding),
 --     app/dashboard, lib/supabase/queries.ts.
---   * Future admin flows for guru_badge, user_type, etc. should go
---     through a SECURITY DEFINER RPC that checks is_admin() in its body.
+--   * Future admin flows for guru_badge, user_type, published,
+--     guru_review, etc. should go through a SECURITY DEFINER RPC that
+--     checks is_admin() in its body.
 --
--- Rollback: `grant update on public.profiles to authenticated;`
---           `grant update on public.reviews  to authenticated;`
+-- Rollback: `grant update, insert on public.profiles, public.reviews
+--            to authenticated;`
 -- =====================================================================
 
 -- ── profiles ────────────────────────────────────────────────────────
@@ -2415,6 +2421,58 @@ create policy "reviews: author update"
       and flagged = (select r.flagged from public.reviews r where r.id = reviews.id)
     )
   );
+
+-- ── reviews INSERT lockdown ─────────────────────────────────────────
+-- Supabase's default Data API grants often include INSERT on public
+-- tables to `authenticated`; without this revoke a user could POST to
+-- /rest/v1/reviews with published=true, guru_review=true. Column-level
+-- INSERT grants keep moderation fields at their table defaults, and
+-- the policy WITH CHECK enforces the same invariant.
+revoke insert on public.reviews from authenticated;
+revoke insert on public.reviews from public;
+
+-- Author-safe insertable columns. Explicitly OMIT:
+--   • `id` (default),
+--   • `event_owner_id` (denormalized from events.owner_id — set by a
+--     trigger or the moderator; excluded from authenticated insert),
+--   • `published`, `guru_review`, `flagged` — moderation only,
+--   • `has_promo_code`, `promo_code`, `step` — system,
+--   • `username_search`, `user_email` — PII / derived (see C3),
+--   • `created_at`, `updated_at` — timestamps.
+grant insert (
+  event_id,
+  author_id,
+  username,
+  user_club,
+  user_role,
+  review_title,
+  review_body,
+  team1, team2, team3,
+  team_age, team_gender,
+  overall_rating,
+  facilities_rating,
+  fields_rating,
+  management_rating,
+  cost_value_rating,
+  competition_rating,
+  diversity_rating
+) on public.reviews to authenticated;
+
+drop policy if exists "reviews: author insert" on public.reviews;
+create policy "reviews: author insert"
+  on public.reviews for insert
+  with check (
+    author_id = auth.uid()
+    -- Moderation fields must land at their table-default values on
+    -- creation. `published` starts false (moderator publishes later),
+    -- `guru_review` is admin-only, `flagged` starts false.
+    and (published is null or published = false)
+    and (guru_review is null or guru_review = false)
+    and (flagged is null or flagged = false)
+  );
+
+comment on policy "reviews: author insert" on public.reviews is
+  'Author may insert reviews as themselves. Moderation fields (published/guru_review/flagged) are pinned to their defaults; column-level INSERT grants also exclude those columns as belt-and-braces.';
 
 -- ── 20260714100002_c2_enable_rls_cards_promo_codes.sql ──────────────────────────────────────────
 -- =====================================================================
@@ -2527,7 +2585,7 @@ returns table (
 language sql
 stable
 security definer
-set search_path = public
+set search_path = public, pg_temp
 as $$
   with base as (
     select
@@ -2693,6 +2751,16 @@ alter view public.event_host_logos    set (security_invoker = false);
 -- Emits SQLSTATE '22023' (invalid_parameter_value) which PostgREST
 -- surfaces as HTTP 400 — the app already treats any error as "logging
 -- best-effort".
+--
+-- CRITICAL: `rate_limit_touch` must NOT be granted EXECUTE to `anon` or
+-- `authenticated`. Direct callers could poison the per-minute counter
+-- (`select rate_limit_touch('search_queries', 999999999)` ×1001) so
+-- legitimate inserts hit the cap and are rejected — a global-shutoff
+-- DoS on both anon endpoints. The two trigger wrappers below are
+-- themselves SECURITY DEFINER so their internal call works without
+-- the caller needing EXECUTE. Belt-and-braces: rate_limit_touch also
+-- whitelists the bucket + p_limit range inline, so a widened grant
+-- can't be abused with arbitrary parameters.
 -- =====================================================================
 
 -- Rolling per-minute counter. `bucket` is the table name; `window_start`
@@ -2723,8 +2791,11 @@ as $$
   where window_start < now() - interval '1 hour';
 $$;
 
--- Global per-minute cap enforcer. Bumps the current-minute counter
--- for a bucket and raises if it would exceed `p_limit`.
+-- Global per-minute cap enforcer. Bumps the current-minute counter for
+-- a bucket and raises if it would exceed `p_limit`.
+--
+-- Callable ONLY from the trigger wrappers below (which are SECURITY
+-- DEFINER themselves). Anon/authenticated must never have EXECUTE.
 create or replace function public.rate_limit_touch(
   p_bucket text,
   p_limit  int
@@ -2738,6 +2809,23 @@ declare
   v_window  timestamptz := date_trunc('minute', now());
   v_hits    int;
 begin
+  -- Only the two buckets the triggers use are valid. Any other value
+  -- is a bug or an attack — refuse loudly.
+  if p_bucket not in ('search_queries', 'contact_requests') then
+    raise exception 'rate_limit_touch: unknown bucket %', p_bucket
+      using errcode = '22023';
+  end if;
+
+  -- Cap the limit range so a caller can't ask for unlimited headroom
+  -- and silence the burst cap. The real per-bucket ceilings are baked
+  -- into the trigger callers (search_queries → 1000, contact_requests
+  -- → 60). A p_limit outside this range is a signal the caller isn't
+  -- one of ours.
+  if p_limit is null or p_limit < 1 or p_limit > 10000 then
+    raise exception 'rate_limit_touch: p_limit out of range: %', p_limit
+      using errcode = '22023';
+  end if;
+
   insert into public.rate_limit_windows (bucket, window_start, hits)
   values (p_bucket, v_window, 1)
   on conflict (bucket, window_start)
@@ -2751,9 +2839,14 @@ begin
 end;
 $$;
 
--- Anon can call the touch function (that's the whole point — it's the
--- gate). It only writes to the counter table.
-grant execute on function public.rate_limit_touch(text, int) to anon, authenticated;
+-- Postgres grants EXECUTE to PUBLIC on every new function; strip it so
+-- neither anon nor authenticated inherit it.
+revoke execute on function public.rate_limit_touch(text, int) from public;
+revoke execute on function public.rate_limit_touch(text, int) from anon;
+revoke execute on function public.rate_limit_touch(text, int) from authenticated;
+
+comment on function public.rate_limit_touch(text, int) is
+  'DB-side burst counter. Callable only from the two trigger functions on search_queries / contact_requests (both SECURITY DEFINER). Never re-grant EXECUTE to anon/authenticated — direct-caller access enables a self-DoS by poisoning the per-minute counter.';
 
 -- ── Search log burst cap ────────────────────────────────────────────
 -- 1000 inserts/minute globally. Legit hero-search traffic sits at
@@ -2949,162 +3042,173 @@ $$;
 
 grant execute on function public.get_platform_stats() to anon, authenticated;
 
--- ── 20260714110001_r1_rate_limit_touch_lockdown.sql ──────────────────────────────────────────
+-- ── 20260714100013_pg17_search_path_hardening.sql ──────────────────────────────────────────
 -- =====================================================================
--- R1 — Close the rate_limit_touch self-DoS
+-- PG17 search_path hardening for pre-existing SECURITY DEFINER functions
 --
--- Hostile-review finding: `rate_limit_touch(text, int)` was granted
--- EXECUTE to `anon` and `authenticated`. Any anon key holder could:
+-- The historical migrations (000001, 000003, 000011, 000014, 000017)
+-- declared SECURITY DEFINER functions with `SET search_path = public`.
+-- That resolves the schema correctly but doesn't include `pg_temp` —
+-- a hostile session could `CREATE TEMP FUNCTION public.some_name(...)`
+-- and see it preferred over the real `public.some_name` during the
+-- DEFINER call. Adding `pg_temp` LAST in the search_path pins temp
+-- resolution to a schema Postgres owns.
 --
---   1. Poison the counter for a given bucket by calling
---      `select rate_limit_touch('search_queries', 999999999)` 1001x —
---      the counter for the current minute ticks past 1000, and the
---      very next legitimate insert into `search_queries` fires the
---      trigger (limit=1000) which now raises. Bucket is DoS'd for the
---      rest of the minute. Repeat forever. Same for `contact_requests`.
---   2. Insert arbitrary bucket names to grow `rate_limit_windows`
---      without bound.
+-- Impact on PG17 specifically: PG16+ tightened `search_path` handling
+-- for DEFINER functions and Supabase Advisors now flags any DEFINER
+-- without `pg_temp` in its path. This migration removes those flags
+-- and closes the (small) temp-schema hijack vector.
 --
--- Fix: revoke EXECUTE from `anon` and `authenticated`. The trigger
--- functions (`trg_search_queries_rate_limit`, `trg_contact_requests_
--- rate_limit`) are themselves SECURITY DEFINER, so their internal
--- `perform rate_limit_touch(...)` call runs with the trigger's own
--- privileges — not the invoker's. Revoking the direct grant closes
--- the exploit without breaking the triggers.
---
--- Defense in depth: also whitelist `p_bucket` inside the function so
--- even if a future migration re-grants EXECUTE, arbitrary bucket names
--- and inflated limits are rejected.
+-- Uses ALTER FUNCTION rather than CREATE OR REPLACE so we don't need
+-- to duplicate each function body here.
 -- =====================================================================
 
-revoke execute on function public.rate_limit_touch(text, int) from anon;
-revoke execute on function public.rate_limit_touch(text, int) from authenticated;
--- PUBLIC gets EXECUTE on every new function by default; also strip it.
-revoke execute on function public.rate_limit_touch(text, int) from public;
+alter function public.is_admin()
+  set search_path = public, pg_temp;
 
-create or replace function public.rate_limit_touch(
-  p_bucket text,
-  p_limit  int
-)
-returns void
-language plpgsql
-security definer
-set search_path = public, pg_temp
-as $$
-declare
-  v_window  timestamptz := date_trunc('minute', now());
-  v_hits    int;
-begin
-  -- Only the two buckets the triggers use are valid. Any other value
-  -- is a bug or an attack; refuse loudly.
-  if p_bucket not in ('search_queries', 'contact_requests') then
-    raise exception 'rate_limit_touch: unknown bucket %', p_bucket
-      using errcode = '22023';
-  end if;
+alter function public.handle_new_user()
+  set search_path = public, pg_temp;
 
-  -- Cap the limit range so a caller can't ask for effectively unlimited
-  -- headroom. The real per-bucket ceilings live in the trigger callers
-  -- (search_queries → 1000, contact_requests → 60); accepting anything
-  -- outside a sane range is a defense-in-depth signal that the caller
-  -- is not one of our triggers.
-  if p_limit is null or p_limit < 1 or p_limit > 10000 then
-    raise exception 'rate_limit_touch: p_limit out of range: %', p_limit
-      using errcode = '22023';
-  end if;
+alter function public.needs_password_setup(text)
+  set search_path = public, pg_temp;
 
-  insert into public.rate_limit_windows (bucket, window_start, hits)
-  values (p_bucket, v_window, 1)
-  on conflict (bucket, window_start)
-    do update set hits = rate_limit_windows.hits + 1
-  returning hits into v_hits;
+alter function public.get_event_review_counts(uuid[])
+  set search_path = public, pg_temp;
 
-  if v_hits > p_limit then
-    raise exception 'rate limit exceeded for %', p_bucket
-      using errcode = '22023';
-  end if;
-end;
-$$;
+alter function public.get_director_profile(uuid)
+  set search_path = public, pg_temp;
 
-comment on function public.rate_limit_touch(text, int) is
-  'DB-side burst counter. Callable only from the two trigger functions on search_queries / contact_requests (both SECURITY DEFINER). Never re-grant EXECUTE to anon/authenticated — direct-caller access enables a self-DoS by poisoning the per-minute counter.';
+-- get_event_directors was recreated in 20260714100004 with search_path
+-- already including pg_temp; the ALTER above touching it a second time
+-- is a no-op.
 
--- ── 20260714110002_r2_reviews_insert_column_lockdown.sql ──────────────────────────────────────────
+-- ── 20260714100014_h2_rls_on_remaining_tables.sql ──────────────────────────────────────────
 -- =====================================================================
--- R2 — Lock down reviews INSERT the same way UPDATE was locked in C1
+-- H2 — Enable RLS on remaining public tables
 --
--- Hostile-review finding: C1 (`20260714100001`) revoked/re-granted
--- UPDATE on `reviews` column-by-column so authors can't flip
--- `published`, `guru_review`, or `flagged` on their own reviews. But
--- the INSERT side was untouched — `reviews: author insert` policy only
--- checks `author_id = auth.uid()`, and Supabase's Data API grants
--- INSERT-on-all-tables to `authenticated` by default. An attacker with
--- an authenticated JWT could:
+-- Promoted from supabase/proposals/h2_rls_on_remaining_tables.sql after
+-- operator sign-off. All three open questions resolved:
 --
---   insert into reviews (author_id, event_id, review_title, review_body,
---                        published, guru_review, flagged, overall_rating)
---   values (auth.uid(), '<any event id>', 'Fake', '...', true, true, false, 5);
+--   Q1. Admin bulk-edit of event child tables outside the event owner
+--       → SHIP AS `owner OR is_admin()` write everywhere. Consistent
+--         with Q1 answer + belt-and-braces for admin flows we haven't
+--         written yet. `is_admin()` is a fast helper that returns
+--         false for non-admins.
 --
--- Result: self-published review with the "Guru" badge, no moderation.
+--   Q2. `event_age_groups.price` — verified no Bubble import or
+--       pg_cron job writes it as `anon` (grep 2026-07-14 across
+--       supabase/, .agents/ finds only doc comments; no scheduled
+--       cron.schedule anywhere). SHIP AS owner OR is_admin() write.
 --
--- Fix — same shape as C1:
---   1. Revoke INSERT on reviews from authenticated / PUBLIC.
---   2. Re-grant INSERT column-by-column, excluding the moderation
---      fields (published, guru_review, flagged) and system fields
---      (has_promo_code, promo_code, step, username_search, user_email,
---      event_owner_id — the trigger sets that from the event).
---   3. Belt-and-braces: the insert policy now WITH CHECKs the
---      moderation defaults so even a widened grant can't create a
---      published/guru-branded row.
+--   Q3. Testimonials are curated admin marketing content only. If UGC
+--       testimonials are ever added they go in a separate
+--       user_testimonials table with its own moderation pipeline.
+--       SHIP AS admin write only.
 --
--- Service role bypasses both grants and RLS, so admin flows keep
--- working (that's how a moderator publishes/flags on server actions).
+-- Tables in scope:
+--   • event_ages / event_genders / event_fields / event_features /
+--     event_competition_levels / event_age_groups
+--   • sponsors
+--   • event_profiles
+--   • testimonials
+--   • submitted_csvs
+--   • recently_viewed
+--   • profile_age_prefs
+--
+-- Rollback: `alter table … disable row level security;` per table.
 -- =====================================================================
 
-revoke insert on public.reviews from authenticated;
-revoke insert on public.reviews from public;
+-- ── Event child tables: read follows event visibility, write scoped to owner ──
 
--- Author-safe insertable columns. Explicitly OMIT: `id` (default),
--- `event_owner_id` (denormalized from events.owner_id — set by a
--- trigger if any, or by the caller from lookup; safer to exclude from
--- authenticated insert and let it default null / be set server-side),
--- `published`, `guru_review`, `flagged`, `has_promo_code`, `promo_code`,
--- `step`, `username_search`, `user_email`, `created_at`, `updated_at`.
-grant insert (
-  event_id,
-  author_id,
-  username,
-  user_club,
-  user_role,
-  review_title,
-  review_body,
-  team1, team2, team3,
-  team_age, team_gender,
-  overall_rating,
-  facilities_rating,
-  fields_rating,
-  management_rating,
-  cost_value_rating,
-  competition_rating,
-  diversity_rating
-) on public.reviews to authenticated;
-
--- Tighten the insert policy: even if a future migration widens the
--- column grants, moderation fields must land at their defaults.
-drop policy if exists "reviews: author insert" on public.reviews;
-create policy "reviews: author insert"
-  on public.reviews for insert
+alter table public.event_ages enable row level security;
+create policy "event_ages: read via event"
+  on public.event_ages for select
+  using (
+    exists (
+      select 1 from public.events e
+      where e.id = event_ages.event_id
+        and (e.status <> 'draft' or e.owner_id = auth.uid() or is_admin())
+    )
+  );
+create policy "event_ages: owner write"
+  on public.event_ages for all
+  using (
+    exists (select 1 from public.events e where e.id = event_ages.event_id and (e.owner_id = auth.uid() or is_admin()))
+  )
   with check (
-    author_id = auth.uid()
-    -- Moderation fields must be at their table-default values on
-    -- creation. `published` starts false (moderator publishes later);
-    -- `guru_review` is set by admin promotion; `flagged` starts false.
-    and (published is null or published = false)
-    and (guru_review is null or guru_review = false)
-    and (flagged is null or flagged = false)
+    exists (select 1 from public.events e where e.id = event_ages.event_id and (e.owner_id = auth.uid() or is_admin()))
   );
 
-comment on policy "reviews: author insert" on public.reviews is
-  'Author may insert reviews as themselves. Moderation fields (published/guru_review/flagged) are pinned to their defaults; column-level INSERT grants also exclude those columns as belt-and-braces.';
+alter table public.event_genders enable row level security;
+create policy "event_genders: read via event"  on public.event_genders  for select using (exists (select 1 from public.events e where e.id = event_genders.event_id  and (e.status <> 'draft' or e.owner_id = auth.uid() or is_admin())));
+create policy "event_genders: owner write"     on public.event_genders  for all    using (exists (select 1 from public.events e where e.id = event_genders.event_id  and (e.owner_id = auth.uid() or is_admin()))) with check (exists (select 1 from public.events e where e.id = event_genders.event_id  and (e.owner_id = auth.uid() or is_admin())));
+
+alter table public.event_fields enable row level security;
+create policy "event_fields: read via event"   on public.event_fields   for select using (exists (select 1 from public.events e where e.id = event_fields.event_id   and (e.status <> 'draft' or e.owner_id = auth.uid() or is_admin())));
+create policy "event_fields: owner write"      on public.event_fields   for all    using (exists (select 1 from public.events e where e.id = event_fields.event_id   and (e.owner_id = auth.uid() or is_admin()))) with check (exists (select 1 from public.events e where e.id = event_fields.event_id   and (e.owner_id = auth.uid() or is_admin())));
+
+alter table public.event_features enable row level security;
+create policy "event_features: read via event" on public.event_features for select using (exists (select 1 from public.events e where e.id = event_features.event_id and (e.status <> 'draft' or e.owner_id = auth.uid() or is_admin())));
+create policy "event_features: owner write"    on public.event_features for all    using (exists (select 1 from public.events e where e.id = event_features.event_id and (e.owner_id = auth.uid() or is_admin()))) with check (exists (select 1 from public.events e where e.id = event_features.event_id and (e.owner_id = auth.uid() or is_admin())));
+
+alter table public.event_competition_levels enable row level security;
+create policy "event_competition_levels: read via event" on public.event_competition_levels for select using (exists (select 1 from public.events e where e.id = event_competition_levels.event_id and (e.status <> 'draft' or e.owner_id = auth.uid() or is_admin())));
+create policy "event_competition_levels: owner write"    on public.event_competition_levels for all    using (exists (select 1 from public.events e where e.id = event_competition_levels.event_id and (e.owner_id = auth.uid() or is_admin()))) with check (exists (select 1 from public.events e where e.id = event_competition_levels.event_id and (e.owner_id = auth.uid() or is_admin())));
+
+alter table public.event_age_groups enable row level security;
+create policy "event_age_groups: read via event" on public.event_age_groups for select using (exists (select 1 from public.events e where e.id = event_age_groups.event_id and (e.status <> 'draft' or e.owner_id = auth.uid() or is_admin())));
+create policy "event_age_groups: owner write"    on public.event_age_groups for all    using (exists (select 1 from public.events e where e.id = event_age_groups.event_id and (e.owner_id = auth.uid() or is_admin()))) with check (exists (select 1 from public.events e where e.id = event_age_groups.event_id and (e.owner_id = auth.uid() or is_admin())));
+
+-- ── Sponsors: readable under public event, writable by owner ──
+alter table public.sponsors enable row level security;
+create policy "sponsors: read via event"
+  on public.sponsors for select
+  using (
+    exists (
+      select 1 from public.events e
+      where e.id = sponsors.event_id
+        and (e.status <> 'draft' or e.owner_id = auth.uid() or is_admin())
+    )
+  );
+create policy "sponsors: owner write"
+  on public.sponsors for all
+  using (exists (select 1 from public.events e where e.id = sponsors.event_id and (e.owner_id = auth.uid() or is_admin())))
+  with check (exists (select 1 from public.events e where e.id = sponsors.event_id and (e.owner_id = auth.uid() or is_admin())));
+
+-- ── Event profiles: marketing reads it (public), owner writes ──
+alter table public.event_profiles enable row level security;
+create policy "event_profiles: public read" on public.event_profiles for select using (true);
+create policy "event_profiles: owner write" on public.event_profiles for all
+  using (owner_id = auth.uid() or is_admin())
+  with check (owner_id = auth.uid() or is_admin());
+
+-- ── Testimonials: homepage marketing, admin-managed ──
+alter table public.testimonials enable row level security;
+create policy "testimonials: public read" on public.testimonials for select using (true);
+create policy "testimonials: admin write" on public.testimonials for all
+  using (is_admin()) with check (is_admin());
+
+-- ── Submitted CSVs: author-visible only, admin sees all ──
+alter table public.submitted_csvs enable row level security;
+create policy "submitted_csvs: self read"
+  on public.submitted_csvs for select
+  using (uploader_id = auth.uid() or is_admin());
+-- No insert/update policy from authenticated: CSV uploads happen
+-- server-side via service_role (see docs/CUTOVER-CHECKLIST.md).
+
+-- ── Recently viewed: fully self-scoped ──
+alter table public.recently_viewed enable row level security;
+create policy "recently_viewed: self read"  on public.recently_viewed for select using (profile_id = auth.uid());
+create policy "recently_viewed: self write" on public.recently_viewed for all
+  using (profile_id = auth.uid())
+  with check (profile_id = auth.uid());
+
+-- ── Profile age prefs: fully self-scoped ──
+alter table public.profile_age_prefs enable row level security;
+create policy "profile_age_prefs: self read"  on public.profile_age_prefs for select using (profile_id = auth.uid());
+create policy "profile_age_prefs: self write" on public.profile_age_prefs for all
+  using (profile_id = auth.uid())
+  with check (profile_id = auth.uid());
 
 -- ── 20260714110003_r3_scope_admin_match_in_definer_surfaces.sql ──────────────────────────────────────────
 -- =====================================================================

@@ -32,7 +32,7 @@ returns table (
 language sql
 stable
 security definer
-set search_path = public
+set search_path = public, pg_temp
 as $$
   with base as (
     select

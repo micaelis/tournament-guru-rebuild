@@ -1,57 +1,37 @@
 -- =====================================================================
--- PROPOSAL — H2 · Enable RLS on remaining public tables
+-- H2 — Enable RLS on remaining public tables
 --
--- Status: DRAFT. Not applied. Review before promoting to a numbered
--- migration under supabase/migrations/.
+-- Promoted from supabase/proposals/h2_rls_on_remaining_tables.sql after
+-- operator sign-off. All three open questions resolved:
 --
--- Motivation
--- ----------
--- The following tables were created without RLS enabled. Supabase does
--- not grant `anon/authenticated` default privileges on the `public`
--- schema, so today they aren't reachable — but every one of them is a
--- footgun waiting for the first permissive grant. Enabling RLS + a
--- narrow policy set now means we don't rely on grant hygiene forever.
+--   Q1. Admin bulk-edit of event child tables outside the event owner
+--       → SHIP AS `owner OR is_admin()` write everywhere. Consistent
+--         with Q1 answer + belt-and-braces for admin flows we haven't
+--         written yet. `is_admin()` is a fast helper that returns
+--         false for non-admins.
+--
+--   Q2. `event_age_groups.price` — verified no Bubble import or
+--       pg_cron job writes it as `anon` (grep 2026-07-14 across
+--       supabase/, .agents/ finds only doc comments; no scheduled
+--       cron.schedule anywhere). SHIP AS owner OR is_admin() write.
+--
+--   Q3. Testimonials are curated admin marketing content only. If UGC
+--       testimonials are ever added they go in a separate
+--       user_testimonials table with its own moderation pipeline.
+--       SHIP AS admin write only.
 --
 -- Tables in scope:
 --   • event_ages / event_genders / event_fields / event_features /
 --     event_competition_levels / event_age_groups
---       — child tables of `events`. Reads should follow the event's
---         own visibility (non-draft OR owner OR admin). Writes should
---         be limited to the event's owner or an admin.
 --   • sponsors
---       — visible under a public event; writable only by the event
---         owner or an admin.
 --   • event_profiles
---       — recurring-tournament parents. Marketing surfaces read them.
---         Writes: owner or admin.
 --   • testimonials
---       — homepage marketing content. Public read. Admin write.
 --   • submitted_csvs
---       — CSV imports for promo codes. Author read only, no anon
---         read. Writes via service_role.
 --   • recently_viewed
---       — per-user browsing history. Self read/write only.
 --   • profile_age_prefs
---       — per-user preferences. Self read/write only.
 --
--- Open questions before promoting to a real migration
--- ---------------------------------------------------
--- 1. Do admins ever need to bulk-edit an event's child tables outside
---    the event owner? (If yes, they'd currently use service_role via
---    a server action — no policy change needed.)
--- 2. `event_age_groups.price` — locking this behind owner-only writes
---    is the correct security posture, but confirm no legacy Bubble
---    import scripts write these as `anon`.
--- 3. Are testimonials ever intended for user-submitted content? If so
---    the write policy needs adjusting.
---
--- Rollback: `alter table … disable row level security;`.
+-- Rollback: `alter table … disable row level security;` per table.
 -- =====================================================================
-
--- ── Helper predicate ────────────────────────────────────────────────
--- Whether the current user owns the event, or is admin.
--- (Duplicated from the base_schema convention rather than a shared
--- function so this file drops in independently.)
 
 -- ── Event child tables: read follows event visibility, write scoped to owner ──
 
@@ -74,7 +54,6 @@ create policy "event_ages: owner write"
     exists (select 1 from public.events e where e.id = event_ages.event_id and (e.owner_id = auth.uid() or is_admin()))
   );
 
--- Repeat the same shape for the other event child tables.
 alter table public.event_genders enable row level security;
 create policy "event_genders: read via event"  on public.event_genders  for select using (exists (select 1 from public.events e where e.id = event_genders.event_id  and (e.status <> 'draft' or e.owner_id = auth.uid() or is_admin())));
 create policy "event_genders: owner write"     on public.event_genders  for all    using (exists (select 1 from public.events e where e.id = event_genders.event_id  and (e.owner_id = auth.uid() or is_admin()))) with check (exists (select 1 from public.events e where e.id = event_genders.event_id  and (e.owner_id = auth.uid() or is_admin())));
@@ -129,7 +108,8 @@ alter table public.submitted_csvs enable row level security;
 create policy "submitted_csvs: self read"
   on public.submitted_csvs for select
   using (uploader_id = auth.uid() or is_admin());
--- No insert policy from authenticated: uploads happen via service role.
+-- No insert/update policy from authenticated: CSV uploads happen
+-- server-side via service_role (see docs/CUTOVER-CHECKLIST.md).
 
 -- ── Recently viewed: fully self-scoped ──
 alter table public.recently_viewed enable row level security;

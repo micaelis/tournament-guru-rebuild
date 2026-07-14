@@ -13,6 +13,16 @@
 -- Emits SQLSTATE '22023' (invalid_parameter_value) which PostgREST
 -- surfaces as HTTP 400 — the app already treats any error as "logging
 -- best-effort".
+--
+-- CRITICAL: `rate_limit_touch` must NOT be granted EXECUTE to `anon` or
+-- `authenticated`. Direct callers could poison the per-minute counter
+-- (`select rate_limit_touch('search_queries', 999999999)` ×1001) so
+-- legitimate inserts hit the cap and are rejected — a global-shutoff
+-- DoS on both anon endpoints. The two trigger wrappers below are
+-- themselves SECURITY DEFINER so their internal call works without
+-- the caller needing EXECUTE. Belt-and-braces: rate_limit_touch also
+-- whitelists the bucket + p_limit range inline, so a widened grant
+-- can't be abused with arbitrary parameters.
 -- =====================================================================
 
 -- Rolling per-minute counter. `bucket` is the table name; `window_start`
@@ -43,8 +53,11 @@ as $$
   where window_start < now() - interval '1 hour';
 $$;
 
--- Global per-minute cap enforcer. Bumps the current-minute counter
--- for a bucket and raises if it would exceed `p_limit`.
+-- Global per-minute cap enforcer. Bumps the current-minute counter for
+-- a bucket and raises if it would exceed `p_limit`.
+--
+-- Callable ONLY from the trigger wrappers below (which are SECURITY
+-- DEFINER themselves). Anon/authenticated must never have EXECUTE.
 create or replace function public.rate_limit_touch(
   p_bucket text,
   p_limit  int
@@ -58,6 +71,23 @@ declare
   v_window  timestamptz := date_trunc('minute', now());
   v_hits    int;
 begin
+  -- Only the two buckets the triggers use are valid. Any other value
+  -- is a bug or an attack — refuse loudly.
+  if p_bucket not in ('search_queries', 'contact_requests') then
+    raise exception 'rate_limit_touch: unknown bucket %', p_bucket
+      using errcode = '22023';
+  end if;
+
+  -- Cap the limit range so a caller can't ask for unlimited headroom
+  -- and silence the burst cap. The real per-bucket ceilings are baked
+  -- into the trigger callers (search_queries → 1000, contact_requests
+  -- → 60). A p_limit outside this range is a signal the caller isn't
+  -- one of ours.
+  if p_limit is null or p_limit < 1 or p_limit > 10000 then
+    raise exception 'rate_limit_touch: p_limit out of range: %', p_limit
+      using errcode = '22023';
+  end if;
+
   insert into public.rate_limit_windows (bucket, window_start, hits)
   values (p_bucket, v_window, 1)
   on conflict (bucket, window_start)
@@ -71,9 +101,14 @@ begin
 end;
 $$;
 
--- Anon can call the touch function (that's the whole point — it's the
--- gate). It only writes to the counter table.
-grant execute on function public.rate_limit_touch(text, int) to anon, authenticated;
+-- Postgres grants EXECUTE to PUBLIC on every new function; strip it so
+-- neither anon nor authenticated inherit it.
+revoke execute on function public.rate_limit_touch(text, int) from public;
+revoke execute on function public.rate_limit_touch(text, int) from anon;
+revoke execute on function public.rate_limit_touch(text, int) from authenticated;
+
+comment on function public.rate_limit_touch(text, int) is
+  'DB-side burst counter. Callable only from the two trigger functions on search_queries / contact_requests (both SECURITY DEFINER). Never re-grant EXECUTE to anon/authenticated — direct-caller access enables a self-DoS by poisoning the per-minute counter.';
 
 -- ── Search log burst cap ────────────────────────────────────────────
 -- 1000 inserts/minute globally. Legit hero-search traffic sits at

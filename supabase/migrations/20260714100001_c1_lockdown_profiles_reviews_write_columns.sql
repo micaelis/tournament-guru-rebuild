@@ -1,28 +1,34 @@
 -- =====================================================================
--- C1 — Privilege escalation lockdown on profiles + reviews updates
+-- C1 — Privilege escalation lockdown on profiles + reviews writes
 --
--- The old policies allowed any authenticated user to UPDATE *any* column on
--- their own row. That let a user run:
+-- The old policies allowed any authenticated user to UPDATE *any*
+-- column on their own row and INSERT reviews with any moderation
+-- flags set. That let a user run:
+--
 --   update profiles set user_type='admin' where id=auth.uid();
--- and be admin. Same shape on reviews let authors flip published /
--- guru_review / flagged on their own reviews.
+--   -- and now is_admin() returns true.
 --
--- Fix: column-level GRANTs. Column privileges are checked BEFORE RLS by
--- Postgres, so this is a hard cap independent of any USING/WITH CHECK
--- adjustments. The RLS policies stay unchanged (they still scope rows to
--- self) — this migration only narrows *which columns* the authenticated
--- role may write.
+--   insert into reviews (author_id, event_id, published, guru_review, ...)
+--   values (auth.uid(), '<any event>', true, true, ...);
+--   -- self-published review with the Guru badge, unmoderated.
+--
+-- Fix: column-level GRANTs on both UPDATE and INSERT. Column privileges
+-- are checked BEFORE RLS by Postgres, so this is a hard cap independent
+-- of any USING/WITH CHECK adjustments. The RLS policies still scope
+-- rows to self — this migration narrows *which columns* the
+-- authenticated role may write on both operations.
 --
 -- Admin / service-side flows keep working:
 --   * service_role bypasses column privileges and RLS.
 --   * No app code currently writes the revoked columns from an
 --     authenticated session; verified across app/(auth|onboarding),
 --     app/dashboard, lib/supabase/queries.ts.
---   * Future admin flows for guru_badge, user_type, etc. should go
---     through a SECURITY DEFINER RPC that checks is_admin() in its body.
+--   * Future admin flows for guru_badge, user_type, published,
+--     guru_review, etc. should go through a SECURITY DEFINER RPC that
+--     checks is_admin() in its body.
 --
--- Rollback: `grant update on public.profiles to authenticated;`
---           `grant update on public.reviews  to authenticated;`
+-- Rollback: `grant update, insert on public.profiles, public.reviews
+--            to authenticated;`
 -- =====================================================================
 
 -- ── profiles ────────────────────────────────────────────────────────
@@ -129,3 +135,55 @@ create policy "reviews: author update"
       and flagged = (select r.flagged from public.reviews r where r.id = reviews.id)
     )
   );
+
+-- ── reviews INSERT lockdown ─────────────────────────────────────────
+-- Supabase's default Data API grants often include INSERT on public
+-- tables to `authenticated`; without this revoke a user could POST to
+-- /rest/v1/reviews with published=true, guru_review=true. Column-level
+-- INSERT grants keep moderation fields at their table defaults, and
+-- the policy WITH CHECK enforces the same invariant.
+revoke insert on public.reviews from authenticated;
+revoke insert on public.reviews from public;
+
+-- Author-safe insertable columns. Explicitly OMIT:
+--   • `id` (default),
+--   • `event_owner_id` (denormalized from events.owner_id — set by a
+--     trigger or the moderator; excluded from authenticated insert),
+--   • `published`, `guru_review`, `flagged` — moderation only,
+--   • `has_promo_code`, `promo_code`, `step` — system,
+--   • `username_search`, `user_email` — PII / derived (see C3),
+--   • `created_at`, `updated_at` — timestamps.
+grant insert (
+  event_id,
+  author_id,
+  username,
+  user_club,
+  user_role,
+  review_title,
+  review_body,
+  team1, team2, team3,
+  team_age, team_gender,
+  overall_rating,
+  facilities_rating,
+  fields_rating,
+  management_rating,
+  cost_value_rating,
+  competition_rating,
+  diversity_rating
+) on public.reviews to authenticated;
+
+drop policy if exists "reviews: author insert" on public.reviews;
+create policy "reviews: author insert"
+  on public.reviews for insert
+  with check (
+    author_id = auth.uid()
+    -- Moderation fields must land at their table-default values on
+    -- creation. `published` starts false (moderator publishes later),
+    -- `guru_review` is admin-only, `flagged` starts false.
+    and (published is null or published = false)
+    and (guru_review is null or guru_review = false)
+    and (flagged is null or flagged = false)
+  );
+
+comment on policy "reviews: author insert" on public.reviews is
+  'Author may insert reviews as themselves. Moderation fields (published/guru_review/flagged) are pinned to their defaults; column-level INSERT grants also exclude those columns as belt-and-braces.';
