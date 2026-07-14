@@ -140,7 +140,7 @@ function LogoThumb({ logo, title }: { logo: string | null; title: string }) {
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={logo}
-          alt=""
+          alt={`${title} logo`}
           loading="lazy"
           style={{
             position: "absolute",
@@ -188,13 +188,28 @@ export function EventSearchOverlay({
   initialQuery?: string;
 }) {
   const router = useRouter();
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(initialQuery);
   const [results, setResults] = useState<EventSearchRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [active, setActive] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+
+  // React 19 "reset on external change" idiom. When the overlay
+  // transitions from closed → open, reseed the query with any
+  // caller-supplied `initialQuery` and clear active selection. Doing
+  // this during render (guarded by a same-turn detection state) rather
+  // than in a useEffect(setState, [open]) satisfies react-hooks/set-
+  // state-in-effect without adding an extra render pass.
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) {
+      setQuery(initialQuery);
+      setActive(-1);
+    }
+  }
 
   const heading =
     title ?? (mode === "review" ? "Which event are you reviewing?" : "Search events");
@@ -216,12 +231,17 @@ export function EventSearchOverlay({
   );
 
   // Fetch results (debounced) whenever the query changes while open.
+  // Loading + error resets happen inside the debounce timer callback so
+  // they don't fire synchronously in the effect body (react-hooks/set-
+  // state-in-effect). Downside: the loading skeleton doesn't paint
+  // during the 220ms debounce quiet window — for typeahead that's fine.
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
-    setLoading(true);
-    setError(null);
     const t = setTimeout(async () => {
+      if (cancelled) return;
+      setLoading(true);
+      setError(null);
       try {
         const res = await fetch(
           `/api/events/search?q=${encodeURIComponent(query.trim())}${
@@ -252,15 +272,13 @@ export function EventSearchOverlay({
     };
   }, [query, open, mode]);
 
-  // Reset + focus when opening (seed with any pre-filled query).
+  // Focus the input once when opening (state reset happens during
+  // render above).
   useEffect(() => {
-    if (open) {
-      setQuery(initialQuery);
-      setActive(-1);
-      const id = requestAnimationFrame(() => inputRef.current?.focus());
-      return () => cancelAnimationFrame(id);
-    }
-  }, [open, initialQuery]);
+    if (!open) return;
+    const id = requestAnimationFrame(() => inputRef.current?.focus());
+    return () => cancelAnimationFrame(id);
+  }, [open]);
 
   // Lock body scroll while open.
   useEffect(() => {

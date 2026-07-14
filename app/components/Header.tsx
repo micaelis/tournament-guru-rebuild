@@ -66,6 +66,20 @@ export function Header({ initialEmail = null }: { initialEmail?: string | null }
   const isActive = useIsActive();
   const pathname = usePathname();
 
+  // React 19's "reset state when a prop changes" idiom: track the
+  // previous pathname in state and issue the resets during render.
+  // React handles setState during render specially (no cascading
+  // re-render), which is why the two useEffect(setState, [pathname])
+  // blocks below were replaced with this — same behaviour, satisfies
+  // react-hooks/set-state-in-effect.
+  const [lastPath, setLastPath] = useState(pathname);
+  if (pathname !== lastPath) {
+    setLastPath(pathname);
+    setMenuOpen(false);
+    setOpenMenu(null);
+    if (pathname !== "/") setFeaturedInView(false);
+  }
+
   const onChildAction = (action: string | undefined) => {
     if (action === "review-overlay") {
       setOpenMenu(null);
@@ -80,11 +94,6 @@ export function Header({ initialEmail = null }: { initialEmail?: string | null }
     onScroll();
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
-
-  useEffect(() => {
-    setMenuOpen(false);
-    setOpenMenu(null);
-  }, [pathname]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -117,10 +126,10 @@ export function Header({ initialEmail = null }: { initialEmail?: string | null }
   // link goes active roughly when the section is centred, not the moment
   // its first pixel appears.
   useEffect(() => {
-    if (pathname !== "/") {
-      setFeaturedInView(false);
-      return;
-    }
+    // The setFeaturedInView(false) reset when pathname !== "/" happens
+    // in the setState-during-render block above; this effect only sets
+    // up / tears down the observer.
+    if (pathname !== "/") return;
     const el = document.getElementById("featured-events");
     if (!el) return;
     const io = new IntersectionObserver(

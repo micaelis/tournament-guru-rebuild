@@ -44,7 +44,6 @@ type Props = {
   initialSort: EventSort;
   initialPage: number;
   pageSize: number;
-  promo: { recommended: EventRow[]; promoted: EventRow[] };
   /** Same 3 metrics the homepage HeroSearch shows, so the trust row is
    *  consistent across the two entry points to the app. */
   stats: { events: number; reviews: number; tournaments: number };
@@ -58,7 +57,6 @@ export function EventsSearch({
   initialSort,
   initialPage,
   pageSize,
-  promo,
   stats,
 }: Props) {
   const pathname = usePathname();

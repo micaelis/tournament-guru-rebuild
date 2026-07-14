@@ -46,7 +46,7 @@ export function ContactForm({ source }: { source: ContactSource }) {
     {},
   );
 
-  if (state.ok) return <SuccessCard source={source} />;
+  if (state.ok) return <SuccessCard />;
 
   const v = state.values ?? {};
   const fe = state.fieldErrors ?? {};
@@ -129,7 +129,7 @@ export function ContactForm({ source }: { source: ContactSource }) {
   );
 }
 
-function SuccessCard({ source }: { source: ContactSource }) {
+function SuccessCard() {
   return (
     <div className="tg-step-in" style={{ textAlign: "center", padding: "20px 8px" }} role="status">
       <span

@@ -89,7 +89,8 @@ export async function submitContactRequest(
       console.warn(
         "[contact_requests] `source` column missing — apply migration 20240101000005_contact_source. Saving without source.",
       );
-      const { source: _omit, ...withoutSource } = row;
+      const withoutSource: Record<string, unknown> = { ...row };
+      delete withoutSource.source;
       ({ error } = await sb.from("contact_requests").insert(withoutSource));
     }
 
