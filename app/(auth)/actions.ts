@@ -35,6 +35,41 @@ function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+/**
+ * Minimum password requirements. Kept explicit so both signup and the
+ * post-recovery updatePassword flow share the same rule set. If we ever
+ * add a compromised-password check (HIBP k-anonymity API), plug it in
+ * here too.
+ */
+const WEAK_PASSWORDS = new Set([
+  "password", "password1", "password12", "password123",
+  "12345678", "123456789", "1234567890",
+  "qwerty123", "abc12345", "letmein123", "welcome123",
+  "iloveyou1", "tournament", "guru12345",
+]);
+
+function validatePassword(password: string): string | null {
+  if (password.length < 12) {
+    return "Password must be at least 12 characters.";
+  }
+  if (password.length > 200) {
+    return "Password must be under 200 characters.";
+  }
+  // Character-class diversity: require at least three of {lower, upper, digit, symbol}.
+  const classes =
+    (/[a-z]/.test(password) ? 1 : 0) +
+    (/[A-Z]/.test(password) ? 1 : 0) +
+    (/[0-9]/.test(password) ? 1 : 0) +
+    (/[^A-Za-z0-9]/.test(password) ? 1 : 0);
+  if (classes < 3) {
+    return "Password must include at least three of: lowercase, uppercase, digit, symbol.";
+  }
+  if (WEAK_PASSWORDS.has(password.toLowerCase())) {
+    return "That password is too common. Pick something less predictable.";
+  }
+  return null;
+}
+
 const NETWORK_MESSAGE =
   "Something went wrong on our end. Please try again in a moment.";
 
@@ -127,9 +162,8 @@ export async function signup(
   if (!isValidEmail(email)) {
     return { error: "Please enter a valid email address." };
   }
-  if (password.length < 8) {
-    return { error: "Password must be at least 8 characters." };
-  }
+  const passwordError = validatePassword(password);
+  if (passwordError) return { error: passwordError };
 
   const supabase = await createServerAuthClient();
 
@@ -235,9 +269,8 @@ export async function updatePassword(
   const password = String(formData.get("password") ?? "");
   const confirm = String(formData.get("confirm") ?? "");
 
-  if (password.length < 8) {
-    return { error: "Password must be at least 8 characters." };
-  }
+  const passwordError = validatePassword(password);
+  if (passwordError) return { error: passwordError };
   if (password !== confirm) {
     return { error: "Passwords don’t match." };
   }

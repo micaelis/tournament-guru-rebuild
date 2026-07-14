@@ -1,7 +1,21 @@
-# Local Supabase config for `supabase start`. If your CLI version rejects any
-# key here, run `supabase init --force` to regenerate a compatible file, then
-# re-apply the one setting that matters for testing:
-#   [auth.email] enable_confirmations = false
+# ─────────────────────────────────────────────────────────────────────
+# LOCAL DEV CONFIG ONLY.  DO NOT USE IN PRODUCTION.
+#
+# This file configures a *local* Supabase stack started with
+# `supabase start`. In production, Auth settings come from the Supabase
+# Cloud dashboard (Authentication → URL Configuration / Providers),
+# NOT from this file.
+#
+# In particular: `enable_confirmations = false` below is set for fast
+# local testing (signup lands you straight into onboarding without an
+# email round-trip). If this file is ever pushed to a linked prod
+# project it will disable email confirmation there, which combined with
+# `enable_signup = true` allows unverified signups. Never `supabase
+# db push` or `supabase link` this file at a production project.
+#
+# CLAUDE.md documents the production settings we require.
+# ─────────────────────────────────────────────────────────────────────
+
 project_id = "tournament-guru"
 
 [api]
