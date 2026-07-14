@@ -27,8 +27,10 @@ export async function submitEventHostContact(
   _prev: EventHostContactState,
   formData: FormData,
 ): Promise<EventHostContactState> {
+  // Only event_id comes from the form; event_title is derived server-side
+  // by looking up the event, so a tampered hidden field can't feed the
+  // admin triage view an attacker-controlled string.
   const eventId = String(formData.get("event_id") ?? "").trim();
-  const eventTitle = String(formData.get("event_title") ?? "").trim() || null;
   const name = String(formData.get("name") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
   const message = String(formData.get("message") ?? "").trim();
@@ -65,13 +67,32 @@ export async function submitEventHostContact(
 
   try {
     const sb = createAnonServerClient();
+
+    // Server-side event lookup — event_title in contact_requests is
+    // whatever the DB says the title is right now. If the event id
+    // doesn't resolve (deleted / bad uuid), event_title stays null and
+    // the FK will pick it up on insert.
+    let resolvedTitle: string | null = null;
+    let resolvedEventId: string | null = null;
+    if (eventId) {
+      const { data: eventRow } = await sb
+        .from("events")
+        .select("id, title")
+        .eq("id", eventId)
+        .maybeSingle();
+      if (eventRow) {
+        resolvedEventId = eventRow.id as string;
+        resolvedTitle = (eventRow.title as string) ?? null;
+      }
+    }
+
     const { error } = await sb.from("contact_requests").insert({
       full_name: name,
       email,
       additional_notes: message,
       source: "event_host_contact",
-      event_id: eventId || null,
-      event_title: eventTitle,
+      event_id: resolvedEventId,
+      event_title: resolvedTitle,
     });
     if (error) {
       console.error("[event_host_contact insert]", error);

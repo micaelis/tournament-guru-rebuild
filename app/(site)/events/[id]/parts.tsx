@@ -2459,7 +2459,9 @@ function ContactHostModal({
         ) : (
           <form className="mt-5 flex flex-col gap-3" action={formAction}>
             <input type="hidden" name="event_id" value={eventId} />
-            <input type="hidden" name="event_title" value={eventTitle} />
+            {/* event_title is looked up server-side from event_id — the
+                previous hidden input was tamperable, letting a submitter
+                seed the admin triage view with an arbitrary string. */}
 
             {state.error && !state.fieldErrors && (
               <div
