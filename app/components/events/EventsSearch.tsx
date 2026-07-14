@@ -103,8 +103,22 @@ export function EventsSearch({
       setError(null);
       try {
         const res = await fetch(`/api/events/search?${requestQuery}`, { signal: ctrl.signal });
+        if (!res.ok) {
+          // 429 (rate limit) has its own copy; everything else is generic.
+          const msg =
+            res.status === 429
+              ? "You're searching a bit fast — try again in a moment."
+              : "Search failed. Please try again.";
+          setError(msg);
+          // Preserve the previous result grid rather than blanking it on an
+          // error — feels less broken and matches how most search UIs behave.
+          return;
+        }
         const json = await res.json();
-        if (json.error) setError(json.error);
+        if (json.error) {
+          setError(String(json.error));
+          return;
+        }
         setResults((json.events ?? []) as EventRow[]);
         setTotal(json.total ?? 0);
       } catch (e) {
