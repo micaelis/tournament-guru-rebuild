@@ -7,7 +7,6 @@
    established by the About and Directors pages. */
 
 import { useActionState, useEffect, useMemo, useRef, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { EventCard } from "@/app/components/EventCard";
 import { Avatar } from "@/app/components/Avatar";

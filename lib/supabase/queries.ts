@@ -1316,7 +1316,6 @@ export async function getEventById(
       .eq("id", id)
       .maybeSingle();
     if (error) {
-      // eslint-disable-next-line no-console
       console.error("[getEventById] supabase error", { id, error });
       return null;
     }
@@ -1328,7 +1327,6 @@ export async function getEventById(
     ]);
     return rows[0];
   } catch (e) {
-    // eslint-disable-next-line no-console
     console.error("[getEventById] threw", { id, error: e });
     return null;
   }
