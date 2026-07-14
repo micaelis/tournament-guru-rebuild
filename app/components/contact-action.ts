@@ -1,6 +1,8 @@
 "use server";
 
+import { headers } from "next/headers";
 import { createServerClient } from "@/lib/supabase/server";
+import { clientKey, rateLimit } from "@/lib/rate-limit";
 import {
   CONTACT_REQUIRED,
   type ContactField,
@@ -26,6 +28,16 @@ export async function submitContactRequest(
   const get = (k: string) => String(formData.get(k) ?? "").trim();
 
   const source: ContactSource = "general";
+
+  // Per-IP rate limit: 5 submissions / 10 min. DB trigger (migration
+  // 20260714100007) enforces a global burst cap as second line.
+  const h = await headers();
+  const gate = rateLimit(`contact:${clientKey(h)}`, 5, 600);
+  if (!gate.ok) {
+    return {
+      error: "Too many submissions. Please try again in a few minutes.",
+    };
+  }
 
   const values: Record<ContactField, string> = {
     full_name: get("full_name"),

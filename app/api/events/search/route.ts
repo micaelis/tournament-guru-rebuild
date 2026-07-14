@@ -4,6 +4,7 @@ import {
   searchEventsPage,
   normalizeSort,
 } from "@/lib/supabase/queries";
+import { clientKey, rateLimit } from "@/lib/rate-limit";
 
 /**
  * Event search endpoint. Two modes over one route (no parallel search):
@@ -37,6 +38,13 @@ function list(v: string | null): string[] {
 }
 
 export async function GET(request: NextRequest) {
+  const gate = rateLimit(`events-search:${clientKey(request.headers)}`, 60, 60);
+  if (!gate.ok) {
+    return NextResponse.json(
+      { events: [], error: "Too many requests. Try again in a moment." },
+      { status: 429, headers: { "Retry-After": String(gate.retryAfterSec) } },
+    );
+  }
   const params = request.nextUrl.searchParams;
   const q = params.get("q") ?? "";
 
