@@ -1038,7 +1038,6 @@ export async function getFaqs(): Promise<{
 export type EventDirectorRow = {
   id: string;
   display_name: string;
-  contact_email: string | null;
   profile_picture: string | null;
   org_logo: string | null;
   club_affiliation: string | null;
@@ -1221,7 +1220,6 @@ export async function getEventDirectors({
       data: rows.map((r) => ({
         id: r.id,
         display_name: r.display_name,
-        contact_email: r.contact_email,
         profile_picture: r.profile_picture,
         org_logo: r.org_logo,
         club_affiliation: r.club_affiliation,
