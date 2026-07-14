@@ -11,6 +11,7 @@ import { usePathname } from "next/navigation";
 import dynamic from "next/dynamic";
 import { EventCard } from "@/app/components/EventCard";
 import { SponsoredBanner } from "@/app/components/SponsoredBanner";
+import { HighlightSwipe } from "@/app/components/HighlightSwipe";
 import type { EventRow, EventFacets, EventSort } from "@/lib/supabase/queries";
 import {
   type Filters,
@@ -465,29 +466,7 @@ export function EventsSearch({
   );
 }
 
-/* Hand-drawn marker swipe behind a key phrase — the prototype's signature,
-   recoloured from its blue to a translucent brand red. */
-function HighlightSwipe({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="relative inline-block">
-      <svg
-        viewBox="0 0 200 44"
-        preserveAspectRatio="none"
-        aria-hidden="true"
-        className="absolute"
-        style={{ left: "-3%", top: "-6%", width: "106%", height: "112%", zIndex: 0 }}
-      >
-        <path
-          d="M6,26 C44,12 96,30 148,16 C176,9 194,20 197,14 C198,30 196,36 190,38 C150,46 104,28 58,38 C34,43 10,34 4,38 C2,32 2,30 6,26 Z"
-          fill="rgba(220,38,38,0.20)"
-        />
-      </svg>
-      <span className="relative" style={{ zIndex: 1 }}>
-        {children}
-      </span>
-    </span>
-  );
-}
+// HighlightSwipe is imported from ../HighlightSwipe.
 
 /* Round-icon stat pill in the header, brand palette only. The number is the
    hero of the chip — value is now noticeably larger than the label so the
