@@ -6,7 +6,7 @@ import { createServerAuthClient } from "@/lib/supabase/server";
 
 export type AuthState = {
   error?: string;
-  /** Non-error outcomes the UI switches on: "confirm" | "exists" | "reset-sent" | "password-updated" */
+  /** Non-error outcomes the UI switches on: "confirm" | "reset-sent" | "password-updated" */
   code?: string;
   ok?: boolean;
   /** Echo the submitted email so success screens can show it. */
@@ -48,11 +48,40 @@ function emailDomainOf(email: string): string {
  * add a compromised-password check (HIBP k-anonymity API), plug it in
  * here too.
  */
+/**
+ * Weak-password block-list. Kept explicit + short: the intent is to
+ * refuse "the fifty things that would pass length + class checks but
+ * are still trivially guessable" — not to substitute for a real
+ * strength check. If you're comparing this to zxcvbn or HIBP, this is
+ * a fallback, not a replacement.
+ *
+ * Matched against `password.toLowerCase()` after a NFKC normalisation
+ * step in validatePassword, so unicode homoglyph variants of these
+ * strings ("pаssword123" with a Cyrillic 'а') also fail.
+ */
 const WEAK_PASSWORDS = new Set([
-  "password", "password1", "password12", "password123",
-  "12345678", "123456789", "1234567890",
-  "qwerty123", "abc12345", "letmein123", "welcome123",
-  "iloveyou1", "tournament", "guru12345",
+  // Passphrase-shaped literals people actually use.
+  "password", "password1", "password12", "password123", "password1234",
+  "password12345", "password2024", "password2025",
+  "passwordpassword",
+  // Numeric / keyboard-walk classics.
+  "12345678", "123456789", "1234567890", "12345678901",
+  "0987654321", "11111111", "00000000", "aaaaaaaaaaaa",
+  "qwerty", "qwerty1", "qwerty12", "qwerty123", "qwerty1234",
+  "qwerty12345", "qwertyuiop", "qwertyqwerty",
+  "asdfghjkl", "1qaz2wsx3edc", "1q2w3e4r5t6y",
+  // Common templated passwords.
+  "abc12345", "abcd1234", "abcdef123", "abcdefgh123",
+  "letmein", "letmein1", "letmein12", "letmein123",
+  "welcome", "welcome1", "welcome12", "welcome123", "welcome2025",
+  "iloveyou", "iloveyou1", "iloveyou12",
+  "adminadmin", "administrator",
+  "monkey12345", "dragon12345", "sunshine1234", "trustno1trustno1",
+  "football2024", "football2025", "baseball2024", "baseball2025",
+  "summer2024!!", "summer2025!!", "winter2024!!", "winter2025!!",
+  // App-specific: don't let anyone pick a password shaped like the app.
+  "tournament", "tournamentguru", "tournament2024", "tournament2025",
+  "guru12345", "guruguru12", "guruguru123",
 ]);
 
 function validatePassword(password: string): string | null {
@@ -71,7 +100,12 @@ function validatePassword(password: string): string | null {
   if (classes < 3) {
     return "Password must include at least three of: lowercase, uppercase, digit, symbol.";
   }
-  if (WEAK_PASSWORDS.has(password.toLowerCase())) {
+  // NFKC + lowercase folds unicode homoglyphs (Cyrillic 'а' vs Latin
+  // 'a', full-width digits, etc.) into the ASCII form before block-list
+  // comparison, so a copy-paste of "pаssword123" with a Cyrillic 'а'
+  // fails just like the ASCII original.
+  const normalized = password.normalize("NFKC").toLowerCase();
+  if (WEAK_PASSWORDS.has(normalized)) {
     return "That password is too common. Pick something less predictable.";
   }
   return null;
@@ -79,9 +113,6 @@ function validatePassword(password: string): string | null {
 
 const NETWORK_MESSAGE =
   "Something went wrong on our end. Please try again in a moment.";
-
-// The linked "Log in instead" is rendered by the signup form when code="exists".
-const EXISTS_MESSAGE = "An account with this email already exists.";
 
 /** True for transient fetch/connectivity failures (as opposed to bad input). */
 function isNetworkError(error: {
@@ -209,8 +240,12 @@ export async function signup(
     if (isNetworkError(error)) {
       return { error: NETWORK_MESSAGE };
     }
+    // Anti-enumeration: treat "email already registered" the same as a
+    // fresh signup — same "check your inbox" copy. Existing users won't
+    // actually receive a confirmation email (Supabase suppresses it),
+    // but the response shape doesn't leak whether the address exists.
     if (/already|registered|exists/i.test(error.message)) {
-      return { code: "exists", error: EXISTS_MESSAGE };
+      return { code: "confirm", ok: true, email };
     }
     if (/invalid.*email|email.*invalid/i.test(error.message)) {
       return { error: "Please enter a valid email address." };
@@ -231,10 +266,12 @@ export async function signup(
     };
   }
 
-  // With email confirmation on and an existing email, Supabase returns a user
-  // with no identities and no session (anti-enumeration). Treat as "exists".
+  // With email confirmation on and an existing email, Supabase returns a
+  // user with no identities and no session — its own anti-enum shape.
+  // Ride on it: the "Check your inbox" copy is the same either way, and
+  // no confirmation email is actually sent for existing addresses.
   if (data.user && data.user.identities && data.user.identities.length === 0) {
-    return { code: "exists", error: EXISTS_MESSAGE };
+    return { code: "confirm", ok: true, email };
   }
 
   // Session present → confirmation is off, they're logged in → onboarding.

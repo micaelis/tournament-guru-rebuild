@@ -27,20 +27,7 @@ export function SignupForm({ next }: { next?: string | null }) {
     <div>
       {state.error && (
         <div style={{ marginBottom: 18 }}>
-          <FormMessage tone="error">
-            {state.error}
-            {state.code === "exists" && (
-              <>
-                {" "}
-                <Link
-                  href="/login"
-                  style={{ color: "inherit", fontWeight: 800, textDecoration: "underline" }}
-                >
-                  Log in instead
-                </Link>
-              </>
-            )}
-          </FormMessage>
+          <FormMessage tone="error">{state.error}</FormMessage>
         </div>
       )}
 
