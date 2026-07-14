@@ -7,6 +7,8 @@ Summary of everything landed during the 2026-07 audit-driven refactor. Sequenced
 - `npm run build`     — **passes** (all routes compile)
 - `npm run lint`      — **passes** (0 errors, 0 warnings)
 - `npm audit`         — **2 moderate**, both transitively via `next → postcss`, no non-breaking fix available (see [Remaining risks](#remaining-risks)).
+- **`supabase db push`** — 17 migrations landed on staging (nmdwccyzaofqoginsyja) after 3 attempts. Real drift required a repair migration (R8), missing extension paths (H11 + R9 tweaks), and unapplied historical content (000012, 000013) that had to be added back. Nothing was reset.
+- **Runtime smoke test on live staging** — **12/12 tests PASS**. Signup, onboarding, notification-pref toggle, review insert with correct defaults, hostile INSERT/UPDATE blocked, contact-form insert, rate-limit gate anon-blocked, burst counter increments, C1 headline exploit blocked. See §8 below.
 
 Live database was **never reset or wiped**. Every fix went in as a new migration on top (Phase 2 files prefixed `20260714100…`, Phase 5 hostile-review fixes prefixed `20260714110…`).
 
@@ -80,16 +82,18 @@ Live database was **never reset or wiped**. Every fix went in as a new migration
 
 ### Hostile-review remediation (R-series)
 
-An independent hostile-reviewer pass over the full baseline→HEAD diff surfaced findings the initial refactor missed. The confirmed ones are addressed here; each maps to a commit:
+An independent hostile-reviewer pass over the full baseline→HEAD diff surfaced findings the initial refactor missed. The confirmed ones are addressed here; each maps to a commit. R1 and R2 were later folded into their parent H5/C1 migrations before the push, so those commits no longer contain new migration files — see the [staging push story](#8-staging-push-and-smoke-test) below.
 
 | ID | Commit | What |
 |----|---|---|
-| R1 | `b4a367b` | **CRITICAL** — `rate_limit_touch(text, int)` was granted `EXECUTE` to anon/authenticated. Direct callers could poison the per-minute counter (`select rate_limit_touch('search_queries', 999999999)` 1001×) so real inserts hit the burst cap and were rejected — global DoS on search-log and the contact form. Also unbounded growth via arbitrary bucket names. Fix: revoke `EXECUTE` from anon/authenticated/PUBLIC; add inline bucket whitelist + `p_limit` range check. Trigger functions are themselves SECURITY DEFINER so they still call it. |
-| R2 | `c79bcd9` | **CRITICAL** — C1 locked UPDATE but INSERT was still open. Supabase's default Data API grants `INSERT` on all public tables to `authenticated`, and the `reviews: author insert` policy only checked `author_id = auth.uid()`. Anyone signed in could `insert ... published=true, guru_review=true` — self-published Guru-badged review, unmoderated. Fix: revoke INSERT, re-grant column list minus moderation fields, and WITH CHECK the insert policy to pin `published/guru_review/flagged` to their defaults. |
+| R1 | `b4a367b` (folded into `1d77497` H5) | **CRITICAL** — `rate_limit_touch(text, int)` was granted `EXECUTE` to anon/authenticated. Direct callers could poison the per-minute counter (`select rate_limit_touch('search_queries', 999999999)` 1001×) so real inserts hit the burst cap and were rejected — global DoS on search-log and the contact form. Also unbounded growth via arbitrary bucket names. Fix: revoke `EXECUTE` from anon/authenticated/PUBLIC; add inline bucket whitelist + `p_limit` range check. Trigger functions are themselves SECURITY DEFINER so they still call it. |
+| R2 | `c79bcd9` (folded into `1d77497` C1) | **CRITICAL** — C1 locked UPDATE but INSERT was still open. Supabase's default Data API grants `INSERT` on all public tables to `authenticated`, and the `reviews: author insert` policy only checked `author_id = auth.uid()`. Anyone signed in could `insert ... published=true, guru_review=true` — self-published Guru-badged review, unmoderated. Fix: revoke INSERT, re-grant column list minus moderation fields, and WITH CHECK the insert policy to pin `published/guru_review/flagged` to their defaults. |
 | R3 | `818e9cf` | `event_host_logos`, `get_director_profile`, `review_author_badges` all matched `user_type='admin'` alongside `event_director`. Admins with an `org_logo` were surfacing on public event cards; `/directors/<admin_id>` was crawlable. Fix: scope all three to `event_director` only. Also coalesce admin authors to `attendee` in the review badge so which reviewers are staff isn't leaked. |
 | R4 | `b9bee17` | `safeImageSrc` helper existed in `lib/url.ts` but was never applied to any `<img src>`. A hostile director could set `logo` / `photo` / `org_logo` to any URL — not stored XSS (browsers don't execute JS from img src) but a tracking-pixel and SSRF-GET vector. Fix: wire `safeImageSrc(x) ?? undefined` into every DB-derived `<img>` across EventCard, EventSearchOverlay, FeaturedShowcase, card-bits, DirectorPortrait, DirectorTestimonialShowcase (×2), dashboard/{account,events}/parts, `(site)/events/[id]/parts.tsx` (gallery tiles + placeholder + sponsor.logo + share preview), `(site)/directors/[id]/page.tsx`. |
 | R5 | `7fc1d27` | `contact-action.ts` used a hidden `event_title` form input — tamperable in DevTools, so a submitter could seed the admin triage view with arbitrary text against the FK'd event id. Fix: drop the hidden field, look up `event_title` server-side from `events.title` by `event_id`. |
 | R6 | `7079f0f` | **Anti-enum**: signup used to return `code: "exists"` for known emails and even un-neutralized Supabase's own anti-enum response. Now both paths converge on `code: "confirm"` with identical "Check your inbox" copy — existing users don't actually receive a confirmation email (Supabase suppresses it) but the client-visible response shape doesn't leak. Also expanded the `WEAK_PASSWORDS` block-list from 14 → ~55 entries (numeric walks, qwerty variants, football/summer/tournament templated, iloveyou classics, app-specific "tournamentguru" strings) and NFKC-normalize input before comparison so unicode homoglyphs (Cyrillic `а`) don't slip through. |
+| R8 | `acb74dd` | **Post-push repair** — C3's `revoke select (col) from anon` was a no-op because the anon role held a broad `grant select on reviews` (Postgres treats the table grant as covering every column). Rewrote C3 (`revoke select on table` first → `grant select (col_list)`) and shipped R8 to repair staging where the original C3 had already been applied. Verified via anon curl: `GET /rest/v1/reviews?select=user_email` now returns 401 permission denied. |
+| R9 | `0fc5e97` | **Post-push repair, three latent grant bugs** — (a) `service_role` had zero SELECT/INSERT/UPDATE/DELETE on any public table (hand-bootstrapped staging never inherited Supabase Cloud's default grants); every server action using the service key would fail. (b) `search_queries` had no INSERT grant to anon/authenticated — `/api/search-log` had been silently 401ing since the table's creation. (c) `recalc_event_ratings(uuid)` was SECURITY INVOKER, so the reviews after-insert trigger tried to UPDATE `events` under the authenticated user's role — which has no UPDATE grant — breaking every real user review submission. Fixed all three with standard Supabase role grants + INSERT grant on search_queries + `ALTER FUNCTION recalc_event_ratings SECURITY DEFINER`. |
 
 ### Deliberately not done
 
@@ -143,9 +147,38 @@ Promote each to a numbered migration under `supabase/migrations/` once approved.
 
 ---
 
+## 8. Staging push and smoke test
+
+`supabase db push --linked --yes` against the staging project (`nmdwccyzaofqoginsyja`, PG 17.6) took three attempts before every migration landed. What the CLI's migration-list check couldn't detect was **real drift between the migration tree and the hand-bootstrapped DB**:
+
+- Push #1 halted on `20260714100006_h11_search_path_hygiene.sql` — `stamp_premium_at()` didn't exist (historical `20240101000013` had never been applied on staging even though its ID was in `schema_migrations`). Rewrote H11 (+ its PG17 hygiene sibling) with `DO $$ ... exception when undefined_function` guards so the migration succeeds against DBs missing any historical DEFINER.
+- Push #2 halted on `20240101000012_search_logging.sql` — `uuid_generate_v4()` unresolved. Supabase Cloud installs `uuid-ossp` into the `extensions` schema which isn't in the `db push` session's `search_path`. Swapped to the PG13+ builtin `gen_random_uuid()`.
+- Push #3 halted on `20240101000013_event_premium_at.sql` backfill — its `UPDATE events` fired the `t_event_search` trigger which called `unaccent()`. Same schema-path issue. Installed `unaccent` extension into `extensions`, then `ALTER FUNCTION` on `trg_event_search`, `search_events_page`, `build_event_search_document` to add `extensions` to their `set search_path`. Folded the fix back into H11.
+
+After push #4 all 17 migrations applied cleanly. R8 was then written to repair the C3 no-op discovered in the first verification curl (see R-series table). R9 followed the smoke test.
+
+### Smoke test — 12/12 PASS
+
+| # | Test | Result |
+|---|---|---|
+| T1  | Signup + email-confirmed user via `service_role admin` | PASS · user created |
+| T1b | Password signin → JWT | PASS |
+| T2a | Complete onboarding + set `email_fav_events=true` via PATCH | PASS · persisted |
+| T2b | Toggle `email_fav_events=false` | PASS · persisted |
+| T3  | Author-safe review INSERT with allow-listed columns | PASS · `published/guru_review/flagged` all false by default |
+| T4a | Hostile INSERT with `published=true, guru_review=true` | **BLOCKED (403)** · C1/R2 policy WITH CHECK holds |
+| T4b | PATCH `published=true` on own review | **BLOCKED (403)** · C1 column-level UPDATE grant excludes `published` |
+| T4c | PATCH `guru_review=true` on own review | **BLOCKED (403)** · same |
+| T5  | Anon INSERT into `contact_requests` (event-host form) | PASS · row landed |
+| T6a | Anon POST to `/rpc/rate_limit_touch` | **BLOCKED (401)** · R1 execute-revoke holds |
+| T6b | Anon INSERT into `search_queries` × 2, verify counter | PASS · both admitted, `rate_limit_windows.hits=2` for current minute — trigger + `rate_limit_touch` chain wired |
+| T7  | Headline C1 exploit: PATCH `user_type='admin'` | **BLOCKED (403)** · user_type stayed `attendee` |
+
+Verified against staging live. Test user + created rows cleaned up. Script at `/tmp/smoke.sh` (not committed — one-off diagnostic).
+
 ## Commit graph
 
-Phase 1–4 (initial refactor): 29 commits. Phase 5 (lint cleanup + hostile-review remediation): 8 further commits. Ordered severity-first, then modernize, then cleanup, then docs.
+Phase 1–4 (initial refactor): 29 commits. Phase 5 (lint cleanup + hostile-review remediation): 8 further commits. Phase 6 (staging push + smoke-test repairs): 6 further commits. Ordered severity-first, then modernize, then cleanup, then docs.
 
 ```
 7079f0f sec(R6): neutral signup response + expanded password blocklist
