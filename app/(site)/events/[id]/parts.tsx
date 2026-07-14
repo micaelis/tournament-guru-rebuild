@@ -6,12 +6,16 @@
    follow the rounded-2xl / --color-border / subtle-shadow convention
    established by the About and Directors pages. */
 
-import { useMemo, useState } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { EventCard } from "@/app/components/EventCard";
 import { Avatar } from "@/app/components/Avatar";
 import { Stars } from "@/app/components/Stars";
+import {
+  submitEventHostContact,
+  type EventHostContactState,
+} from "./contact-action";
 import type {
   EventDetailRow,
   EventReviewRow,
@@ -140,6 +144,7 @@ export function EventDetail({
 
       {contactOpen && (
         <ContactHostModal
+          eventId={event.id}
           hostName={displayHostName}
           eventTitle={event.title}
           onClose={() => setContactOpen(false)}
@@ -458,6 +463,22 @@ function GalleryModal({
   title: string;
   onClose: () => void;
 }) {
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    closeButtonRef.current?.focus();
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [onClose]);
+
   return (
     <div
       role="dialog"
@@ -488,6 +509,7 @@ function GalleryModal({
             </div>
           </div>
           <button
+            ref={closeButtonRef}
             type="button"
             onClick={onClose}
             className="tg-hover rounded-full bg-[var(--color-surface-alt)] p-2"
@@ -2305,24 +2327,47 @@ function ShareBtn({
    ─────────────────────────────────────────────────────────────────── */
 
 function ContactHostModal({
+  eventId,
   hostName,
   eventTitle,
   onClose,
 }: {
+  eventId: string;
   hostName: string;
   eventTitle: string;
   onClose: () => void;
 }) {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [message, setMessage] = useState("");
-  const [sent, setSent] = useState(false);
+  const [state, formAction, pending] = useActionState<
+    EventHostContactState,
+    FormData
+  >(submitEventHostContact, {});
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
+  // Body-scroll lock, Escape-to-close, initial focus. Restores the prior
+  // overflow value so a nested modal (Gallery) can layer without stomping
+  // each other's scroll state.
+  useEffect(() => {
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    closeButtonRef.current?.focus();
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [onClose]);
+
+  const values = state.values;
+  const fe = state.fieldErrors ?? {};
 
   return (
     <div
       role="dialog"
       aria-modal="true"
-      aria-label={`Contact ${hostName}`}
+      aria-labelledby="contact-host-title"
       className="fixed inset-0 z-50 flex items-center justify-center px-4"
       style={{ background: "rgba(15,23,42,.72)" }}
       onClick={onClose}
@@ -2349,6 +2394,7 @@ function ContactHostModal({
               Contact host
             </div>
             <h2
+              id="contact-host-title"
               className="font-heading mt-1"
               style={{
                 fontSize: 22,
@@ -2369,6 +2415,7 @@ function ContactHostModal({
             </p>
           </div>
           <button
+            ref={closeButtonRef}
             type="button"
             onClick={onClose}
             className="tg-hover rounded-full bg-[var(--color-surface-alt)] p-2"
@@ -2379,7 +2426,7 @@ function ContactHostModal({
           </button>
         </div>
 
-        {sent ? (
+        {state.ok ? (
           <div
             className="mt-5 rounded-xl px-4 py-6 text-center"
             style={{ background: "#f0fdf4", border: "1px solid #dcfce7", color: "#15803d" }}
@@ -2388,60 +2435,83 @@ function ContactHostModal({
               className="font-heading"
               style={{ fontSize: 15, fontWeight: 800 }}
             >
-              Message queued
+              Message sent
             </div>
             <p style={{ fontSize: 13, color: "#166534", margin: "6px 0 0" }}>
-              We&apos;ll route it to {hostName} through Tournament Guru.
+              Tournament Guru will route it to {hostName}.
             </p>
+            <button
+              type="button"
+              onClick={onClose}
+              className="tg-hover font-heading mt-4 rounded-full bg-white"
+              style={{
+                padding: "8px 18px",
+                fontSize: 12.5,
+                fontWeight: 700,
+                color: "var(--color-dark)",
+                border: "1px solid #dcfce7",
+              }}
+            >
+              Close
+            </button>
           </div>
         ) : (
-          <form
-            className="mt-5 flex flex-col gap-3"
-            onSubmit={(e) => {
-              e.preventDefault();
-              // Real submit hook to be wired to the event_requests table.
-              // Kept intentionally client-only for now — see brief.
-              // eslint-disable-next-line no-console
-              console.info("[contact-host]", { name, email, message, eventTitle });
-              setSent(true);
-            }}
-          >
-            <label style={{ fontSize: 12.5, fontWeight: 700, color: "var(--color-dark-light)" }}>
-              Your name
-              <input
-                className="tg-control mt-1"
-                type="text"
-                required
-                value={name}
-                onChange={(e) => setName(e.currentTarget.value)}
-              />
-            </label>
-            <label style={{ fontSize: 12.5, fontWeight: 700, color: "var(--color-dark-light)" }}>
-              Email
-              <input
-                className="tg-control mt-1"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.currentTarget.value)}
-              />
-            </label>
+          <form className="mt-5 flex flex-col gap-3" action={formAction}>
+            <input type="hidden" name="event_id" value={eventId} />
+            <input type="hidden" name="event_title" value={eventTitle} />
+
+            {state.error && !state.fieldErrors && (
+              <div
+                role="alert"
+                className="rounded-xl px-3 py-2"
+                style={{
+                  background: "#fef2f2",
+                  border: "1px solid #fecaca",
+                  color: "#991b1b",
+                  fontSize: 12.5,
+                }}
+              >
+                {state.error}
+              </div>
+            )}
+
+            <ContactField
+              label="Your name"
+              name="name"
+              type="text"
+              defaultValue={values?.name ?? ""}
+              error={fe.name}
+            />
+            <ContactField
+              label="Email"
+              name="email"
+              type="email"
+              defaultValue={values?.email ?? ""}
+              error={fe.email}
+            />
             <label style={{ fontSize: 12.5, fontWeight: 700, color: "var(--color-dark-light)" }}>
               Message
               <textarea
+                name="message"
                 className="tg-control mt-1"
                 required
                 rows={5}
-                value={message}
-                onChange={(e) => setMessage(e.currentTarget.value)}
+                defaultValue={values?.message ?? ""}
+                aria-invalid={fe.message ? "true" : undefined}
                 placeholder="Ask about brackets, housing, schedule, or anything else."
                 style={{ resize: "vertical" }}
               />
+              {fe.message && (
+                <div style={{ marginTop: 4, fontSize: 12, color: "#dc2626" }}>
+                  {fe.message}
+                </div>
+              )}
             </label>
             <div className="mt-1 flex flex-wrap items-center justify-end gap-2">
               <button
                 type="button"
                 onClick={onClose}
+                disabled={pending}
                 className="tg-btn-ghost tg-hover font-heading rounded-full bg-white"
                 style={{
                   padding: "10px 16px",
@@ -2455,6 +2525,7 @@ function ContactHostModal({
               </button>
               <button
                 type="submit"
+                disabled={pending}
                 className="tg-btn-primary tg-hover font-heading rounded-full"
                 style={{
                   background: "var(--color-accent)",
@@ -2463,16 +2534,50 @@ function ContactHostModal({
                   fontSize: 13,
                   fontWeight: 800,
                   border: "none",
-                  cursor: "pointer",
+                  cursor: pending ? "wait" : "pointer",
+                  opacity: pending ? 0.7 : 1,
                 }}
               >
-                Send message
+                {pending ? "Sending…" : "Send message"}
               </button>
             </div>
           </form>
         )}
       </div>
     </div>
+  );
+}
+
+function ContactField({
+  label,
+  name,
+  type,
+  defaultValue,
+  error,
+}: {
+  label: string;
+  name: string;
+  type: "text" | "email";
+  defaultValue: string;
+  error?: string;
+}) {
+  return (
+    <label style={{ fontSize: 12.5, fontWeight: 700, color: "var(--color-dark-light)" }}>
+      {label}
+      <input
+        name={name}
+        type={type}
+        className="tg-control mt-1"
+        required
+        defaultValue={defaultValue}
+        aria-invalid={error ? "true" : undefined}
+      />
+      {error && (
+        <div style={{ marginTop: 4, fontSize: 12, color: "#dc2626" }}>
+          {error}
+        </div>
+      )}
+    </label>
   );
 }
 
