@@ -9,22 +9,50 @@
 -- sites in app/ and lib/). Both were carried over from the Bubble
 -- export as denormalized display fields.
 --
--- Fix: column-level REVOKE. Because every existing SELECT in the app
--- lists columns explicitly, revoking these two doesn't break anything
--- for anon / authenticated. Service role keeps full access (needed for
--- admin PII surfaces if they're built later).
+-- Fix: revoke table-level SELECT from anon/authenticated first (a
+-- column-level REVOKE alone is a no-op when the role holds a broad
+-- table grant — this bit us on the first staging push and was repaired
+-- by migration R8, but on a fresh bootstrap the ordering here already
+-- gets it right), then grant SELECT column-by-column omitting the two
+-- PII columns and the promo/system fields.
 --
--- Note: we deliberately do NOT drop the columns. The data may still be
--- valuable for internal admin flows, and dropping would be irreversible.
--- If you want the data gone from disk entirely, add a follow-up
--- migration that `alter table reviews drop column user_email;`.
+-- Service role bypasses grants entirely — retains full read for admin
+-- surfaces.
 -- =====================================================================
 
-revoke select (user_email, username_search) on public.reviews from anon;
-revoke select (user_email, username_search) on public.reviews from authenticated;
+revoke select on public.reviews from anon;
+revoke select on public.reviews from authenticated;
 
--- Comment the columns so a future reader knows why the grants look off.
+-- Anon/authenticated-safe reviews columns. `user_email`,
+-- `username_search`, `has_promo_code`, `promo_code`, `step` are the
+-- deliberate omissions.
+grant select (
+  id,
+  event_id,
+  event_owner_id,
+  author_id,
+  username,
+  user_club,
+  user_role,
+  review_title,
+  review_body,
+  team1, team2, team3,
+  team_age, team_gender,
+  overall_rating,
+  facilities_rating,
+  fields_rating,
+  management_rating,
+  cost_value_rating,
+  competition_rating,
+  diversity_rating,
+  published,
+  guru_review,
+  flagged,
+  created_at,
+  updated_at
+) on public.reviews to anon, authenticated;
+
 comment on column public.reviews.user_email is
-  'PII — reviewer email carried over from Bubble. Revoked from anon/authenticated. Only readable via service_role.';
+  'PII — reviewer email carried over from Bubble. Revoked from anon/authenticated at the column level after the table-level SELECT is stripped. Only readable via service_role.';
 comment on column public.reviews.username_search is
   'Lowercase search key. Revoked from anon/authenticated to prevent user enumeration by display name. Only readable via service_role.';

@@ -1697,8 +1697,13 @@ grant execute on function public.get_event_review_counts(uuid[]) to anon, authen
 -- policy), so raw terms are never publicly readable — only the aggregated
 -- top-N is exposed, via a SECURITY DEFINER function.
 -- ---------------------------------------------------------------------
+-- Uses gen_random_uuid() (built into PG13+) instead of the uuid-ossp
+-- helper — Supabase Cloud installs uuid-ossp into the `extensions`
+-- schema, which isn't in the search_path during `db push`, so the
+-- extension helper isn't reachable here. gen_random_uuid() needs no
+-- extension.
 create table if not exists public.search_queries (
-  id         uuid primary key default uuid_generate_v4(),
+  id         uuid primary key default gen_random_uuid(),
   term       text not null,
   created_at timestamptz not null default now()
 );
@@ -2694,36 +2699,56 @@ comment on function public.needs_password_setup(text) is
 -- Also asserts `security_invoker = false` on the two directory views,
 -- so their bypass-RLS intent survives future Postgres upgrades that
 -- change the view-behavior default.
+--
+-- Each ALTER is guarded with a pg_proc / pg_class existence check so
+-- the migration succeeds against DBs that were hand-bootstrapped and
+-- may be missing some of the historical function definitions. If an
+-- object is missing on the target, the ALTER is skipped and a NOTICE
+-- is emitted for visibility.
 -- =====================================================================
 
--- ── Rating recalculation and its trigger ────────────────────────────
-alter function public.recalc_event_ratings(uuid)
-  set search_path = public, pg_temp;
-
-alter function public.trg_reviews_recalc()
-  set search_path = public, pg_temp;
-
--- ── Search document builder and its triggers ────────────────────────
-alter function public.build_event_search_document(public.events)
-  set search_path = public, pg_temp;
-
-alter function public.trg_event_search()
-  set search_path = public, pg_temp;
-
-alter function public.trg_refresh_event_search_from_child()
-  set search_path = public, pg_temp;
-
--- ── Premium timestamp stamper ───────────────────────────────────────
-alter function public.stamp_premium_at()
-  set search_path = public, pg_temp;
-
--- ── Public search RPCs (INVOKER) ────────────────────────────────────
-alter function public.search_events_page(
-  text, text[], text[], text[], text[], text[], date, date, boolean, text, int, int
-) set search_path = public, pg_temp;
-
-alter function public.get_event_facets()
-  set search_path = public, pg_temp;
+-- Helper: harden search_path on a function only if it exists (identity
+-- signature match). Skips silently if the function isn't present.
+--
+-- Functions that call helpers from the `extensions` schema (unaccent,
+-- pg_trgm operators) need `extensions` in the path — Supabase Cloud
+-- installs extensions into a dedicated schema, and it isn't in the
+-- default search_path during `db push` sessions. The `path` column
+-- picks between the two flavours.
+do $$
+declare
+  targets text[][] := array[
+    -- name, args, path
+    array['public.recalc_event_ratings', 'uuid', 'public, pg_temp'],
+    array['public.trg_reviews_recalc', '', 'public, pg_temp'],
+    array['public.build_event_search_document', 'public.events', 'public, extensions, pg_temp'],
+    array['public.trg_event_search', '', 'public, extensions, pg_temp'],
+    array['public.trg_refresh_event_search_from_child', '', 'public, pg_temp'],
+    array['public.stamp_premium_at', '', 'public, pg_temp'],
+    array['public.search_events_page',
+      'text, text[], text[], text[], text[], text[], date, date, boolean, text, int, int',
+      'public, extensions, pg_temp'],
+    array['public.get_event_facets', '', 'public, pg_temp']
+  ];
+  spec text[];
+  fn_qual text;
+  fn_args text;
+  fn_path text;
+  fn_regproc regprocedure;
+begin
+  foreach spec slice 1 in array targets loop
+    fn_qual := spec[1];
+    fn_args := spec[2];
+    fn_path := spec[3];
+    begin
+      fn_regproc := (fn_qual || '(' || fn_args || ')')::regprocedure;
+    exception when undefined_function then
+      raise notice 'skip: % not found', fn_qual;
+      continue;
+    end;
+    execute format('alter function %s set search_path = %s', fn_regproc, fn_path);
+  end loop;
+end $$;
 
 -- ── Directory views — pin DEFINER semantics explicitly ──────────────
 -- These views live specifically to expose a narrow safe projection of
@@ -2732,8 +2757,19 @@ alter function public.get_event_facets()
 -- Postgres 15+ defaults new views to `security_invoker = true`; if a
 -- future recreate or environment upgrade flips that default, these
 -- views would suddenly return zero rows. Pin the intent.
-alter view public.review_author_badges set (security_invoker = false);
-alter view public.event_host_logos    set (security_invoker = false);
+do $$
+begin
+  if to_regclass('public.review_author_badges') is not null then
+    execute 'alter view public.review_author_badges set (security_invoker = false)';
+  else
+    raise notice 'skip: view public.review_author_badges not found';
+  end if;
+  if to_regclass('public.event_host_logos') is not null then
+    execute 'alter view public.event_host_logos set (security_invoker = false)';
+  else
+    raise notice 'skip: view public.event_host_logos not found';
+  end if;
+end $$;
 
 -- ── 20260714100007_h5_rate_limits.sql ──────────────────────────────────────────
 -- =====================================================================
@@ -3059,28 +3095,40 @@ grant execute on function public.get_platform_stats() to anon, authenticated;
 -- without `pg_temp` in its path. This migration removes those flags
 -- and closes the (small) temp-schema hijack vector.
 --
--- Uses ALTER FUNCTION rather than CREATE OR REPLACE so we don't need
--- to duplicate each function body here.
+-- Uses ALTER FUNCTION inside a DO block with existence checks so it
+-- succeeds against DBs where the hand-bootstrap missed one of the
+-- historical migrations. Skipped functions emit a NOTICE.
 -- =====================================================================
 
-alter function public.is_admin()
-  set search_path = public, pg_temp;
-
-alter function public.handle_new_user()
-  set search_path = public, pg_temp;
-
-alter function public.needs_password_setup(text)
-  set search_path = public, pg_temp;
-
-alter function public.get_event_review_counts(uuid[])
-  set search_path = public, pg_temp;
-
-alter function public.get_director_profile(uuid)
-  set search_path = public, pg_temp;
+do $$
+declare
+  targets text[][] := array[
+    array['public.is_admin', ''],
+    array['public.handle_new_user', ''],
+    array['public.needs_password_setup', 'text'],
+    array['public.get_event_review_counts', 'uuid[]'],
+    array['public.get_director_profile', 'uuid']
+  ];
+  spec text[];
+  fn_qual text;
+  fn_args text;
+  fn_regproc regprocedure;
+begin
+  foreach spec slice 1 in array targets loop
+    fn_qual := spec[1];
+    fn_args := spec[2];
+    begin
+      fn_regproc := (fn_qual || '(' || fn_args || ')')::regprocedure;
+    exception when undefined_function then
+      raise notice 'skip: % not found', fn_qual;
+      continue;
+    end;
+    execute format('alter function %s set search_path = public, pg_temp', fn_regproc);
+  end loop;
+end $$;
 
 -- get_event_directors was recreated in 20260714100004 with search_path
--- already including pg_temp; the ALTER above touching it a second time
--- is a no-op.
+-- already including pg_temp; not touched here.
 
 -- ── 20260714100014_h2_rls_on_remaining_tables.sql ──────────────────────────────────────────
 -- =====================================================================

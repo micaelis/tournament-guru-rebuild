@@ -10,8 +10,13 @@
 -- policy), so raw terms are never publicly readable — only the aggregated
 -- top-N is exposed, via a SECURITY DEFINER function.
 -- ---------------------------------------------------------------------
+-- Uses gen_random_uuid() (built into PG13+) instead of the uuid-ossp
+-- helper — Supabase Cloud installs uuid-ossp into the `extensions`
+-- schema, which isn't in the search_path during `db push`, so the
+-- extension helper isn't reachable here. gen_random_uuid() needs no
+-- extension.
 create table if not exists public.search_queries (
-  id         uuid primary key default uuid_generate_v4(),
+  id         uuid primary key default gen_random_uuid(),
   term       text not null,
   created_at timestamptz not null default now()
 );

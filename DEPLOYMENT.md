@@ -69,6 +69,16 @@ Either path lands the same final state. `schema.sql` is faster for a client cold
 
 ## 3. Storage buckets + policies ⚠
 
+**Current state (both staging and any fresh Supabase project)**: 0 Supabase Storage buckets. Existing images (event logos, event photos, sponsor logos, profile pictures) are currently served from an external S3 bucket at `tournamentguru.s3.us-east-2.amazonaws.com` — see the `remotePatterns` allow-list in [`next.config.ts`](next.config.ts). The app has never uploaded to Supabase Storage directly; the `profiles.profile_picture` and similar columns just hold pre-computed S3 URLs.
+
+Two paths for the client:
+
+**Path A — Keep external S3.** Update `next.config.ts` to whitelist the client's own S3 bucket (or CloudFront domain) alongside/instead of the current one. No Supabase Storage buckets needed. Simpler; requires ongoing S3 admin outside Supabase.
+
+**Path B — Migrate uploads to Supabase Storage.** Create the three buckets below, apply the H3 policies, and update the app's upload flow (which today does NOT exist in this repo — event directors submit images via an out-of-band process). This unifies auth + storage under Supabase and lets `next/image` serve from `${SUPABASE_URL}/storage/v1/object/public/…` without additional allow-listing.
+
+Below is the H3 policy proposal, for Path B:
+
 The app references stored files at seven places (see [`supabase/proposals/h3_storage_bucket_policies.sql`](supabase/proposals/h3_storage_bucket_policies.sql)). Create three buckets with the exact names the app expects:
 
 | Bucket name       | Public? | Used for                                              |
