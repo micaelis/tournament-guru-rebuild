@@ -1,7 +1,7 @@
 "use server";
 
 import { headers } from "next/headers";
-import { createServerClient } from "@/lib/supabase/server";
+import { createAnonServerClient } from "@/lib/supabase/server";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
 
 /**
@@ -64,7 +64,7 @@ export async function submitEventHostContact(
   }
 
   try {
-    const sb = createServerClient();
+    const sb = createAnonServerClient();
     const { error } = await sb.from("contact_requests").insert({
       full_name: name,
       email,

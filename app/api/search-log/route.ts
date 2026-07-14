@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createServerClient } from "@/lib/supabase/server";
+import { createAnonServerClient } from "@/lib/supabase/server";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
 
 /**
@@ -23,7 +23,7 @@ export async function POST(req: Request) {
     if (term.length < 2 || term.length > 60) {
       return NextResponse.json({ ok: false });
     }
-    const sb = createServerClient();
+    const sb = createAnonServerClient();
     await sb.from("search_queries").insert({ term });
     return NextResponse.json({ ok: true });
   } catch {

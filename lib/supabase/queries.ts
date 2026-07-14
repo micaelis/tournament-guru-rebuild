@@ -1,4 +1,4 @@
-import { createServerAuthClient, createServerClient } from "./server";
+import { createServerAuthClient, createAnonServerClient } from "./server";
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -136,7 +136,7 @@ function excludePlaceholderEvents<
  * showing the overall total only.
  */
 async function attachReviewCounts(
-  sb: ReturnType<typeof createServerClient>,
+  sb: ReturnType<typeof createAnonServerClient>,
   events: EventRow[]
 ): Promise<EventRow[]> {
   const ids = events.map((e) => e.id);
@@ -173,7 +173,7 @@ export async function getFeaturedEvents(): Promise<{
   error: string | null;
 }> {
   try {
-    const sb = createServerClient();
+    const sb = createAnonServerClient();
 
     // Premium events first, ordered by when they went featured (premium_at),
     // most-recently-featured first. The migration backfills premium_at from
@@ -211,10 +211,12 @@ export async function getFeaturedEvents(): Promise<{
     // Undated rows sort last so a stray null date never leads the strip.
     if (premium && premium.length >= 4) {
       const picked = shuffle(premium as EventRow[]).slice(0, 4);
-      const enriched = await attachReviewCounts(
-        sb,
-        await attachHostLogos(sb, picked)
-      );
+      // Parallel: both helpers key by event id and don't collide.
+      await Promise.all([
+        attachHostLogos(sb, picked),
+        attachReviewCounts(sb, picked),
+      ]);
+      const enriched = picked;
       return { data: sortBySoonest(enriched), error: null };
     }
 
@@ -245,11 +247,11 @@ export async function getFeaturedEvents(): Promise<{
     if (err2) return { data: sortBySoonest(existing), error: err2.message };
 
     const picked = shuffle([...existing, ...((fallback ?? []) as EventRow[])]).slice(0, 4);
-    const enriched = await attachReviewCounts(
-      sb,
-      await attachHostLogos(sb, picked)
-    );
-    return { data: sortBySoonest(enriched), error: null };
+    await Promise.all([
+      attachHostLogos(sb, picked),
+      attachReviewCounts(sb, picked),
+    ]);
+    return { data: sortBySoonest(picked), error: null };
   } catch (e) {
     return {
       data: [],
@@ -267,7 +269,7 @@ export async function getFeaturedEvents(): Promise<{
  */
 export async function getPopularSearches(limit = 3): Promise<string[]> {
   try {
-    const sb = createServerClient();
+    const sb = createAnonServerClient();
     const { data, error } = await sb.rpc("get_popular_searches", {
       p_limit: limit,
       p_days: 120,
@@ -425,7 +427,7 @@ export async function getDashboardReviews({
  * yet, events are returned unchanged and cards fall back to the host initials.
  */
 async function attachHostLogos(
-  sb: ReturnType<typeof createServerClient>,
+  sb: ReturnType<typeof createAnonServerClient>,
   events: EventRow[]
 ): Promise<EventRow[]> {
   const ids = events.map((e) => e.id);
@@ -450,7 +452,7 @@ export async function getRecentEvents(limit = 4): Promise<{
   error: string | null;
 }> {
   try {
-    const sb = createServerClient();
+    const sb = createAnonServerClient();
 
     // Non-draft events, most recently created first. Premium bubbles up via a
     // secondary sort so a promoted event still leads when dates tie.
@@ -508,7 +510,7 @@ export async function searchEvents(
   { limit = 8, concludedOnly = false }: { limit?: number; concludedOnly?: boolean } = {}
 ): Promise<{ data: EventSearchRow[]; error: string | null }> {
   try {
-    const sb = createServerClient();
+    const sb = createAnonServerClient();
     const term = q.trim();
 
     let query = sb
@@ -685,7 +687,7 @@ export async function searchEventsPage(
   const offset = (safePage - 1) * pageSize;
 
   try {
-    const sb = createServerClient();
+    const sb = createAnonServerClient();
 
     // p_states is the new signature (migration 000016). Until that migration
     // is applied the RPC call errors and we fall through to the PostgREST
@@ -724,7 +726,7 @@ async function searchEventsFallback(
   { pageSize, offset, sort }: { pageSize: number; offset: number; sort: EventSort }
 ): Promise<EventSearchPage> {
   try {
-    const sb = createServerClient();
+    const sb = createAnonServerClient();
     let query = sb
       .from("events")
       .select(EVENT_SELECT, { count: "exact" })
@@ -795,7 +797,7 @@ export async function getEventFacets(): Promise<{
   error: string | null;
 }> {
   try {
-    const sb = createServerClient();
+    const sb = createAnonServerClient();
     const { data, error } = await sb.rpc("get_event_facets");
     if (error || !data) return { data: FULL_ENUM_FACETS, error: error?.message ?? null };
     // The new RPC (migration 000016) returns `states`. The pre-migration RPC
@@ -840,7 +842,7 @@ export async function getStats(): Promise<{
   error: string | null;
 }> {
   try {
-    const sb = createServerClient();
+    const sb = createAnonServerClient();
 
     // Single-trip RPC: two counts + a COUNT(DISTINCT ...) computed in
     // Postgres, so the homepage doesn't pull every event row just to
@@ -913,7 +915,7 @@ export async function getRecentReviews(limit = 4): Promise<{
   error: string | null;
 }> {
   try {
-    const sb = createServerClient();
+    const sb = createAnonServerClient();
 
     const { data, error } = await sb
       .from("reviews")
@@ -1036,7 +1038,7 @@ export async function getFaqs(): Promise<{
   }));
 
   try {
-    const sb = createServerClient();
+    const sb = createAnonServerClient();
     const { data, error } = await sb
       .from("faqs")
       .select("id, title, content, sort")
@@ -1096,7 +1098,7 @@ export async function getDirectorProfile(
   id: string,
 ): Promise<DirectorProfile | null> {
   try {
-    const sb = createServerClient();
+    const sb = createAnonServerClient();
     const { data, error } = await sb.rpc("get_director_profile", { p_id: id });
     if (error || !data) return null;
     return data as DirectorProfile;
@@ -1111,7 +1113,7 @@ export async function getDirectorEvents(
   ownerId: string,
 ): Promise<{ data: EventRow[]; error: string | null }> {
   try {
-    const sb = createServerClient();
+    const sb = createAnonServerClient();
     const { data, error } = await sb
       .from("events")
       .select(EVENT_SELECT)
@@ -1149,7 +1151,7 @@ export async function getDirectorReviews(
   limit = 30,
 ): Promise<{ data: DirectorReviewRow[]; error: string | null }> {
   try {
-    const sb = createServerClient();
+    const sb = createAnonServerClient();
     const { data, error } = await sb
       .from("reviews")
       .select(
@@ -1226,7 +1228,7 @@ export async function getEventDirectors({
   const offset = (safePage - 1) * pageSize;
 
   try {
-    const sb = createServerClient();
+    const sb = createAnonServerClient();
     const { data, error } = await sb.rpc("get_event_directors", {
       p_limit: pageSize,
       p_offset: offset,
@@ -1307,7 +1309,7 @@ export async function getEventById(
   id: string,
 ): Promise<EventDetailRow | null> {
   try {
-    const sb = createServerClient();
+    const sb = createAnonServerClient();
     const { data, error } = await sb
       .from("events")
       .select(EVENT_DETAIL_SELECT)
@@ -1319,9 +1321,12 @@ export async function getEventById(
       return null;
     }
     if (!data) return null;
-    const [row] = await attachHostLogos(sb, [data as EventDetailRow]);
-    const [enriched] = await attachReviewCounts(sb, [row]);
-    return enriched as EventDetailRow;
+    const rows = [data as EventDetailRow];
+    await Promise.all([
+      attachHostLogos(sb, rows),
+      attachReviewCounts(sb, rows),
+    ]);
+    return rows[0];
   } catch (e) {
     // eslint-disable-next-line no-console
     console.error("[getEventById] threw", { id, error: e });
@@ -1344,7 +1349,7 @@ export async function getEventAgeGroups(
   eventId: string,
 ): Promise<EventAgeGroupRow[]> {
   try {
-    const sb = createServerClient();
+    const sb = createAnonServerClient();
     const { data, error } = await sb
       .from("event_age_groups")
       .select("id, age, gender, label, price, age_index")
@@ -1371,7 +1376,7 @@ export type SponsorRow = {
 
 export async function getEventSponsors(eventId: string): Promise<SponsorRow[]> {
   try {
-    const sb = createServerClient();
+    const sb = createAnonServerClient();
     const { data, error } = await sb
       .from("sponsors")
       .select("id, name, logo, link")
@@ -1488,7 +1493,7 @@ export async function getEventReviews(
   eventId: string,
 ): Promise<EventReviewRow[]> {
   try {
-    const sb = createServerClient();
+    const sb = createAnonServerClient();
     const { data, error } = await sb
       .from("reviews")
       .select(REVIEW_SELECT)
@@ -1513,7 +1518,7 @@ export async function getParentTournamentReviews(
 ): Promise<EventReviewRow[]> {
   if (!parentId) return [];
   try {
-    const sb = createServerClient();
+    const sb = createAnonServerClient();
     const { data: siblings, error: sibErr } = await sb
       .from("events")
       .select("id")
@@ -1548,7 +1553,7 @@ export async function getOtherEventsByOwner(
 ): Promise<EventRow[]> {
   if (!ownerId) return [];
   try {
-    const sb = createServerClient();
+    const sb = createAnonServerClient();
     const { data, error } = await sb
       .from("events")
       .select(EVENT_SELECT)
@@ -1559,11 +1564,12 @@ export async function getOtherEventsByOwner(
       .order("created_at", { ascending: false })
       .limit(limit);
     if (error || !data) return [];
-    const enriched = await attachReviewCounts(
-      sb,
-      await attachHostLogos(sb, data as EventRow[]),
-    );
-    return enriched;
+    const rows = data as EventRow[];
+    await Promise.all([
+      attachHostLogos(sb, rows),
+      attachReviewCounts(sb, rows),
+    ]);
+    return rows;
   } catch {
     return [];
   }
@@ -1585,7 +1591,7 @@ export async function getEventProfile(
 ): Promise<EventProfileSummary | null> {
   if (!id) return null;
   try {
-    const sb = createServerClient();
+    const sb = createAnonServerClient();
     const { data, error } = await sb
       .from("event_profiles")
       .select("id, title, reviews, general_rating")

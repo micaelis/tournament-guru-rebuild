@@ -1,7 +1,7 @@
 "use server";
 
 import { headers } from "next/headers";
-import { createServerClient } from "@/lib/supabase/server";
+import { createAnonServerClient } from "@/lib/supabase/server";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
 import {
   CONTACT_REQUIRED,
@@ -73,7 +73,7 @@ export async function submitContactRequest(
   };
 
   try {
-    const sb = createServerClient();
+    const sb = createAnonServerClient();
     let { error } = await sb.from("contact_requests").insert(row);
 
     // Deploy-order safety: if the `source` column isn't there yet (migration

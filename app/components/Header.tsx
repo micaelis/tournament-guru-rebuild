@@ -100,10 +100,14 @@ export function Header({ initialEmail = null }: { initialEmail?: string | null }
       if (e.key === "Escape") setMenuOpen(false);
     };
     document.addEventListener("keydown", onKey);
+    // Preserve whatever the caller (or a lower-stack modal) set on
+    // overflow, so opening/closing the mobile menu doesn't reset the
+    // page's scroll-lock state as a side effect.
+    const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
+      document.body.style.overflow = prevOverflow;
     };
   }, [menuOpen]);
 

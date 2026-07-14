@@ -37,8 +37,15 @@ export async function createServerAuthClient() {
   );
 }
 
-/** Public anon client for unauthenticated reads (events, reviews, stats). */
-export function createServerClient() {
+/**
+ * Public anon client for unauthenticated reads (events, reviews, stats).
+ *
+ * Renamed from `createServerClient` to avoid the name collision with
+ * `@supabase/ssr`'s own `createServerClient` (used for auth-aware
+ * session refresh in proxy.ts and app/auth/callback/route.ts). Import
+ * this factory whenever anon-key reads are all that's needed.
+ */
+export function createAnonServerClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
   return createClient(url, key, {
