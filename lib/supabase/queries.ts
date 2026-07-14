@@ -222,7 +222,7 @@ export async function getFeaturedEvents(): Promise<{
     const existingIds = existing.map((e) => e.id);
     const remaining = 4 - existing.length;
 
-    const query = excludePlaceholderEvents(
+    let query = excludePlaceholderEvents(
       sb
         .from("events")
         .select(EVENT_SELECT)
@@ -233,8 +233,12 @@ export async function getFeaturedEvents(): Promise<{
       .order("created_at", { ascending: false })
       .limit(remaining);
 
+    // Suppress rows already in the premium shortlist. Previously the
+    // `.not(...)` call's return value was discarded, so duplicates
+    // could slip through; supabase-js builder methods are immutable,
+    // reassignment is required.
     if (existingIds.length > 0) {
-      query.not("id", "in", `(${existingIds.join(",")})`);
+      query = query.not("id", "in", `(${existingIds.join(",")})`);
     }
 
     const { data: fallback, error: err2 } = await query;
