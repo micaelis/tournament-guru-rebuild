@@ -35,6 +35,13 @@ function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+/** Everything after the `@`. Used in server logs to keep PII off disk
+ *  while still preserving enough signal to correlate provider outages. */
+function emailDomainOf(email: string): string {
+  const at = email.indexOf("@");
+  return at >= 0 ? email.slice(at + 1).toLowerCase() : "unknown";
+}
+
 /**
  * Minimum password requirements. Kept explicit so both signup and the
  * post-recovery updatePassword flow share the same rule set. If we ever
@@ -178,7 +185,7 @@ export async function signup(
     }));
   } catch (thrown) {
     console.error("[signup] threw before returning a Supabase error", {
-      email,
+      emailDomain: emailDomainOf(email),
       redirectUrl,
       thrown,
     });
@@ -186,11 +193,12 @@ export async function signup(
   }
 
   if (error) {
-    // Always log the real Supabase error — the generic NETWORK_MESSAGE has
-    // been masking things like "URL … is not a valid redirect URL" (Supabase
-    // Auth "Redirect URLs" allow-list) or provider-config rejections.
+    // Log the Supabase error with the email DOMAIN only (not the full
+    // address). Domain is enough to correlate an outage across signups
+    // ("all @outlook.com deliveries failed") without shipping PII to
+    // whatever aggregator ingests server logs.
     console.error("[signup] Supabase returned an error", {
-      email,
+      emailDomain: emailDomainOf(email),
       redirectUrl,
       code: error.code,
       status: error.status,
