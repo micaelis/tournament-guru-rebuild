@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "tournament-guru",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["next", "dev", "--port", "3100", "--turbopack"],
+      "port": 3100
+    }
+  ]
+}

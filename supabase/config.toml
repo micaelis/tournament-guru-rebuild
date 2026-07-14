@@ -1,0 +1,42 @@
+# Local Supabase config for `supabase start`. If your CLI version rejects any
+# key here, run `supabase init --force` to regenerate a compatible file, then
+# re-apply the one setting that matters for testing:
+#   [auth.email] enable_confirmations = false
+project_id = "tournament-guru"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 15
+
+[db.seed]
+enabled = true
+sql_paths = ["./seed.sql"]
+
+[studio]
+enabled = true
+port = 54323
+
+# Local email testing inbox — reset/confirmation emails land here, no real SMTP.
+[inbucket]
+enabled = true
+port = 54324
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000/auth/callback"]
+jwt_expiry = 3600
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+# OFF for fast local testing — signup logs you straight into onboarding.
+enable_confirmations = false
