@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Avatar } from "./Avatar";
 import { LogoPanel, fmtDateRange } from "./card-bits";
 import type { EventRow } from "@/lib/supabase/queries";
+import { safeImageSrc } from "@/lib/url";
 
 /* ── derived helpers ─────────────────────────────────────── */
 
@@ -624,7 +625,7 @@ function OrgLogo({
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={logo}
+          src={safeImageSrc(logo) ?? undefined}
           alt=""
           loading="lazy"
           className="h-full w-full object-contain"

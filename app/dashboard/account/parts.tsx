@@ -7,6 +7,7 @@
 
 import { useActionState, useState } from "react";
 import { updateAccount, type AccountUpdateState } from "./actions";
+import { safeImageSrc } from "@/lib/url";
 
 type Fields = {
   first_name: string | null;
@@ -241,11 +242,11 @@ export function AccountEditor({ fields }: { fields: Fields }) {
                 : "Optional — helps attribution when your name shows up on the platform."
             }
           >
-            {fields.org_logo && (
+            {safeImageSrc(fields.org_logo) && (
               <div className="mb-2 flex items-center gap-3">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={fields.org_logo}
+                  src={safeImageSrc(fields.org_logo)!}
                   alt=""
                   className="rounded-lg"
                   style={{

@@ -2,6 +2,8 @@
    save heart) reused across the featured-event showcase. Mirrors the prototype's
    card-art.jsx / cards.jsx craft so every surface reads as one design family. */
 
+import { safeImageSrc } from "@/lib/url";
+
 const STAR_PATH =
   "M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z";
 
@@ -291,10 +293,10 @@ export function LogoPanel({
           </span>
         </span>
       )}
-      {logo && (
+      {safeImageSrc(logo) && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={logo}
+          src={safeImageSrc(logo)!}
           alt={`${title} logo`}
           loading="lazy"
           style={{

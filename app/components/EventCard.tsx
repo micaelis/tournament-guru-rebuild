@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Avatar } from "./Avatar";
 import type { EventRow } from "@/lib/supabase/queries";
+import { safeImageSrc } from "@/lib/url";
 
 /* ── date helpers ────────────────────────────────────────────────────── */
 
@@ -266,7 +267,7 @@ function OrgAvatar({
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={logo}
+          src={safeImageSrc(logo) ?? undefined}
           alt=""
           loading="lazy"
           className="h-full w-full object-contain"

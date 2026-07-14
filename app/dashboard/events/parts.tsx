@@ -16,6 +16,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { DashboardProfile } from "@/lib/supabase/session";
 import type { DashboardEventRow } from "@/lib/supabase/queries";
+import { safeImageSrc } from "@/lib/url";
 
 type StatusFilter = "all" | "draft" | "open" | "concluded" | "cancelled";
 
@@ -823,10 +824,10 @@ function EventThumb({
         border: `1px solid ${premium ? "#efe9e0" : "#eef2f7"}`,
       }}
     >
-      {logo ? (
+      {safeImageSrc(logo) ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={logo}
+          src={safeImageSrc(logo)!}
           alt=""
           loading="lazy"
           className="h-full w-full object-contain"

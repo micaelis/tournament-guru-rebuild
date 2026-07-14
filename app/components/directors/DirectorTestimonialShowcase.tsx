@@ -1,4 +1,5 @@
 import type { EventDirectorTestimonial } from "@/lib/data/event-director-testimonials";
+import { safeImageSrc } from "@/lib/url";
 
 /* A responsive, editorial testimonial grid for the /host page. The first
    entry gets a lead ("hero") card treatment; the rest fall into a compact
@@ -46,7 +47,7 @@ function LeadTestimonial({
       <div className="relative min-h-[180px] md:min-h-full">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={t.photo}
+          src={safeImageSrc(t.photo) ?? undefined}
           alt=""
           loading="lazy"
           className="absolute inset-0 h-full w-full object-cover"
@@ -134,7 +135,7 @@ function TestimonialCard({
       <div className="relative" style={{ paddingTop: "56%" }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={t.photo}
+          src={safeImageSrc(t.photo) ?? undefined}
           alt=""
           loading="lazy"
           className="absolute inset-0 h-full w-full object-cover"

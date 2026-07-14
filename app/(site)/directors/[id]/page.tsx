@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { safeImageSrc } from "@/lib/url";
 import {
   getDirectorProfile,
   getDirectorEvents,
@@ -186,10 +187,10 @@ function OrgLogoLarge({
         border: "1px solid #eef2f7",
       }}
     >
-      {logo ? (
+      {safeImageSrc(logo) ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={logo}
+          src={safeImageSrc(logo)!}
           alt=""
           className="h-full w-full object-contain p-3"
           loading="eager"

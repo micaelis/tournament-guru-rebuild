@@ -16,6 +16,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { EventSearchRow } from "@/lib/supabase/queries";
+import { safeImageSrc } from "@/lib/url";
 
 type Mode = "review" | "browse";
 
@@ -139,7 +140,7 @@ function LogoThumb({ logo, title }: { logo: string | null; title: string }) {
       {logo ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={logo}
+          src={safeImageSrc(logo) ?? undefined}
           alt={`${title} logo`}
           loading="lazy"
           style={{

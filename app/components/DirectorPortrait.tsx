@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { safeImageSrc } from "@/lib/url";
 
 /**
  * Portrait for a director card. Renders the profile picture with a graceful
@@ -16,7 +17,8 @@ export function DirectorPortrait({
   name: string;
 }) {
   const [failed, setFailed] = useState(false);
-  const showImage = !!src && !failed;
+  const safeSrc = safeImageSrc(src);
+  const showImage = !!safeSrc && !failed;
 
   const initials = getInitials(name);
   const gradient = pickGradient(name);
@@ -26,7 +28,7 @@ export function DirectorPortrait({
       {showImage ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={src!}
+          src={safeSrc!}
           alt={`Portrait of ${name}`}
           loading="lazy"
           decoding="async"
