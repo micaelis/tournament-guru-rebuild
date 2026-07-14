@@ -25,6 +25,11 @@ create index if not exists idx_search_queries_created on public.search_queries(c
 
 alter table public.search_queries enable row level security;
 
+-- Table-level INSERT grant so the policy is reachable. The policy
+-- narrows via WITH CHECK; without this grant the INSERT is refused
+-- before RLS even runs.
+grant insert on public.search_queries to anon, authenticated;
+
 -- Anyone may log a search (bounded length); nobody may read the raw rows.
 create policy "search_queries: anyone log"
   on public.search_queries for insert

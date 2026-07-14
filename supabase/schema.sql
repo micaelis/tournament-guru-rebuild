@@ -1712,6 +1712,11 @@ create index if not exists idx_search_queries_created on public.search_queries(c
 
 alter table public.search_queries enable row level security;
 
+-- Table-level INSERT grant so the policy is reachable. The policy
+-- narrows via WITH CHECK; without this grant the INSERT is refused
+-- before RLS even runs.
+grant insert on public.search_queries to anon, authenticated;
+
 -- Anyone may log a search (bounded length); nobody may read the raw rows.
 create policy "search_queries: anyone log"
   on public.search_queries for insert
@@ -2535,23 +2540,51 @@ create policy "promo_codes: owner read"
 -- sites in app/ and lib/). Both were carried over from the Bubble
 -- export as denormalized display fields.
 --
--- Fix: column-level REVOKE. Because every existing SELECT in the app
--- lists columns explicitly, revoking these two doesn't break anything
--- for anon / authenticated. Service role keeps full access (needed for
--- admin PII surfaces if they're built later).
+-- Fix: revoke table-level SELECT from anon/authenticated first (a
+-- column-level REVOKE alone is a no-op when the role holds a broad
+-- table grant — this bit us on the first staging push and was repaired
+-- by migration R8, but on a fresh bootstrap the ordering here already
+-- gets it right), then grant SELECT column-by-column omitting the two
+-- PII columns and the promo/system fields.
 --
--- Note: we deliberately do NOT drop the columns. The data may still be
--- valuable for internal admin flows, and dropping would be irreversible.
--- If you want the data gone from disk entirely, add a follow-up
--- migration that `alter table reviews drop column user_email;`.
+-- Service role bypasses grants entirely — retains full read for admin
+-- surfaces.
 -- =====================================================================
 
-revoke select (user_email, username_search) on public.reviews from anon;
-revoke select (user_email, username_search) on public.reviews from authenticated;
+revoke select on public.reviews from anon;
+revoke select on public.reviews from authenticated;
 
--- Comment the columns so a future reader knows why the grants look off.
+-- Anon/authenticated-safe reviews columns. `user_email`,
+-- `username_search`, `has_promo_code`, `promo_code`, `step` are the
+-- deliberate omissions.
+grant select (
+  id,
+  event_id,
+  event_owner_id,
+  author_id,
+  username,
+  user_club,
+  user_role,
+  review_title,
+  review_body,
+  team1, team2, team3,
+  team_age, team_gender,
+  overall_rating,
+  facilities_rating,
+  fields_rating,
+  management_rating,
+  cost_value_rating,
+  competition_rating,
+  diversity_rating,
+  published,
+  guru_review,
+  flagged,
+  created_at,
+  updated_at
+) on public.reviews to anon, authenticated;
+
 comment on column public.reviews.user_email is
-  'PII — reviewer email carried over from Bubble. Revoked from anon/authenticated. Only readable via service_role.';
+  'PII — reviewer email carried over from Bubble. Revoked from anon/authenticated at the column level after the table-level SELECT is stripped. Only readable via service_role.';
 comment on column public.reviews.username_search is
   'Lowercase search key. Revoked from anon/authenticated to prevent user enumeration by display name. Only readable via service_role.';
 
@@ -3379,4 +3412,123 @@ as $$
 $$;
 
 grant execute on function public.get_director_profile(uuid) to anon, authenticated;
+
+-- ── 20260714110004_r8_reviews_pii_revoke_repair.sql ──────────────────────────────────────────
+-- =====================================================================
+-- R8 — Repair C3: column-level REVOKE is a no-op if table-level SELECT
+--       is still granted. Redo the C3 lockdown correctly.
+--
+-- Post-push verification found `select user_email from reviews` still
+-- returned rows (with user_email present) via the anon key. Root
+-- cause: `revoke select (col) on ... from anon` doesn't remove access
+-- when the anon role also holds a broad `grant select on <table>` —
+-- Postgres treats the table-level grant as covering every column.
+--
+-- Fix: revoke table-level SELECT from anon + authenticated, then
+-- grant SELECT column-by-column with `user_email`, `username_search`,
+-- and the promo/step system fields deliberately excluded.
+--
+-- No app query selects the excluded columns (verified across app/ and
+-- lib/), so this is silent for the app. service_role bypasses grants.
+-- =====================================================================
+
+revoke select on public.reviews from anon;
+revoke select on public.reviews from authenticated;
+
+-- Anon-safe columns for the public reviews API. Explicit list keeps
+-- moderation flags (`published`, `guru_review`, `flagged`) visible so
+-- the app can filter by them client-side; keeps identity + display
+-- fields readable; excludes PII (`user_email`), the search key
+-- (`username_search`), and promo-system fields.
+grant select (
+  id,
+  event_id,
+  event_owner_id,
+  author_id,
+  username,
+  user_club,
+  user_role,
+  review_title,
+  review_body,
+  team1, team2, team3,
+  team_age, team_gender,
+  overall_rating,
+  facilities_rating,
+  fields_rating,
+  management_rating,
+  cost_value_rating,
+  competition_rating,
+  diversity_rating,
+  published,
+  guru_review,
+  flagged,
+  created_at,
+  updated_at
+) on public.reviews to anon, authenticated;
+
+-- ── 20260714110005_r9_grants_and_recalc_definer.sql ──────────────────────────────────────────
+-- =====================================================================
+-- R9 — Restore standard Supabase role grants + fix review-trigger chain
+--
+-- Post-push smoke test surfaced three related grant problems:
+--
+--   1. `service_role` had zero SELECT/INSERT/UPDATE/DELETE on any
+--      public table. Fresh Supabase Cloud projects come with those
+--      grants baked in; this staging DB was hand-bootstrapped and
+--      never inherited them. Every server action that uses the
+--      service_role key would fail with "permission denied".
+--
+--   2. `search_queries` (created by 000012) had no INSERT grant to
+--      `anon` or `authenticated`, so the app's /api/search-log route
+--      has been silently failing for weeks. Insert policy exists;
+--      the underlying table grant did not.
+--
+--   3. `recalc_event_ratings(uuid)` is SECURITY INVOKER, so the
+--      after-insert/update trigger on `reviews` ran under the
+--      caller's role. When an authenticated user inserts a review,
+--      the trigger tries to UPDATE the aggregate columns on the
+--      `events` row — but authenticated has no UPDATE on events, so
+--      the review insert fails with "permission denied for table
+--      events". Latent because Bubble-imported reviews were loaded as
+--      superuser and the app's review UI is still Coming Soon; the
+--      moment a real user tries to submit a review, it breaks.
+--
+-- All three are boilerplate mistakes in the hand-bootstrap. This
+-- migration fixes them and folds the intent back into the migration
+-- tree (000012 also updated to include its own grant, so a fresh
+-- client project doesn't need to run R9 to boot).
+-- =====================================================================
+
+-- ── 1. Standard Supabase service_role grants on the public schema ──
+-- These match what Supabase Cloud auto-grants on new projects. Making
+-- them idempotent here so this migration is safe to re-run.
+grant usage on schema public to postgres, anon, authenticated, service_role;
+grant all on all tables    in schema public to postgres, service_role;
+grant all on all sequences in schema public to postgres, service_role;
+grant all on all functions in schema public to postgres, service_role;
+
+-- Default privileges so any future table/sequence/function in public
+-- inherits the same grants (avoids drift as new migrations land).
+alter default privileges in schema public grant all on tables    to postgres, service_role;
+alter default privileges in schema public grant all on sequences to postgres, service_role;
+alter default privileges in schema public grant all on functions to postgres, service_role;
+
+-- ── 2. search_queries needs anon+authenticated INSERT ──
+grant insert on public.search_queries to anon, authenticated;
+
+-- ── 3. recalc_event_ratings must be SECURITY DEFINER ──
+-- The trigger chain trg_reviews_recalc → recalc_event_ratings updates
+-- aggregate columns on `events`. Authenticated users (who insert
+-- reviews) don't have UPDATE on events (per RLS + C1's column-scope
+-- posture). DEFINER runs it as the function owner (postgres), which
+-- has full grants and RLS bypass — appropriate here because the
+-- function only writes aggregate ratings/counts on the parent event,
+-- based on the reviews the trigger fires from.
+--
+-- Also pins search_path to close the temp-schema hijack window.
+alter function public.recalc_event_ratings(uuid) security definer;
+alter function public.recalc_event_ratings(uuid) set search_path = public, pg_temp;
+
+comment on function public.recalc_event_ratings(uuid) is
+  'SECURITY DEFINER: fires from trg_reviews_recalc under authenticated users who cannot UPDATE events directly. Only writes aggregate rating/count columns on the target event; does not read PII or return values.';
 
