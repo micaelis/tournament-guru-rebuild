@@ -255,3 +255,50 @@ frees up.
 `ReviewsTable`'s state filter uses `event.location_state_abbr`
 directly (already selected in the joined projection). Simpler than
 mapping through the state seed table.
+
+---
+
+## Slice 3 — Promo system
+
+### S3.1 · CSV bucket upload deferred, email list stored inline
+The private storage bucket + signed upload/download URL flow is a
+follow-up (paired with the Slice 0 org-logo defer + Slice 1 image
+uploads under one "storage cutover" task). Meanwhile, migration
+20260716000007 adds `submitted_csvs.raw_emails jsonb` — the parsed
+email list stores inline so the admin queue can render + preview +
+regenerate the CSV without a bucket read. Max 1000 rows per file
+per spec keeps the JSONB well under any practical size.
+
+### S3.2 · Eligibility pre-flight is a pass-through until service-role
+Spec: emails that hit an existing account with `user_type != coach`
+should show a "This email is already in use…" warning + auto-
+exclude. Doing that check requires a lookup against auth.users.email
+which the anon+authenticated clients can't read (RLS-protected).
+Full check needs SUPABASE_SERVICE_ROLE_KEY plumbed through a
+server-only client. Deferred; the send action still voids prior
+non-applied promos + inserts fresh rows so no correctness issues.
+
+### S3.3 · In-process batches instead of a real queue
+Spec calls for Inngest / Trigger.dev / QStash. For the launch phase
+(the client running events on-behalf for a while) the total email
+volume is low tens per submission. Batches of 5 with a 100ms
+throttle keep the whole dispatch inside one server-action call, and
+SendGrid handles the load fine. Follow-up: wire a real queue when
+CSV submissions get past a few hundred rows per day.
+
+### S3.4 · Promo landing routes through the standard signup, not a mini-wizard
+Spec describes a bespoke 3-step onboarding on the promo landing
+(email/name/organization → location/gender/dob → team info). That
+duplicates the /onboarding wizard we already have. We routed the
+promo landing through /signup with email pre-filled +
+type=attendee+role=coach preselected, then /onboarding, then the
+review form. Same fields collected, same validation, no new UI
+surface. The follow-up to consolidate the auth variants (spec calls
+this out) can compare the three properly with this variant already
+built on top of the standard flow — one less thing to unify.
+
+### S3.5 · Promos filtered to sent/active/applied
+The Coaches list drops staged + void rows so the table only shows
+actionable promos. Staged is a transient state (spec keeps it for
+Bubble backfills) and void rows are historical. Attendee list uses
+the same filter — displays only rows meant for them today.
