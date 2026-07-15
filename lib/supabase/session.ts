@@ -2,25 +2,39 @@ import { redirect } from "next/navigation";
 import { createServerAuthClient } from "./server";
 
 /**
- * The subset of `profiles` the dashboard shell reads.
- * Kept narrow so RLS + column exposure stay minimal.
+ * Narrow projection of `profiles` used by the dashboard shell and route
+ * guards. Deliberately excludes PII (email, dob) and moderation flags —
+ * anything a page-level surface needs those for should query them
+ * directly and rely on RLS + column grants for enforcement.
  */
-export type DashboardProfile = {
+export type SessionProfile = {
   id: string;
-  user_type: "admin" | "company" | "attendee" | "event_director";
-  full_name: string | null;
-  contact_email: string | null;
-  profile_picture: string | null;
-  onboarding_complete: boolean;
+  user_type: "admin" | "event_director" | "attendee";
+  role_title:
+    | "event_director"
+    | "event_admin"
+    | "club_director"
+    | "coach"
+    | "parent_spectator"
+    | "team_manager";
+  first_name: string | null;
+  last_name: string | null;
+  profile_photo_url: string | null;
+  organization_title: string | null;
+  onboarding_completed: boolean;
+  blocked: boolean;
 };
 
+const PROFILE_COLUMNS =
+  "id, user_type, role_title, first_name, last_name, profile_photo_url, organization_title, onboarding_completed, blocked";
+
 /**
- * Server-only helper — fetch the auth session AND the app profile in one place.
- * Returns null when either is missing so callers can decide how to react
- * (the middleware already gates protected routes; this is a defensive net).
+ * Server-only helper — fetch the auth user AND their app profile in one
+ * place. Returns null when either is missing so callers can decide what
+ * to do (middleware handles the common cases; this is the last-mile net).
  */
 export async function getSessionAndProfile(): Promise<
-  { user: { id: string; email: string | null }; profile: DashboardProfile } | null
+  { user: { id: string; email: string | null }; profile: SessionProfile } | null
 > {
   const supabase = await createServerAuthClient();
   const {
@@ -30,27 +44,40 @@ export async function getSessionAndProfile(): Promise<
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select(
-      "id, user_type, full_name, contact_email, profile_picture, onboarding_complete",
-    )
+    .select(PROFILE_COLUMNS)
     .eq("id", user.id)
-    .maybeSingle<DashboardProfile>();
+    .maybeSingle<SessionProfile>();
 
   if (!profile) return null;
   return { user: { id: user.id, email: user.email ?? null }, profile };
 }
 
 /**
- * Convenience wrapper for pages that require a signed-in user with a profile.
- * Sends users to /login (no session) or /onboarding (no profile row — should
- * only happen if the auth trigger failed). Returns a non-null value on success.
+ * Require a signed-in user with a completed onboarding.
+ * - No session          → /login
+ * - Blocked profile     → /login?error=blocked (middleware also handles this)
+ * - Incomplete profile  → /onboarding
  */
 export async function requireSessionAndProfile(): Promise<{
   user: { id: string; email: string | null };
-  profile: DashboardProfile;
+  profile: SessionProfile;
 }> {
   const result = await getSessionAndProfile();
   if (!result) redirect("/login");
-  if (!result.profile.onboarding_complete) redirect("/onboarding");
+  if (result.profile.blocked) redirect("/login?error=blocked");
+  if (!result.profile.onboarding_completed) redirect("/onboarding");
   return result;
+}
+
+/**
+ * Where a role belongs after finishing onboarding.
+ * - Attendee → public search-events (their "dashboard" for browsing is
+ *   the public page; per-account tabs live under /dashboard).
+ * - ED / Admin → the dashboard shell.
+ */
+export function postOnboardingDestination(
+  userType: SessionProfile["user_type"],
+): string {
+  if (userType === "attendee") return "/events";
+  return "/dashboard/events";
 }

@@ -2,12 +2,10 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 /**
- * Landing point for email confirmation and password recovery links.
- * Exchanges the `code` for a session, then routes the user: unfinished
- * profiles go to onboarding, everyone else to `next` (or home).
- *
- * (Social sign-in was removed — no live user has ever used it — so this
- * route no longer receives OAuth callbacks, only email-based ones.)
+ * Landing point for Supabase email links (confirmation + password reset).
+ * Exchanges the `code` for a session, then routes the user by onboarding
+ * status. The dashboard shell + attendee post-onboarding redirect handle
+ * the role-specific destinations from there.
  */
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
@@ -22,8 +20,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL("/login?error=callback", origin));
   }
 
-  // Collect any cookies Supabase sets during the exchange onto this response,
-  // then copy them onto the final redirect.
+  // Collect Supabase's cookies onto this response, then copy them onto the
+  // final redirect (Next requires cookies to travel with the response).
   let cookieResponse = NextResponse.next({ request });
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -51,8 +49,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL("/login?error=callback", origin));
   }
 
-  // Route by onboarding status — a fresh signup lands here right after
-  // confirming their email and won't have finished it yet.
   let dest = next;
   const {
     data: { user },
@@ -60,10 +56,10 @@ export async function GET(request: NextRequest) {
   if (user && next === "/") {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("onboarding_complete")
+      .select("onboarding_completed")
       .eq("id", user.id)
       .maybeSingle();
-    if (!profile?.onboarding_complete) dest = "/onboarding";
+    dest = profile?.onboarding_completed ? "/dashboard/events" : "/onboarding";
   }
 
   const redirect = NextResponse.redirect(new URL(dest, origin));

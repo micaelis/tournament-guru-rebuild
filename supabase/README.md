@@ -1,40 +1,30 @@
-# Local Supabase — run the auth tests fully offline
+# Supabase — local development
 
-This spins up the whole Supabase stack (Postgres + Auth + Studio + a local email
-inbox) on your machine. No cloud project, no real user data, and password-reset
-emails are captured locally. It's an alternative to the cloud staging project in
-[`../docs/STAGING_TESTS.md`](../docs/STAGING_TESTS.md) — the test *flows* are the
-same; only the setup differs.
+The whole Supabase stack (Postgres + Auth + Studio + Inbucket for local
+email) runs on your machine via `supabase start`. This project's
+migrations apply automatically on `supabase db reset`.
 
-## Prerequisite: Docker (one-time)
+## One-time: Docker
 
-`supabase start` runs containers, so you need a container runtime. You have the
-Supabase CLI already; you just need Docker:
+`supabase start` needs a container runtime. Any of:
+- **OrbStack** (lightest on macOS) — https://orbstack.dev
+- **Docker Desktop** — https://www.docker.com/products/docker-desktop/
 
-- **Docker Desktop** — https://www.docker.com/products/docker-desktop/ (simplest), or
-- **OrbStack** (lighter, macOS) — https://orbstack.dev
+Start it and confirm with `docker info`.
 
-Install it, launch it, and make sure it's running (`docker info` should succeed)
-before the next step.
-
-## Start it
+## Bring the stack up
 
 ```bash
 cd ~/Desktop/tournament-guru
-supabase start        # first run downloads images (~a few minutes)
+supabase start           # first run downloads images (~a few minutes)
+supabase db reset        # apply migrations + seeds (idempotent)
 ```
 
-When it finishes it prints an **API URL** and **anon key**, and:
-- **Studio** (DB UI + SQL editor): http://localhost:54323
-- **Inbucket** (captured emails): http://localhost:54324
-
-The three migrations in `supabase/migrations/` (base schema → additions → auth
-setup) and `supabase/seed.sql` (two fake migrated accounts) are applied
-automatically.
+Studio: http://localhost:54323 · Inbucket: http://localhost:54324
 
 ## Point the app at local Supabase
 
-In `.env.local`, **back up your production values first**, then set:
+In `.env.local`:
 
 ```
 NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
@@ -42,46 +32,33 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<the anon key printed by `supabase start`>
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
 
-Restart the dev server (`npm run dev`).
+Restart `npm run dev` after changing env vars.
 
-## Run the tests
+## Migration conventions
 
-**Test A — fresh signup → onboarding → login:** exactly as in
-[`../docs/STAGING_TESTS.md`](../docs/STAGING_TESTS.md#test-a--fresh-signup--onboarding--login).
-Email confirmation is off locally, so signup goes straight to onboarding. Verify
-with the same SQL in **Studio → SQL Editor** (http://localhost:54323).
+- Files under `supabase/migrations/` are applied in filename order.
+- `20260716000001_baseline.sql` is the from-scratch schema — it is the
+  first migration and creates everything (tables, enums, RLS, functions,
+  triggers, grants, reference seeds).
+- Later migrations layer semantic fixes on top; **never edit history**.
+- Regenerate `../supabase/schema.sql` after adding a migration:
 
-**Test B — migrated reset:** the two fake accounts are **already seeded** — no
-dashboard step. Use:
-- `migrated1@local.test` (or `migrated2@local.test`), any password.
+  ```bash
+  bash ../scripts/build-schema.sh
+  ```
 
-1. `/login` with that email + any password → expect the blue **"Welcome back!"**
-   panel + **Reset password →** (not a generic error).
-2. Click it, submit on `/reset`.
-3. Open **Inbucket** (http://localhost:54324) → open the reset email → click the
-   link → land on `/reset/update` → set a new password.
-4. Verify in Studio → SQL Editor:
+## Do NOT
 
-```sql
-select email, last_sign_in_at,
-       public.needs_password_setup(email) as needs_reset
-from auth.users where email = 'migrated1@local.test';
--- needs_reset should now be FALSE, last_sign_in_at populated.
-```
+- `supabase link` a staging or production project from this working tree.
+- `supabase db push` (would push migrations to the linked project).
+- `supabase db reset --linked` (would wipe the linked project).
 
-## Handy commands
+All three are hard-denied by `.claude/settings.json` on this branch.
+
+## Commands cheat-sheet
 
 ```bash
-supabase db reset     # wipe + re-apply all migrations + re-seed (fresh slate)
-supabase stop         # shut the stack down
-supabase status       # show URLs/keys again
+supabase status          # print URLs / anon key
+supabase db reset        # wipe + re-apply migrations + re-seed
+supabase stop            # tear the containers down
 ```
-
-## When done
-
-Restore your **production** `NEXT_PUBLIC_SUPABASE_*` values in `.env.local` and
-restart the dev server. `supabase stop` frees the containers.
-
-> **Config note:** `config.toml` targets a recent CLI (you have 2.98.2). If
-> `supabase start` ever complains about a config key, run `supabase init --force`
-> to regenerate it, then set `[auth.email] enable_confirmations = false` again.
