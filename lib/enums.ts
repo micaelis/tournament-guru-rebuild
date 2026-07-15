@@ -70,3 +70,46 @@ export const COMPETITION_LEVELS = [
  * signup/onboarding. Kept as a single constant so it's grep-able.
  */
 export const MIN_AGE_YEARS = 18;
+
+export const EVENT_REGIONS = [
+  { value: "I", label: "Region I" },
+  { value: "II", label: "Region II" },
+  { value: "III", label: "Region III" },
+  { value: "IV", label: "Region IV" },
+] as const;
+
+export type EventRegion = (typeof EVENT_REGIONS)[number]["value"];
+
+export const SURFACES = [
+  { value: "turf", label: "Turf" },
+  { value: "grass", label: "Grass" },
+] as const;
+
+export const FIELD_SIZES = [
+  "5v5",
+  "6v6",
+  "7v7",
+  "8v8",
+  "9v9",
+  "10v10",
+  "11v11",
+] as const;
+
+export const EVENT_FEATURES = [
+  { value: "stay_to_play", label: "Stay to Play" },
+  { value: "restrooms", label: "Restrooms" },
+  { value: "concessions", label: "Concessions" },
+  { value: "accessible", label: "Accessible" },
+  { value: "free_wifi", label: "Free Wifi" },
+  { value: "pet_friendly", label: "Pet Friendly" },
+  { value: "free_parking", label: "Free Parking" },
+  { value: "synthetic_turf", label: "Synthetic Turf" },
+] as const;
+
+/** Non-premium images cap. Premium unlocks 10 more (13 total). */
+export const FREE_IMAGE_LIMIT = 3;
+export const PREMIUM_IMAGE_LIMIT = 13;
+
+/** Cancel-reason character cap — displayed publicly, so keep it short. */
+export const CANCEL_REASON_MAX = 500;
+
