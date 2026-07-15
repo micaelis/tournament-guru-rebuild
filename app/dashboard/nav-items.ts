@@ -19,6 +19,7 @@ export const ATTENDEE_NAV: NavItem[] = [
   { href: "/dashboard/favorites" as Route, label: "Favorites", section: "You" },
   { href: "/dashboard/activity" as Route, label: "Activity", section: "You" },
   { href: "/dashboard/account" as Route, label: "Account", section: "You" },
+  { href: "/dashboard/support" as Route, label: "Support", section: "You" },
 ];
 
 export const ED_NAV: NavItem[] = [
