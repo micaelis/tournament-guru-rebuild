@@ -190,3 +190,68 @@ Rationale: the QR encodes a stable URL, so caching gains nothing
 (the URL doesn't change and QR generation is a few ms + a couple KB
 buffer). Caching would add storage bucket + cleanup work with zero
 correctness benefit.
+
+---
+
+## Slice 2 — Reviews & engagement
+
+### S2.1 · Rich-text review body deferred to plain text
+Spec mentions inline formatting (bold, italic, strike, underline,
+list, link, emojis). Shipping a real rich-text editor (TipTap /
+ProseMirror) + a server-side sanitizer allow-list is a sizable
+addition and would gate everything else in Slice 2. Plain-text body
+covers the review MVP; the sanitizer stays in the plan for a
+follow-up alongside the deferred private-storage upload flow.
+
+### S2.2 · Banned-word matching mirrors on client + server
+`findBannedWords` exists in two files — `lib/reviews/banned-words.ts`
+(server, with `server-only`) and `lib/reviews/client-check.ts`
+(client, plain). Same regex logic, same result. Server side is
+authoritative on submit; client side gives real-time feedback while
+typing without an extra round-trip per keystroke. When the list is
+edited, the fresh copy fetches on the next server call — no cache
+to invalidate.
+
+### S2.3 · Replace-all owner reply (no separate edit-reply branch)
+Spec allows an ED to delete and add a new reply. The action treats a
+new-reply insert as delete-then-insert: it wipes any prior
+`is_owner_reply=true` row on the review before inserting the new one,
+so an "edit" is a re-post from the ED's perspective, and the code
+path is one write instead of two.
+
+### S2.4 · CSV export happens client-side
+Dashboard bulk export builds the CSV in-browser and downloads via a
+Blob. Selection state is client-owned already (the checkboxes live
+in useState), so streaming the whole row set through a server route
+would double-fetch. Cap is 30 rows per page (spec) — well under any
+memory concern.
+
+### S2.5 · Attendee state filter uses review snapshots
+The list projection for the attendee's "My Reviews" doesn't join the
+current event row (would blow up the query for detached rows). The
+state filter reads from `snapshot_event_location`'s trailing 2 chars,
+which are stamped when the event is deleted. Live events don't have
+the snapshot set — those rows currently pass the filter. If the
+client wants a strict state filter on live events too, the follow-up
+is a second query that pulls `events.location_state_abbr` in a batch
+and merges it into the row set.
+
+### S2.6 · platform_counters.published_reviews_total never decrements
+Spec: "even if the published review was deleted, the system should
+still count it towards the total nr of published reviews alongside
+other app metrics like listed tournaments and listed events." The
+baseline trigger only increments; delete leaves the counter alone.
+Same rule already applies to events + tournaments per SCHEMA-DESIGN
+§8.
+
+### S2.7 · Reviewer-details popup deferred
+Spec calls for a two-column popup (Verified Coach vs Attendee stats)
+when clicking a username on the dashboard. That's a separate query
++ layout; the review table renders the reviewer identity inline and
+that covers the "who wrote this" use case. Follow-up when time
+frees up.
+
+### S2.8 · Location state on events for dashboard state filter
+`ReviewsTable`'s state filter uses `event.location_state_abbr`
+directly (already selected in the joined projection). Simpler than
+mapping through the state seed table.
