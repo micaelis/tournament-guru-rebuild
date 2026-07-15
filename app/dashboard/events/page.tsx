@@ -4,6 +4,7 @@ import { TournamentCard } from "./TournamentCard";
 import { EventsToolbar } from "./EventsToolbar";
 import { FirstRunAddButton } from "./FirstRunAddButton";
 import {
+  fetchTournamentOwnerNames,
   listTournaments,
   type TournamentSort,
 } from "./queries";
@@ -23,6 +24,8 @@ const VALID_SORTS: TournamentSort[] = [
   "rating_asc",
   "reviews_desc",
   "reviews_asc",
+  "owner_asc",
+  "owner_desc",
 ];
 
 /**
@@ -47,15 +50,27 @@ export default async function EventsDashboardPage({
     ? (sortRaw as TournamentSort)
     : "title_asc";
 
+  const isAdmin = profile.user_type === "admin";
   const tournaments = await listTournaments({
     userId: user.id,
     scope,
     search,
     sort,
   });
-  const [events, seasons] = await Promise.all([
+  const [events, seasons, ownerNames] = await Promise.all([
     listEventsForTournaments(tournaments.map((t) => t.id)),
     listSeasons(),
+    isAdmin
+      ? fetchTournamentOwnerNames(
+          Array.from(
+            new Set(
+              tournaments
+                .map((t) => t.owner_id)
+                .filter((v): v is string => Boolean(v)),
+            ),
+          ),
+        )
+      : Promise.resolve(new Map<string, string>()),
   ]);
   const seasonLabels = new Map(seasons.map((s) => [s.id, s.label]));
   const eventsByTournament = new Map<string, EventListRow[]>();
@@ -92,6 +107,8 @@ export default async function EventsDashboardPage({
             initialSearch={search}
             initialSort={sort}
             showAdd={profile.user_type !== "attendee"}
+            isAdmin={isAdmin}
+            hasResults={tournaments.length > 0}
           />
           {tournaments.length === 0 ? (
             <p className="rounded-2xl border border-dashed border-slate-200 bg-white px-6 py-10 text-center text-sm text-slate-500">
@@ -109,7 +126,11 @@ export default async function EventsDashboardPage({
                   canManageEvent={(ev) =>
                     canManageEvent(profile.user_type, ev, user.id)
                   }
-                  showEventsByDefault={profile.user_type !== "admin"}
+                  showEventsByDefault={!isAdmin}
+                  ownerName={
+                    isAdmin && t.owner_id ? ownerNames.get(t.owner_id) : undefined
+                  }
+                  isAdmin={isAdmin}
                 />
               ))}
             </div>

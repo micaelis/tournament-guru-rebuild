@@ -16,10 +16,12 @@ export function EventList({
   events,
   seasons,
   canManage,
+  isAdmin,
 }: {
   events: EventListRow[];
   seasons: Map<string, string>;
   canManage: (event: EventListRow) => boolean;
+  isAdmin?: boolean;
 }) {
   const [page, setPage] = useState(0);
   const totalPages = Math.max(1, Math.ceil(events.length / PAGE_SIZE));
@@ -33,6 +35,7 @@ export function EventList({
           event={ev}
           seasonLabel={seasons.get(ev.season_id ?? "") ?? null}
           canManage={canManage(ev)}
+          isAdmin={isAdmin}
         />
       ))}
       {totalPages > 1 && (

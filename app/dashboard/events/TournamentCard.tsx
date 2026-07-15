@@ -31,6 +31,8 @@ export function TournamentCard({
   canManage,
   canManageEvent,
   showEventsByDefault,
+  ownerName,
+  isAdmin,
 }: {
   tournament: TournamentRow;
   events: EventListRow[];
@@ -38,6 +40,8 @@ export function TournamentCard({
   canManage: boolean;
   canManageEvent: (event: EventListRow) => boolean;
   showEventsByDefault: boolean;
+  ownerName?: string;
+  isAdmin?: boolean;
 }) {
   const eventCount = events.length;
   const [editing, setEditing] = useState(false);
@@ -61,6 +65,16 @@ export function TournamentCard({
             {hasReviews
               ? ` · ${tournament.review_count} ${tournament.review_count === 1 ? "review" : "reviews"}`
               : ""}
+            {isAdmin && (
+              <>
+                {" · "}
+                {ownerName ? (
+                  <span className="text-slate-700">Owner: {ownerName}</span>
+                ) : (
+                  <span className="text-red-600">Unclaimed</span>
+                )}
+              </>
+            )}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -124,6 +138,7 @@ export function TournamentCard({
                   events={events}
                   seasons={seasons}
                   canManage={canManageEvent}
+                  isAdmin={isAdmin}
                 />
               </div>
             )}

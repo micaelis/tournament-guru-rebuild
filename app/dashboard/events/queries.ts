@@ -34,10 +34,12 @@ export type TournamentSort =
   | "rating_desc"
   | "rating_asc"
   | "reviews_desc"
-  | "reviews_asc";
+  | "reviews_asc"
+  | "owner_asc"
+  | "owner_desc";
 
 const SORT_MAP: Record<
-  TournamentSort,
+  Exclude<TournamentSort, "owner_asc" | "owner_desc">,
   { column: string; ascending: boolean }
 > = {
   title_asc: { column: "title", ascending: true },
@@ -51,8 +53,15 @@ const SORT_MAP: Record<
 
 /**
  * List tournaments visible to the current user for the events page.
- * ED: their own. Admin: all. Filtering by title happens in-DB (ilike).
- * Sort maps 1:1 to a column; A-Z title is the default.
+ *
+ * ED scope ('own'): title-only ilike search, straight SQL sort. Small
+ * data, minimal work.
+ * Admin scope ('all'): also matches on the owner's full name — spec
+ * says "The search box should search by event title AND event owner's
+ * full name" — and unlocks the Owner sort. We fetch tournaments +
+ * their owner rows in two round trips, filter + sort in JS. Admin
+ * volume is low so the join-in-app cost is fine and keeps the SQL
+ * simple.
  */
 export async function listTournaments({
   userId,
@@ -66,16 +75,105 @@ export async function listTournaments({
   sort?: TournamentSort;
 }): Promise<TournamentRow[]> {
   const supabase = await createServerAuthClient();
-  const { column, ascending } = SORT_MAP[sort];
+  const trimmed = search?.trim() ?? "";
 
-  const base = supabase.from("tournaments").select(TOURNAMENT_COLUMNS);
-  const scoped = scope === "own" ? base.eq("owner_id", userId) : base;
-  const searched =
-    search && search.trim() ? scoped.ilike("title", `%${search.trim()}%`) : scoped;
-  const { data, error } = await searched.order(column, { ascending });
+  if (scope === "own") {
+    if (sort === "owner_asc" || sort === "owner_desc") {
+      // Owner sort is meaningless when every row is your own; fall back.
+      sort = "title_asc";
+    }
+    const { column, ascending } = SORT_MAP[sort];
+    const q = supabase
+      .from("tournaments")
+      .select(TOURNAMENT_COLUMNS)
+      .eq("owner_id", userId);
+    const searched = trimmed ? q.ilike("title", `%${trimmed}%`) : q;
+    const { data, error } = await searched.order(column, { ascending });
+    if (error) throw new Error(error.message);
+    return (data ?? []) as unknown as TournamentRow[];
+  }
 
+  // Admin scope: raw fetch, then filter + sort in JS.
+  const { data: allTournaments, error } = await supabase
+    .from("tournaments")
+    .select(TOURNAMENT_COLUMNS);
   if (error) throw new Error(error.message);
-  return (data ?? []) as unknown as TournamentRow[];
+  let list = (allTournaments ?? []) as unknown as TournamentRow[];
+
+  const ownerIds = Array.from(
+    new Set(list.map((t) => t.owner_id).filter((v): v is string => Boolean(v))),
+  );
+  const ownerNames = ownerIds.length
+    ? await fetchOwnerFullNames(supabase, ownerIds)
+    : new Map<string, string>();
+
+  if (trimmed) {
+    const needle = trimmed.toLowerCase();
+    list = list.filter((t) => {
+      if (t.title.toLowerCase().includes(needle)) return true;
+      const name = t.owner_id ? ownerNames.get(t.owner_id) : undefined;
+      return name ? name.toLowerCase().includes(needle) : false;
+    });
+  }
+
+  if (sort === "owner_asc" || sort === "owner_desc") {
+    list.sort((a, b) => {
+      const aName = (a.owner_id ? ownerNames.get(a.owner_id) : "") ?? "";
+      const bName = (b.owner_id ? ownerNames.get(b.owner_id) : "") ?? "";
+      const cmp = aName.localeCompare(bName);
+      return sort === "owner_asc" ? cmp : -cmp;
+    });
+  } else {
+    const { column, ascending } = SORT_MAP[sort];
+    list.sort((a, b) => {
+      const av = (a as unknown as Record<string, unknown>)[column];
+      const bv = (b as unknown as Record<string, unknown>)[column];
+      const cmp = compareUnknown(av, bv);
+      return ascending ? cmp : -cmp;
+    });
+  }
+
+  return list;
+}
+
+function compareUnknown(a: unknown, b: unknown): number {
+  if (a == null && b == null) return 0;
+  if (a == null) return -1;
+  if (b == null) return 1;
+  if (typeof a === "number" && typeof b === "number") return a - b;
+  return String(a).localeCompare(String(b));
+}
+
+async function fetchOwnerFullNames(
+  supabase: Awaited<ReturnType<typeof createServerAuthClient>>,
+  ownerIds: string[],
+): Promise<Map<string, string>> {
+  const { data } = await supabase
+    .from("profiles")
+    .select("id, first_name, last_name")
+    .in("id", ownerIds);
+  const out = new Map<string, string>();
+  for (const row of (data ?? []) as {
+    id: string;
+    first_name: string | null;
+    last_name: string | null;
+  }[]) {
+    out.set(row.id, [row.first_name, row.last_name].filter(Boolean).join(" "));
+  }
+  return out;
+}
+
+/**
+ * Admin-only helper: fetch each tournament owner's display name for the
+ * page's "Owner" column + row-level "created by" chip. EDs don't need
+ * this because they only see themselves.
+ */
+export async function fetchTournamentOwnerNames(
+  ownerIds: string[],
+): Promise<Map<string, string>> {
+  if (ownerIds.length === 0) return new Map();
+  const supabase = await createServerAuthClient();
+  return fetchOwnerFullNames(supabase, ownerIds);
 }
 
 /**

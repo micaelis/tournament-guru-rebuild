@@ -26,6 +26,7 @@ export function EventActions({
   lifecycle,
   isPremium,
   canManage,
+  isAdmin = false,
   onUpgradeClick,
 }: {
   eventId: string;
@@ -33,12 +34,14 @@ export function EventActions({
   lifecycle: "draft" | "active" | "canceled";
   isPremium: boolean;
   canManage: boolean;
+  isAdmin?: boolean;
   onUpgradeClick?: () => void;
 }) {
   const router = useRouter();
   const { push } = useToast();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
+  const [qrOpen, setQrOpen] = useState(false);
   const [_isPending, startTransition] = useTransition();
 
   return (
@@ -81,6 +84,11 @@ export function EventActions({
           Cancel event
         </Button>
       )}
+      {isAdmin && (
+        <Button size="sm" variant="ghost" onClick={() => setQrOpen(true)}>
+          QR
+        </Button>
+      )}
       {canManage && (
         <Button
           size="sm"
@@ -111,6 +119,79 @@ export function EventActions({
         eventId={eventId}
         onClose={() => setConfirmCancel(false)}
       />
+
+      {isAdmin && (
+        <QRDialog
+          open={qrOpen}
+          eventId={eventId}
+          eventTitle={eventTitle}
+          onClose={() => setQrOpen(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+/**
+ * QR modal. Fetches the 400×400 PNG from the qr route and shows it in
+ * the dialog with Download PNG / PDF buttons. Spec confirms 400×400 +
+ * PNG + PDF variants and requires a "confirming the QR image has been
+ * downloaded" alert — the browser's own download UI covers that.
+ */
+function QRDialog({
+  open,
+  eventId,
+  eventTitle,
+  onClose,
+}: {
+  open: boolean;
+  eventId: string;
+  eventTitle: string;
+  onClose: () => void;
+}) {
+  const { push } = useToast();
+  if (!open) return null;
+  const pngHref = `/dashboard/events/qr/${eventId}?format=png`;
+  const pdfHref = `/dashboard/events/qr/${eventId}?format=pdf`;
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 grid place-items-center bg-slate-900/50 p-4"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+        <h3 className="font-[var(--font-heading)] text-xl font-extrabold text-slate-900">
+          QR — {eventTitle}
+        </h3>
+        <p className="mt-1 text-sm text-slate-500">
+          Encodes the event&apos;s public URL. Print or share.
+        </p>
+        <div className="mt-4 flex items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <img
+            src={pngHref}
+            width={280}
+            height={280}
+            alt="Event QR code"
+            className="h-[280px] w-[280px] rounded-xl bg-white"
+          />
+        </div>
+        <div className="mt-5 flex justify-between gap-2">
+          <Button variant="ghost" onClick={onClose}>
+            Close
+          </Button>
+          <div className="flex gap-2">
+            <a href={pngHref} download onClick={() => push("success", "QR PNG downloaded.")}>
+              <Button variant="ghost">Download PNG</Button>
+            </a>
+            <a href={pdfHref} download onClick={() => push("success", "QR PDF downloaded.")}>
+              <Button>Download PDF</Button>
+            </a>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -29,10 +29,12 @@ export function EventRow({
   event,
   seasonLabel,
   canManage,
+  isAdmin,
 }: {
   event: EventListRow;
   seasonLabel: string | null;
   canManage: boolean;
+  isAdmin?: boolean;
 }) {
   const [showMetrics, setShowMetrics] = useState(true);
   const status = deriveEventStatus(event);
@@ -94,13 +96,14 @@ export function EventRow({
               No reviews yet
             </span>
           )}
-          {canManage && (
+          {(canManage || isAdmin) && (
             <EventActions
               eventId={event.id}
               eventTitle={event.title || "Untitled event"}
               lifecycle={event.lifecycle}
               isPremium={event.is_premium}
               canManage={canManage}
+              isAdmin={isAdmin}
             />
           )}
         </div>

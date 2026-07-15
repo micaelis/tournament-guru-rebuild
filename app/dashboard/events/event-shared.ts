@@ -17,7 +17,9 @@ export type EventListRow = {
   is_sponsored: boolean;
   owner_id: string | null;
   season_id: string | null;
+  location_formatted: string | null;
   general_rating: number | null;
+  attendee_rating: number | null;
   review_count: number;
   avg_fields: number | null;
   avg_facilities: number | null;

@@ -11,7 +11,7 @@ import type { TournamentSort } from "./queries";
 
 type Option = { value: TournamentSort; label: string };
 
-const SORT_OPTIONS: Option[] = [
+const BASE_SORT_OPTIONS: Option[] = [
   { value: "title_asc", label: "Title (A–Z)" },
   { value: "created_desc", label: "Creation date (newest)" },
   { value: "created_asc", label: "Creation date (oldest)" },
@@ -19,6 +19,11 @@ const SORT_OPTIONS: Option[] = [
   { value: "rating_asc", label: "Average rating (low)" },
   { value: "reviews_desc", label: "Reviews (most)" },
   { value: "reviews_asc", label: "Reviews (fewest)" },
+];
+
+const ADMIN_EXTRA_SORT: Option[] = [
+  { value: "owner_asc", label: "Owner (A–Z)" },
+  { value: "owner_desc", label: "Owner (Z–A)" },
 ];
 
 /**
@@ -31,11 +36,18 @@ export function EventsToolbar({
   initialSearch,
   initialSort,
   showAdd,
+  isAdmin,
+  hasResults,
 }: {
   initialSearch: string;
   initialSort: TournamentSort;
   showAdd: boolean;
+  isAdmin: boolean;
+  hasResults: boolean;
 }) {
+  const sortOptions = isAdmin
+    ? [...BASE_SORT_OPTIONS, ...ADMIN_EXTRA_SORT]
+    : BASE_SORT_OPTIONS;
   const router = useRouter();
   const searchParams = useSearchParams();
   const [pending, startTransition] = useTransition();
@@ -74,12 +86,27 @@ export function EventsToolbar({
           onChange={(e) => pushParam("sort", e.target.value)}
           className="tg-control tg-select w-auto min-w-[220px] flex-none"
         >
-          {SORT_OPTIONS.map((opt) => (
+          {sortOptions.map((opt) => (
             <option key={opt.value} value={opt.value}>
               {opt.label}
             </option>
           ))}
         </select>
+        {isAdmin && (
+          <a
+            href={buildCsvHref(searchParams)}
+            aria-disabled={!hasResults}
+            className={
+              hasResults
+                ? "rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-800 hover:border-slate-400"
+                : "pointer-events-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-bold text-slate-400"
+            }
+            title={hasResults ? "Download the current view as CSV" : "Nothing to export"}
+            download
+          >
+            Export CSV
+          </a>
+        )}
         {showAdd && (
           <Button onClick={() => setCreating(true)} disabled={pending}>
             + New tournament
@@ -87,6 +114,7 @@ export function EventsToolbar({
         )}
       </div>
 
+      {/* CSV href builder */}
       <CreateTournamentDialog
         open={creating}
         onClose={() => setCreating(false)}
@@ -104,4 +132,10 @@ export function EventsToolbar({
       )}
     </>
   );
+}
+
+function buildCsvHref(searchParams: URLSearchParams): string {
+  const params = new URLSearchParams(searchParams.toString());
+  const qs = params.toString();
+  return `/dashboard/events/csv${qs ? `?${qs}` : ""}`;
 }
