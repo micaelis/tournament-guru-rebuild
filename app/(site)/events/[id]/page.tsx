@@ -22,6 +22,8 @@ import { formatRating } from "@/lib/reviews/shared";
 import { ReviewCard } from "@/app/components/reviews/ReviewCard";
 import { hasPendingClaim } from "@/lib/claims/queries";
 import { ClaimEventCta } from "./ClaimEventCta";
+import { recordRecentView } from "@/lib/user-events/actions";
+import { FavoriteButton } from "@/app/components/reviews/FavoriteButton";
 
 type Params = { id: string };
 
@@ -108,6 +110,21 @@ export default async function PublicEventPage({
     org_description: string | null;
     org_logo_url: string | null;
   } | null;
+
+  if (user) {
+    // Fire-and-forget: log the view (upsert bumps viewed_at). No
+    // await into a Promise.all so page render stays snappy.
+    void recordRecentView(id);
+  }
+  const favoritedResult = user
+    ? await supabase
+        .from("favorites")
+        .select("event_id")
+        .eq("user_id", user.id)
+        .eq("event_id", id)
+        .maybeSingle()
+    : { data: null };
+  const favorited = Boolean(favoritedResult.data);
 
   const claimCtaState: "anon" | "requestable" | "requested" | "claimed" =
     eventRow.owner_id
@@ -196,6 +213,11 @@ export default async function PublicEventPage({
           </span>
         )}
         <ClaimEventCta eventId={id} state={claimCtaState} />
+        <FavoriteButton
+          eventId={id}
+          initialFavorited={favorited}
+          disabled={!user}
+        />
       </div>
 
       {ev.lifecycle === "canceled" && ev.cancel_reason && (
