@@ -15,6 +15,8 @@ import {
   EditTournamentDialog,
 } from "./TournamentDialogs";
 import type { TournamentRow } from "./queries";
+import { EventList } from "./EventList";
+import type { EventListRow } from "./event-shared";
 
 /**
  * A single tournament card on the Events page. Header shows title +
@@ -24,15 +26,20 @@ import type { TournamentRow } from "./queries";
  */
 export function TournamentCard({
   tournament,
-  eventCount,
+  events,
+  seasons,
   canManage,
+  canManageEvent,
   showEventsByDefault,
 }: {
   tournament: TournamentRow;
-  eventCount: number;
+  events: EventListRow[];
+  seasons: Map<string, string>;
   canManage: boolean;
+  canManageEvent: (event: EventListRow) => boolean;
   showEventsByDefault: boolean;
 }) {
+  const eventCount = events.length;
   const [editing, setEditing] = useState(false);
   const [showEvents, setShowEvents] = useState(showEventsByDefault);
 
@@ -112,9 +119,12 @@ export function TournamentCard({
               </button>
             </div>
             {showEvents && (
-              <div className="mt-3 rounded-xl border border-dashed border-slate-200 bg-slate-50/60 p-4 text-sm text-slate-500">
-                Event rows land in S1.3 — the per-event metric strip + status
-                pill + edit/duplicate/copy-link actions.
+              <div className="mt-3">
+                <EventList
+                  events={events}
+                  seasons={seasons}
+                  canManage={canManageEvent}
+                />
               </div>
             )}
           </div>

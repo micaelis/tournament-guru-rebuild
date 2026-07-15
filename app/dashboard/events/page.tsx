@@ -4,10 +4,14 @@ import { TournamentCard } from "./TournamentCard";
 import { EventsToolbar } from "./EventsToolbar";
 import { FirstRunAddButton } from "./FirstRunAddButton";
 import {
-  countEventsPerTournament,
   listTournaments,
   type TournamentSort,
 } from "./queries";
+import {
+  listEventsForTournaments,
+  listSeasons,
+  type EventListRow,
+} from "./event-queries";
 
 type SearchParams = { [key: string]: string | string[] | undefined };
 
@@ -49,9 +53,17 @@ export default async function EventsDashboardPage({
     search,
     sort,
   });
-  const eventCounts = await countEventsPerTournament(
-    tournaments.map((t) => t.id),
-  );
+  const [events, seasons] = await Promise.all([
+    listEventsForTournaments(tournaments.map((t) => t.id)),
+    listSeasons(),
+  ]);
+  const seasonLabels = new Map(seasons.map((s) => [s.id, s.label]));
+  const eventsByTournament = new Map<string, EventListRow[]>();
+  for (const ev of events) {
+    const bucket = eventsByTournament.get(ev.tournament_id) ?? [];
+    bucket.push(ev);
+    eventsByTournament.set(ev.tournament_id, bucket);
+  }
 
   const isEmptyFirstRun =
     tournaments.length === 0 && !search && profile.user_type !== "admin";
@@ -91,8 +103,12 @@ export default async function EventsDashboardPage({
                 <TournamentCard
                   key={t.id}
                   tournament={t}
-                  eventCount={eventCounts.get(t.id) ?? 0}
+                  events={eventsByTournament.get(t.id) ?? []}
+                  seasons={seasonLabels}
                   canManage={canManageTournament(profile.user_type, t, user.id)}
+                  canManageEvent={(ev) =>
+                    canManageEvent(profile.user_type, ev, user.id)
+                  }
                   showEventsByDefault={profile.user_type !== "admin"}
                 />
               ))}
@@ -121,5 +137,21 @@ function canManageTournament(
     if (tournament.owner_id) return false; // claimed by an ED
     return tournament.created_by === userId || tournament.created_by === null;
   }
+  return false;
+}
+
+/**
+ * Admin can edit any event (spec: "editing an event should be possible
+ * for the admin in either case") but can only delete/duplicate ones
+ * they created and that no ED has claimed. EDs manage everything they
+ * own. The permissions here mirror EventActions' render gating.
+ */
+function canManageEvent(
+  userType: "attendee" | "event_director" | "admin",
+  event: EventListRow,
+  userId: string,
+): boolean {
+  if (userType === "event_director") return event.owner_id === userId;
+  if (userType === "admin") return true;
   return false;
 }

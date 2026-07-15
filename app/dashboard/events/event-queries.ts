@@ -1,4 +1,7 @@
+import "server-only";
 import { createServerAuthClient } from "@/lib/supabase/server";
+import type { EventListRow } from "./event-shared";
+export { deriveEventStatus, type EventListRow } from "./event-shared";
 
 export type EventBaseRow = {
   id: string;
@@ -154,3 +157,27 @@ export async function getTournamentForHeader(
     owner_id: string | null;
   } | null;
 }
+
+const EVENT_LIST_COLUMNS =
+  "id, tournament_id, title, host_club, start_date, end_date, lifecycle, is_premium, is_sponsored, owner_id, season_id, general_rating, review_count, avg_fields, avg_facilities, avg_management, avg_competition, avg_diversity, avg_cost_value";
+
+/**
+ * Lists events under one or more tournaments for the dashboard. Sort:
+ * soonest start_date first (spec: "sorted by start-date, the soonest
+ * displayed at the top"). Drafts float to the top of their tournament
+ * because their start_date is often null.
+ */
+export async function listEventsForTournaments(
+  tournamentIds: string[],
+): Promise<EventListRow[]> {
+  if (tournamentIds.length === 0) return [];
+  const supabase = await createServerAuthClient();
+  const { data, error } = await supabase
+    .from("events")
+    .select(EVENT_LIST_COLUMNS)
+    .in("tournament_id", tournamentIds)
+    .order("start_date", { ascending: true, nullsFirst: true });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as unknown as EventListRow[];
+}
+

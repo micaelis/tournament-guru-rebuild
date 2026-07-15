@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import { createServerAuthClient } from "@/lib/supabase/server";
 import { safeExternalUrl, safeImageSrc } from "@/lib/url";
 import {
+  AGE_BRACKETS,
+  CANCEL_REASON_MAX,
   COMPETITION_LEVELS,
   EVENT_FEATURES,
   EVENT_REGIONS,
@@ -13,7 +15,6 @@ import {
   PREMIUM_IMAGE_LIMIT,
   SURFACES,
   TEAM_GENDERS,
-  AGE_BRACKETS,
 } from "@/lib/enums";
 
 export type EventFormState = {
@@ -348,4 +349,185 @@ async function getExistingTournamentId(
     .eq("id", eventId)
     .maybeSingle<{ tournament_id: string }>();
   return data?.tournament_id;
+}
+
+/**
+ * Cancel a published event. Spec: reason is mandatory, capped, and
+ * displayed publicly on the event page. Draft events don't get
+ * canceled — they just get deleted.
+ */
+export async function cancelEvent(
+  eventId: string,
+  reason: string,
+): Promise<EventFormState> {
+  const trimmed = reason.trim().slice(0, CANCEL_REASON_MAX);
+  if (!trimmed) {
+    return { fieldErrors: { cancel_reason: "Reason is required." } };
+  }
+  const supabase = await createServerAuthClient();
+  const { error } = await supabase
+    .from("events")
+    .update({ lifecycle: "canceled", cancel_reason: trimmed })
+    .eq("id", eventId);
+  if (error) return { error: error.message };
+  revalidatePath("/dashboard/events");
+  revalidatePath(`/dashboard/events/${eventId}`);
+  return {};
+}
+
+/**
+ * Delete an event via the SECURITY DEFINER `delete_event` RPC. The
+ * RPC detaches attached reviews with snapshot fields so their
+ * comments and content survive the delete, then removes the event
+ * row (which cascades child tables — age groups, sponsors, images,
+ * competition levels, surfaces, features, milestones).
+ */
+export async function deleteEvent(eventId: string): Promise<EventFormState> {
+  const supabase = await createServerAuthClient();
+  const { error } = await supabase.rpc("delete_event", {
+    target_event: eventId,
+  });
+  if (error) return { error: error.message };
+  revalidatePath("/dashboard/events");
+  return {};
+}
+
+/**
+ * Duplicate an event and its child rows (age groups, sponsors,
+ * images, competition levels, surfaces). Reviews and premium are
+ * intentionally NOT copied (spec: "the duplicated event should only
+ * copy the data that was added during add/edit event flow… If the
+ * original event was premium, the duplicated event must not carry
+ * that over"). Redirects to the new event's edit page so the ED can
+ * tweak details before publishing.
+ */
+export async function duplicateEvent(
+  eventId: string,
+): Promise<EventFormState> {
+  const supabase = await createServerAuthClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const { data: source, error: srcError } = await supabase
+    .from("events")
+    .select(
+      "tournament_id, owner_id, logo_url, title, website_url, host_club, description, location_formatted, location_state_abbr, location_city, location_state_full, location_zip, num_teams_this_year, region, season_id",
+    )
+    .eq("id", eventId)
+    .maybeSingle();
+  if (srcError) return { error: srcError.message };
+  if (!source) return { error: "Event not found." };
+
+  const src = source as unknown as Record<string, unknown>;
+
+  const insertRow = {
+    tournament_id: src.tournament_id as string,
+    owner_id: src.owner_id as string | null,
+    created_by: user.id,
+    claimed: src.owner_id !== null,
+    logo_url: src.logo_url,
+    title: `${src.title as string} (copy)`,
+    website_url: src.website_url,
+    host_club: src.host_club,
+    description: src.description,
+    location_formatted: src.location_formatted,
+    location_state_abbr: src.location_state_abbr,
+    location_city: src.location_city,
+    location_state_full: src.location_state_full,
+    location_zip: src.location_zip,
+    num_teams_this_year: src.num_teams_this_year,
+    region: src.region,
+    season_id: src.season_id,
+    lifecycle: "draft" as const,
+    is_premium: false,
+    is_sponsored: false,
+  };
+
+  const { data: created, error: insertError } = await supabase
+    .from("events")
+    .insert(insertRow)
+    .select("id")
+    .single();
+  if (insertError) return { error: insertError.message };
+  const newId = created.id as string;
+
+  // Copy the child collections that spec allows.
+  const [ageGroupsRes, sponsorsRes, levelsRes, surfacesRes, imagesRes] =
+    await Promise.all([
+      supabase.from("event_age_groups").select("team_gender, age, price, field_size").eq("event_id", eventId),
+      supabase.from("sponsors").select("name, link, logo_url").eq("event_id", eventId),
+      supabase.from("event_competition_levels").select("level").eq("event_id", eventId),
+      supabase.from("event_surfaces").select("surface").eq("event_id", eventId),
+      supabase.from("event_images").select("url, sort_order").eq("event_id", eventId).order("sort_order"),
+    ]);
+
+  const inserts: Array<PromiseLike<{ error: unknown }>> = [];
+  const ageGroups = (ageGroupsRes.data ?? []) as {
+    team_gender: string;
+    age: string;
+    price: number;
+    field_size: string;
+  }[];
+  if (ageGroups.length) {
+    inserts.push(
+      supabase
+        .from("event_age_groups")
+        .insert(ageGroups.map((g) => ({ ...g, event_id: newId }))),
+    );
+  }
+  const sponsorsRows = (sponsorsRes.data ?? []) as {
+    name: string;
+    link: string;
+    logo_url: string;
+  }[];
+  if (sponsorsRows.length) {
+    inserts.push(
+      supabase
+        .from("sponsors")
+        .insert(sponsorsRows.map((s) => ({ ...s, event_id: newId }))),
+    );
+  }
+  const levels = ((levelsRes.data ?? []) as { level: string }[]).map(
+    (r) => r.level,
+  );
+  if (levels.length) {
+    inserts.push(
+      supabase
+        .from("event_competition_levels")
+        .insert(levels.map((level) => ({ event_id: newId, level }))),
+    );
+  }
+  const surfaces = ((surfacesRes.data ?? []) as { surface: string }[]).map(
+    (r) => r.surface,
+  );
+  if (surfaces.length) {
+    inserts.push(
+      supabase
+        .from("event_surfaces")
+        .insert(surfaces.map((surface) => ({ event_id: newId, surface }))),
+    );
+  }
+  const imagesRows = (imagesRes.data ?? []) as {
+    url: string;
+    sort_order: number;
+  }[];
+  if (imagesRows.length) {
+    inserts.push(
+      supabase
+        .from("event_images")
+        .insert(
+          imagesRows.map((img) => ({
+            event_id: newId,
+            url: img.url,
+            sort_order: img.sort_order,
+          })),
+        ),
+    );
+  }
+
+  await Promise.all(inserts);
+  revalidatePath("/dashboard/events");
+  redirect(`/dashboard/events/${newId}/edit`);
 }
