@@ -42,3 +42,6 @@ next-env.d.ts
 
 # local db backups (Supabase dumps + preflight snapshots)
 supabase/.backups/
+
+# supabase CLI cache
+supabase/.temp/
