@@ -1,0 +1,155 @@
+"use client";
+
+import Link from "next/link";
+import { useState } from "react";
+import type { Route } from "next";
+import {
+  Button,
+  Card,
+  EmptyState,
+  MetricStrip,
+  type MetricTileData,
+} from "@/app/components/ui";
+import {
+  DeleteTournamentButton,
+  EditTournamentDialog,
+} from "./TournamentDialogs";
+import type { TournamentRow } from "./queries";
+
+/**
+ * A single tournament card on the Events page. Header shows title +
+ * inline Edit/Delete; body shows the metric strip (only when the
+ * tournament has at least one review); below is the events slot which
+ * S1.3 populates with rows and a per-event metric strip.
+ */
+export function TournamentCard({
+  tournament,
+  eventCount,
+  canManage,
+  showEventsByDefault,
+}: {
+  tournament: TournamentRow;
+  eventCount: number;
+  canManage: boolean;
+  showEventsByDefault: boolean;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [showEvents, setShowEvents] = useState(showEventsByDefault);
+
+  const tiles = buildTournamentTiles(tournament);
+  const hasReviews = tournament.review_count > 0;
+
+  return (
+    <Card className="overflow-hidden">
+      <header className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 p-5">
+        <div>
+          <h2 className="font-[var(--font-heading)] text-xl font-extrabold text-slate-900">
+            {tournament.title}
+          </h2>
+          <p className="mt-1 text-xs font-medium text-slate-500">
+            {eventCount === 0
+              ? "No events yet"
+              : `${eventCount} ${eventCount === 1 ? "event" : "events"}`}
+            {tournament.recurring ? " · Recurring" : ""}
+            {hasReviews
+              ? ` · ${tournament.review_count} ${tournament.review_count === 1 ? "review" : "reviews"}`
+              : ""}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href={
+              `/dashboard/events/new?tournament=${tournament.id}` as Route
+            }
+          >
+            <Button size="sm">+ Add event</Button>
+          </Link>
+          {canManage && (
+            <>
+              <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>
+                Edit
+              </Button>
+              <DeleteTournamentButton
+                tournamentId={tournament.id}
+                tournamentTitle={tournament.title}
+              />
+            </>
+          )}
+        </div>
+      </header>
+
+      {hasReviews && (
+        <div className="border-b border-slate-100 p-5">
+          <MetricStrip tiles={tiles} title="Tournament ratings" />
+        </div>
+      )}
+
+      <div className="p-5">
+        {eventCount === 0 ? (
+          <EmptyState
+            title="No events yet"
+            body="Add the first event under this tournament — dates, location, age groups, and sponsors go on the event, not the tournament."
+            action={
+              <Link
+                href={
+                  `/dashboard/events/new?tournament=${tournament.id}` as Route
+                }
+              >
+                <Button>+ Add event</Button>
+              </Link>
+            }
+          />
+        ) : (
+          <div>
+            <div className="flex items-center justify-between">
+              <p className="text-[13px] font-bold text-slate-800">Events</p>
+              <button
+                type="button"
+                onClick={() => setShowEvents((s) => !s)}
+                className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:border-slate-400"
+              >
+                {showEvents ? "Hide" : "Show"}
+              </button>
+            </div>
+            {showEvents && (
+              <div className="mt-3 rounded-xl border border-dashed border-slate-200 bg-slate-50/60 p-4 text-sm text-slate-500">
+                Event rows land in S1.3 — the per-event metric strip + status
+                pill + edit/duplicate/copy-link actions.
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {editing && (
+        <EditTournamentDialog
+          open={editing}
+          onClose={() => setEditing(false)}
+          tournament={{
+            id: tournament.id,
+            title: tournament.title,
+            recurring: tournament.recurring,
+          }}
+        />
+      )}
+    </Card>
+  );
+}
+
+/**
+ * Build the 9-tile tournament strip (Overall, Coach, Attendee, then
+ * the 6 category averages). Nulls render as "—" tiles.
+ */
+function buildTournamentTiles(t: TournamentRow): MetricTileData[] {
+  return [
+    { label: "Overall", value: t.general_rating, count: t.review_count },
+    { label: "Coach", value: t.coach_rating, count: t.review_count },
+    { label: "Attendee", value: t.attendee_rating, count: t.review_count },
+    { label: "Fields", value: t.avg_fields, count: t.review_count },
+    { label: "Facilities", value: t.avg_facilities, count: t.review_count },
+    { label: "Management", value: t.avg_management, count: t.review_count },
+    { label: "Competition", value: t.avg_competition, count: t.review_count },
+    { label: "Diversity", value: t.avg_diversity, count: t.review_count },
+    { label: "Cost / value", value: t.avg_cost_value, count: t.review_count },
+  ];
+}
