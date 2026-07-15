@@ -1,0 +1,187 @@
+import Link from "next/link";
+import type { Route } from "next";
+import { notFound } from "next/navigation";
+import { createAnonServerClient } from "@/lib/supabase/server";
+import { createServerAuthClient } from "@/lib/supabase/server";
+import {
+  StatusPill,
+  StarRating,
+  Button,
+  eventStatusTone,
+} from "@/app/components/ui";
+import { deriveEventStatus } from "@/app/dashboard/events/event-shared";
+import { getMyReviewForEvent, listReviewsForEvent } from "@/lib/reviews/queries";
+import { safeExternalUrl } from "@/lib/url";
+import { formatRating } from "@/lib/reviews/shared";
+
+type Params = { id: string };
+
+/**
+ * Minimal public event page. Slice 5 delivers the full media grid,
+ * sponsors, host-info sidebar, and premium extras — this page ships
+ * enough of it to host the review write flow (S2.2) and the review
+ * cards + comments (S2.3). The header, description, and reviews list
+ * all live here already so the surface is walkable.
+ */
+export default async function PublicEventPage({
+  params,
+}: {
+  params: Promise<Params>;
+}) {
+  const { id } = await params;
+  const supabaseAnon = createAnonServerClient();
+  const { data: event } = await supabaseAnon
+    .from("events")
+    .select(
+      "id, title, description, host_club, start_date, end_date, location_formatted, website_url, logo_url, region, lifecycle, is_premium, is_sponsored, cancel_reason, general_rating, review_count, avg_fields, avg_facilities, avg_management, avg_competition, avg_diversity, avg_cost_value, would_return_pct",
+    )
+    .eq("id", id)
+    .maybeSingle();
+  if (!event) notFound();
+
+  const status = deriveEventStatus(
+    event as { lifecycle: "draft" | "active" | "canceled"; start_date: string | null; end_date: string | null },
+  );
+
+  const supabase = await createServerAuthClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const [reviews, myReview] = await Promise.all([
+    listReviewsForEvent(id),
+    user ? getMyReviewForEvent(user.id, id) : Promise.resolve(null),
+  ]);
+
+  const website = safeExternalUrl((event as { website_url: string | null }).website_url);
+  const ev = event as {
+    title: string;
+    description: string | null;
+    host_club: string | null;
+    start_date: string | null;
+    end_date: string | null;
+    location_formatted: string | null;
+    website_url: string | null;
+    lifecycle: "draft" | "active" | "canceled";
+    is_premium: boolean;
+    is_sponsored: boolean;
+    cancel_reason: string | null;
+    general_rating: number | null;
+    review_count: number;
+    would_return_pct: number | null;
+  };
+
+  return (
+    <main className="mx-auto max-w-4xl px-6 py-12">
+      <div className="flex flex-wrap items-center gap-2">
+        <StatusPill tone={eventStatusTone(status)}>{status}</StatusPill>
+        {ev.is_premium && <StatusPill tone="warning">Premium</StatusPill>}
+      </div>
+      <h1 className="mt-4 font-[var(--font-heading)] text-4xl font-extrabold text-slate-900 md:text-5xl">
+        {ev.title}
+      </h1>
+      <p className="mt-3 text-sm text-slate-500">
+        {ev.host_club && <>Hosted by {ev.host_club} · </>}
+        {formatDateRange(ev.start_date, ev.end_date)}
+        {ev.location_formatted ? ` · ${ev.location_formatted}` : ""}
+      </p>
+
+      <div className="mt-6 flex flex-wrap items-center gap-4">
+        {ev.review_count > 0 ? (
+          <StarRating
+            value={ev.general_rating ?? 0}
+            count={ev.review_count}
+          />
+        ) : (
+          <p className="text-sm text-slate-500">
+            No reviews yet — be the first to write one.
+          </p>
+        )}
+        {ev.would_return_pct !== null && (
+          <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-900">
+            {formatRating(ev.would_return_pct)}% would return
+          </span>
+        )}
+      </div>
+
+      {ev.lifecycle === "canceled" && ev.cancel_reason && (
+        <div className="mt-8 rounded-2xl border border-red-200 bg-red-50 p-5">
+          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-red-800">
+            Event canceled
+          </p>
+          <p className="mt-2 text-sm text-red-800">{ev.cancel_reason}</p>
+        </div>
+      )}
+
+      {ev.description && (
+        <div className="mt-10 rounded-2xl border border-slate-200 bg-white p-6">
+          <h2 className="font-[var(--font-heading)] text-lg font-extrabold text-slate-900">
+            About this event
+          </h2>
+          <p className="mt-3 whitespace-pre-line text-sm text-slate-700">
+            {ev.description}
+          </p>
+          {website && (
+            <p className="mt-4">
+              <a
+                href={website}
+                target="_blank"
+                rel="noreferrer nofollow"
+                className="text-sm font-semibold text-red-600 underline"
+              >
+                {ev.website_url}
+              </a>
+            </p>
+          )}
+        </div>
+      )}
+
+      <section className="mt-12">
+        <header className="flex flex-wrap items-baseline justify-between gap-3">
+          <h2 className="font-[var(--font-heading)] text-2xl font-extrabold text-slate-900">
+            Reviews {ev.review_count > 0 && <span className="text-slate-400">({ev.review_count})</span>}
+          </h2>
+          <div className="flex gap-2">
+            {myReview ? (
+              <Link href={`/events/${id}/review` as Route}>
+                <Button variant="ghost">Edit your review</Button>
+              </Link>
+            ) : (
+              <Link href={`/events/${id}/review` as Route}>
+                <Button>Write a review</Button>
+              </Link>
+            )}
+          </div>
+        </header>
+
+        {reviews.length === 0 ? (
+          <div className="mt-6 rounded-2xl border border-dashed border-slate-200 bg-white p-10 text-center text-sm text-slate-500">
+            No reviews yet. Share what you experienced at this event.
+          </div>
+        ) : (
+          <div className="mt-6 rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-sm text-slate-500">
+            Review cards + threaded comments land in S2.3. {reviews.length}{" "}
+            published review{reviews.length === 1 ? "" : "s"} loaded.
+          </div>
+        )}
+      </section>
+    </main>
+  );
+}
+
+function formatDateRange(start: string | null, end: string | null): string {
+  if (!start && !end) return "";
+  if (start && end && start === end) return formatDate(start);
+  return [start ? formatDate(start) : "?", end ? formatDate(end) : "?"].join(
+    " – ",
+  );
+}
+
+function formatDate(iso: string): string {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
