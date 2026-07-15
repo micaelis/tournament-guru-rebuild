@@ -10,9 +10,16 @@ import {
   eventStatusTone,
 } from "@/app/components/ui";
 import { deriveEventStatus } from "@/app/dashboard/events/event-shared";
-import { getMyReviewForEvent, listReviewsForEvent } from "@/lib/reviews/queries";
+import {
+  getMyReviewForEvent,
+  getUserHelpfulSet,
+  listCommentsForReview,
+  listReviewsForEvent,
+} from "@/lib/reviews/queries";
+import { fetchBannedWords } from "@/lib/reviews/banned-words";
 import { safeExternalUrl } from "@/lib/url";
 import { formatRating } from "@/lib/reviews/shared";
+import { ReviewCard } from "@/app/components/reviews/ReviewCard";
 
 type Params = { id: string };
 
@@ -47,10 +54,30 @@ export default async function PublicEventPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const [reviews, myReview] = await Promise.all([
+  const [reviews, myReview, bannedWords] = await Promise.all([
     listReviewsForEvent(id),
     user ? getMyReviewForEvent(user.id, id) : Promise.resolve(null),
+    fetchBannedWords(),
   ]);
+
+  const [commentsByReview, helpfulSet, isAdmin] = await Promise.all([
+    Promise.all(
+      reviews.map(async (r) => ({ id: r.id, comments: await listCommentsForReview(r.id) })),
+    ),
+    user
+      ? getUserHelpfulSet(user.id, reviews.map((r) => r.id))
+      : Promise.resolve(new Set<string>()),
+    (async () => {
+      if (!user) return false;
+      const { data } = await supabase
+        .from("profiles")
+        .select("user_type")
+        .eq("id", user.id)
+        .maybeSingle<{ user_type: "attendee" | "event_director" | "admin" }>();
+      return data?.user_type === "admin";
+    })(),
+  ]);
+  const commentsMap = new Map(commentsByReview.map((r) => [r.id, r.comments]));
 
   const website = safeExternalUrl((event as { website_url: string | null }).website_url);
   const ev = event as {
@@ -158,9 +185,18 @@ export default async function PublicEventPage({
             No reviews yet. Share what you experienced at this event.
           </div>
         ) : (
-          <div className="mt-6 rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-sm text-slate-500">
-            Review cards + threaded comments land in S2.3. {reviews.length}{" "}
-            published review{reviews.length === 1 ? "" : "s"} loaded.
+          <div className="mt-6 space-y-5">
+            {reviews.map((r) => (
+              <ReviewCard
+                key={r.id}
+                review={r}
+                comments={commentsMap.get(r.id) ?? []}
+                currentUserId={user?.id ?? null}
+                isAdmin={isAdmin}
+                helpful={helpfulSet.has(r.id)}
+                bannedWords={bannedWords}
+              />
+            ))}
           </div>
         )}
       </section>
