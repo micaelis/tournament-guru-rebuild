@@ -122,3 +122,71 @@ they reach `/dashboard/*` via the header avatar menu.
 Notifications, FAQ in this sprint."* Those routes exist as stubs
 (returning 404 today) but are not linked in the sidebar. Support IS
 shown (not in the hide list).
+
+---
+
+## Slice 1 — Events
+
+### S1.1 · Admin edits tournaments only when unclaimed
+Spec: *"the option to edit the tournament/add an event is possible
+for the admin only if the tournament/event was added by the admin
+and has not yet been claimed by an ED."* The page-level
+`canManageTournament` returns false when `owner_id !== null` (i.e. an
+ED has claimed it). Editing an EVENT is always allowed for admins
+per the spec addendum. EDs manage their own only.
+
+### S1.2 · Uploads = URL fields (bucket flow deferred)
+Logo, sponsor logo, event images, org logo, and event video are all
+URL inputs for Slice 1. Wiring the Supabase private/public buckets +
+signed-upload flow doesn't gate the ED/Admin CRUD story, and the
+scoping deferral matches Slice 0's location-input punt (see §S0.5).
+Track under the same "storage cutover" follow-up.
+
+### S1.3 · Child collections use replace-all persistence
+saveEvent deletes every row in each child collection (age groups,
+sponsors, competition levels, surfaces, features, images) and
+re-inserts what the client sent. Two motivations:
+- The form owns the collection as a single array in useState — the
+  server never has to reconcile per-row diffs, and stale IDs can't
+  slip in from a lagging client.
+- Every child insert flows through server-side validation once,
+  regardless of whether the row is "new" or "existing" from the
+  client's POV. The DB check-constraints backstop enum values.
+
+The cost is an extra DELETE per collection per save. With
+6 collections capped at low tens of rows each, this is a rounding
+error and worth the simpler mental model.
+
+### S1.4 · Premium is a flag flip, no Stripe
+Spec: *"in this sprint, we are not building the payments/Stripe piece,
+because only the client will be managing events for a little while on
+launch."* upgradeEvent sets `is_premium = true`; the new
+stamp_premium_at trigger (migration 20260716000005) fills premium_at
+on the false → true transition. Reverting an event to non-premium is
+never surfaced in the UI — the client can do it via SQL if needed.
+
+### S1.5 · Admin search + sort by owner runs in-app
+The admin scope of `listTournaments` fetches all rows, joins owner
+first_name/last_name in a second query, and filters + sorts in JS.
+Alternative: Postgrest embedded-resource order + a computed
+full-name view. In-app is simpler and admin volume is low; if the
+tournaments table grows past a few thousand rows this becomes the
+right thing to migrate to a materialized view + a proper GIN index.
+
+### S1.6 · CSV export = current view + admin-only
+Spec: *"the exported list must match what the admin sees on the
+screen."* The CSV route reads `?q=` and `?sort=` from the request
+URL and runs the exact same listTournaments + listEventsForTournaments
+pair the page runs. The `description` column is intentionally left
+blank in the export because it isn't part of the compact list
+projection; widening the list projection just for the CSV would make
+every page fetch heavier. If the client wants description in the
+export, the CSV path can fetch it in batches on demand.
+
+### S1.7 · QR generation is on-demand, not cached
+Spec says the button changes from "Generate QR Image" to "Open QR
+Image" if one exists. We render "QR" always and generate on click.
+Rationale: the QR encodes a stable URL, so caching gains nothing
+(the URL doesn't change and QR generation is a few ms + a couple KB
+buffer). Caching would add storage bucket + cleanup work with zero
+correctness benefit.
