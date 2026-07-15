@@ -45,3 +45,4 @@ supabase/.backups/
 
 # supabase CLI cache
 supabase/.temp/
+supabase/.branches/

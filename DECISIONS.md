@@ -48,28 +48,46 @@ The old app enforced 12. The spec is authoritative for the rebuild — the
 `validatePassword` helper uses 8/1/1. If the client later wants 12 back,
 change the constant in one place.
 
-### S0.4 · Schema semantic fixes on top of the baseline
-Applied as follow-on migrations against the from-scratch baseline (each
-gets its own timestamped file so the intent is legible in the tree):
+### S0.4 · Schema semantic fixes
 
-1. **`dob` added to profiles UPDATE allow-list.** Onboarding needs to
-   write DOB; the baseline omitted it from the column grant, which would
-   have blocked mandatory-field completion.
-2. **`role_title` added to allow-list + role/type lock trigger.** Spec:
-   role is adjustable during onboarding, locked after. Column grant lets
-   the client write `role_title`; a `before update` trigger raises if
-   `role_title` or `user_type` changes when `onboarding_completed=true`.
-   Baseline had neither.
-3. **`p_comments_read` tightened.** Baseline let anyone read comments on
-   *draft* reviews as long as the comment wasn't personally hidden. Now
-   requires the parent review to be visible (published, or authored by
-   caller, or admin).
+One inline patch to the baseline itself (bootstrap-blocker), plus four
+follow-on migrations that layer semantic fixes on top. Each fix migration
+has its own timestamped file so the intent is legible in the tree.
+
+**Inline in `20260716000001_baseline.sql` (pre-boot bootstrap fix):**
+
+0. `apply_promo_to_review` search_path adds `extensions`. Baseline set
+   only `public, pg_temp`, but the function DECLAREs `v_email citext`
+   and citext lives in the `extensions` schema. Postgres validates
+   plpgsql DECLARE types at function creation, so the baseline failed
+   at that statement. Fixed inline because the migration can't succeed
+   otherwise. All other functions that touch citext-typed columns work
+   fine because they never DECLARE a citext local.
+
+**Follow-on migrations:**
+
+1. **`dob` and `role_title` added to profiles UPDATE allow-list**
+   (`20260716000002`). Onboarding needs to write both. Baseline omitted
+   them from the column grant, which would have surfaced as an opaque
+   "permission denied for column" error during onboarding.
+2. **Role/type lock trigger** (same migration). Spec: role adjustable
+   during onboarding, locked after. Column grant lets the client write
+   `role_title` (and, defensively, `user_type`); a BEFORE UPDATE trigger
+   raises `errcode=42501` if either column changes once
+   `onboarding_completed=true`. Baseline had neither the grant nor the
+   trigger.
+3. **`p_comments_read` tightened** (`20260716000003`). Baseline let any
+   caller read comments on a *draft* review as long as the comment
+   itself wasn't personally hidden. Now requires the parent review to
+   be visible (published / authored by caller / admin) AND the comment
+   not personally hidden. Admin still sees everything.
 4. **`handle_new_user` picks a role default that matches the incoming
-   `user_type`.** Baseline hard-coded `role_title='coach'`, which
-   conflicts with the `role_matches_type` check when the metadata says
-   `user_type='event_director'`. Fixed to `coach` for attendee,
-   `event_director` for ED, `event_director` for admin (admin type +
-   admin role — but check constraint accepts any role for admin).
+   `user_type`** (`20260716000004`). Baseline hard-coded
+   `role_title='coach'`, which conflicts with `role_matches_type` when
+   the metadata carries `user_type='event_director'`. Fixed to `coach`
+   for attendee, `event_director` for ED, `coach` (neutral placeholder)
+   for admin — admin's check-constraint accepts any role_title anyway,
+   and admin roles never appear in the UI.
 
 ### S0.5 · Location field — text-only for now
 The Auth spec asks for Google Places autocomplete on the onboarding

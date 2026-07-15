@@ -1,0 +1,2 @@
+-- Empty placeholder. Reference data (states, regions, seasons, platform_counters)
+-- is seeded inside the baseline migration.
