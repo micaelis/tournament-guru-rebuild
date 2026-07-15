@@ -20,6 +20,8 @@ import { fetchBannedWords } from "@/lib/reviews/banned-words";
 import { safeExternalUrl } from "@/lib/url";
 import { formatRating } from "@/lib/reviews/shared";
 import { ReviewCard } from "@/app/components/reviews/ReviewCard";
+import { hasPendingClaim } from "@/lib/claims/queries";
+import { ClaimEventCta } from "./ClaimEventCta";
 
 type Params = { id: string };
 
@@ -40,12 +42,16 @@ export default async function PublicEventPage({
   const { data: event } = await supabaseAnon
     .from("events")
     .select(
-      "id, title, description, host_club, start_date, end_date, location_formatted, website_url, logo_url, region, lifecycle, is_premium, is_sponsored, cancel_reason, general_rating, review_count, avg_fields, avg_facilities, avg_management, avg_competition, avg_diversity, avg_cost_value, would_return_pct",
+      "id, tournament_id, owner_id, title, description, host_club, start_date, end_date, location_formatted, website_url, logo_url, region, lifecycle, is_premium, is_sponsored, cancel_reason, general_rating, review_count, avg_fields, avg_facilities, avg_management, avg_competition, avg_diversity, avg_cost_value, would_return_pct",
     )
     .eq("id", id)
     .maybeSingle();
   if (!event) notFound();
 
+  const eventRow = event as {
+    tournament_id?: string;
+    owner_id?: string | null;
+  } & Record<string, unknown>;
   const status = deriveEventStatus(
     event as { lifecycle: "draft" | "active" | "canceled"; start_date: string | null; end_date: string | null },
   );
@@ -59,6 +65,24 @@ export default async function PublicEventPage({
     user ? getMyReviewForEvent(user.id, id) : Promise.resolve(null),
     fetchBannedWords(),
   ]);
+
+  const claimCtaState: "anon" | "requestable" | "requested" | "claimed" =
+    eventRow.owner_id
+      ? "claimed"
+      : !user
+        ? "anon"
+        : (await (async () => {
+            const { data: p } = await supabase
+              .from("profiles")
+              .select("user_type")
+              .eq("id", user.id)
+              .maybeSingle<{ user_type: string }>();
+            if (p?.user_type !== "event_director") return "claimed" as const;
+            const has = eventRow.tournament_id
+              ? await hasPendingClaim(user.id, eventRow.tournament_id)
+              : false;
+            return has ? ("requested" as const) : ("requestable" as const);
+          })());
 
   const [commentsByReview, helpfulSet, isAdmin] = await Promise.all([
     Promise.all(
@@ -128,6 +152,7 @@ export default async function PublicEventPage({
             {formatRating(ev.would_return_pct)}% would return
           </span>
         )}
+        <ClaimEventCta eventId={id} state={claimCtaState} />
       </div>
 
       {ev.lifecycle === "canceled" && ev.cancel_reason && (
