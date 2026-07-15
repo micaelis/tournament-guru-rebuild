@@ -1,22 +1,25 @@
 import { requireSessionAndProfile } from "@/lib/supabase/session";
+import { SliceStub } from "../SliceStub";
+import { Button } from "@/app/components/ui";
 
 /**
- * Placeholder for Slice 1 (Events CRUD). The dashboard shell lands here
- * for EDs and Admins post-onboarding.
+ * Slice 1 delivers real tournaments + events CRUD. Until then this is
+ * the ED / Admin landing tab. Attendee lands here only via URL — the
+ * shell will surface it as "not on your nav" and the sidebar hides it.
  */
-export default async function DashboardEventsPage() {
+export default async function EventsDashboardPage() {
   const { profile } = await requireSessionAndProfile();
+  const isAdmin = profile.user_type === "admin";
   return (
-    <div>
-      <h1 className="font-[var(--font-heading)] text-2xl font-extrabold text-slate-900">
-        Events
-      </h1>
-      <p className="mt-2 text-sm text-slate-600">
-        {profile.user_type === "admin"
-          ? "The admin-wide Events surface (Slice 1)."
-          : "Your tournaments and events (Slice 1)."}{" "}
-        We&apos;re shipping this in the next slice.
-      </p>
-    </div>
+    <SliceStub
+      title={isAdmin ? "Events (Admin)" : "Your Events"}
+      slice="Slice 1 — Events"
+      detail={
+        isAdmin
+          ? "Admin has the same primitives as an ED, plus search-by-owner, an owner column, CSV export, and the QR generate/open utilities."
+          : "You'll be able to create tournaments, add events under them, publish / cancel, and see derived statuses + per-category ratings."
+      }
+      cta={<Button variant="ghost" disabled>Add new tournament</Button>}
+    />
   );
 }
