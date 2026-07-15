@@ -55,11 +55,13 @@ type Defaults = {
  */
 export function ReviewWriteForm({
   eventId,
+  promoId,
   defaults,
   reviewerRole,
   bannedWords,
 }: {
   eventId: string;
+  promoId?: string;
   defaults: Defaults | null;
   reviewerRole: string;
   bannedWords: string[];
@@ -129,6 +131,7 @@ export function ReviewWriteForm({
         {defaults?.reviewId && (
           <input type="hidden" name="review_id" value={defaults.reviewId} />
         )}
+        {promoId && <input type="hidden" name="promo_id" value={promoId} />}
         <input type="hidden" name="intent" value={intent} />
         {REVIEW_CATEGORIES.map((c) => (
           <input

@@ -9,6 +9,7 @@ import { isReviewStillEditable } from "@/lib/reviews/shared";
 import { Button } from "@/app/components/ui";
 
 type Params = { id: string };
+type SearchParams = { [key: string]: string | string[] | undefined };
 
 /**
  * Write / edit review flow. Requires a signed-in attendee (spec:
@@ -22,10 +23,14 @@ type Params = { id: string };
  */
 export default async function ReviewWritePage({
   params,
+  searchParams,
 }: {
   params: Promise<Params>;
+  searchParams: Promise<SearchParams>;
 }) {
   const { id } = await params;
+  const sp = await searchParams;
+  const promoId = typeof sp.promo === "string" ? sp.promo : undefined;
   const supabase = await createServerAuthClient();
   const {
     data: { user },
@@ -103,6 +108,7 @@ export default async function ReviewWritePage({
         <div className="mt-8">
           <ReviewWriteForm
             eventId={ev.id}
+            promoId={promoId}
             defaults={
               myReview
                 ? {
