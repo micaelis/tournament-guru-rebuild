@@ -23,10 +23,12 @@ import {
 import { Button, useToast } from "@/app/components/ui";
 import {
   saveEvent,
+  upgradeEvent,
   type AgeGroupInput,
   type EventFormState,
   type SponsorInput,
 } from "./event-actions";
+import { ConfirmDialog } from "@/app/components/ui";
 
 const INITIAL: EventFormState = {};
 
@@ -48,6 +50,14 @@ export type EventFormDefaults = {
     num_teams_this_year: string;
     region: string;
     season_id: string;
+    // Premium base fields — carried whether or not is_premium is true;
+    // the DB stores them either way and the public surface hides them
+    // until premium flips.
+    video_url: string;
+    teams_this_year_url: string;
+    teams_prev_year_url: string;
+    registration_url: string;
+    teams_attended_prev_year: string;
   };
   ageGroups: AgeGroupInput[];
   sponsors: SponsorInput[];
@@ -77,9 +87,12 @@ export function EventForm({ defaults }: { defaults: EventFormDefaults }) {
   const [sponsors, setSponsors] = useState<SponsorInput[]>(defaults.sponsors);
   const [levels, setLevels] = useState<string[]>(defaults.competitionLevels);
   const [surfaces, setSurfaces] = useState<string[]>(defaults.surfaces);
-  const [features] = useState<string[]>(defaults.features);
+  const [features, setFeatures] = useState<string[]>(defaults.features);
   const [images, setImages] = useState<string[]>(defaults.images);
+  const [isPremium, setIsPremium] = useState(defaults.isPremium);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
   const errorAnchorRef = useRef<HTMLDivElement | null>(null);
+  const premiumSectionRef = useRef<HTMLElement | null>(null);
   const router = useRouter();
   const { push } = useToast();
 
@@ -362,10 +375,155 @@ export function EventForm({ defaults }: { defaults: EventFormDefaults }) {
         <ImagesEditor
           value={images}
           onChange={setImages}
-          isPremium={defaults.isPremium}
+          isPremium={isPremium}
           error={state.fieldErrors?.images}
         />
+        {!isPremium && defaults.eventId && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-[13px] font-bold text-amber-900">
+                  Unlock premium features
+                </p>
+                <p className="mt-1 text-xs text-amber-900/80">
+                  Video, extra images, teams URLs, and additional features.
+                  We&apos;ll flip your event to premium and reveal the extra
+                  fields.
+                </p>
+              </div>
+              <Button
+                type="button"
+                onClick={() => setUpgradeOpen(true)}
+                className="!bg-amber-900"
+              >
+                ★ Upgrade this event
+              </Button>
+            </div>
+          </div>
+        )}
       </section>
+
+      {isPremium && (
+        <section
+          ref={premiumSectionRef}
+          className="space-y-5 rounded-2xl border-2 border-amber-400 bg-gradient-to-br from-amber-50 to-white p-6"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-amber-900">
+                Premium
+              </p>
+              <h2 className="mt-1 font-[var(--font-heading)] text-xl font-extrabold text-slate-900">
+                Extras unlocked
+              </h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Videos, external roster links, and the full features list.
+              </p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+            <LabeledField
+              label="Teams this year (URL)"
+              htmlFor="teams_this_year_url"
+              hint="Link to the applied-teams page for this season."
+            >
+              <IconInput
+                id="teams_this_year_url"
+                name="teams_this_year_url"
+                type="url"
+                defaultValue={defaults.base.teams_this_year_url}
+                placeholder="https://…"
+                icon={<span className="text-xs font-bold">→</span>}
+              />
+            </LabeledField>
+            <LabeledField
+              label="Teams last year (URL)"
+              htmlFor="teams_prev_year_url"
+            >
+              <IconInput
+                id="teams_prev_year_url"
+                name="teams_prev_year_url"
+                type="url"
+                defaultValue={defaults.base.teams_prev_year_url}
+                placeholder="https://…"
+                icon={<span className="text-xs font-bold">→</span>}
+              />
+            </LabeledField>
+            <LabeledField label="Registration URL" htmlFor="registration_url">
+              <IconInput
+                id="registration_url"
+                name="registration_url"
+                type="url"
+                defaultValue={defaults.base.registration_url}
+                placeholder="https://…"
+                icon={<span className="text-xs font-bold">→</span>}
+              />
+            </LabeledField>
+            <LabeledField
+              label="Teams last year (count)"
+              htmlFor="teams_attended_prev_year"
+            >
+              <input
+                id="teams_attended_prev_year"
+                name="teams_attended_prev_year"
+                type="number"
+                min={0}
+                defaultValue={defaults.base.teams_attended_prev_year}
+                className="tg-control"
+              />
+            </LabeledField>
+            <LabeledField label="Event video (URL)" htmlFor="video_url">
+              <IconInput
+                id="video_url"
+                name="video_url"
+                type="url"
+                defaultValue={defaults.base.video_url}
+                placeholder="https://…"
+                icon={<span className="text-xs font-bold">▶</span>}
+              />
+            </LabeledField>
+          </div>
+          <LabeledField
+            label="Additional features"
+            error={state.fieldErrors?.features}
+          >
+            <MultiSelectPills
+              options={EVENT_FEATURES}
+              value={features}
+              onChange={setFeatures}
+            />
+          </LabeledField>
+        </section>
+      )}
+
+      <ConfirmDialog
+        open={upgradeOpen}
+        destructive={false}
+        title="Upgrade this event to premium?"
+        body="We'll unlock video, extra images, roster + registration URLs, and the full feature list. Payments aren't wired yet — the client will manage premium on-behalf while the app launches, so this is a free flip for now."
+        confirmLabel="Yes, upgrade"
+        onClose={() => setUpgradeOpen(false)}
+        onConfirm={async () => {
+          if (!defaults.eventId) return;
+          const res = await upgradeEvent(defaults.eventId);
+          setUpgradeOpen(false);
+          if (res.error) {
+            push("error", res.error);
+            return;
+          }
+          setIsPremium(true);
+          push(
+            "success",
+            "Event upgraded. Premium fields are now editable below.",
+          );
+          setTimeout(() => {
+            premiumSectionRef.current?.scrollIntoView({
+              behavior: "smooth",
+              block: "start",
+            });
+          }, 50);
+        }}
+      />
 
       <div className="sticky bottom-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white/95 p-4 backdrop-blur">
         <p className="text-xs text-slate-500">

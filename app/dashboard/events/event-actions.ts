@@ -90,6 +90,17 @@ export async function saveEvent(
       | "IV"
       | null,
     season_id: str(formData, "season_id") || null,
+    // Premium fields — safe to write on non-premium events too since
+    // they stay hidden from the public until is_premium flips. On save,
+    // the DB column simply carries the value.
+    video_url: safeExternalUrl(str(formData, "video_url")) ?? null,
+    teams_this_year_url:
+      safeExternalUrl(str(formData, "teams_this_year_url")) ?? null,
+    teams_prev_year_url:
+      safeExternalUrl(str(formData, "teams_prev_year_url")) ?? null,
+    registration_url:
+      safeExternalUrl(str(formData, "registration_url")) ?? null,
+    teams_attended_prev_year: numOrNull(formData, "teams_attended_prev_year"),
   };
 
   // Child collections come across as JSON blobs.
@@ -236,6 +247,11 @@ export async function saveEvent(
     num_teams_this_year: base.num_teams_this_year,
     region: base.region,
     season_id: base.season_id,
+    video_url: base.video_url,
+    teams_this_year_url: base.teams_this_year_url,
+    teams_prev_year_url: base.teams_prev_year_url,
+    registration_url: base.registration_url,
+    teams_attended_prev_year: base.teams_attended_prev_year,
     ...(isNew ? newRowOwnership : {}),
     ...(intent === "update" ? {} : { lifecycle }),
   };
@@ -349,6 +365,28 @@ async function getExistingTournamentId(
     .eq("id", eventId)
     .maybeSingle<{ tournament_id: string }>();
   return data?.tournament_id;
+}
+
+/**
+ * Flip an event's is_premium flag to true. The stamp_premium_at
+ * trigger stamps the premium_at timestamp on the false → true
+ * transition (see migration 20260716000005). Spec: no Stripe this
+ * sprint — the client will manage premium on-behalf while the app
+ * launches, so this is a pure flag flip.
+ */
+export async function upgradeEvent(
+  eventId: string,
+): Promise<EventFormState> {
+  const supabase = await createServerAuthClient();
+  const { error } = await supabase
+    .from("events")
+    .update({ is_premium: true })
+    .eq("id", eventId);
+  if (error) return { error: error.message };
+  revalidatePath(`/dashboard/events/${eventId}`);
+  revalidatePath(`/dashboard/events/${eventId}/edit`);
+  revalidatePath("/dashboard/events");
+  return {};
 }
 
 /**

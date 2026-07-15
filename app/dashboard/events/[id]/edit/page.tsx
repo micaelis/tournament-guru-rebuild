@@ -54,6 +54,14 @@ export default async function EditEventPage({
           : "",
       region: payload.event.region ?? "",
       season_id: payload.event.season_id ?? "",
+      video_url: payload.event.video_url ?? "",
+      teams_this_year_url: payload.event.teams_this_year_url ?? "",
+      teams_prev_year_url: payload.event.teams_prev_year_url ?? "",
+      registration_url: payload.event.registration_url ?? "",
+      teams_attended_prev_year:
+        payload.event.teams_attended_prev_year !== null
+          ? String(payload.event.teams_attended_prev_year)
+          : "",
     },
     ageGroups: payload.ageGroups.map((g) => ({
       team_gender: g.team_gender,
