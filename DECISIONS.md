@@ -368,3 +368,30 @@ the baseline defines with security_invoker=false. Guarantees email
 + DOB never come through even if a future edit widens the select
 list. Owner-side dashboard queries still read the full profiles
 row via RLS.
+
+---
+
+## Slice 6 — Account & activity
+
+### S6.1 · Soft-delete via anonymize + scrub, auth.users stays
+Spec: "delete their data, including reviews and comments." The
+schema's `anonymize_account` already nulls author identity on
+reviews + comments but keeps the content. `scrub_profile_identity`
+extends that to the profile row (nulls everything, sets
+blocked=true so the proxy signs the user out on the next request).
+Hard-deleting the auth.users row requires a service-role client;
+that's a follow-up. For MVP the "Former member" cards land as
+soon as the RPC finishes.
+
+### S6.2 · Recent-view cap enforced by trigger
+`trim_recently_viewed` fires after every insert and keeps the
+per-user set at 50 rows. Simpler than a scheduled cleanup + means
+we can never fetch more than 50 by construction.
+
+### S6.3 · Support form uses the same SendGrid helper as promos
+No separate template ID — the support message reuses
+`sendPromoEmail` with the operator's inbox as the recipient. When
+env vars aren't set the log-stub still writes to
+support_messages so the inbox on the admin side (deferred surface)
+can pick it up. Real routing to a distinct SendGrid template is a
+one-liner follow-up.
