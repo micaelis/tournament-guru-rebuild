@@ -104,6 +104,45 @@ export async function submitCsv(
  * still `pending` (spec: "Pending submissions can be cancelled by
  * the ED").
  */
+/**
+ * Admin rejects a pending submission with a reason (spec: reason is
+ * shown to both admin + ED). The `raw_emails` list is cleared to
+ * match the "delete csv rows, keep the master entry" rule.
+ */
+export async function rejectSubmittedCsv(
+  csvId: string,
+  reason: string,
+): Promise<CsvSubmitState> {
+  const trimmed = reason.trim();
+  if (!trimmed) {
+    return { fieldErrors: { reason: "Provide a rejection reason." } };
+  }
+  const supabase = await createServerAuthClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("user_type")
+    .eq("id", user.id)
+    .maybeSingle<{ user_type: "attendee" | "event_director" | "admin" }>();
+  if (profile?.user_type !== "admin") {
+    return { error: "Admins only." };
+  }
+  const { error } = await supabase
+    .from("submitted_csvs")
+    .update({
+      status: "rejected",
+      rejection_reason: trimmed,
+      raw_emails: [],
+    })
+    .eq("id", csvId);
+  if (error) return { error: error.message };
+  revalidatePath("/dashboard/promo-codes");
+  return {};
+}
+
 export async function cancelSubmittedCsv(
   csvId: string,
 ): Promise<CsvSubmitState> {
