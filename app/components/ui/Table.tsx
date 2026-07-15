@@ -1,4 +1,9 @@
-import type { HTMLAttributes, ReactNode, ThHTMLAttributes } from "react";
+import type {
+  HTMLAttributes,
+  ReactNode,
+  TdHTMLAttributes,
+  ThHTMLAttributes,
+} from "react";
 import { cn } from "./cn";
 
 /**
@@ -69,7 +74,7 @@ export function TD({
   ...rest
 }: {
   children: ReactNode;
-} & HTMLAttributes<HTMLTableCellElement>) {
+} & TdHTMLAttributes<HTMLTableCellElement>) {
   return (
     <td {...rest} className={cn("px-4 py-3 text-slate-800", className)}>
       {children}
