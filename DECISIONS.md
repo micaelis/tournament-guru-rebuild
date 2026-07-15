@@ -302,3 +302,37 @@ The Coaches list drops staged + void rows so the table only shows
 actionable promos. Staged is a transient state (spec keeps it for
 Bubble backfills) and void rows are historical. Attendee list uses
 the same filter — displays only rows meant for them today.
+
+---
+
+## Slice 4 — Claim system
+
+### S4.1 · Approve/decline via SECURITY DEFINER RPCs
+Ownership transfer touches four tables (claim_requests +
+tournaments + events + other pending claim_requests) in one
+logical operation. Doing it via `.update()` calls across the
+supabase-js client couldn't be atomic — a partial write could
+leave the tournament transferred but the events untouched. The
+RPCs run everything inside one transaction, gate on is_admin() at
+entry, and use `set search_path = public, pg_temp` so a malicious
+extension can't hijack the resolution.
+
+### S4.2 · Linky separator = newline-or-comma
+Spec asks for links[] but doesn't fix a UX shape. A single
+textarea (one link per line, comma also accepted) is simpler than
+per-row "+ Add link" plumbing at Slice 4 scale. Every entry runs
+through `safeExternalUrl` before insert.
+
+### S4.3 · Claim CTA lookup piggybacks the initial page fetch
+The public event page already queries the row; adding
+`tournament_id` + `owner_id` to that projection removes a second
+round-trip for the "Requested" pill lookup. `hasPendingClaim`
+runs only when signed-in ED + unclaimed event, so most page loads
+skip it entirely.
+
+### S4.4 · Auto-decline reason is canonical text
+Sibling pending claims auto-declined at approval time carry
+`decline_reason = 'Another claim on this tournament was approved.'`
+Baked into the RPC so the reason stays consistent across all
+sibling declines and the audit trail on the ED dashboard reads
+cleanly.
