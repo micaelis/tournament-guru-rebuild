@@ -15,6 +15,7 @@ export type NavItem = {
 export const ATTENDEE_NAV: NavItem[] = [
   { href: "/events" as Route, label: "Search Events", section: "Browse" },
   { href: "/dashboard/reviews" as Route, label: "My Reviews", section: "You" },
+  { href: "/dashboard/promo-codes" as Route, label: "Promo Codes", section: "You" },
   { href: "/dashboard/favorites" as Route, label: "Favorites", section: "You" },
   { href: "/dashboard/activity" as Route, label: "Activity", section: "You" },
   { href: "/dashboard/account" as Route, label: "Account", section: "You" },

@@ -1,17 +1,22 @@
 import { requireSessionAndProfile } from "@/lib/supabase/session";
-import { redirect } from "next/navigation";
-import { listMyPremiumEvents, listSubmittedCsvs } from "./queries";
+import {
+  listMyPremiumEvents,
+  listPromoCodes,
+  listSubmittedCsvs,
+} from "./queries";
 import { EdSubmittedList } from "./EdSubmittedList";
 import { SubmitCsvForm } from "./SubmitCsvForm";
 import { AdminSubmittedCsvs } from "./AdminSubmittedCsvs";
-import { EmptyState } from "@/app/components/ui";
+import { AttendeePromoList, CoachesList } from "./CoachesList";
+import { createServerAuthClient } from "@/lib/supabase/server";
 
 type SearchParams = { [key: string]: string | string[] | undefined };
 
 /**
- * Promo Codes hub. ED sees 3 tabs (their submissions, coaches with
- * promo codes, submit new); Admin sees 2 (all submissions, coaches
- * with promo codes). Tab state lives in the URL so refreshes stick.
+ * Promo Codes hub — role-aware. Attendee sees their own promos; ED
+ * gets three tabs (their submissions, coaches, submit new); Admin
+ * gets two (all submissions, coaches). Tab state lives in the URL
+ * so refreshes stick.
  */
 export default async function PromoCodesPage({
   searchParams,
@@ -19,11 +24,26 @@ export default async function PromoCodesPage({
   searchParams: Promise<SearchParams>;
 }) {
   const { profile, user } = await requireSessionAndProfile();
-  if (profile.user_type === "attendee") {
-    // Attendee promo codes surface is a separate page.
-    redirect("/dashboard/account");
-  }
   const sp = await searchParams;
+
+  if (profile.user_type === "attendee") {
+    const rows = await listPromoCodes({ scope: "mine", userId: user.id });
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="font-[var(--font-heading)] text-3xl font-extrabold text-slate-900">
+            Promo Codes
+          </h1>
+          <p className="mt-2 text-sm text-slate-500">
+            Every promo code sent to you. Use the &quot;Write review&quot; CTA to
+            land on the verified review form with your code pre-applied.
+          </p>
+        </div>
+        <AttendeePromoList rows={rows} />
+      </div>
+    );
+  }
+
   const isAdmin = profile.user_type === "admin";
   const rawTab = typeof sp.tab === "string" ? sp.tab : "";
   const defaultTab = isAdmin ? "submissions" : "submit";
@@ -59,10 +79,7 @@ export default async function PromoCodesPage({
       )}
 
       {tab === "coaches" && (
-        <EmptyState
-          title="Coaches with promo codes"
-          body="This list lands in S3.5 — the coach view of each promo (Registered vs Invited) with status + See Review."
-        />
+        <CoachesTabContent userId={user.id} isAdmin={isAdmin} />
       )}
     </div>
   );
@@ -119,4 +136,43 @@ async function SubmissionsTabContent({
   });
   if (isAdmin) return <AdminSubmittedCsvs rows={rows} />;
   return <EdSubmittedList rows={rows} />;
+}
+
+async function CoachesTabContent({
+  userId,
+  isAdmin,
+}: {
+  userId: string;
+  isAdmin: boolean;
+}) {
+  const rows = await listPromoCodes({
+    scope: isAdmin ? "all" : "own_ed",
+    edId: userId,
+  });
+  const edIds = Array.from(
+    new Set(
+      rows
+        .map((r) => r.submitted_csv?.ed_id)
+        .filter((v): v is string => Boolean(v)),
+    ),
+  );
+  const edNames = new Map<string, string>();
+  if (isAdmin && edIds.length) {
+    const supabase = await createServerAuthClient();
+    const { data } = await supabase
+      .from("profiles")
+      .select("id, first_name, last_name")
+      .in("id", edIds);
+    for (const p of (data ?? []) as {
+      id: string;
+      first_name: string | null;
+      last_name: string | null;
+    }[]) {
+      edNames.set(
+        p.id,
+        [p.first_name, p.last_name].filter(Boolean).join(" ") || p.id,
+      );
+    }
+  }
+  return <CoachesList rows={rows} isAdmin={isAdmin} edNames={edNames} />;
 }
