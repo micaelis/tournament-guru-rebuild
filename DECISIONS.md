@@ -336,3 +336,35 @@ Sibling pending claims auto-declined at approval time carry
 Baked into the RPC so the reason stays consistent across all
 sibling declines and the audit trail on the ED dashboard reads
 cleanly.
+
+---
+
+## Slice 5 — Public discovery
+
+### S5.1 · Popular searches pad with baked-in defaults
+Fresh installs have zero rows in `search_queries`, so
+`get_popular_searches` returns empty. The landing page fills the
+gap by appending three "approved default" chips (Youth Soccer, U12
+Girls, Kansas City — placeholder terms that make the hero look
+alive on day one). Once real queries accumulate the DB set takes
+over and the defaults drop out.
+
+### S5.2 · Map + distance-from-me deferred
+The full search-events surface in the spec includes a sticky map
++ distance filter. Neither is on the critical-path for MVP and
+they carry their own dependency graph (Leaflet, geocoding,
+distance math against user's saved location). Deferred to a
+follow-up alongside the Google Places autocomplete from Slice 0.
+
+### S5.3 · Child-table filters intersect via id sets
+Surface / level / age filters resolve to a set of matching
+event_ids each, then intersect. Cheaper than four self-joins in a
+single query and keeps each sub-query using its own index
+(event_age_groups(age), event_surfaces(surface), etc.).
+
+### S5.4 · Directors read public view, not table
+Both /directors surfaces query the `public_directors` view that
+the baseline defines with security_invoker=false. Guarantees email
++ DOB never come through even if a future edit widens the select
+list. Owner-side dashboard queries still read the full profiles
+row via RLS.
