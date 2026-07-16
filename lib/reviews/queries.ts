@@ -139,8 +139,9 @@ export async function listReviewsRaw({
 /**
  * The current user's review for an event (if any). Used by the
  * public event page to switch the "Write a review" CTA to "Edit your
- * review" and by the write-form to load defaults. Identity comes
- * from the private profiles row since the caller IS the author.
+ * review" and by the write-form to load defaults. The caller IS the
+ * author, so the joined projection stays narrow — the write form
+ * doesn't render last_name.
  */
 export async function getMyReviewForEvent(
   userId: string,
@@ -151,7 +152,7 @@ export async function getMyReviewForEvent(
     .from("reviews")
     .select(
       REVIEW_BASE_COLUMNS +
-        ", author:profiles!reviews_author_id_fkey(first_name, last_name, organization_title, profile_photo_url)",
+        ", author:profiles!reviews_author_id_fkey(first_name, organization_title, profile_photo_url)",
     )
     .eq("author_id", userId)
     .eq("event_id", eventId)
