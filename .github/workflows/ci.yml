@@ -90,3 +90,12 @@ jobs:
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ env.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ env.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+
+      # Auth-screen click-through E2E. The Playwright webServer does its own
+      # production build/serve (into .next-e2e) against the same local Supabase,
+      # and seeds users via the service role exported above.
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: E2E (auth screens)
+        run: npm run e2e

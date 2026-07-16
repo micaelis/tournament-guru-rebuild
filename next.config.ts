@@ -25,6 +25,9 @@ const SECURITY_HEADERS = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // Lets the Playwright E2E build/serve into its own dir (NEXT_DIST_DIR=
+  // .next-e2e) so it never clashes with a running `next dev` on `.next`.
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   images: {
     remotePatterns: [
       {

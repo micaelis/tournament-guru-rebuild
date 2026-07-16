@@ -47,6 +47,12 @@ supabase/.backups/
 supabase/.temp/
 supabase/.branches/
 
+# Playwright E2E artifacts
+/test-results/
+/playwright-report/
+/playwright/.cache/
+/.next-e2e/
+
 # agent tooling — not product code (dozens of Supabase-skill docs,
 # MCP registration pointing at a staging project ref, generated
 # skills lockfile)
