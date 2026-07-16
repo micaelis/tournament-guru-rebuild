@@ -12,6 +12,8 @@ import { EventCard } from "@/app/components/EventCard";
 import { Avatar } from "@/app/components/Avatar";
 import { Stars } from "@/app/components/Stars";
 import { ReviewCard } from "@/app/components/reviews/ReviewCard";
+import { FavoriteButton } from "@/app/components/reviews/FavoriteButton";
+import { ClaimEventCta } from "./ClaimEventCta";
 import type { CommentRow, ReviewCardRow } from "@/lib/reviews/queries";
 import type {
   EventDetailRow,
@@ -26,6 +28,8 @@ import { safeExternalUrl, safeImageSrc } from "@/lib/url";
    Top-level layout
    ─────────────────────────────────────────────────────────────────── */
 
+type ClaimCtaState = "anon" | "requestable" | "requested" | "claimed";
+
 export function EventDetail({
   event,
   reviews,
@@ -38,6 +42,8 @@ export function EventDetail({
   sponsors,
   otherEvents,
   director,
+  favorited,
+  claimState,
 }: {
   event: EventDetailRow;
   reviews: ReviewCardRow[];
@@ -50,6 +56,8 @@ export function EventDetail({
   sponsors: SponsorRow[];
   otherEvents: EventRow[];
   director: DirectorProfile | null;
+  favorited: boolean;
+  claimState: ClaimCtaState;
 }) {
   const concluded = eventConcluded(event.status, event.end_date);
   const displayHostName =
@@ -94,6 +102,9 @@ export function EventDetail({
           event={event}
           hostName={displayHostName}
           concluded={concluded}
+          favorited={favorited}
+          claimState={claimState}
+          currentUserId={currentUserId}
         />
 
         <style>{`
@@ -554,10 +565,16 @@ function HeroHeader({
   event,
   hostName,
   concluded,
+  favorited,
+  claimState,
+  currentUserId,
 }: {
   event: EventDetailRow;
   hostName: string;
   concluded: boolean;
+  favorited: boolean;
+  claimState: ClaimCtaState;
+  currentUserId: string | null;
 }) {
   const loc = compactLocation(event);
   const overall = numOr0(event.general_rating);
@@ -617,10 +634,12 @@ function HeroHeader({
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <GhostButton>
-          <HeartIcon />
-          <span>Save</span>
-        </GhostButton>
+        <FavoriteButton
+          eventId={event.id}
+          initialFavorited={favorited}
+          disabled={!currentUserId}
+        />
+        <ClaimEventCta eventId={event.id} state={claimState} />
         <GhostButton>
           <ShareIcon />
           <span>Share</span>

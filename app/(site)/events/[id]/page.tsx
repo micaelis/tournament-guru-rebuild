@@ -9,6 +9,7 @@ import {
 } from "@/lib/reviews/queries";
 import { fetchBannedWords } from "@/lib/reviews/banned-words";
 import { recordRecentView } from "@/lib/user-events/actions";
+import { hasPendingClaim } from "@/lib/claims/queries";
 import {
   getDirectorProfile,
   getDirectorEventRows,
@@ -207,6 +208,37 @@ export default async function PublicEventPage({
     {};
   for (const c of commentsByReviewArr) commentsByReview[c.id] = c.comments;
 
+  // Favorite state + claim CTA state — reuse the rebuild's Favorite/Claim
+  // flow inside main's restored header. Claim mirrors the spec: claimed
+  // (owner set) hides the CTA; anon → signup; an ED with a pending claim →
+  // "Requested"; otherwise → requestable.
+  const favoritedRes = user
+    ? await supabaseAuth
+        .from("favorites")
+        .select("event_id")
+        .eq("user_id", user.id)
+        .eq("event_id", id)
+        .maybeSingle()
+    : { data: null };
+  const favorited = Boolean(favoritedRes.data);
+
+  const claimState: "anon" | "requestable" | "requested" | "claimed" = ev.owner_id
+    ? "claimed"
+    : !user
+      ? "anon"
+      : await (async () => {
+          const { data: p } = await supabaseAuth
+            .from("profiles")
+            .select("user_type")
+            .eq("id", user.id)
+            .maybeSingle<{ user_type: string }>();
+          if (p?.user_type !== "event_director") return "claimed" as const;
+          const has = ev.tournament_id
+            ? await hasPendingClaim(user.id, ev.tournament_id)
+            : false;
+          return has ? ("requested" as const) : ("requestable" as const);
+        })();
+
   const detail = toDetailRow(ev, director?.org_logo ?? null);
   const ageGroups: EventAgeGroupRow[] = (ev.event_age_groups ?? []).map((g) => ({
     id: g.id,
@@ -236,6 +268,8 @@ export default async function PublicEventPage({
       sponsors={sponsors}
       otherEvents={otherEvents}
       director={director}
+      favorited={favorited}
+      claimState={claimState}
     />
   );
 }
