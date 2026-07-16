@@ -1,39 +1,35 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState } from "react";
 import { signupAction, type FormState } from "../actions";
 import { Alert, Field, PasswordField, SubmitButton } from "../parts";
+import { Select } from "@/app/components/ui/Field";
 import { useSubmittedValues } from "@/app/components/ui/useSubmittedValues";
 import { validateEmail, validatePassword } from "@/lib/validation";
-import {
-  ATTENDEE_ROLES,
-  ED_ROLES,
-  USER_TYPES,
-  type UserTypeValue,
-} from "@/lib/enums";
+import { rolesFor, type UserTypeValue } from "@/lib/enums";
 
 const INITIAL: FormState = {};
 
+const ROLE_QUESTION: Record<UserTypeValue, string> = {
+  attendee: "Are you a coach, parent / spectator, team manager?",
+  event_director: "Are you an Event Director, Event Admin, or Club Director?",
+};
+
+/**
+ * The user type is decided by the entry point, never inside the form:
+ * "attendee" by default, "event_director" when arriving from a claim CTA
+ * (?type=event_director). The visible choice is only the role dropdown.
+ */
 export default function SignupForm({
   preselectType,
 }: {
   preselectType?: UserTypeValue;
 }) {
-  const [userType, setUserType] = useState<UserTypeValue | "">(
-    preselectType ?? "",
-  );
-  // Controlled so the picked role survives a failed validation round-trip
-  // (React resets uncontrolled radios once the action settles).
-  const [roleTitle, setRoleTitle] = useState("");
+  const userType: UserTypeValue = preselectType ?? "attendee";
   const [state, formAction] = useActionState(signupAction, INITIAL);
   const { values, capture } = useSubmittedValues();
 
-  const roles =
-    userType === "event_director"
-      ? ED_ROLES
-      : userType === "attendee"
-        ? ATTENDEE_ROLES
-        : [];
+  const roles = rolesFor(userType);
 
   return (
     <form
@@ -45,85 +41,29 @@ export default function SignupForm({
     >
       {state.error && <Alert kind="error">{state.error}</Alert>}
       {state.info && <Alert kind="info">{state.info}</Alert>}
-
-      <fieldset>
-        <legend className="mb-2 text-[13px] font-semibold text-slate-800">
-          Which side of Tournament Guru are you on?
-        </legend>
-        <input type="hidden" name="user_type" value={userType} />
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {USER_TYPES.map((option) => {
-            const active = userType === option.value;
-            return (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => {
-                  if (userType !== option.value) setRoleTitle("");
-                  setUserType(option.value);
-                }}
-                className={`rounded-xl border p-4 text-left text-sm transition ${
-                  active
-                    ? "border-slate-900 bg-slate-900 text-white shadow-md"
-                    : "border-slate-200 bg-white text-slate-800 hover:border-slate-400"
-                }`}
-              >
-                <span className="font-bold">{option.label}</span>
-                <span
-                  className={`mt-1 block text-xs ${
-                    active ? "text-white/70" : "text-slate-500"
-                  }`}
-                >
-                  {option.value === "attendee"
-                    ? "Coach, team manager, parent or spectator"
-                    : "Event Director, Event Admin, or Club Director"}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-        {state.fieldErrors?.user_type && !userType && (
-          <p className="mt-1 text-xs font-medium text-red-600">
-            {state.fieldErrors.user_type}
-          </p>
-        )}
-      </fieldset>
-
-      {userType && (
-        <fieldset>
-          <legend className="mb-2 text-[13px] font-semibold text-slate-800">
-            Pick your role
-          </legend>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-            {roles.map((role) => (
-              <label
-                key={role.value}
-                className={`cursor-pointer rounded-xl border p-3 text-center text-sm font-semibold transition ${
-                  roleTitle === role.value
-                    ? "border-slate-900 bg-slate-900 text-white"
-                    : "border-slate-200 bg-white text-slate-800 hover:border-slate-400"
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="role_title"
-                  value={role.value}
-                  className="sr-only"
-                  required
-                  checked={roleTitle === role.value}
-                  onChange={() => setRoleTitle(role.value)}
-                />
-                {role.label}
-              </label>
-            ))}
-          </div>
-          {state.fieldErrors?.role_title && !roleTitle && (
-            <p className="mt-1 text-xs font-medium text-red-600">
-              {state.fieldErrors.role_title}
-            </p>
-          )}
-        </fieldset>
+      {/* Only reachable by tampering with the hidden input — surfaced so a
+          server rejection is never silent. */}
+      {state.fieldErrors?.user_type && (
+        <Alert kind="error">{state.fieldErrors.user_type}</Alert>
       )}
+
+      <input type="hidden" name="user_type" value={userType} />
+
+      <Select
+        label={ROLE_QUESTION[userType]}
+        name="role_title"
+        required
+        placeholder="Select your role"
+        defaultValue={values.role_title ?? ""}
+        error={state.fieldErrors?.role_title}
+        validate={(v) => (v ? null : "Pick a role to continue.")}
+      >
+        {roles.map((role) => (
+          <option key={role.value} value={role.value}>
+            {role.label}
+          </option>
+        ))}
+      </Select>
 
       <Field
         label="Email"

@@ -77,21 +77,34 @@ test.describe("Auth shell — navigation", () => {
 });
 
 test.describe("Signup", () => {
-  test("choosing a type reveals the role picker", async ({ page }) => {
+  test("default entry shows the mandatory attendee role dropdown, no type picker", async ({
+    page,
+  }) => {
     await page.goto("/signup");
-    await expect(page.getByText("Pick your role")).toHaveCount(0);
-    await page.getByRole("button", { name: /I'm looking for events/ }).click();
-    await expect(page.getByText("Pick your role")).toBeVisible();
-    await expect(page.getByText("Coach", { exact: true })).toBeVisible();
+    // The in-form type picker is gone — type comes from the entry point.
+    await expect(page.getByText("Which side of Tournament Guru")).toHaveCount(0);
+    const role = page.getByLabel(/Are you a coach, parent \/ spectator, team manager\?/);
+    await expect(role).toBeVisible();
+    await expect(role).toHaveJSProperty("required", true);
+    await expect(
+      role.locator("option", { hasText: "Parent / Spectator" }),
+    ).toHaveCount(1);
+    await role.selectOption("coach");
+    await expect(role).toHaveValue("coach");
   });
 
-  test("ED-claim deep link shows the Event Director hero copy", async ({
+  test("ED-claim deep link shows the ED hero copy and ED role dropdown", async ({
     page,
   }) => {
     await page.goto("/signup?type=event_director");
     await expect(
       page.getByText(/Become Part of the Largest/),
     ).toBeVisible();
+    const role = page.getByLabel(/Are you an Event Director, Event Admin, or Club Director\?/);
+    await expect(role).toBeVisible();
+    await expect(
+      role.locator("option", { hasText: "Club Director" }),
+    ).toHaveCount(1);
   });
 });
 

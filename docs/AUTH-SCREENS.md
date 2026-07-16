@@ -29,8 +29,12 @@ reference for building/verifying the UI.
 ## 2. Signup
 - Fields: email (required), password (required — **8 chars, ≥1 uppercase, ≥1 number**, enforced
   server-side).
-- Role selection: choose **type** first (Event Director / Attendee), then **role** under it
-  (one each). Type is locked after signup.
+- **No in-form type picker.** User type is decided by the entry point: **Attendee by default**,
+  **Event Director** when arriving via `?type=event_director` (claim CTAs). Type is locked
+  after signup.
+- Role selection is a **mandatory dropdown**, phrased as a question per type:
+  - Attendee: "Are you a coach, parent / spectator, team manager?"
+  - Event Director: "Are you an Event Director, Event Admin, or Club Director?"
 - "Skip registration" CTA → Search Events page.
 - Deep-link: arriving from "Claim/List your event free" → **Event Director type pre-selected**;
   if a signed-in user clicked it → log them out first, then signup with ED pre-selected.
