@@ -4,8 +4,7 @@ import type { NextConfig } from "next";
  * Security response headers applied to every route. Kept intentionally
  * conservative — no strict Content-Security-Policy yet because the app
  * uses several inline <style> blocks and inline event handlers that a
- * strict CSP would break; introducing CSP is a separate follow-up (see
- * AUDIT.md · H9 and CHANGES.md).
+ * strict CSP would break; introducing CSP is a separate follow-up.
  *
  * Headers picked here are the ones with zero-risk-of-breakage:
  *   • Strict-Transport-Security  — force HTTPS on future visits

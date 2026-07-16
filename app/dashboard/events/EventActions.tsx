@@ -42,7 +42,7 @@ export function EventActions({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
-  const [_isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
 
   return (
     <div className="flex flex-wrap items-center gap-2">

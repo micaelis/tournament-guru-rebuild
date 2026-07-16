@@ -6,8 +6,6 @@
  * The helper returns `null` for any URL whose scheme isn't in an
  * explicit allow-list, so a hostile `javascript:` / `data:` / `vbscript:`
  * value can't turn into a stored XSS.
- *
- * See AUDIT.md · C4.
  */
 
 const ALLOWED_SCHEMES = new Set(["http:", "https:", "mailto:", "tel:"]);

@@ -5,7 +5,7 @@
  * approve RPC.
  */
 import { afterAll, describe, expect, it } from "vitest";
-import { createUser, purge, seedTournamentAndEvent, service } from "../harness";
+import { createUser, purge, service } from "../harness";
 
 const users: string[] = [];
 afterAll(() => purge(users));

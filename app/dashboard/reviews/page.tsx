@@ -3,7 +3,6 @@ import type { Route } from "next";
 import { requireSessionAndProfile } from "@/lib/supabase/session";
 import { EmptyState, Button } from "@/app/components/ui";
 import { listDashboardReviews } from "./queries";
-import { fetchBannedWords } from "@/lib/reviews/banned-words";
 import { ReviewsTable } from "./ReviewsTable";
 import { AttendeeReviews } from "./AttendeeReviews";
 import { listReviewsRaw } from "@/lib/reviews/queries";
@@ -27,10 +26,7 @@ export default async function ReviewsDashboardPage({
   const sp = await searchParams;
 
   if (profile.user_type === "attendee") {
-    const [rows, bannedWords] = await Promise.all([
-      listReviewsRaw({ authorId: user.id }),
-      fetchBannedWords(),
-    ]);
+    const rows = await listReviewsRaw({ authorId: user.id });
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-3">
@@ -52,7 +48,7 @@ export default async function ReviewsDashboardPage({
             }
           />
         ) : (
-          <AttendeeReviews rows={rows} bannedWords={bannedWords} />
+          <AttendeeReviews rows={rows} />
         )}
       </div>
     );

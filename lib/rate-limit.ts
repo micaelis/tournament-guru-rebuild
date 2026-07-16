@@ -9,10 +9,8 @@
  * search endpoint. For distributed brute-force at scale, add Upstash
  * or Vercel KV and wrap this call site.
  *
- * Second-line defence lives in Postgres: see the DB-side burst caps in
- * migration 20260714100007_h5_rate_limits.sql.
- *
- * See AUDIT.md · H5.
+ * Second-line defence lives in Postgres: see the DB-side burst caps
+ * inside the schema baseline (`rate_limit_touch` + its triggers).
  */
 
 type Bucket = { hits: number; resetAt: number };

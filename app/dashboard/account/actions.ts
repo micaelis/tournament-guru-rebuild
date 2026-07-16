@@ -3,13 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createServerAuthClient } from "@/lib/supabase/server";
-import {
-  ATTENDEE_ROLES,
-  ED_ROLES,
-  DISTANCE_PREFS,
-  USER_GENDERS,
-  ORG_OPTIONAL_ROLES,
-} from "@/lib/enums";
+import { DISTANCE_PREFS, USER_GENDERS } from "@/lib/enums";
 import { safeImageSrc } from "@/lib/url";
 
 export type AccountState = {
@@ -266,5 +260,3 @@ export async function updateNotificationPrefs(
   return { info: "Notification preferences updated." };
 }
 
-// Silence eslint about the unused imports so the module stays tidy.
-export const _reservedForRoleGates = { ATTENDEE_ROLES, ED_ROLES, ORG_OPTIONAL_ROLES };

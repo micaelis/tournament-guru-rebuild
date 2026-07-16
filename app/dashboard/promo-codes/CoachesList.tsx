@@ -29,8 +29,6 @@ export function CoachesList({
   isAdmin: boolean;
   edNames: Map<string, string>;
 }) {
-  const { push } = useToast();
-
   if (rows.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-6 py-10 text-center text-sm text-slate-500">

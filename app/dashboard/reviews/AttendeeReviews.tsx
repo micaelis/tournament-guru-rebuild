@@ -20,13 +20,7 @@ type SortKey = "newest" | "oldest" | "best" | "worst";
  * Edit CTA hidden when past the 30-day window; a soft nudge explains
  * why (spec).
  */
-export function AttendeeReviews({
-  rows,
-  bannedWords: _bannedWords,
-}: {
-  rows: ReviewCardRow[];
-  bannedWords: string[];
-}) {
+export function AttendeeReviews({ rows }: { rows: ReviewCardRow[] }) {
   const [sort, setSort] = useState<SortKey>("newest");
   const [state, setState] = useState<string>("");
 

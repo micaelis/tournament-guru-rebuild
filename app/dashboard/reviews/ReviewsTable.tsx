@@ -6,7 +6,6 @@ import { useMemo, useState } from "react";
 import {
   Avatar,
   Button,
-  Card,
   ConfirmDialog,
   StarRating,
   StatusPill,

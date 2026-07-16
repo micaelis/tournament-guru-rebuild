@@ -16,7 +16,7 @@ export function FavoriteButton({
   disabled?: boolean;
 }) {
   const [favorited, setFavorited] = useState(initialFavorited);
-  const [_, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   const { push } = useToast();
 
   return (

@@ -23,7 +23,7 @@ export function HelpfulButton({
 }) {
   const [helpful, setHelpful] = useState(initialHelpful);
   const [count, setCount] = useState(initialCount);
-  const [_, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   const { push } = useToast();
 
   const onClick = () => {

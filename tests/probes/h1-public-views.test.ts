@@ -5,7 +5,7 @@
  * table for these fields return nothing (RLS-protected).
  */
 import { afterAll, describe, expect, it } from "vitest";
-import { anon, createUser, purge, seedTournamentAndEvent, service } from "../harness";
+import { anon, createUser, purge, seedTournamentAndEvent } from "../harness";
 
 const users: string[] = [];
 afterAll(() => purge(users));
