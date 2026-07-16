@@ -1,5 +1,7 @@
 import "server-only";
 import { createAnonServerClient } from "@/lib/supabase/server";
+import { deriveEventStatus } from "@/app/dashboard/events/event-shared";
+import type { EventRow } from "@/app/components/types";
 
 export type PlatformStats = {
   reviews: number;
@@ -85,6 +87,124 @@ export async function fetchFeaturedEvents(): Promise<FeaturedEventRow[]> {
     .order("start_date", { ascending: true })
     .limit(6);
   return (data ?? []) as unknown as FeaturedEventRow[];
+}
+
+/**
+ * Featured Events for the landing showcase, shaped into the `EventRow`
+ * design contract the restored `main` components (FeaturedShowcase)
+ * expect. Premium OR sponsored, active, starting within the last 30
+ * days onward, soonest-first. Enriches each row with the host org logo
+ * and the coach/attendee review-count split — neither is a column on
+ * `events`, so we derive them: the logo from the owner's public
+ * projection, the counts from the reviews table using the same
+ * `reviewer_role='coach'` split the ratings trigger uses.
+ */
+export async function fetchFeaturedEventRows(): Promise<EventRow[]> {
+  const supabase = createAnonServerClient();
+  const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
+  const { data } = await supabase
+    .from("events")
+    .select(
+      "id, owner_id, title, description, host_club, logo_url, location_formatted, location_state_abbr, start_date, end_date, lifecycle, is_premium, region, teams_attended_prev_year, general_rating, coach_rating, attendee_rating, review_count, created_at, event_age_groups(age, team_gender)",
+    )
+    .eq("lifecycle", "active")
+    .or("is_premium.eq.true,is_sponsored.eq.true")
+    .gte("start_date", cutoff)
+    .order("start_date", { ascending: true })
+    .limit(4);
+
+  type Row = {
+    id: string;
+    owner_id: string | null;
+    title: string;
+    description: string | null;
+    host_club: string | null;
+    logo_url: string | null;
+    location_formatted: string | null;
+    location_state_abbr: string | null;
+    start_date: string | null;
+    end_date: string | null;
+    lifecycle: "draft" | "active" | "canceled";
+    is_premium: boolean;
+    region: string | null;
+    teams_attended_prev_year: number | null;
+    general_rating: number | null;
+    coach_rating: number | null;
+    attendee_rating: number | null;
+    review_count: number;
+    created_at: string;
+    event_age_groups: { age: string | null; team_gender: string | null }[] | null;
+  };
+  const rows = (data ?? []) as Row[];
+  if (rows.length === 0) return [];
+
+  const ids = rows.map((r) => r.id);
+  const ownerIds = Array.from(
+    new Set(rows.map((r) => r.owner_id).filter(Boolean)),
+  ) as string[];
+
+  const [{ data: owners }, { data: reviewRows }] = await Promise.all([
+    ownerIds.length
+      ? supabase
+          .from("public_event_owners")
+          .select("id, org_logo_url, profile_photo_url")
+          .in("id", ownerIds)
+      : Promise.resolve({ data: [] as { id: string; org_logo_url: string | null; profile_photo_url: string | null }[] }),
+    supabase
+      .from("reviews")
+      .select("event_id, reviewer_role")
+      .eq("status", "published")
+      .in("event_id", ids),
+  ]);
+
+  const logoByOwner = new Map(
+    ((owners ?? []) as { id: string; org_logo_url: string | null; profile_photo_url: string | null }[]).map(
+      (o) => [o.id, o.org_logo_url ?? o.profile_photo_url ?? null] as const,
+    ),
+  );
+  const coachCount = new Map<string, number>();
+  const attendeeCount = new Map<string, number>();
+  for (const rv of (reviewRows ?? []) as { event_id: string; reviewer_role: string | null }[]) {
+    const bucket = rv.reviewer_role === "coach" ? coachCount : attendeeCount;
+    bucket.set(rv.event_id, (bucket.get(rv.event_id) ?? 0) + 1);
+  }
+
+  return rows.map((r) => {
+    const ages = Array.from(
+      new Set((r.event_age_groups ?? []).map((g) => g.age).filter(Boolean)),
+    ) as string[];
+    const genders = Array.from(
+      new Set((r.event_age_groups ?? []).map((g) => g.team_gender).filter(Boolean)),
+    ) as string[];
+    return {
+      id: r.id,
+      title: r.title,
+      description: r.description,
+      host_club: r.host_club,
+      location_text: r.location_formatted,
+      state: r.location_state_abbr,
+      start_date: r.start_date,
+      end_date: r.end_date,
+      status: deriveEventStatus(r),
+      premium: r.is_premium,
+      logo: r.logo_url,
+      owner_id: r.owner_id,
+      host_logo: r.owner_id ? logoByOwner.get(r.owner_id) ?? null : null,
+      general_rating: r.general_rating,
+      coach_rating: r.coach_rating,
+      attendee_rating: r.attendee_rating,
+      reviews: r.review_count,
+      coach_reviews: coachCount.get(r.id) ?? 0,
+      attendee_reviews: attendeeCount.get(r.id) ?? 0,
+      nr_teams_last_year: r.teams_attended_prev_year,
+      created_at: r.created_at,
+      region: r.region,
+      event_ages: ages.map((age) => ({ age })),
+      event_genders: genders.map((gender) => ({ gender })),
+    } satisfies EventRow;
+  });
 }
 
 export type DemoReviewRow = {
