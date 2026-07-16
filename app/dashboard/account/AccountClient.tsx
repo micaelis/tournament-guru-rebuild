@@ -2,11 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { Alert, Field } from "@/app/(auth)/parts";
-import {
-  Button,
-  ConfirmDialog,
-  useToast,
-} from "@/app/components/ui";
+import { Button, useToast } from "@/app/components/ui";
 import {
   AGE_BRACKETS,
   COMPETITION_LEVELS,
@@ -251,6 +247,9 @@ function SecurityTab({
   const [emailState, emailAction] = useActionState(updateEmail, INITIAL);
   const [pwState, pwAction] = useActionState(updatePassword, INITIAL);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deletePending, setDeletePending] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | undefined>();
   const { push } = useToast();
 
   return (
@@ -303,23 +302,91 @@ function SecurityTab({
             re-claim.
           </p>
           <div className="mt-3">
-            <Button variant="danger" onClick={() => setConfirmDelete(true)}>
+            <Button
+              variant="danger"
+              onClick={() => {
+                setDeletePassword("");
+                setDeleteError(undefined);
+                setConfirmDelete(true);
+              }}
+            >
               Delete my account
             </Button>
           </div>
         </div>
       )}
-      <ConfirmDialog
-        open={confirmDelete}
-        title="Delete your account?"
-        body="This action is permanent. Reviews + comments stay under 'Former member'; owned tournaments + created events get removed; claimed-only events revert to the admin."
-        confirmLabel="Delete account"
-        onClose={() => setConfirmDelete(false)}
-        onConfirm={async () => {
-          const res = await deleteMyAccount();
-          if (res.error) push("error", res.error);
-        }}
-      />
+      {confirmDelete && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 grid place-items-center bg-slate-900/50 p-4"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget && !deletePending) {
+              setConfirmDelete(false);
+            }
+          }}
+        >
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+            <h3 className="font-[var(--font-heading)] text-lg font-extrabold text-slate-900">
+              Delete your account?
+            </h3>
+            <p className="mt-2 text-sm text-slate-600">
+              This action is permanent. Reviews + comments stay under
+              &quot;Former member&quot;; owned tournaments + created events get
+              removed; claimed-only events revert to the admin.
+            </p>
+            <p className="mt-4 text-sm text-slate-700">
+              Enter your current password to confirm.
+            </p>
+            <input
+              type="password"
+              autoComplete="current-password"
+              value={deletePassword}
+              onChange={(e) => {
+                setDeletePassword(e.target.value);
+                setDeleteError(undefined);
+              }}
+              className="tg-control mt-2"
+              aria-invalid={deleteError ? true : undefined}
+              disabled={deletePending}
+            />
+            {deleteError && (
+              <p className="mt-1 text-xs font-medium text-red-600">
+                {deleteError}
+              </p>
+            )}
+            <div className="mt-6 flex justify-end gap-2">
+              <Button
+                variant="ghost"
+                onClick={() => setConfirmDelete(false)}
+                disabled={deletePending}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="danger"
+                disabled={deletePending || !deletePassword}
+                onClick={async () => {
+                  setDeletePending(true);
+                  const res = await deleteMyAccount(deletePassword);
+                  setDeletePending(false);
+                  if (res.fieldErrors?.password) {
+                    setDeleteError(res.fieldErrors.password);
+                    return;
+                  }
+                  if (res.error) {
+                    push("error", res.error);
+                    return;
+                  }
+                  // success → server redirected; nothing to do.
+                }}
+              >
+                {deletePending ? "Deleting…" : "Delete account"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

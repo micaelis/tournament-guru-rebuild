@@ -115,14 +115,39 @@ export async function updatePassword(
  * - ED → delete_ed_account (reset claimed events, delete created
  *   ones, then attendee scrub)
  * - Admin → NOT allowed via this action; admins can't self-delete.
- * Signs out at the end and lands the user on /login.
+ *
+ * Requires the caller to re-enter their password (S8.2 / RG1 M4) —
+ * the sign-in call inside the action is authoritative even if the
+ * client bypasses its own confirmation. Signs out at the end and
+ * lands the user on /login.
  */
-export async function deleteMyAccount(): Promise<AccountState> {
+export async function deleteMyAccount(password: string): Promise<AccountState> {
+  if (!password) {
+    return {
+      fieldErrors: {
+        password: "Enter your current password to confirm.",
+      },
+    };
+  }
+
   const supabase = await createServerAuthClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+  if (!user.email) return { error: "No email on file for this account." };
+
+  const reauth = await supabase.auth.signInWithPassword({
+    email: user.email,
+    password,
+  });
+  if (reauth.error) {
+    return {
+      fieldErrors: {
+        password: "That password doesn't match our records.",
+      },
+    };
+  }
 
   const { data: profile } = await supabase
     .from("profiles")
