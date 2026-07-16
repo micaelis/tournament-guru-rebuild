@@ -26,6 +26,7 @@ export function StarRating({
   emptyColor = "#e2e8f0",
   className,
   showNumber = true,
+  label,
 }: {
   value: number;
   count?: number;
@@ -36,28 +37,50 @@ export function StarRating({
   emptyColor?: string;
   className?: string;
   showNumber?: boolean;
+  /** Names the thing being rated so each interactive star gets a distinct,
+   *  screen-reader-friendly label ("Rate Fields 4 stars"). */
+  label?: string;
 }) {
   const [hover, setHover] = useState<number | null>(null);
   const displayed = interactive && hover !== null ? hover : value;
 
   return (
-    <span className={cn("inline-flex items-center gap-2", className)}>
+    <span
+      className={cn("inline-flex items-center gap-2", className)}
+      role={interactive ? "radiogroup" : undefined}
+      aria-label={interactive && label ? `${label} rating` : undefined}
+    >
       <span className="inline-flex items-center gap-[2px]">
         {Array.from({ length: 5 }, (_, i) => {
           const n = i + 1;
           const filled = displayed >= n;
           const half = !filled && displayed >= n - 0.5;
-          return (
+          const star = (
             <Star
-              key={n}
               size={size}
               tone={filled ? "full" : half ? "half" : "empty"}
               filledColor={filledColor}
               emptyColor={emptyColor}
-              onClick={interactive ? () => onChange?.(n) : undefined}
-              onMouseEnter={interactive ? () => setHover(n) : undefined}
-              onMouseLeave={interactive ? () => setHover(null) : undefined}
             />
+          );
+          if (!interactive) return <span key={n}>{star}</span>;
+          return (
+            <button
+              key={n}
+              type="button"
+              role="radio"
+              aria-checked={value === n}
+              aria-label={`Rate ${label ? `${label} ` : ""}${n} ${
+                n === 1 ? "star" : "stars"
+              }`}
+              onClick={() => onChange?.(n)}
+              onMouseEnter={() => setHover(n)}
+              onMouseLeave={() => setHover(null)}
+              className="inline-flex cursor-pointer rounded-sm border-0 bg-transparent p-0"
+              style={{ lineHeight: 0 }}
+            >
+              {star}
+            </button>
           );
         })}
       </span>
@@ -87,17 +110,11 @@ function Star({
   tone,
   filledColor,
   emptyColor,
-  onClick,
-  onMouseEnter,
-  onMouseLeave,
 }: {
   size: number;
   tone: "full" | "half" | "empty";
   filledColor: string;
   emptyColor: string;
-  onClick?: () => void;
-  onMouseEnter?: () => void;
-  onMouseLeave?: () => void;
 }) {
   const id = `star-half-${filledColor.replace("#", "")}-${emptyColor.replace("#", "")}`;
   const fill =
@@ -107,10 +124,6 @@ function Star({
       width={size}
       height={size}
       viewBox="0 0 24 24"
-      onClick={onClick}
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
-      style={{ cursor: onClick ? "pointer" : "default" }}
       aria-hidden="true"
     >
       {tone === "half" && (

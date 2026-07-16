@@ -4,9 +4,21 @@ import {
   createEventDirector,
   deleteUser,
   firstViewableEvent,
+  seedPromo,
+  deletePromo,
   type SeededUser,
+  type PromoSeed,
 } from "./helpers/db";
 import { signIn } from "./helpers/auth";
+
+const RATING_CATEGORIES = [
+  "Fields",
+  "Facilities",
+  "Tournament management",
+  "Competition",
+  "Diversity / variety",
+  "Cost / value",
+];
 
 /**
  * Review-write access gating on /events/[id]/review. Only a signed-in,
@@ -49,6 +61,57 @@ test.describe("Review write — access", () => {
       ).toBeVisible();
     } finally {
       if (user) await deleteUser(user.id);
+    }
+  });
+});
+
+test.describe("Review write — publish (verified via promo)", () => {
+  test("coach fills ratings + copy, publishes, review shows the Guru badge", async ({
+    page,
+  }) => {
+    let coach: SeededUser | undefined;
+    let promo: PromoSeed | undefined;
+    try {
+      coach = await createAttendee({ completeOnboarding: true });
+      promo = await seedPromo(coach.email);
+
+      await signIn(page, coach.email, coach.password);
+      // Promo landing claims the code and routes to the write-review page.
+      await page.goto(`/promo/${promo.token}`);
+      await expect(page).toHaveURL(
+        new RegExp(`/events/${promo.eventId}/review`),
+      );
+
+      // Six category ratings via the now-accessible star buttons.
+      for (const label of RATING_CATEGORIES) {
+        await page
+          .getByRole("radio", { name: `Rate ${label} 4 stars` })
+          .click();
+      }
+
+      const title = `E2E verified review ${Date.now()}`;
+      await page.getByLabel("Review title").fill(title);
+      // The body's <label> also wraps the char counter, so match by name.
+      await page
+        .locator('textarea[name="review_body"]')
+        .fill("Well-run event, great fields and strong competition. Would return.");
+      // Coaches get the would-return prompt.
+      await page.getByRole("button", { name: "Yes", exact: true }).click();
+
+      await page.getByRole("button", { name: "Publish", exact: true }).click();
+      await page
+        .getByRole("button", { name: "Confirm & Publish Review" })
+        .click();
+
+      // Redirects to the event page where the published review renders.
+      await expect(page).toHaveURL(
+        new RegExp(`/events/${promo.eventId}(\\?|$)`),
+      );
+      await expect(page.getByText(title)).toBeVisible();
+      await expect(page.getByText("Guru Review")).toBeVisible();
+    } finally {
+      if (promo) await deletePromo(promo);
+      if (coach) await deleteUser(coach.id);
     }
   });
 });

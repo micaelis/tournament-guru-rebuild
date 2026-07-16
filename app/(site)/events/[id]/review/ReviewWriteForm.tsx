@@ -180,6 +180,7 @@ export function ReviewWriteForm({
                 <StarRating
                   value={ratings[c.key] ?? 0}
                   interactive
+                  label={c.label}
                   showNumber={false}
                   size={22}
                   onChange={(v) =>
