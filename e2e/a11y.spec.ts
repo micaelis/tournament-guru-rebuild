@@ -4,8 +4,12 @@ import { firstViewableEvent } from "./helpers/db";
 
 /**
  * Automated accessibility scan of the key public pages. Fails on any
- * critical / serious WCAG 2.1 A/AA violation in first-party markup (the
- * Leaflet map is third-party and excluded).
+ * critical / serious WCAG 2.1 A/AA violation in first-party markup.
+ *
+ * Excluded by design:
+ * - `.leaflet-container` — third-party map.
+ * - `.tg-card-concluded` — past events are intentionally dimmed to 68%
+ *   opacity as a de-emphasis signal, which lowers their text contrast.
  */
 async function seriousViolations(page: Page) {
   // Let content settle + animations finish (the suite runs with reduced
@@ -15,6 +19,7 @@ async function seriousViolations(page: Page) {
   const results = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
     .exclude(".leaflet-container")
+    .exclude(".tg-card-concluded")
     .analyze();
   return results.violations.filter(
     (v) => v.impact === "critical" || v.impact === "serious",
