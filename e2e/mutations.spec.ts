@@ -62,6 +62,45 @@ test.describe("Admin — banned words", () => {
   });
 });
 
+test.describe("Admin — block a user", () => {
+  test("searches for a user and blocks them", async ({ page }) => {
+    const marker = `Blocktarget${randomUUID().slice(0, 8)}`;
+    let admin: SeededUser | undefined;
+    let target: SeededUser | undefined;
+    try {
+      admin = await createAdmin();
+      target = await createAttendee({
+        completeOnboarding: true,
+        firstName: marker,
+      });
+
+      await signIn(page, admin.email, admin.password);
+      await page.goto("/dashboard/users");
+
+      // Find the target among all users via the new search.
+      await page.getByLabel("Search users").fill(marker);
+      await page.getByRole("button", { name: "Search" }).click();
+      await expect(page.getByText(marker)).toBeVisible();
+
+      // Row action → confirm dialog → block.
+      await page.getByRole("button", { name: "Block", exact: true }).click();
+      await expect(
+        page.getByRole("heading", { name: "Block this user?" }),
+      ).toBeVisible();
+      await page
+        .getByRole("dialog")
+        .getByRole("button", { name: "Block" })
+        .click();
+
+      // Revalidated row shows the Blocked pill.
+      await expect(page.getByText("Blocked", { exact: true })).toBeVisible();
+    } finally {
+      if (target) await deleteUser(target.id);
+      if (admin) await deleteUser(admin.id);
+    }
+  });
+});
+
 test.describe("Event director — create event", () => {
   test("reaches the Add Event form for an owned tournament", async ({
     page,

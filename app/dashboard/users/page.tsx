@@ -21,15 +21,28 @@ export default async function AdminUsersPage({
   const tab = (typeof sp.tab === "string" ? sp.tab : "attendees") as
     | "attendees"
     | "eds";
+  const search = typeof sp.search === "string" ? sp.search.trim() : "";
 
   const supabase = await createServerAuthClient();
-  const { data: users } = await supabase
+  let query = supabase
     .from("profiles")
     .select(
       "id, user_type, role_title, first_name, last_name, dob, user_gender, location_formatted, organization_title, profile_photo_url, created_at, blocked",
     )
-    .eq("user_type", tab === "attendees" ? "attendee" : "event_director")
-    .order("created_at", { ascending: false });
+    .eq("user_type", tab === "attendees" ? "attendee" : "event_director");
+
+  // Name / organization search. Strip characters that would break the
+  // PostgREST `or()` grammar before interpolating the term.
+  const safe = search.replace(/[,()%*\\]/g, " ").trim();
+  if (safe) {
+    query = query.or(
+      `first_name.ilike.%${safe}%,last_name.ilike.%${safe}%,organization_title.ilike.%${safe}%`,
+    );
+  }
+
+  const { data: users } = await query.order("created_at", {
+    ascending: false,
+  });
   const rows = (users ?? []) as UserRow[];
 
   // Extra counts for the columns the spec calls out.
@@ -102,6 +115,23 @@ export default async function AdminUsersPage({
           );
         })}
       </div>
+      <form method="get" className="flex max-w-md gap-2">
+        <input type="hidden" name="tab" value={tab} />
+        <input
+          type="search"
+          name="search"
+          defaultValue={search}
+          aria-label="Search users"
+          placeholder="Search by name or organization…"
+          className="tg-control"
+        />
+        <button
+          type="submit"
+          className="shrink-0 rounded-full border border-slate-200 bg-white px-4 py-1.5 text-sm font-semibold text-slate-700 transition hover:border-slate-400"
+        >
+          Search
+        </button>
+      </form>
       <UsersTable rows={rows} counts={counts} tab={tab} />
     </div>
   );

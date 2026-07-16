@@ -24,7 +24,11 @@ type UserType = "attendee" | "event_director";
 async function createUser(
   userType: UserType,
   role: string,
-  opts: { completeOnboarding?: boolean; becomeAdmin?: boolean } = {},
+  opts: {
+    completeOnboarding?: boolean;
+    becomeAdmin?: boolean;
+    firstName?: string;
+  } = {},
 ): Promise<SeededUser> {
   const svc = service();
   const email = `e2e-${randomUUID()}@local.test`;
@@ -55,7 +59,7 @@ async function createUser(
     const { error: upErr } = await svc
       .from("profiles")
       .update({
-        first_name: "Test",
+        first_name: opts.firstName ?? "Test",
         last_name: "User",
         dob: "1990-01-01",
         user_gender: "male",
@@ -77,7 +81,7 @@ async function createUser(
 
 /** Attendee (role = coach). */
 export function createAttendee(
-  opts: { completeOnboarding?: boolean } = {},
+  opts: { completeOnboarding?: boolean; firstName?: string } = {},
 ): Promise<SeededUser> {
   return createUser("attendee", "coach", opts);
 }
