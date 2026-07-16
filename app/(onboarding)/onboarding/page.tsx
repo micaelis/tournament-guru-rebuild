@@ -17,6 +17,13 @@ type ProfileSlice = {
   last_name: string | null;
   organization_title: string | null;
   location_formatted: string | null;
+  location_lat: number | null;
+  location_lng: number | null;
+  location_place_id: string | null;
+  location_city: string | null;
+  location_state_full: string | null;
+  location_state_abbr: string | null;
+  location_zip: string | null;
   user_gender: string | null;
   dob: string | null;
   distance_pref: string | null;
@@ -54,7 +61,7 @@ export default async function OnboardingPage() {
   const { data: profile } = await supabase
     .from("profiles")
     .select(
-      "user_type, role_title, first_name, last_name, organization_title, location_formatted, user_gender, dob, distance_pref, org_description, org_logo_url, onboarding_completed, preferences_completed",
+      "user_type, role_title, first_name, last_name, organization_title, location_formatted, location_lat, location_lng, location_place_id, location_city, location_state_full, location_state_abbr, location_zip, user_gender, dob, distance_pref, org_description, org_logo_url, onboarding_completed, preferences_completed",
     )
     .eq("id", userData.user.id)
     .maybeSingle<ProfileSlice>();
@@ -82,6 +89,13 @@ export default async function OnboardingPage() {
         role_title: profile.role_title,
         organization_title: profile.organization_title,
         location_formatted: profile.location_formatted,
+        location_lat: profile.location_lat,
+        location_lng: profile.location_lng,
+        location_place_id: profile.location_place_id,
+        location_city: profile.location_city,
+        location_state_full: profile.location_state_full,
+        location_state_abbr: profile.location_state_abbr,
+        location_zip: profile.location_zip,
         user_gender: profile.user_gender,
         dob: profile.dob,
         distance_pref: profile.distance_pref,

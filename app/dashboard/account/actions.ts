@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createServerAuthClient } from "@/lib/supabase/server";
 import { DISTANCE_PREFS, USER_GENDERS } from "@/lib/enums";
 import { safeImageSrc } from "@/lib/url";
+import { parseGeoFields } from "@/lib/geo";
 
 export type AccountState = {
   error?: string;
@@ -62,6 +63,7 @@ export async function updateProfile(
       org_logo_url,
       profile_photo_url,
       location_formatted,
+      ...parseGeoFields(formData),
       user_gender,
     })
     .eq("id", user.id);

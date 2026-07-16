@@ -48,6 +48,18 @@ export default async function EditEventPage({
       description: payload.event.description ?? "",
       location_formatted: payload.event.location_formatted ?? "",
       location_state_abbr: payload.event.location_state_abbr ?? "",
+      location_lat:
+        payload.event.location_lat !== null
+          ? String(payload.event.location_lat)
+          : "",
+      location_lng:
+        payload.event.location_lng !== null
+          ? String(payload.event.location_lng)
+          : "",
+      location_place_id: payload.event.location_place_id ?? "",
+      location_city: payload.event.location_city ?? "",
+      location_state_full: payload.event.location_state_full ?? "",
+      location_zip: payload.event.location_zip ?? "",
       num_teams_this_year:
         payload.event.num_teams_this_year !== null
           ? String(payload.event.num_teams_this_year)

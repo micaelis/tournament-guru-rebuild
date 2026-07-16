@@ -19,6 +19,12 @@ export type EventBaseRow = {
   description: string | null;
   location_formatted: string | null;
   location_state_abbr: string | null;
+  location_lat: number | null;
+  location_lng: number | null;
+  location_place_id: string | null;
+  location_city: string | null;
+  location_state_full: string | null;
+  location_zip: string | null;
   num_teams_this_year: number | null;
   region: "I" | "II" | "III" | "IV" | null;
   season_id: string | null;
@@ -74,7 +80,7 @@ export type EventImageRow = {
 export type SeasonRow = { id: string; label: string; start_year: number };
 
 const EVENT_BASE_COLUMNS =
-  "id, tournament_id, owner_id, created_by, claimed, logo_url, title, website_url, host_club, start_date, end_date, registration_deadline, description, location_formatted, location_state_abbr, num_teams_this_year, region, season_id, lifecycle, cancel_reason, is_premium, is_sponsored, premium_at, video_url, teams_this_year_url, teams_prev_year_url, registration_url, teams_attended_prev_year, would_return_pct, general_rating, coach_rating, attendee_rating, review_count, avg_fields, avg_facilities, avg_management, avg_competition, avg_diversity, avg_cost_value, created_at, updated_at";
+  "id, tournament_id, owner_id, created_by, claimed, logo_url, title, website_url, host_club, start_date, end_date, registration_deadline, description, location_formatted, location_state_abbr, location_lat, location_lng, location_place_id, location_city, location_state_full, location_zip, num_teams_this_year, region, season_id, lifecycle, cancel_reason, is_premium, is_sponsored, premium_at, video_url, teams_this_year_url, teams_prev_year_url, registration_url, teams_attended_prev_year, would_return_pct, general_rating, coach_rating, attendee_rating, review_count, avg_fields, avg_facilities, avg_management, avg_competition, avg_diversity, avg_cost_value, created_at, updated_at";
 
 /**
  * Fetches an event and its child data in parallel. Returns null if the

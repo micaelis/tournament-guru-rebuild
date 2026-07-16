@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { Alert, Field } from "@/app/(auth)/parts";
+import { LocationAutocomplete } from "@/app/components/LocationAutocomplete";
 import { Button, useToast } from "@/app/components/ui";
 import { useLiveValidation } from "@/app/components/ui/useLiveValidation";
 import { useSubmittedValues } from "@/app/components/ui/useSubmittedValues";
@@ -40,6 +41,13 @@ export type AccountProfile = {
   org_logo_url: string | null;
   profile_photo_url: string | null;
   location_formatted: string | null;
+  location_lat: number | null;
+  location_lng: number | null;
+  location_place_id: string | null;
+  location_city: string | null;
+  location_state_full: string | null;
+  location_state_abbr: string | null;
+  location_zip: string | null;
   distance_pref: string | null;
   email_review_replies: boolean;
   inapp_review_replies: boolean;
@@ -183,10 +191,20 @@ function ProfileTab({
       />
       {!isAdmin && (
         <>
-          <Field
+          <LocationAutocomplete
             label="Location"
             name="location_formatted"
-            defaultValue={values.location_formatted ?? profile.location_formatted ?? ""}
+            fieldPrefix="location"
+            defaultValue={profile.location_formatted ?? ""}
+            defaultGeo={{
+              lat: profile.location_lat != null ? String(profile.location_lat) : "",
+              lng: profile.location_lng != null ? String(profile.location_lng) : "",
+              place_id: profile.location_place_id ?? "",
+              city: profile.location_city ?? "",
+              state_full: profile.location_state_full ?? "",
+              state_abbr: profile.location_state_abbr ?? "",
+              zip: profile.location_zip ?? "",
+            }}
           />
           <fieldset>
             <legend className="mb-2 text-[13px] font-semibold text-slate-800">

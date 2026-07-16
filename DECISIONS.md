@@ -89,14 +89,17 @@ has its own timestamped file so the intent is legible in the tree.
    for admin — admin's check-constraint accepts any role_title anyway,
    and admin roles never appear in the UI.
 
-### S0.5 · Location field — text-only for now
-The Auth spec asks for Google Places autocomplete on the onboarding
-location step. Wiring `@googlemaps/js-api-loader` cleanly (SSR-safe
-Client Component, key gated on `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`) is a
-non-trivial addition that doesn't gate the auth/onboarding flow. Ship
-Slice 0 with a plain text location input that writes only
-`location_formatted`. Places autocomplete will be added in a small
-follow-up once the operator confirms the env var is present.
+### S0.5 · Location field — Places-backed (was: text-only)
+RESOLVED: Google Places autocomplete is wired (July 2026) via
+`app/components/LocationAutocomplete.tsx` + `lib/maps/loader.ts`, gated on
+`NEXT_PUBLIC_GOOGLE_MAPS_KEY` (note: final env var name differs from the
+`_API_KEY` guess below). Onboarding step 2, the account profile, and the
+ED event form all write lat/lng/place_id/city/state/zip through it; hidden
+inputs carry the payload so Server Actions stay plain (`lib/geo.ts
+parseGeoFields`). Without the key every location input degrades to the
+original plain text input that writes only `location_formatted` —
+coordinates in the DB only ever come from a picked suggestion.
+`scripts/geocode-events.mjs` backfills events that predate the wiring.
 
 ### S0.6 · Component library colocated under `app/components/ui/`
 Not a top-level package. Same-app import paths, less indirection. If

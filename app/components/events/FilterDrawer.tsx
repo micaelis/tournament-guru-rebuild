@@ -15,6 +15,8 @@ import {
   LEVEL_META,
 } from "./taxonomy";
 import type { FilterGroupKey } from "./SearchFilterBar";
+import { LocationAutocomplete } from "@/app/components/LocationAutocomplete";
+import { DISTANCE_OPTIONS } from "@/lib/geo";
 
 type Patch = Partial<Filters>;
 
@@ -132,6 +134,70 @@ export function FilterDrawer({
                 </button>
               ))}
             </div>
+          </Group>
+
+          <Group
+            label="Distance from"
+            hilite={focus === "distance"}
+            subtitle="Results start within your travel range — reset any time"
+          >
+            <LocationAutocomplete
+              label="Your location"
+              name="__distance_location"
+              placeholder="City, State, or Zip Code"
+              defaultValue={filters.distLoc}
+              onResolved={(place) =>
+                onChange(
+                  place
+                    ? {
+                        distLat: place.lat,
+                        distLng: place.lng,
+                        distLoc:
+                          place.city && place.stateAbbr
+                            ? `${place.city}, ${place.stateAbbr}`
+                            : place.formatted,
+                        // Picking a place implies wanting the filter on.
+                        distMiles: filters.distMiles ?? 150,
+                        distCleared: false,
+                      }
+                    : { distLat: null, distLng: null, distLoc: "" },
+                )
+              }
+            />
+            <div className="mt-2.5 flex flex-wrap gap-1.5">
+              {DISTANCE_OPTIONS.map((o) => {
+                const active =
+                  o.miles === null
+                    ? filters.distMiles == null
+                    : filters.distMiles === o.miles;
+                return (
+                  <button
+                    key={o.value}
+                    onClick={() =>
+                      onChange(
+                        o.miles === null
+                          ? { distMiles: null, distCleared: true }
+                          : { distMiles: o.miles, distCleared: false },
+                      )
+                    }
+                    aria-pressed={active}
+                    className="tg-hover cursor-pointer rounded-full border px-2.5 py-[5px] text-[12px] font-medium"
+                    style={{
+                      background: active ? "var(--color-dark)" : "var(--color-surface)",
+                      borderColor: active ? "var(--color-dark)" : "var(--color-border)",
+                      color: active ? "#fff" : "#334155",
+                    }}
+                  >
+                    {o.label}
+                  </button>
+                );
+              })}
+            </div>
+            {filters.distMiles != null && filters.distLat == null && (
+              <p className="mt-2 text-[12px] font-medium" style={{ color: "var(--color-accent)" }}>
+                Pick a location above to apply the distance filter.
+              </p>
+            )}
           </Group>
 
           <Group label="Registration">

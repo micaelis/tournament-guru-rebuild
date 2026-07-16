@@ -103,9 +103,11 @@ Same left/right chrome as the auth screens.
   organization_title (except Parent/Spectator), org_description (ED).
 
 ## Notes on scope
-- **Google Places autocomplete** (Screen 2 location) uses the client's existing keys; it is a
-  separate feature from any map display. If deferred, the location field degrades to a plain
-  text input.
+- **Google Places autocomplete** (Screen 2 location) is LIVE — wired via
+  `LocationAutocomplete` on the client's Google Cloud project keys
+  (`NEXT_PUBLIC_GOOGLE_MAPS_KEY`). It stores lat/lng/place_id/city/state/zip alongside
+  `location_formatted`, feeding the Find Events distance filter. It is a separate feature
+  from any map display. Without the env key the field degrades to a plain text input.
 - **No social/OAuth sign-in** anywhere — email + password only.
 
 ## Design decisions log

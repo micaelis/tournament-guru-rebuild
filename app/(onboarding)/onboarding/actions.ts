@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createServerAuthClient } from "@/lib/supabase/server";
 import { postOnboardingDestination } from "@/lib/supabase/session";
 import { isAdultDob } from "@/lib/validation";
+import { parseGeoFields } from "@/lib/geo";
 import {
   ATTENDEE_ROLES,
   COMPETITION_LEVELS,
@@ -87,8 +88,9 @@ export async function saveStep1(
 }
 
 /**
- * Step 2: location (text for now — see DECISIONS §S0.5), gender, DOB.
- * Under-18 gets blocked with the "minor" copy the Auth spec calls for.
+ * Step 2: location (Places-backed; geo fields ride hidden inputs and are
+ * null for hand-typed text), gender, DOB. Under-18 gets blocked with the
+ * "minor" copy the Auth spec calls for.
  */
 export async function saveStep2(
   _prev: OnboardingState,
@@ -120,6 +122,7 @@ export async function saveStep2(
     .from("profiles")
     .update({
       location_formatted: location,
+      ...parseGeoFields(formData),
       user_gender: gender,
       dob,
     })

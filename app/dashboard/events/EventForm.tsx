@@ -4,6 +4,7 @@ import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { Alert, Field } from "../../(auth)/parts";
+import { LocationAutocomplete } from "@/app/components/LocationAutocomplete";
 import {
   IconInput,
   LabeledField,
@@ -50,6 +51,12 @@ export type EventFormDefaults = {
     description: string;
     location_formatted: string;
     location_state_abbr: string;
+    location_lat: string;
+    location_lng: string;
+    location_place_id: string;
+    location_city: string;
+    location_state_full: string;
+    location_zip: string;
     num_teams_this_year: string;
     region: string;
     season_id: string;
@@ -91,10 +98,6 @@ export function EventForm({ defaults }: { defaults: EventFormDefaults }) {
   const { shownError: descriptionError, revalidate: revalidateDescription } =
     useLiveValidation(state.fieldErrors?.description, (v) =>
       v.trim() ? null : "Description is required.",
-    );
-  const { shownError: locationError, revalidate: revalidateLocation } =
-    useLiveValidation(state.fieldErrors?.location_formatted, (v) =>
-      v.trim() ? null : "Location is required.",
     );
   const { shownError: regionError, revalidate: revalidateRegion } =
     useLiveValidation(state.fieldErrors?.region, (v) =>
@@ -292,27 +295,40 @@ export function EventForm({ defaults }: { defaults: EventFormDefaults }) {
           subtitle="Used for the state filter on search and for the region grouping."
         />
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-          <LabeledField
+          <LocationAutocomplete
             label="Location"
+            name="location_formatted"
+            // "place" prefix: the form has its own visible input named
+            // location_state_abbr, which the default prefix would collide with.
+            fieldPrefix="place"
             required
-            htmlFor="location_formatted"
+            placeholder="City, State, or Zip Code"
             hint="Full address or city + state — used across search filters."
-            error={locationError}
-          >
-            <input
-              id="location_formatted"
-              name="location_formatted"
-              defaultValue={
-                values.location_formatted ?? defaults.base.location_formatted
-              }
-              onInput={(e) => revalidateLocation(e.currentTarget)}
-              placeholder="City, State, or Zip Code"
-              className="tg-control"
-            />
-          </LabeledField>
+            defaultValue={
+              values.location_formatted ?? defaults.base.location_formatted
+            }
+            defaultGeo={{
+              lat: defaults.base.location_lat,
+              lng: defaults.base.location_lng,
+              place_id: defaults.base.location_place_id,
+              city: defaults.base.location_city,
+              state_full: defaults.base.location_state_full,
+              state_abbr: defaults.base.location_state_abbr,
+              zip: defaults.base.location_zip,
+            }}
+            validate={(v) => (v.trim() ? null : "Location is required.")}
+            error={state.fieldErrors?.location_formatted}
+            onResolved={(place) => {
+              if (!place) return;
+              const abbr = document.querySelector<HTMLInputElement>(
+                "#location_state_abbr",
+              );
+              if (abbr) abbr.value = place.stateAbbr;
+            }}
+          />
           <LabeledField
             label="State (2-letter)"
-            hint="e.g. NY, TX — populated automatically once Places autocomplete is wired."
+            hint="Auto-filled when you pick a location; editable."
             htmlFor="location_state_abbr"
           >
             <input

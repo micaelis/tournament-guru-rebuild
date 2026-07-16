@@ -10,13 +10,14 @@ import {
   ageLabel,
   genderLabel,
   levelLabel,
-  surfaceLabel,
   stateShort,
   summarize,
+  distanceActive,
 } from "./taxonomy";
 
 export type FilterGroupKey =
   | "dates"
+  | "distance"
   | "ages"
   | "genders"
   | "levels"
@@ -103,6 +104,7 @@ export function SearchFilterBar({
   onQueryChange,
   onOpen,
   onClear,
+  onClearDistance,
 }: {
   filters: Filters;
   options: FilterOptions;
@@ -110,13 +112,21 @@ export function SearchFilterBar({
   onQueryChange: (q: string) => void;
   onOpen: (focus: FilterGroupKey) => void;
   onClear: () => void;
+  onClearDistance: () => void;
 }) {
-  const chips: { key: FilterGroupKey; label: string; icon: React.ReactNode; summary: string | null; show: boolean }[] = [
+  // Distance replaced Format in the subheader per the spec ("add it in the
+  // subheader with filters and swap it with Format") — Format still lives
+  // in the drawer. The distance chip carries its own inline reset so the
+  // pre-applied profile preference is one click to drop.
+  const distSummary = distanceActive(filters)
+    ? `${filters.distMiles} mi${filters.distLoc ? ` · ${filters.distLoc}` : ""}`
+    : null;
+  const chips: { key: FilterGroupKey; label: string; icon: React.ReactNode; summary: string | null; show: boolean; onReset?: () => void }[] = [
     { key: "dates", label: "Dates", icon: <IconCal />, summary: dateSummary(filters), show: true },
+    { key: "distance", label: "Distance", icon: <IconRadar />, summary: distSummary, show: true, onReset: distSummary ? onClearDistance : undefined },
     { key: "ages", label: "Age", icon: <IconAge />, summary: summarize(filters.ages, ageLabel), show: options.ages.length > 0 },
     { key: "genders", label: "Gender", icon: <IconGender />, summary: summarize(filters.genders, genderLabel), show: options.genders.length > 0 },
     { key: "levels", label: "Level", icon: <IconStar />, summary: summarize(filters.levels, levelLabel), show: options.levels.length > 0 },
-    { key: "surfaces", label: "Format", icon: <IconBall />, summary: summarize(filters.surfaces, surfaceLabel), show: options.surfaces.length > 0 },
     { key: "states", label: "States", icon: <IconPin />, summary: summarize(filters.states, stateShort), show: options.states.length > 0 },
   ];
 
@@ -179,6 +189,7 @@ export function SearchFilterBar({
               icon={chip.icon}
               summary={chip.summary}
               onClick={() => onOpen(chip.key)}
+              onReset={chip.onReset}
             />
           ))}
       </div>
@@ -227,17 +238,19 @@ function FilterChip({
   icon,
   summary,
   onClick,
+  onReset,
 }: {
   label: string;
   icon: React.ReactNode;
   summary: string | null;
   onClick: () => void;
+  /** Inline ✕ that clears just this chip without opening the drawer. */
+  onReset?: () => void;
 }) {
   const active = !!summary;
   return (
-    <button
-      onClick={onClick}
-      className="tg-fchip inline-flex h-10 cursor-pointer items-center gap-2 whitespace-nowrap rounded-full px-[14px] text-[12.5px] font-semibold"
+    <div
+      className="tg-fchip inline-flex h-10 items-center gap-2 whitespace-nowrap rounded-full text-[12.5px] font-semibold"
       style={{
         background: active ? "var(--color-dark)" : "#fff",
         color: active ? "#fff" : "#1e293b",
@@ -245,17 +258,37 @@ function FilterChip({
           "0 2px 6px rgba(15,23,42,.07), 0 10px 24px -8px rgba(15,23,42,.15)",
       }}
     >
-      <span className="flex" style={{ color: active ? "#fff" : "var(--color-accent)" }}>
-        {icon}
-      </span>
-      {summary ? (
-        <span>
-          {label}: <b className="font-extrabold">{summary}</b>
+      <button
+        onClick={onClick}
+        className={`inline-flex h-full cursor-pointer items-center gap-2 rounded-full bg-transparent pl-[14px] ${
+          active && onReset ? "pr-1" : "pr-[14px]"
+        }`}
+        style={{ color: "inherit", border: 0, font: "inherit" }}
+      >
+        <span className="flex" style={{ color: active ? "#fff" : "var(--color-accent)" }}>
+          {icon}
         </span>
-      ) : (
-        label
+        {summary ? (
+          <span>
+            {label}: <b className="font-extrabold">{summary}</b>
+          </span>
+        ) : (
+          label
+        )}
+      </button>
+      {active && onReset && (
+        <button
+          onClick={onReset}
+          aria-label={`Clear ${label.toLowerCase()} filter`}
+          className="mr-1.5 flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-full bg-white/15 transition-colors hover:bg-white/30"
+          style={{ color: "#fff", border: 0 }}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
+        </button>
       )}
-    </button>
+    </div>
   );
 }
 
@@ -271,8 +304,8 @@ function IconGender() {
 function IconStar() {
   return <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z" /></svg>;
 }
-function IconBall() {
-  return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 3v6M12 21v-6M3 12h6M21 12h-6" strokeLinecap="round" /></svg>;
+function IconRadar() {
+  return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="12" cy="12" r="2.5" /><path d="M12 4.5a7.5 7.5 0 017.5 7.5M12 1a11 11 0 0111 11" strokeLinecap="round" /></svg>;
 }
 function IconPin() {
   return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M12 22s7-7.58 7-13a7 7 0 10-14 0c0 5.42 7 13 7 13z" /><circle cx="12" cy="9" r="2.5" /></svg>;

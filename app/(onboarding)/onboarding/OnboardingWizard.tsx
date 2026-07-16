@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { Alert, Field, SubmitButton } from "../../(auth)/parts";
+import { LocationAutocomplete } from "@/app/components/LocationAutocomplete";
 import { useLiveValidation } from "@/app/components/ui/useLiveValidation";
 import { useSubmittedValues } from "@/app/components/ui/useSubmittedValues";
 import { isAdultDob } from "@/lib/validation";
@@ -32,6 +33,13 @@ type Profile = {
   role_title: string;
   organization_title: string | null;
   location_formatted: string | null;
+  location_lat: number | null;
+  location_lng: number | null;
+  location_place_id: string | null;
+  location_city: string | null;
+  location_state_full: string | null;
+  location_state_abbr: string | null;
+  location_zip: string | null;
   user_gender: string | null;
   dob: string | null;
   distance_pref: string | null;
@@ -228,11 +236,21 @@ function Step2Form({ profile }: { profile: Profile }) {
       className="space-y-5"
     >
       {state.error && <Alert kind="error">{state.error}</Alert>}
-      <Field
+      <LocationAutocomplete
         label="Location"
         name="location"
+        fieldPrefix="location"
         placeholder="City, State, or Zip Code"
-        defaultValue={values.location ?? profile.location_formatted ?? ""}
+        defaultValue={profile.location_formatted ?? ""}
+        defaultGeo={{
+          lat: profile.location_lat != null ? String(profile.location_lat) : "",
+          lng: profile.location_lng != null ? String(profile.location_lng) : "",
+          place_id: profile.location_place_id ?? "",
+          city: profile.location_city ?? "",
+          state_full: profile.location_state_full ?? "",
+          state_abbr: profile.location_state_abbr ?? "",
+          zip: profile.location_zip ?? "",
+        }}
         required
         hint="Where do you spend most of your season? We use this to sort events by distance."
         validate={(v) => (v.trim() ? null : "Location is required.")}

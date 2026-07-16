@@ -21,6 +21,16 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const concludedOnly = searchParams.get("concluded") === "1";
 
+  // Distance is all-or-nothing (miles + valid center) — mirrors taxonomy's
+  // parseSearchParams so the URL, the page, and this API agree.
+  const miles = parseInt(searchParams.get("dist") ?? "", 10);
+  const lat = Number.parseFloat(searchParams.get("lat") ?? "");
+  const lng = Number.parseFloat(searchParams.get("lng") ?? "");
+  const distOk =
+    [150, 300, 450].includes(miles) &&
+    Number.isFinite(lat) && lat >= -90 && lat <= 90 &&
+    Number.isFinite(lng) && lng >= -180 && lng <= 180;
+
   const filters: SearchFilters = {
     q: searchParams.get("q") ?? "",
     ages: csv(searchParams.get("ages")),
@@ -32,6 +42,9 @@ export async function GET(request: Request) {
     dateEnd: searchParams.get("dateEnd") || null,
     openOnly: searchParams.get("open") === "1",
     concludedOnly,
+    distanceMiles: distOk ? miles : null,
+    centerLat: distOk ? lat : null,
+    centerLng: distOk ? lng : null,
   };
 
   const sortRaw = searchParams.get("sort");

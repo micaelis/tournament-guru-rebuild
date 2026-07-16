@@ -18,6 +18,15 @@ export type Filters = {
   dateStart: string;
   dateEnd: string;
   openOnly: boolean;
+  /** Distance-from filter. Active only when all three of miles/lat/lng are
+   *  set. `distLoc` is the human label for the center ("Austin, TX"). */
+  distMiles: number | null;
+  distLat: number | null;
+  distLng: number | null;
+  distLoc: string;
+  /** True once the user explicitly cleared distance — stops the server from
+   *  re-applying the profile's saved preference on the next navigation. */
+  distCleared: boolean;
 };
 
 export const EMPTY_FILTERS: Filters = {
@@ -30,7 +39,17 @@ export const EMPTY_FILTERS: Filters = {
   dateStart: "",
   dateEnd: "",
   openOnly: false,
+  distMiles: null,
+  distLat: null,
+  distLng: null,
+  distLoc: "",
+  distCleared: false,
 };
+
+/** Distance filter active? (all-or-nothing on the three params) */
+export function distanceActive(f: Filters): boolean {
+  return f.distMiles != null && f.distLat != null && f.distLng != null;
+}
 
 /* ── Canonical orderings (enum domains) ── */
 const AGE_ORDER = ["u4","u5","u6","u7","u8","u9","u10","u11","u12","u13","u14","u15","u16","u17","u18","u19","u20"];
@@ -161,6 +180,16 @@ export function filtersToQuery(
   if (f.dateStart) p.set("dateStart", f.dateStart);
   if (f.dateEnd) p.set("dateEnd", f.dateEnd);
   if (f.openOnly) p.set("open", "1");
+  if (distanceActive(f)) {
+    p.set("dist", String(f.distMiles));
+    p.set("lat", f.distLat!.toFixed(5));
+    p.set("lng", f.distLng!.toFixed(5));
+    if (f.distLoc) p.set("loc", f.distLoc);
+  } else if (f.distCleared) {
+    // Explicit opt-out marker so the server page doesn't re-apply the
+    // signed-in user's saved distance preference on the next render.
+    p.set("dist", "any");
+  }
   if (sort !== DEFAULT_SORT) p.set("sort", sort);
   if (page > 1) p.set("page", String(page));
   return p;
@@ -196,6 +225,18 @@ export function parseSearchParams(sp: RawParams): {
   const statesFromLegacy = csv(sp.regions).map((s) => s.toUpperCase());
   const states = statesFromNew.length ? statesFromNew.map((s) => s.toUpperCase()) : statesFromLegacy;
 
+  // Distance is all-or-nothing: miles + a valid center, else inactive.
+  // dist=any is the explicit "user cleared it" marker.
+  const distRaw = one(sp.dist);
+  const distCleared = distRaw === "any";
+  const miles = parseInt(distRaw, 10);
+  const lat = Number.parseFloat(one(sp.lat));
+  const lng = Number.parseFloat(one(sp.lng));
+  const distOk =
+    [150, 300, 450].includes(miles) &&
+    Number.isFinite(lat) && lat >= -90 && lat <= 90 &&
+    Number.isFinite(lng) && lng >= -180 && lng <= 180;
+
   return {
     filters: {
       q: one(sp.q),
@@ -207,6 +248,11 @@ export function parseSearchParams(sp: RawParams): {
       dateStart: one(sp.dateStart),
       dateEnd: one(sp.dateEnd),
       openOnly: one(sp.open) === "1",
+      distMiles: distOk ? miles : null,
+      distLat: distOk ? lat : null,
+      distLng: distOk ? lng : null,
+      distLoc: distOk ? one(sp.loc) : "",
+      distCleared,
     },
     sort,
     page,
@@ -221,7 +267,8 @@ export function countActiveFilters(f: Filters): number {
     f.levels.length +
     f.surfaces.length +
     f.states.length +
-    (f.openOnly ? 1 : 0)
+    (f.openOnly ? 1 : 0) +
+    (distanceActive(f) ? 1 : 0)
   );
 }
 

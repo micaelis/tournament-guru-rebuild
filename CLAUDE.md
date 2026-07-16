@@ -37,6 +37,11 @@ it (`full_name`, `contact_email`, `profile_picture`, `onboarding_complete`,
 - `lib/supabase/{server,client,proxy,session}.ts` — client factories +
   session helper (see below)
 - `lib/rate-limit.ts` — per-IP fixed-window limiter for public endpoints
+- `lib/maps/loader.ts` + `app/components/LocationAutocomplete.tsx` —
+  Google Places autocomplete (gated on `NEXT_PUBLIC_GOOGLE_MAPS_KEY`;
+  degrades to plain text without it). `lib/geo.ts` parses the hidden geo
+  fields server-side and holds the Haversine/bbox math for the events
+  distance filter. `scripts/geocode-events.mjs` backfills coordinates.
 - `lib/url.ts` — `safeExternalUrl` / `safeImageSrc` scheme allow-list
 - `supabase/migrations/` — timestamped DDL; `20260716000001_baseline.sql`
   is the from-scratch schema

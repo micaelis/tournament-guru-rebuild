@@ -8,6 +8,7 @@ import {
   TEAM_GENDERS,
 } from "@/lib/enums";
 import type { EventRow, EventFacets, EventSort } from "@/app/components/types";
+import { boundingBox, milesBetween } from "@/lib/geo";
 
 export type SearchFilters = {
   q?: string;
@@ -21,6 +22,11 @@ export type SearchFilters = {
   openOnly?: boolean;
   /** Only events that have already ended — the "write a review" picker. */
   concludedOnly?: boolean;
+  /** Distance-from filter: all three must be present to take effect.
+   *  Events without coordinates are excluded while it's active. */
+  distanceMiles?: number | null;
+  centerLat?: number | null;
+  centerLng?: number | null;
 };
 
 const ZERO_UUID = "00000000-0000-0000-0000-000000000000";
@@ -123,6 +129,41 @@ export async function searchEvents(
       .select("event_id")
       .in("level", filters.levels);
     idSets.push(dedupe(data as { event_id: string }[] | null));
+  }
+  if (
+    filters.distanceMiles != null &&
+    filters.centerLat != null &&
+    filters.centerLng != null
+  ) {
+    // Cheap SQL bounding-box prefilter, exact Haversine on the candidates.
+    // The box over-includes corners; the JS pass trims them precisely.
+    const box = boundingBox(
+      filters.centerLat,
+      filters.centerLng,
+      filters.distanceMiles,
+    );
+    const { data } = await supabase
+      .from("events")
+      .select("id, location_lat, location_lng")
+      .eq("lifecycle", "active")
+      .gte("location_lat", box.minLat)
+      .lte("location_lat", box.maxLat)
+      .gte("location_lng", box.minLng)
+      .lte("location_lng", box.maxLng);
+    const within = (
+      (data ?? []) as { id: string; location_lat: number; location_lng: number }[]
+    )
+      .filter(
+        (r) =>
+          milesBetween(
+            filters.centerLat!,
+            filters.centerLng!,
+            r.location_lat,
+            r.location_lng,
+          ) <= filters.distanceMiles!,
+      )
+      .map((r) => r.id);
+    idSets.push(within);
   }
 
   const matchingIds: string[] | null =

@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createServerAuthClient } from "@/lib/supabase/server";
+import { parseGeoFields } from "@/lib/geo";
 import { safeExternalUrl, safeImageSrc } from "@/lib/url";
 import {
   AGE_BRACKETS,
@@ -69,6 +70,13 @@ export async function saveEvent(
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  // Hidden Places payload ("place" prefix — the visible state input owns
+  // the location_state_abbr name, so its geo twin is dropped here).
+  const { location_state_abbr: _geoAbbr, ...geo } = parseGeoFields(
+    formData,
+    "place",
+  );
+
   // Base fields — parsed once, validated below.
   const base = {
     tournament_id: tournamentId || undefined,
@@ -82,6 +90,7 @@ export async function saveEvent(
     description: str(formData, "description") || null,
     location_formatted: str(formData, "location_formatted") || null,
     location_state_abbr: str(formData, "location_state_abbr").slice(0, 2) || null,
+    ...geo,
     num_teams_this_year: numOrNull(formData, "num_teams_this_year"),
     region: (str(formData, "region") || null) as
       | "I"
@@ -244,6 +253,12 @@ export async function saveEvent(
     description: base.description,
     location_formatted: base.location_formatted,
     location_state_abbr: base.location_state_abbr,
+    location_lat: base.location_lat,
+    location_lng: base.location_lng,
+    location_place_id: base.location_place_id,
+    location_city: base.location_city,
+    location_state_full: base.location_state_full,
+    location_zip: base.location_zip,
     num_teams_this_year: base.num_teams_this_year,
     region: base.region,
     season_id: base.season_id,

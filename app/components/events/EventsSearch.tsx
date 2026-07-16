@@ -168,10 +168,23 @@ export function EventsSearch({
     setPage(1);
   }, []);
   const clearAll = useCallback(() => {
-    setFilters(EMPTY_FILTERS);
+    // distCleared survives the wipe so the server doesn't re-apply the
+    // profile's saved distance preference on the next navigation.
+    setFilters({ ...EMPTY_FILTERS, distCleared: true });
     setPage(1);
     setActiveId(null);
   }, []);
+  const clearDistance = useCallback(
+    () =>
+      patchFilters({
+        distMiles: null,
+        distLat: null,
+        distLng: null,
+        distLoc: "",
+        distCleared: true,
+      }),
+    [patchFilters],
+  );
   const goPage = useCallback((p: number) => {
     setPage(p);
     setActiveId(null);
@@ -240,6 +253,7 @@ export function EventsSearch({
             onQueryChange={setQuery}
             onOpen={openDrawer}
             onClear={clearAll}
+            onClearDistance={clearDistance}
           />
         </div>
       </div>
