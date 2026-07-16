@@ -46,3 +46,12 @@ supabase/.backups/
 # supabase CLI cache
 supabase/.temp/
 supabase/.branches/
+
+# agent tooling — not product code (dozens of Supabase-skill docs,
+# MCP registration pointing at a staging project ref, generated
+# skills lockfile)
+/.agents/
+/.mcp.json
+/skills-lock.json
+.claude/skills/
+.claude/settings.local.json
