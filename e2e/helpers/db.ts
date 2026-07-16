@@ -106,6 +106,31 @@ export async function deleteUser(id: string): Promise<void> {
   await service().auth.admin.deleteUser(id).catch(() => undefined);
 }
 
+/** A tournament owned by `ownerId` (so an ED can reach the Add Event form). */
+export async function seedTournament(ownerId: string): Promise<string> {
+  const { data, error } = await service()
+    .from("tournaments")
+    .insert({
+      title: `E2E Cup ${randomUUID().slice(0, 6)}`,
+      owner_id: ownerId,
+      created_by: ownerId,
+      claimed: true,
+    })
+    .select("id")
+    .single();
+  if (error || !data) throw new Error(`seedTournament: ${error?.message}`);
+  return data.id as string;
+}
+
+export async function deleteTournament(id: string): Promise<void> {
+  await service().from("tournaments").delete().eq("id", id);
+}
+
+/** Remove a banned word (E2E cleanup for the admin banned-words test). */
+export async function deleteBannedWord(word: string): Promise<void> {
+  await service().from("banned_words").delete().eq("word", word);
+}
+
 export type PromoSeed = {
   token: string;
   email: string;

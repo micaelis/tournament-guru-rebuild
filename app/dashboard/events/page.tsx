@@ -123,9 +123,11 @@ export default async function EventsDashboardPage({
                   events={eventsByTournament.get(t.id) ?? []}
                   seasons={seasonLabels}
                   canManage={canManageTournament(profile.user_type, t, user.id)}
-                  canManageEvent={(ev) =>
-                    canManageEvent(profile.user_type, ev, user.id)
-                  }
+                  manageableEventIds={(eventsByTournament.get(t.id) ?? [])
+                    .filter((ev) =>
+                      canManageEvent(profile.user_type, ev, user.id),
+                    )
+                    .map((ev) => ev.id)}
                   showEventsByDefault={!isAdmin}
                   ownerName={
                     isAdmin && t.owner_id ? ownerNames.get(t.owner_id) : undefined

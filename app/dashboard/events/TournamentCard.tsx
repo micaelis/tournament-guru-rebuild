@@ -29,7 +29,7 @@ export function TournamentCard({
   events,
   seasons,
   canManage,
-  canManageEvent,
+  manageableEventIds,
   showEventsByDefault,
   ownerName,
   isAdmin,
@@ -38,7 +38,9 @@ export function TournamentCard({
   events: EventListRow[];
   seasons: Map<string, string>;
   canManage: boolean;
-  canManageEvent: (event: EventListRow) => boolean;
+  // Serializable list (not a function) so this client component's props can
+  // cross the server→client boundary; the predicate is rebuilt below.
+  manageableEventIds: string[];
   showEventsByDefault: boolean;
   ownerName?: string;
   isAdmin?: boolean;
@@ -137,7 +139,7 @@ export function TournamentCard({
                 <EventList
                   events={events}
                   seasons={seasons}
-                  canManage={canManageEvent}
+                  canManage={(ev) => manageableEventIds.includes(ev.id)}
                   isAdmin={isAdmin}
                 />
               </div>

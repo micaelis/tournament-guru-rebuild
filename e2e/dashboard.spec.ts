@@ -4,6 +4,8 @@ import {
   createEventDirector,
   createAdmin,
   deleteUser,
+  seedTournament,
+  deleteTournament,
   type SeededUser,
 } from "./helpers/db";
 import { signIn } from "./helpers/auth";
@@ -67,6 +69,25 @@ test.describe("Dashboard — event director", () => {
         page.getByRole("heading", { name: "Your events" }),
       ).toBeVisible();
     } finally {
+      if (user) await deleteUser(user.id);
+    }
+  });
+
+  test("renders an owned tournament card without crashing", async ({ page }) => {
+    // Regression guard: the events page passed a function prop to the client
+    // TournamentCard, which threw once an ED actually owned a tournament.
+    let user: SeededUser | undefined;
+    let tournamentId: string | undefined;
+    try {
+      user = await createEventDirector({ completeOnboarding: true });
+      tournamentId = await seedTournament(user.id);
+      await signIn(page, user.email, user.password);
+      await page.goto("/dashboard/events");
+      await expect(
+        page.getByRole("heading", { name: /E2E Cup/ }),
+      ).toBeVisible();
+    } finally {
+      if (tournamentId) await deleteTournament(tournamentId);
       if (user) await deleteUser(user.id);
     }
   });
