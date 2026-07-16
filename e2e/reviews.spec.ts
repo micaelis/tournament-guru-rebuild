@@ -155,4 +155,78 @@ test.describe("Review interactions", () => {
       if (author) await deleteUser(author.id);
     }
   });
+
+  test("a signed-in coach posts a comment on a review", async ({ page }) => {
+    let author: SeededUser | undefined;
+    let viewer: SeededUser | undefined;
+    let seed: { tournamentId: string; eventId: string } | undefined;
+    let reviewId: string | undefined;
+    try {
+      author = await createAttendee({ completeOnboarding: true });
+      viewer = await createAttendee({ completeOnboarding: true });
+      seed = await seedEvent(author.id);
+      reviewId = await seedReview(
+        seed.eventId,
+        author.id,
+        `E2E review ${Date.now()}`,
+      );
+
+      await signIn(page, viewer.email, viewer.password);
+      await page.goto(`/events/${seed.eventId}`);
+      await page.getByRole("button", { name: /Show comments/ }).click();
+
+      const comment = `Great write-up, thanks! ${Date.now()}`;
+      await page.getByPlaceholder("Write a comment…").fill(comment);
+      await page.getByRole("button", { name: "Post comment" }).click();
+      await expect(page.getByText(comment)).toBeVisible();
+    } finally {
+      if (reviewId) await deleteReview(reviewId);
+      if (seed) {
+        await deleteEvent(seed.eventId);
+        await deleteTournament(seed.tournamentId);
+      }
+      if (viewer) await deleteUser(viewer.id);
+      if (author) await deleteUser(author.id);
+    }
+  });
+
+  test("a signed-in coach flags a review", async ({ page }) => {
+    let author: SeededUser | undefined;
+    let viewer: SeededUser | undefined;
+    let seed: { tournamentId: string; eventId: string } | undefined;
+    let reviewId: string | undefined;
+    try {
+      author = await createAttendee({ completeOnboarding: true });
+      viewer = await createAttendee({ completeOnboarding: true });
+      seed = await seedEvent(author.id);
+      reviewId = await seedReview(
+        seed.eventId,
+        author.id,
+        `E2E review ${Date.now()}`,
+      );
+
+      await signIn(page, viewer.email, viewer.password);
+      await page.goto(`/events/${seed.eventId}`);
+      await page.getByRole("button", { name: "Flag review" }).click();
+
+      const dialog = page.getByRole("dialog");
+      await expect(
+        dialog.getByRole("heading", { name: "Flag this review" }),
+      ).toBeVisible();
+      await dialog.getByRole("radio").first().check({ force: true });
+      await dialog.getByRole("button", { name: "Confirm" }).click();
+
+      await expect(
+        page.getByText(/The admin will be notified about this review/),
+      ).toBeVisible();
+    } finally {
+      if (reviewId) await deleteReview(reviewId);
+      if (seed) {
+        await deleteEvent(seed.eventId);
+        await deleteTournament(seed.tournamentId);
+      }
+      if (viewer) await deleteUser(viewer.id);
+      if (author) await deleteUser(author.id);
+    }
+  });
 });
