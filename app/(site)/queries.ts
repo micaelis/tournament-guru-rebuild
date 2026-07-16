@@ -107,7 +107,7 @@ export async function fetchFeaturedEventRows(): Promise<EventRow[]> {
   const { data } = await supabase
     .from("events")
     .select(
-      "id, owner_id, title, description, host_club, logo_url, location_formatted, location_state_abbr, start_date, end_date, lifecycle, is_premium, region, teams_attended_prev_year, general_rating, coach_rating, attendee_rating, review_count, created_at, event_age_groups(age, team_gender)",
+      "id, owner_id, title, description, host_club, logo_url, location_formatted, location_state_abbr, start_date, end_date, lifecycle, is_premium, region, teams_attended_prev_year, would_return_pct, general_rating, coach_rating, attendee_rating, review_count, created_at, event_age_groups(age, team_gender)",
     )
     .eq("lifecycle", "active")
     .or("is_premium.eq.true,is_sponsored.eq.true")
@@ -130,6 +130,7 @@ export async function fetchFeaturedEventRows(): Promise<EventRow[]> {
     is_premium: boolean;
     region: string | null;
     teams_attended_prev_year: number | null;
+    would_return_pct: number | null;
     general_rating: number | null;
     coach_rating: number | null;
     attendee_rating: number | null;
@@ -198,6 +199,7 @@ export async function fetchFeaturedEventRows(): Promise<EventRow[]> {
       reviews: r.review_count,
       coach_reviews: coachCount.get(r.id) ?? 0,
       attendee_reviews: attendeeCount.get(r.id) ?? 0,
+      would_return_pct: r.would_return_pct,
       nr_teams_last_year: r.teams_attended_prev_year,
       created_at: r.created_at,
       region: r.region,

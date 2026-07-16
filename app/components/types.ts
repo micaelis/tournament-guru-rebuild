@@ -37,6 +37,7 @@ export type EventRow = {
   reviews: number | null;
   coach_reviews?: number | null;
   attendee_reviews?: number | null;
+  would_return_pct?: number | null;
   nr_teams_last_year?: number | null;
   created_at: string;
   region?: string | null;

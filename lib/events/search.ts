@@ -26,7 +26,7 @@ export type SearchFilters = {
 const ZERO_UUID = "00000000-0000-0000-0000-000000000000";
 
 const SEARCH_SELECT =
-  "id, owner_id, title, description, host_club, logo_url, location_formatted, location_state_abbr, location_lat, location_lng, start_date, end_date, lifecycle, is_premium, region, teams_attended_prev_year, general_rating, coach_rating, attendee_rating, review_count, created_at, event_age_groups(age, team_gender), event_competition_levels(level), event_surfaces(surface)";
+  "id, owner_id, title, description, host_club, logo_url, location_formatted, location_state_abbr, location_lat, location_lng, start_date, end_date, lifecycle, is_premium, region, teams_attended_prev_year, would_return_pct, general_rating, coach_rating, attendee_rating, review_count, created_at, event_age_groups(age, team_gender), event_competition_levels(level), event_surfaces(surface)";
 
 /**
  * Facet value sets for the search filter drawer. The taxonomy UI expects
@@ -65,6 +65,7 @@ type RawSearchRow = {
   is_premium: boolean;
   region: string | null;
   teams_attended_prev_year: number | null;
+  would_return_pct: number | null;
   general_rating: number | null;
   coach_rating: number | null;
   attendee_rating: number | null;
@@ -252,6 +253,7 @@ export async function searchEvents(
       reviews: r.review_count,
       coach_reviews: coachCount.get(r.id) ?? 0,
       attendee_reviews: attendeeCount.get(r.id) ?? 0,
+      would_return_pct: r.would_return_pct,
       nr_teams_last_year: r.teams_attended_prev_year,
       created_at: r.created_at,
       region: r.region,

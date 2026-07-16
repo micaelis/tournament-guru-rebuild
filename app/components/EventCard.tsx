@@ -634,6 +634,9 @@ export function EventCard({ event }: { event: EventRow }) {
                   count={event.attendee_reviews ?? event.reviews ?? 0}
                 />
               )}
+              {event.would_return_pct != null && event.would_return_pct > 0 && (
+                <WouldReturnCue pct={event.would_return_pct} />
+              )}
             </div>
           </div>
 
@@ -682,6 +685,36 @@ export function EventCard({ event }: { event: EventRow }) {
         .tg-card-concluded:focus-within { opacity: 1; }
       `}</style>
     </article>
+  );
+}
+
+/* "% would return" — the verified-attendee retention cue (spec §5.2).
+   Drawn from would_return_pct (coach + team-manager reviews that answered
+   the would-return question). Rendered as a prominent amber pill. */
+function WouldReturnCue({ pct }: { pct: number }) {
+  return (
+    <div
+      className="inline-flex items-center gap-1.5 self-start rounded-full"
+      style={{
+        marginTop: 2,
+        padding: "4px 10px",
+        background: "#fff7ed",
+        border: "1px solid #fed7aa",
+        fontSize: 11.5,
+        fontWeight: 800,
+        letterSpacing: "-0.005em",
+        color: "#9a3412",
+      }}
+      title={`${Math.round(pct)}% of verified reviewers would return`}
+    >
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M3 12a9 9 0 019-9 9 9 0 016.7 3" />
+        <path d="M21 3v6h-6" />
+        <path d="M21 12a9 9 0 01-9 9 9 9 0 01-6.7-3" />
+        <path d="M3 21v-6h6" />
+      </svg>
+      {Math.round(pct)}% would return
+    </div>
   );
 }
 
