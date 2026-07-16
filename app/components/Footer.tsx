@@ -99,8 +99,7 @@ export function Footer() {
                     <Link
                       key={l.label}
                       href={l.href as Route}
-                      className="text-[13px] no-underline transition-colors hover:text-white"
-                      style={{ color: "#94a3b8" }}
+                      className="text-[13px] text-[#94a3b8] no-underline transition-colors hover:text-white"
                     >
                       {l.label}
                     </Link>
@@ -123,22 +122,19 @@ export function Footer() {
           <div className="flex gap-4.5">
             <Link
               href={"/privacy" as Route}
-              className="no-underline"
-              style={{ color: "#94a3b8" }}
+              className="text-[#94a3b8] no-underline transition-colors hover:text-white"
             >
               Privacy
             </Link>
             <Link
               href={"/terms" as Route}
-              className="no-underline"
-              style={{ color: "#94a3b8" }}
+              className="text-[#94a3b8] no-underline transition-colors hover:text-white"
             >
               Terms
             </Link>
             <Link
               href={"/cookies" as Route}
-              className="no-underline"
-              style={{ color: "#94a3b8" }}
+              className="text-[#94a3b8] no-underline transition-colors hover:text-white"
             >
               Cookies
             </Link>

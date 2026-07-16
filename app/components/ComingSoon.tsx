@@ -85,7 +85,7 @@ export function ComingSoon({
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <Link
             href="/"
-            className="font-heading inline-flex items-center gap-1.5 rounded-xl no-underline transition-colors"
+            className="font-heading inline-flex items-center gap-1.5 rounded-xl no-underline transition-transform hover:-translate-y-0.5"
             style={{
               padding: "12px 22px",
               fontSize: 14,

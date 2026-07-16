@@ -282,7 +282,7 @@ export function FindTournamentIntro() {
 
             <Link
               href="/events"
-              className="font-heading mt-3.5 ml-1 inline-flex cursor-pointer items-center gap-1.5 bg-transparent no-underline"
+              className="font-heading mt-3.5 ml-1 inline-flex cursor-pointer items-center gap-1.5 bg-transparent no-underline hover:underline"
               style={{ fontSize: 13.5, fontWeight: 700, color: "var(--color-accent)" }}
             >
               Browse all events

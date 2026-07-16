@@ -32,15 +32,21 @@ export default async function SignupPage({
         <div className="mt-8">
           <SignupForm preselectType={preselectType} />
         </div>
-        <p className="mt-6 text-sm text-slate-600">
+        <p className="mt-6 text-center text-sm text-slate-600">
           Already have an account?{" "}
-          <Link href="/login" className="font-semibold text-red-600">
+          <Link
+            href="/login"
+            className="font-semibold text-red-600 hover:underline"
+          >
             Sign in
           </Link>
         </p>
-        <p className="mt-3 text-sm text-slate-500">
+        <p className="mt-3 text-center text-sm text-slate-500">
           Just browsing?{" "}
-          <Link href="/events" className="font-semibold text-slate-700 underline">
+          <Link
+            href="/events"
+            className="font-semibold text-slate-700 underline decoration-slate-300 underline-offset-2 transition-colors hover:text-[var(--color-accent)] hover:decoration-[var(--color-accent)]"
+          >
             Skip and search events
           </Link>
         </p>

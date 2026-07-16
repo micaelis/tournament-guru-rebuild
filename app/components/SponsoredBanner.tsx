@@ -128,11 +128,10 @@ export function SponsoredBanner() {
             type="button"
             onClick={() => setDismissed(true)}
             aria-label="Dismiss ad"
-            className="cursor-pointer rounded-full transition-colors"
+            className="cursor-pointer rounded-full bg-white/10 transition-colors hover:bg-white/25"
             style={{
               width: 26,
               height: 26,
-              background: "rgba(255,255,255,.08)",
               border: "1px solid rgba(255,255,255,.14)",
               color: "#fff",
               display: "inline-flex",

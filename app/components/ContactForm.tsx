@@ -104,6 +104,7 @@ export function ContactForm({ source }: { source: ContactSource }) {
         <Button
           type="submit"
           disabled={pending}
+          className="transition-transform hover:-translate-y-0.5"
           style={{
             marginTop: 4,
             background: "linear-gradient(135deg, #1e293b, #0f172a)",
@@ -161,7 +162,7 @@ function SuccessCard() {
       <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
         <Link
           href="/"
-          className="font-heading inline-flex items-center gap-1.5 rounded-xl no-underline transition-colors"
+          className="font-heading inline-flex items-center gap-1.5 rounded-xl no-underline transition-transform hover:-translate-y-0.5"
           style={{ padding: "11px 20px", fontSize: 14, fontWeight: 700, color: "#fff", background: "linear-gradient(135deg, #1e293b, #0f172a)", borderRadius: 12 }}
         >
           Back to home

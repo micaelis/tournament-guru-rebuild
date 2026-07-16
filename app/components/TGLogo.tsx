@@ -44,7 +44,7 @@ export function TGLogo({
   return (
     <Link
       href={href as Route}
-      className="inline-flex no-underline"
+      className="inline-flex no-underline transition-opacity hover:opacity-80"
       aria-label="Tournament Guru — home"
     >
       {inner}

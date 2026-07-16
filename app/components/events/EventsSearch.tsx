@@ -434,7 +434,7 @@ export function EventsSearch({
       {mapCollapsed && !mapFullscreen && (
         <button
           onClick={() => setMapCollapsed(false)}
-          className="font-heading fixed bottom-6 right-6 z-[80] hidden items-center gap-2 rounded-xl px-3.5 py-2.5 text-[12.5px] font-semibold text-white shadow-lg lg:flex"
+          className="font-heading fixed bottom-6 right-6 z-[80] hidden items-center gap-2 rounded-xl px-3.5 py-2.5 text-[12.5px] font-semibold text-white shadow-lg transition-transform hover:-translate-y-0.5 lg:flex"
           style={{ background: "var(--color-dark)" }}
         >
           <MapGlyph /> Show map
@@ -445,7 +445,7 @@ export function EventsSearch({
       {!mapFullscreen && (
         <button
           onClick={() => setMapFullscreen(true)}
-          className="font-heading fixed bottom-6 left-1/2 z-[80] flex -translate-x-1/2 items-center gap-2 rounded-full px-5 py-3 text-[13px] font-semibold text-white shadow-lg lg:hidden"
+          className="font-heading fixed bottom-6 left-1/2 z-[80] flex -translate-x-1/2 items-center gap-2 rounded-full px-5 py-3 text-[13px] font-semibold text-white shadow-lg transition-shadow hover:shadow-xl lg:hidden"
           style={{ background: "var(--color-dark)" }}
         >
           <MapGlyph /> View map
@@ -709,7 +709,7 @@ function EmptyState({ onReset, hasFilters }: { onReset: () => void; hasFilters: 
       {hasFilters && (
         <button
           onClick={onReset}
-          className="mt-3.5 rounded-[10px] px-[18px] py-2.5 text-[13px] font-semibold text-white"
+          className="mt-3.5 rounded-[10px] px-[18px] py-2.5 text-[13px] font-semibold text-white transition-transform hover:-translate-y-0.5"
           style={{ background: "var(--color-dark)" }}
         >
           Clear filters

@@ -159,6 +159,12 @@ body {
   border-color: var(--color-accent);
 }
 
+/* Outline header pill — reversed colors; hover tints toward the accent */
+.tg-pill-outline:hover {
+  background: #fef2f2 !important;
+  border-color: rgba(220, 38, 38, .55) !important;
+}
+
 /* Button hover states (inline styles can't do :hover) */
 .tg-btn-primary:hover:not(:disabled) {
   background: var(--color-accent-dark) !important;

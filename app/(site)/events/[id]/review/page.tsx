@@ -79,7 +79,7 @@ export default async function ReviewWritePage({
     <main className="mx-auto max-w-2xl px-6 py-12">
       <Link
         href={`/events/${id}` as Route}
-        className="text-sm font-semibold text-slate-700 underline"
+        className="text-sm font-semibold text-slate-700 underline decoration-slate-300 underline-offset-2 transition-colors hover:text-[var(--color-accent)] hover:decoration-[var(--color-accent)]"
       >
         ← Back to {ev.title}
       </Link>

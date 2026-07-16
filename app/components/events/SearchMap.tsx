@@ -306,12 +306,16 @@ function MapPreview({
           onClose();
         }}
         aria-label="Close preview"
-        className="absolute right-2 top-2 z-[5] flex h-[26px] w-[26px] items-center justify-center rounded-full bg-white/95"
+        className="absolute right-2 top-2 z-[5] flex h-[26px] w-[26px] items-center justify-center rounded-full bg-white/95 transition-colors hover:bg-white hover:text-[var(--color-accent)]"
         style={{ color: "var(--color-dark)", boxShadow: "0 2px 6px rgba(15,23,42,.16)" }}
       >
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
       </button>
-      <a href={`/events/${event.id}`} className="block no-underline" style={{ color: "inherit" }}>
+      <a
+        href={`/events/${event.id}`}
+        className="block no-underline transition-colors hover:bg-[var(--color-surface-alt)]"
+        style={{ color: "inherit" }}
+      >
         <div className="p-3.5">
           <div className="font-heading text-[13.5px] font-bold leading-tight" style={{ color: "var(--color-dark)", letterSpacing: "-0.01em" }}>
             {event.title}

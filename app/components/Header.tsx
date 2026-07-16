@@ -187,7 +187,12 @@ export function Header({
               // on the landing page, in addition to the normal URL match.
               const activeExtra =
                 item.label === "Featured Events" && featuredInView;
-              const active = isActive(item) || activeExtra;
+              // In the auth flow no nav route is "current", so highlight Home
+              // as the anchor back to the public site.
+              const active =
+                isActive(item) ||
+                activeExtra ||
+                (authMode && item.label === "Home");
               return item.children ? (
                 <DesktopDropdown
                   key={item.label}
@@ -217,7 +222,29 @@ export function Header({
 
           <div className="flex items-center gap-2.5">
             {authMode ? (
-              <HeaderPill href="/events">Browse events</HeaderPill>
+              <HeaderPill
+                href="/events"
+                size="sm"
+                variant="outline"
+                icon={
+                  <svg
+                    width="15"
+                    height="15"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.4"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
+                }
+              >
+                Browse events
+              </HeaderPill>
             ) : (
               <HeaderAuth initialEmail={initialEmail} />
             )}
@@ -227,12 +254,11 @@ export function Header({
               aria-label={menuOpen ? "Close menu" : "Open menu"}
               aria-expanded={menuOpen}
               aria-controls="mobile-menu"
-              className="inline-flex cursor-pointer items-center justify-center rounded-xl border lg:hidden"
+              className="inline-flex cursor-pointer items-center justify-center rounded-xl border bg-white transition-colors hover:bg-[var(--color-surface-alt)] lg:hidden"
               style={{
                 width: 40,
                 height: 40,
                 borderColor: "var(--color-border)",
-                background: "#fff",
                 color: "var(--color-dark)",
               }}
             >

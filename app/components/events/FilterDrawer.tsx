@@ -241,7 +241,7 @@ export function FilterDrawer({
         >
           <button
             onClick={onReset}
-            className="text-[13.5px] font-semibold underline"
+            className="text-[13.5px] font-semibold underline transition-opacity hover:opacity-70"
             style={{ color: "var(--color-dark)" }}
           >
             Reset

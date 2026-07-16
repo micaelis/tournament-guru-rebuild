@@ -1360,7 +1360,7 @@ function ReviewsSection({
                   hideAttendee={!showAttendee}
                 />
                 <select
-                  className="tg-select rounded-full bg-white"
+                  className="tg-select tg-hover rounded-full bg-white"
                   value={sort}
                   onChange={(e) =>
                     setSort(e.currentTarget.value as "recent" | "top")
