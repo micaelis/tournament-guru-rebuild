@@ -541,6 +541,7 @@ export function EventForm({ defaults }: { defaults: EventFormDefaults }) {
             <Button
               type="submit"
               variant="ghost"
+              formNoValidate
               onClick={() => setIntent("draft")}
             >
               Save as draft
@@ -550,6 +551,7 @@ export function EventForm({ defaults }: { defaults: EventFormDefaults }) {
             <Button
               type="submit"
               variant="ghost"
+              formNoValidate
               onClick={() => setIntent("draft")}
             >
               Save as draft

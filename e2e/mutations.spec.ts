@@ -7,6 +7,7 @@ import {
   deleteUser,
   seedTournament,
   deleteTournament,
+  deleteEvent,
   deleteBannedWord,
   type SeededUser,
 } from "./helpers/db";
@@ -151,6 +152,33 @@ test.describe("Event director — create event", () => {
         page.getByRole("heading", { name: "Add Event" }),
       ).toBeVisible();
     } finally {
+      if (tournamentId) await deleteTournament(tournamentId);
+      if (ed) await deleteUser(ed.id);
+    }
+  });
+
+  test("submits the Add Event form as a draft", async ({ page }) => {
+    let ed: SeededUser | undefined;
+    let tournamentId: string | undefined;
+    let createdEventId: string | undefined;
+    try {
+      ed = await createEventDirector({ completeOnboarding: true });
+      tournamentId = await seedTournament(ed.id);
+      await signIn(page, ed.email, ed.password);
+      await page.goto(`/dashboard/events/new?tournament=${tournamentId}`);
+
+      const title = `E2E Draft Event ${Date.now()}`;
+      await page.locator('input[name="title"]').fill(title);
+      // A draft only requires a title; saveEvent redirects to the event page.
+      await page.getByRole("button", { name: "Save as draft" }).click();
+
+      await expect(page).toHaveURL(
+        /\/dashboard\/events\/[0-9a-f-]{36}/,
+      );
+      createdEventId = page.url().split("/").pop();
+      await expect(page.getByText(title)).toBeVisible();
+    } finally {
+      if (createdEventId) await deleteEvent(createdEventId);
       if (tournamentId) await deleteTournament(tournamentId);
       if (ed) await deleteUser(ed.id);
     }
