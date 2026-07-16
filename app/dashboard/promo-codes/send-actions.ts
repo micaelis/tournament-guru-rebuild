@@ -110,13 +110,16 @@ export async function sendPromoEmails(input: {
       .in("id", toVoid);
   }
 
+  // Status starts at 'staged' via the column default; the trigger
+  // path that sends emails downstream flips it to 'sent' after
+  // dispatch. Skipping the explicit 'sent' here means the DB default
+  // is the single source of truth for the initial state.
   const inserts = chosen.map((email) => ({
     submitted_csv_id: csv.id,
     event_id: csv.event_id,
     email,
     pretty_code: generatePrettyCode(),
     url_token: generatePromoToken(),
-    status: "sent" as const,
   }));
 
   if (inserts.length === 0) {
