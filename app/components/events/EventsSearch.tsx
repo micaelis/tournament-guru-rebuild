@@ -29,7 +29,7 @@ const SearchMap = dynamic(() => import("./SearchMap"), {
   ssr: false,
   loading: () => (
     <div className="flex h-full w-full items-center justify-center" style={{ background: "#e8eef3" }}>
-      <span className="text-[13px] font-semibold" style={{ color: "var(--color-text-muted)" }}>
+      <span className="text-[13px] font-semibold" style={{ color: "var(--color-text-secondary)" }}>
         Loading map…
       </span>
     </div>
@@ -518,7 +518,7 @@ function StatBadge({
         </b>
         <span
           className="text-[10.5px] font-semibold uppercase"
-          style={{ color: "var(--color-text-muted)", letterSpacing: ".06em" }}
+          style={{ color: "var(--color-text-secondary)", letterSpacing: ".06em" }}
         >
           {label}
         </span>

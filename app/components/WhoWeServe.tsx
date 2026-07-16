@@ -198,7 +198,7 @@ function AttendeesSide() {
             fontSize: 11.5,
             fontWeight: 800,
             letterSpacing: ".13em",
-            color: "var(--color-accent)",
+            color: "var(--color-accent-dark)",
             background: "#fef2f2",
             border: "1px solid #fecaca",
             padding: "7px 15px",
