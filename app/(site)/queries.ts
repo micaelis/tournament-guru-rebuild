@@ -1,6 +1,6 @@
 import "server-only";
 import { createAnonServerClient } from "@/lib/supabase/server";
-import { deriveEventStatus } from "@/app/dashboard/events/event-shared";
+import { legacyStatus } from "@/lib/events/status";
 import type { EventRow } from "@/app/components/types";
 
 export type PlatformStats = {
@@ -187,7 +187,7 @@ export async function fetchFeaturedEventRows(): Promise<EventRow[]> {
       state: r.location_state_abbr,
       start_date: r.start_date,
       end_date: r.end_date,
-      status: deriveEventStatus(r),
+      status: legacyStatus(r),
       premium: r.is_premium,
       logo: r.logo_url,
       owner_id: r.owner_id,

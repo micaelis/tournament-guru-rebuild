@@ -63,6 +63,78 @@ export type EventSearchRow = {
   event_genders?: { gender: string }[];
 };
 
+/** Event-detail row: the card contract plus the detail-only extras. */
+export type EventDetailRow = EventRow & {
+  event_director: string | null;
+  event_profile_id: string | null;
+  registration_deadline: string | null;
+  website: string | null;
+  this_year_website: string | null;
+  previous_year_website: string | null;
+  registration_link: string | null;
+  qr_code: string | null;
+  photos: string[] | null;
+  updated_at: string | null;
+};
+
+/** Age-group / pricing tier for the event's Key Facts card. */
+export type EventAgeGroupRow = {
+  id: string;
+  age: string | null;
+  gender: string | null;
+  label: string | null;
+  price: number | null;
+  age_index: number | null;
+};
+
+/** Sponsor row for the event page sponsors card. */
+export type SponsorRow = {
+  id: string;
+  name: string | null;
+  logo: string | null;
+  link: string | null;
+};
+
+/** Aggregated public host/director summary (event host card + ED page). */
+export type DirectorProfile = {
+  id: string;
+  display_name: string;
+  org_logo: string | null;
+  org_description: string | null;
+  club_affiliation: string | null;
+  profile_picture: string | null;
+  guru_badge: boolean;
+  completed_events: number;
+  open_events: number;
+  total_events: number;
+  coach_rating: number;
+  coach_reviews: number;
+  attendee_rating: number;
+  attendee_reviews: number;
+};
+
+/** Parent tournament summary (event detail fallback header). */
+export type EventProfileSummary = {
+  id: string;
+  title: string;
+  reviews: number;
+  general_rating: number;
+};
+
+/** Public director review row (ED page reviews tab). */
+export type DirectorReviewRow = {
+  id: string;
+  review_title: string | null;
+  review_body: string | null;
+  overall_rating: number | null;
+  username: string | null;
+  user_role: string | null;
+  guru_review: boolean | null;
+  created_at: string;
+  event_id: string | null;
+  event_title: string | null;
+};
+
 /** Review contract used by ReviewShowcase / ReviewCard (landing testimonials). */
 export type ReviewRow = {
   id: string;
