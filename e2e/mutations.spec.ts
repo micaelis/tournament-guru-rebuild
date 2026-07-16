@@ -183,4 +183,49 @@ test.describe("Event director — create event", () => {
       if (ed) await deleteUser(ed.id);
     }
   });
+
+  test("publishes an event with all required fields", async ({ page }) => {
+    let ed: SeededUser | undefined;
+    let tournamentId: string | undefined;
+    let createdEventId: string | undefined;
+    try {
+      ed = await createEventDirector({ completeOnboarding: true });
+      tournamentId = await seedTournament(ed.id);
+      await signIn(page, ed.email, ed.password);
+      await page.goto(`/dashboard/events/new?tournament=${tournamentId}`);
+
+      const title = `E2E Published Event ${Date.now()}`;
+      await page.locator('input[name="title"]').fill(title);
+      await page
+        .locator('input[name="logo_url"]')
+        .fill("https://example.com/logo.png");
+      await page
+        .locator('input[name="website_url"]')
+        .fill("https://example.com");
+      await page.locator('input[name="host_club"]').fill("Gateway SC");
+      await page.locator('input[name="start_date"]').fill("2026-08-01");
+      await page.locator('input[name="end_date"]').fill("2026-08-02");
+      await page
+        .locator('textarea[name="description"]')
+        .fill("A premier youth tournament with strong competition.");
+      await page
+        .locator('input[name="location_formatted"]')
+        .fill("St. Louis, MO");
+      await page.locator('select[name="region"]').selectOption("I");
+      await page.locator('select[name="season_id"]').selectOption({ index: 1 });
+      await page.getByRole("button", { name: "Upper", exact: true }).click();
+      await page.getByRole("button", { name: "Grass", exact: true }).click();
+
+      await page.getByRole("button", { name: "Publish", exact: true }).click();
+
+      // Passing publish validation redirects to the event page.
+      await expect(page).toHaveURL(/\/dashboard\/events\/[0-9a-f-]{36}/);
+      createdEventId = page.url().split("/").pop();
+      await expect(page.getByText(title)).toBeVisible();
+    } finally {
+      if (createdEventId) await deleteEvent(createdEventId);
+      if (tournamentId) await deleteTournament(tournamentId);
+      if (ed) await deleteUser(ed.id);
+    }
+  });
 });
