@@ -55,3 +55,4 @@ supabase/.branches/
 /skills-lock.json
 .claude/skills/
 .claude/settings.local.json
+scripts/seed-demo.js
