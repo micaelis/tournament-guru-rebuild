@@ -2,9 +2,29 @@ import type { Metadata } from "next";
 import { EventsSearch } from "@/app/components/events/EventsSearch";
 import { parseSearchParams } from "@/app/components/events/taxonomy";
 import { searchEvents, getEventFacets } from "@/lib/events/search";
+import { createServerAuthClient } from "@/lib/supabase/server";
+import type { ClaimViewer } from "@/app/components/EventCard";
 import { fetchPlatformStats } from "../queries";
 
 const PAGE_SIZE = 12;
+
+/**
+ * Who's viewing, so unclaimed search cards render the right Claim CTA:
+ * anon → ED-signup, signed-in ED → claim modal, everyone else → none.
+ */
+async function resolveClaimViewer(): Promise<ClaimViewer> {
+  const supabase = await createServerAuthClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return "anon";
+  const { data } = await supabase
+    .from("profiles")
+    .select("user_type")
+    .eq("id", user.id)
+    .maybeSingle<{ user_type: string }>();
+  return data?.user_type === "event_director" ? "ed" : "other";
+}
 
 export const metadata: Metadata = {
   title: "Find Events · Tournament Guru",
@@ -20,10 +40,11 @@ export default async function EventsPage({
   const sp = await searchParams;
   const { filters, sort, page } = parseSearchParams(sp);
 
-  const [search, facets, stats] = await Promise.all([
+  const [search, facets, stats, claimViewer] = await Promise.all([
     searchEvents(filters, { page, pageSize: PAGE_SIZE, sort }),
     getEventFacets(),
     fetchPlatformStats(),
+    resolveClaimViewer(),
   ]);
 
   return (
@@ -40,6 +61,7 @@ export default async function EventsPage({
         reviews: stats.reviews,
         tournaments: stats.tournaments,
       }}
+      claimViewer={claimViewer}
     />
   );
 }

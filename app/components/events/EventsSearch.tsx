@@ -9,7 +9,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import dynamic from "next/dynamic";
-import { EventCard } from "@/app/components/EventCard";
+import { EventCard, type ClaimViewer } from "@/app/components/EventCard";
 import { SponsoredBanner } from "@/app/components/SponsoredBanner";
 import { HighlightSwipe } from "@/app/components/HighlightSwipe";
 import type { EventRow, EventFacets, EventSort } from "@/app/components/types";
@@ -47,6 +47,8 @@ type Props = {
   /** Same 3 metrics the homepage HeroSearch shows, so the trust row is
    *  consistent across the two entry points to the app. */
   stats: { events: number; reviews: number; tournaments: number };
+  /** Viewer context for the per-card Claim CTA (computed server-side). */
+  claimViewer: ClaimViewer;
 };
 
 export function EventsSearch({
@@ -58,6 +60,7 @@ export function EventsSearch({
   initialPage,
   pageSize,
   stats,
+  claimViewer,
 }: Props) {
   const pathname = usePathname();
   const options = useMemo(() => buildFilterOptions(facets), [facets]);
@@ -192,7 +195,7 @@ export function EventsSearch({
       }
       style={activeId === event.id ? { "--tw-ring-color": "var(--color-accent)" } as React.CSSProperties : undefined}
     >
-      <EventCard event={event} />
+      <EventCard event={event} claimViewer={claimViewer} />
     </div>
   );
 

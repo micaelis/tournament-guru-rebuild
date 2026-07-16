@@ -1,8 +1,16 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Avatar } from "./Avatar";
+import { ClaimEventCta } from "@/app/(site)/events/[id]/ClaimEventCta";
 import type { EventRow } from "@/app/components/types";
 import { safeImageSrc } from "@/lib/url";
+
+/**
+ * Who is viewing a claimable card, so the Claim CTA can branch without a
+ * per-card DB round-trip: anon → ED-signup, signed-in ED → claim modal,
+ * signed-in non-ED → no CTA. Computed once on the server page.
+ */
+export type ClaimViewer = "anon" | "ed" | "other";
 
 /* ── date helpers ────────────────────────────────────────────────────── */
 
@@ -316,8 +324,19 @@ function shortExcerpt(desc: string | null, max = 120): string | null {
 
 /* ── card ────────────────────────────────────────────────────────────── */
 
-export function EventCard({ event }: { event: EventRow }) {
+export function EventCard({
+  event,
+  claimViewer,
+}: {
+  event: EventRow;
+  claimViewer?: ClaimViewer;
+}) {
   const isFeatured = !!event.premium;
+  // Unclaimed (admin-created) events carry a Claim CTA per spec §9.7 —
+  // only rendered where a viewer context is supplied (the search page).
+  const claimable =
+    event.owner_id == null &&
+    (claimViewer === "anon" || claimViewer === "ed");
 
   const ages =
     event.event_ages
@@ -638,6 +657,14 @@ export function EventCard({ event }: { event: EventRow }) {
                 <WouldReturnCue pct={event.would_return_pct} />
               )}
             </div>
+            {claimable && (
+              <div className="mt-3">
+                <ClaimEventCta
+                  eventId={event.id}
+                  state={claimViewer === "anon" ? "anon" : "requestable"}
+                />
+              </div>
+            )}
           </div>
 
           {/* Right rail — calendar tile only, anchored to the bottom.
