@@ -4,6 +4,25 @@ import { useFormStatus } from "react-dom";
 import type { InputHTMLAttributes, ReactNode } from "react";
 
 /**
+ * Small red-rule eyebrow sitting above each auth screen's heading
+ * (e.g. "Sign in", "Create account"), mirroring the hero eyebrow on the
+ * right panel so the two columns rhyme.
+ */
+export function AuthEyebrow({ children }: { children: ReactNode }) {
+  return (
+    <div className="mb-4 flex items-center gap-2.5">
+      <span
+        className="h-0.5 w-6 rounded-full"
+        style={{ background: "var(--color-accent)" }}
+      />
+      <span className="font-[var(--font-heading)] text-[11px] font-extrabold uppercase tracking-[0.16em] text-slate-500">
+        {children}
+      </span>
+    </div>
+  );
+}
+
+/**
  * Standard auth/onboarding form field. Wraps a labelled input with an
  * inline error message. Passed via the field name so useActionState's
  * fieldErrors map lights the right control.

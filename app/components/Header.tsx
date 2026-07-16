@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { TGLogo } from "./TGLogo";
 import { HeaderAuth } from "./HeaderAuth";
+import { HeaderPill } from "./HeaderPill";
 import { EventSearchOverlay } from "./EventSearchOverlay";
 
 /* ── Navigation model ──
@@ -56,12 +57,14 @@ function useIsActive() {
 
 export function Header({
   initialEmail = null,
-  hideSignInCta = false,
+  authMode = false,
 }: {
   initialEmail?: string | null;
-  /** On the auth/onboarding flow the header "Sign in" pill is redundant.
-   *  Hides it for signed-out visitors; signed-in users keep avatar + Log out. */
-  hideSignInCta?: boolean;
+  /** Auth-flow variant: the brand logo moves into the page content, so the
+   *  header drops it, left-aligns the nav (active link underlined), and swaps
+   *  the auth CTA for a "Browse events" pill so visitors can jump back to the
+   *  public site. */
+  authMode?: boolean;
 }) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -167,12 +170,18 @@ export function Header({
         }}
       >
         <div
-          className="relative mx-auto flex max-w-[1280px] items-center justify-between gap-6"
-          style={{ padding: "12px 24px" }}
+          className={`relative flex items-center justify-between gap-6 ${
+            authMode ? "w-full" : "mx-auto max-w-[1280px]"
+          }`}
+          style={{ padding: authMode ? "0 28px" : "12px 24px", height: authMode ? 65 : undefined }}
         >
-          <TGLogo href="/" size="md" />
+          {!authMode && <TGLogo href="/" size="md" />}
 
-          <nav className="absolute left-1/2 hidden w-max -translate-x-1/2 items-center gap-2 whitespace-nowrap lg:flex">
+          <nav
+            className={`hidden w-max items-center gap-2 whitespace-nowrap lg:flex ${
+              authMode ? "" : "absolute left-1/2 -translate-x-1/2"
+            }`}
+          >
             {NAV.map((item) => {
               // Featured Events lights up whenever that section is in view
               // on the landing page, in addition to the normal URL match.
@@ -184,6 +193,7 @@ export function Header({
                   key={item.label}
                   item={item}
                   active={active}
+                  authMode={authMode}
                   open={openMenu === item.label}
                   onOpen={() => setOpenMenu(item.label)}
                   onClose={() => setOpenMenu((v) => (v === item.label ? null : v))}
@@ -193,7 +203,12 @@ export function Header({
                   onChildAction={onChildAction}
                 />
               ) : (
-                <TopLink key={item.label} href={item.href! as Route} active={active}>
+                <TopLink
+                  key={item.label}
+                  href={item.href! as Route}
+                  active={active}
+                  authMode={authMode}
+                >
                   {item.label}
                 </TopLink>
               );
@@ -201,7 +216,11 @@ export function Header({
           </nav>
 
           <div className="flex items-center gap-2.5">
-            <HeaderAuth initialEmail={initialEmail} hideSignInCta={hideSignInCta} />
+            {authMode ? (
+              <HeaderPill href="/events">Browse events</HeaderPill>
+            ) : (
+              <HeaderAuth initialEmail={initialEmail} />
+            )}
             <button
               type="button"
               onClick={() => setMenuOpen((v) => !v)}
@@ -301,21 +320,25 @@ export function Header({
 function TopLink({
   href,
   active,
+  authMode = false,
   children,
 }: {
   href: string;
   active: boolean;
+  authMode?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <Link
       href={href as Route}
-      className="tg-nav-link rounded-lg"
+      className={`tg-nav-link rounded-lg ${
+        authMode && active ? "tg-nav-link--active" : ""
+      }`}
       style={{
         fontSize: 14.5,
-        fontWeight: 500,
+        fontWeight: authMode ? 600 : 500,
         textDecoration: "none",
-        padding: "8px 11px",
+        padding: authMode ? "9px 15px" : "8px 11px",
         color: active ? "var(--color-accent)" : "var(--color-text-secondary)",
       }}
     >
@@ -331,6 +354,7 @@ function TopLink({
 function DesktopDropdown({
   item,
   active,
+  authMode = false,
   open,
   onOpen,
   onClose,
@@ -339,6 +363,7 @@ function DesktopDropdown({
 }: {
   item: NavItem;
   active: boolean;
+  authMode?: boolean;
   open: boolean;
   onOpen: () => void;
   onClose: () => void;
@@ -410,16 +435,18 @@ function DesktopDropdown({
     </>
   );
 
-  const triggerCls = "tg-nav-link";
+  const triggerCls = `tg-nav-link ${
+    authMode && active ? "tg-nav-link--active" : ""
+  }`;
 
   const triggerStyle: React.CSSProperties = {
     display: "inline-flex",
     alignItems: "center",
     gap: 4,
     fontSize: 14.5,
-    fontWeight: 500,
+    fontWeight: authMode ? 600 : 500,
     textDecoration: "none",
-    padding: "8px 11px",
+    padding: authMode ? "9px 15px" : "8px 11px",
     borderRadius: 8,
     color: triggerColor,
     background: "transparent",

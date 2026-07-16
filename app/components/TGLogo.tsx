@@ -9,7 +9,7 @@ import type { Route } from "next";
  * `variant="light"` renders a reversed (white) logo for dark backgrounds
  * such as the footer.
  */
-const HEIGHTS = { sm: 34, md: 48, lg: 50 } as const;
+const HEIGHTS = { sm: 34, md: 48, lg: 50, xl: 60 } as const;
 
 export function TGLogo({
   href = "/",
@@ -17,7 +17,7 @@ export function TGLogo({
   variant = "dark",
 }: {
   href?: string | null;
-  size?: "sm" | "md" | "lg";
+  size?: "sm" | "md" | "lg" | "xl";
   variant?: "dark" | "light";
 }) {
   const height = HEIGHTS[size];

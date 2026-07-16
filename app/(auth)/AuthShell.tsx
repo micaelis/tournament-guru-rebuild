@@ -1,70 +1,57 @@
 import type { ReactNode } from "react";
 import Image from "next/image";
 import { Header } from "@/app/components/Header";
-import { createServerAuthClient } from "@/lib/supabase/server";
+import { TGLogo } from "@/app/components/TGLogo";
+import { HighlightSwipe } from "@/app/components/HighlightSwipe";
 import { fetchPlatformStats } from "@/app/(site)/queries";
 
 /**
- * Shared two-column shell for every auth + onboarding surface (login,
- * signup, reset, reset/update, onboarding, and the promo placeholder).
- * Form/inputs live on the left over the same aurora backdrop the landing
- * page uses; a sticky, full-height photo with a glass welcome panel sits
- * on the right. The site Header rides on top with its "Sign in" CTA
- * suppressed (redundant while inside the auth flow) — a signed-in user
- * still gets the avatar + Log out control, which doubles as the
- * onboarding logout affordance.
+ * Shared shell for every auth + onboarding surface (login, signup, reset,
+ * reset/update, onboarding, and the promo placeholder).
  *
- * Presentation only: it renders whatever form the page hands it as
- * `children` and never touches auth logic. The `variant` prop only swaps
- * the right-panel copy.
+ * Layout: the site Header rides on top in `authMode` (logo dropped, nav
+ * left-aligned, "Browse events" CTA). The brand logo lives at the top of the
+ * left content column, above the form (`children`). A dusk-lit stadium photo
+ * is anchored to the right edge of the viewport with an even 20px margin; the
+ * welcome copy floats on it as an editorial hero — frosted badge, headline
+ * with the brand highlight-swipe, tagline, audience chips, and a real-stats
+ * metric bar.
+ *
+ * Presentation only: it renders whatever form the page hands it as `children`
+ * and never touches auth logic. `variant` only swaps the right-panel copy.
  */
 type Variant = "default" | "ed-claim";
 
 const PANELS: Record<
   Variant,
-  { eyebrow: string; title: string; body: ReactNode; chips: string[] }
+  { badge: string; headline: ReactNode; lead: ReactNode; chips: string[] }
 > = {
   default: {
-    eyebrow: "The most comprehensive youth sports tournament search engine",
-    title: "Welcome to Tournament Guru",
-    body: (
+    badge: "The most comprehensive youth sports tournament search engine",
+    headline: (
+      <>
+        Welcome to
+        <br />
+        <HighlightSwipe color="rgba(220,38,38,.5)">
+          Tournament Guru
+        </HighlightSwipe>
+      </>
+    ),
+    lead: (
       <>
         Your one-stop shop to find the right event for{" "}
-        <b style={{ color: "#fff", fontWeight: 800 }}>YOUR</b> team — chosen
-        with reviews from people who actually went.
+        <b style={{ color: "#fff", fontWeight: 800 }}>YOUR</b> team — chosen with
+        reviews from people who actually went.
       </>
     ),
     chips: ["Coaches", "Team Managers", "Parents", "Event Directors"],
   },
   "ed-claim": {
-    eyebrow: "For Event Directors",
-    title: "Become Part of the Largest and Growing Soccer Community",
-    body: "Tournament Guru lists all publicly available tournament listings from around the United States. Claiming your event allows Event Directors to maximize their visibility by customizing the information available to the thousands of tournament seekers.",
+    badge: "For Event Directors",
+    headline: <>Become Part of the Largest &amp; Growing Soccer Community</>,
+    lead: "Tournament Guru lists all publicly available tournament listings from around the United States. Claiming your event allows Event Directors to maximize their visibility by customizing the information available to the thousands of tournament seekers.",
     chips: ["Coaches", "Team Managers", "Parents", "Event Directors"],
   },
-};
-
-/* Same aurora the landing page paints behind its sections (site/page.tsx):
-   red / blue / gold / violet radial washes, viewport-fixed so the auth
-   form scrolls over a steady backdrop. */
-const AURORA: React.CSSProperties = {
-  backgroundColor: "#eef2f9",
-  backgroundImage:
-    "radial-gradient(1040px 640px at -4% -14%, rgba(220,38,38,.13), transparent 56%)," +
-    "radial-gradient(980px 600px at 104% -8%, rgba(0,77,255,.10), transparent 56%)," +
-    "radial-gradient(820px 820px at 100% 50%, rgba(245,158,11,.07), transparent 60%)," +
-    "radial-gradient(1000px 900px at 40% 126%, rgba(124,58,237,.07), transparent 60%)",
-  backgroundAttachment: "fixed",
-  backgroundRepeat: "no-repeat",
-};
-
-type Metric = {
-  key: string;
-  value: number;
-  label: string;
-  icon: ReactNode;
-  color: string;
-  filled?: boolean;
 };
 
 const ICON_STAR = (
@@ -80,6 +67,15 @@ const ICON_TROPHY = (
   <path d="M6 9H4.5a2.5 2.5 0 010-5H6M18 9h1.5a2.5 2.5 0 000-5H18M6 4h12v5a6 6 0 01-12 0V4zM12 15v4M8 21h8" />
 );
 
+type Metric = {
+  key: string;
+  value: number;
+  label: string;
+  icon: ReactNode;
+  color: string;
+  filled?: boolean;
+};
+
 export default async function AuthShell({
   children,
   variant = "default",
@@ -89,15 +85,9 @@ export default async function AuthShell({
 }) {
   const panel = PANELS[variant];
 
-  // Both reads are cheap and best-effort; a signed-out visitor simply
-  // gets a null email (header hides its control) and the stat rail hides
-  // any zero counters, so neither call can break the auth screens.
-  const supabase = await createServerAuthClient();
-  const [{ data: userData }, stats] = await Promise.all([
-    supabase.auth.getUser(),
-    fetchPlatformStats(),
-  ]);
-
+  // Cheap counters, best-effort: any zero counter is hidden and a failed read
+  // returns zeros, so the stat bar can never break the auth screens.
+  const stats = await fetchPlatformStats();
   const metrics: Metric[] = (
     [
       { key: "reviews", value: stats.reviews, label: "verified reviews", icon: ICON_STAR, color: "var(--color-gold-bright)", filled: true },
@@ -107,185 +97,248 @@ export default async function AuthShell({
   ).filter((m) => m.value > 0);
 
   return (
-    <div className="flex min-h-dvh flex-col" style={AURORA}>
-      <Header initialEmail={userData.user?.email ?? null} hideSignInCta />
+    <div
+      className="relative flex min-h-dvh flex-col"
+      style={{
+        // Same aurora the landing page paints behind its sections.
+        backgroundColor: "#eef2f9",
+        backgroundImage:
+          "radial-gradient(1040px 640px at -4% -14%, rgba(220,38,38,.13), transparent 56%)," +
+          "radial-gradient(980px 600px at 104% -8%, rgba(0,77,255,.10), transparent 56%)," +
+          "radial-gradient(820px 820px at 100% 50%, rgba(245,158,11,.07), transparent 60%)," +
+          "radial-gradient(1000px 900px at 40% 126%, rgba(124,58,237,.07), transparent 60%)",
+        backgroundAttachment: "fixed",
+        backgroundRepeat: "no-repeat",
+      }}
+    >
+      <Header authMode />
 
-      <div className="mx-auto grid w-full max-w-[1320px] flex-1 grid-cols-1 md:grid-cols-[minmax(380px,560px)_1fr]">
-        {/* ── Left: form column ── */}
-        <div className="flex flex-col px-6 py-10 md:px-14 md:py-14">
-          <div className="flex flex-1 items-center">
-            <div className="w-full">{children}</div>
+      <div className="flex flex-1">
+        {/* ── Left: logo + form ── */}
+        <section className="flex w-full flex-col px-6 pt-6 pb-8 md:w-1/2 md:px-14">
+          <div className="flex flex-1 items-center justify-center">
+            <div className="w-full" style={{ maxWidth: 396 }}>
+              <div style={{ marginBottom: 30 }}>
+                <TGLogo href="/" size="xl" />
+              </div>
+              {children}
+              <p
+                className="mt-3.5 flex items-center gap-2"
+                style={{ fontSize: 12.5, fontWeight: 500, color: "var(--color-text-secondary)" }}
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <rect x="3" y="11" width="18" height="11" rx="2" />
+                  <path d="M7 11V7a5 5 0 0110 0v4" />
+                </svg>
+                Your details stay private — we never share them.
+              </p>
+            </div>
           </div>
-          <p className="mt-10 text-xs text-slate-400">
+          <p className="mt-6 text-xs" style={{ color: "var(--color-text-muted)" }}>
             © {new Date().getFullYear()} Tournament Guru
           </p>
-        </div>
+        </section>
 
-        {/* ── Right: sticky photo + glass welcome panel ── */}
-        <aside className="relative hidden md:block">
-          <div className="sticky top-[72px] h-[calc(100dvh-72px)] overflow-hidden p-4">
-            <div className="relative h-full w-full overflow-hidden rounded-3xl">
-              <Image
-                src="/hero3.webp"
-                alt="Youth soccer on a sunlit pitch"
-                fill
-                priority
-                sizes="(max-width: 768px) 0px, 50vw"
-                className="object-cover"
-                style={{ objectPosition: "50% 42%" }}
-              />
-              {/* Calm, cool slate overlay — no warm glow, so the welcome
-                 copy stays legible without competing with the aurora. */}
+        {/* ── Right: dusk photo anchored to the edge + floating hero ── */}
+        <aside
+          className="hidden md:block"
+          style={{
+            position: "fixed",
+            top: 85,
+            right: 20,
+            bottom: 20,
+            left: "50%",
+            borderRadius: 24,
+            overflow: "hidden",
+          }}
+        >
+          <Image
+            src="/fancy-crave-qowyMze7jqg-unsplash.webp"
+            alt="Youth soccer tournament under stadium lights at dusk"
+            fill
+            priority
+            sizes="50vw"
+            style={{ objectFit: "cover", objectPosition: "50% 46%" }}
+          />
+          <div
+            aria-hidden="true"
+            style={{
+              position: "absolute",
+              inset: 0,
+              background:
+                "linear-gradient(180deg, rgba(15,23,42,.10) 0%, rgba(15,23,42,.26) 34%, rgba(10,14,22,.66) 68%, rgba(7,10,17,.9) 100%)," +
+                "radial-gradient(120% 78% at 28% 116%, rgba(6,9,16,.66), transparent 62%)",
+            }}
+          />
+
+          <div
+            className="absolute inset-0 flex flex-col justify-end"
+            style={{ padding: 44 }}
+          >
+            <div style={{ maxWidth: 560, width: "100%" }}>
+              {/* Badge chip — legible over any part of the photo */}
               <div
-                aria-hidden="true"
-                className="absolute inset-0"
+                className="inline-flex items-center"
                 style={{
+                  gap: 9,
+                  marginBottom: 22,
+                  padding: "8px 14px",
+                  borderRadius: 12,
                   background:
-                    "linear-gradient(180deg, rgba(15,23,42,.40) 0%, rgba(15,23,42,.60) 52%, rgba(15,23,42,.86) 100%)," +
-                    "linear-gradient(105deg, rgba(15,23,42,.55) 0%, rgba(15,23,42,.10) 46%, rgba(15,23,42,0) 72%)",
+                    "linear-gradient(180deg, rgba(15,23,42,.5), rgba(15,23,42,.64))",
+                  border: "1px solid rgba(255,255,255,.22)",
+                  backdropFilter: "blur(10px)",
+                  WebkitBackdropFilter: "blur(10px)",
+                  boxShadow: "0 8px 22px -10px rgba(0,0,0,.6)",
                 }}
-              />
-
-              <div className="absolute inset-0 flex flex-col justify-end p-8 lg:p-11">
-                <div
-                  className="max-w-[460px] rounded-[22px] p-7 lg:p-8"
+              >
+                <span
                   style={{
-                    background:
-                      "linear-gradient(180deg, rgba(255,255,255,.12) 0%, rgba(255,255,255,.05) 100%)",
-                    border: "1px solid rgba(255,255,255,.18)",
-                    backdropFilter: "blur(18px) saturate(115%)",
-                    WebkitBackdropFilter: "blur(18px) saturate(115%)",
-                    boxShadow:
-                      "0 30px 60px -30px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.16)",
+                    flex: "none",
+                    width: 7,
+                    height: 7,
+                    borderRadius: "50%",
+                    background: "var(--color-accent)",
+                    boxShadow: "0 0 9px rgba(220,38,38,.9)",
+                  }}
+                />
+                <span
+                  className="font-heading uppercase"
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 800,
+                    letterSpacing: ".12em",
+                    lineHeight: 1.4,
+                    color: "#fff",
                   }}
                 >
-                  {/* Eyebrow — the landing's "most comprehensive…" badge language */}
+                  {panel.badge}
+                </span>
+              </div>
+
+              <h2
+                className="font-heading"
+                style={{
+                  fontWeight: 800,
+                  fontSize: 50,
+                  lineHeight: 1.0,
+                  letterSpacing: "-.035em",
+                  margin: 0,
+                  color: "#fff",
+                  textShadow: "0 2px 20px rgba(0,0,0,.35)",
+                }}
+              >
+                {panel.headline}
+              </h2>
+
+              <p
+                style={{
+                  margin: "22px 0 0",
+                  fontSize: 16,
+                  lineHeight: 1.55,
+                  color: "rgba(255,255,255,.9)",
+                  maxWidth: 490,
+                  fontWeight: 500,
+                  textShadow: "0 1px 12px rgba(0,0,0,.4)",
+                }}
+              >
+                {panel.lead}
+              </p>
+
+              <div className="flex flex-wrap" style={{ gap: 8, marginTop: 24 }}>
+                {panel.chips.map((chip) => (
                   <span
-                    className="font-heading inline-flex rounded-full uppercase"
+                    key={chip}
                     style={{
-                      fontSize: 10,
-                      fontWeight: 800,
-                      letterSpacing: ".12em",
-                      lineHeight: 1.25,
-                      color: "rgba(255,255,255,.95)",
-                      background:
-                        "linear-gradient(180deg, rgba(255,255,255,.15) 0%, rgba(255,255,255,.06) 100%)",
-                      border: "1px solid rgba(255,255,255,.24)",
-                      padding: "6px 12px",
+                      fontSize: 11.5,
+                      fontWeight: 600,
+                      color: "#fff",
+                      borderRadius: 999,
+                      padding: "5px 12px",
+                      background: "rgba(255,255,255,.1)",
+                      border: "1px solid rgba(255,255,255,.26)",
+                      backdropFilter: "blur(6px)",
+                      WebkitBackdropFilter: "blur(6px)",
                     }}
                   >
-                    {panel.eyebrow}
+                    {chip}
                   </span>
+                ))}
+              </div>
 
-                  <h2
-                    className="font-heading mt-4 text-white"
-                    style={{
-                      fontSize: variant === "ed-claim" ? 28 : 34,
-                      fontWeight: 800,
-                      lineHeight: 1.06,
-                      letterSpacing: "-0.02em",
-                      textWrap: "balance",
-                    }}
-                  >
-                    {panel.title}
-                  </h2>
-
-                  <p
-                    className="mt-4"
-                    style={{
-                      fontSize: 14.5,
-                      lineHeight: 1.6,
-                      color: "rgba(255,255,255,.82)",
-                    }}
-                  >
-                    {panel.body}
-                  </p>
-
-                  {/* Audience chips — frosted, matching the hero's glass chip language */}
-                  <div className="mt-6 flex flex-wrap gap-2">
-                    {panel.chips.map((chip) => (
-                      <span
-                        key={chip}
-                        style={{
-                          fontSize: 12,
-                          fontWeight: 600,
-                          color: "#fff",
-                          background:
-                            "linear-gradient(180deg, rgba(255,255,255,.15) 0%, rgba(255,255,255,.05) 100%)",
-                          border: "1px solid rgba(255,255,255,.22)",
-                          borderRadius: 999,
-                          padding: "6px 13px",
-                        }}
-                      >
-                        {chip}
-                      </span>
-                    ))}
-                  </div>
-
-                  {/* Metric rail — real platform counters, icon + tone per
-                     stat, hairline dividers: the landing's trust-bar language. */}
-                  {metrics.length > 0 && (
+              {/* Metric bar — real counters, dark glass so the numbers pop */}
+              {metrics.length > 0 && (
+                <div
+                  className="flex overflow-hidden"
+                  style={{
+                    width: "100%",
+                    maxWidth: 520,
+                    borderRadius: 18,
+                    marginTop: 26,
+                    background:
+                      "linear-gradient(180deg, rgba(15,23,42,.34), rgba(15,23,42,.46))",
+                    border: "1px solid rgba(255,255,255,.2)",
+                    backdropFilter: "blur(14px) saturate(120%)",
+                    WebkitBackdropFilter: "blur(14px) saturate(120%)",
+                    boxShadow:
+                      "inset 0 1px 0 rgba(255,255,255,.18), 0 18px 40px -18px rgba(0,0,0,.75)",
+                  }}
+                >
+                  {metrics.map((m, i) => (
                     <div
-                      className="mt-7 flex overflow-hidden rounded-2xl"
+                      key={m.key}
+                      className="flex flex-1 flex-col items-center justify-center text-center"
                       style={{
-                        background:
-                          "linear-gradient(180deg, rgba(255,255,255,.10) 0%, rgba(255,255,255,.04) 100%)",
-                        border: "1px solid rgba(255,255,255,.16)",
-                        boxShadow: "inset 0 1px 0 rgba(255,255,255,.14)",
+                        padding: "19px 10px",
+                        borderLeft: i > 0 ? "1px solid rgba(255,255,255,.16)" : undefined,
                       }}
                     >
-                      {metrics.map((m, i) => (
-                        <div
-                          key={m.key}
-                          className="flex flex-1 flex-col items-center justify-center text-center"
-                          style={{
-                            padding: "12px 8px",
-                            borderLeft:
-                              i > 0
-                                ? "1px solid rgba(255,255,255,.14)"
-                                : undefined,
-                          }}
+                      <span className="inline-flex items-center" style={{ gap: 8 }}>
+                        <svg
+                          width="17"
+                          height="17"
+                          viewBox="0 0 24 24"
+                          fill={m.filled ? m.color : "none"}
+                          stroke={m.color}
+                          strokeWidth="2.2"
+                          strokeLinejoin="round"
+                          strokeLinecap="round"
+                          aria-hidden="true"
                         >
-                          <span className="inline-flex items-center gap-1.5">
-                            <svg
-                              width="14"
-                              height="14"
-                              viewBox="0 0 24 24"
-                              fill={m.filled ? m.color : "none"}
-                              stroke={m.color}
-                              strokeWidth="2.2"
-                              strokeLinejoin="round"
-                              strokeLinecap="round"
-                              aria-hidden="true"
-                            >
-                              {m.icon}
-                            </svg>
-                            <b
-                              className="font-heading text-white"
-                              style={{
-                                fontSize: 18,
-                                fontWeight: 800,
-                                letterSpacing: "-0.02em",
-                              }}
-                            >
-                              {m.value.toLocaleString()}
-                            </b>
-                          </span>
-                          <span
-                            style={{
-                              marginTop: 3,
-                              fontSize: 10.5,
-                              color: "rgba(255,255,255,.68)",
-                            }}
-                          >
-                            {m.label}
-                          </span>
-                        </div>
-                      ))}
+                          {m.icon}
+                        </svg>
+                        <b
+                          className="font-heading text-white"
+                          style={{ fontSize: 31, fontWeight: 800, letterSpacing: "-.025em", lineHeight: 1 }}
+                        >
+                          {m.value.toLocaleString()}
+                        </b>
+                      </span>
+                      <span
+                        style={{
+                          marginTop: 7,
+                          fontSize: 12,
+                          fontWeight: 500,
+                          color: "rgba(255,255,255,.82)",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {m.label}
+                      </span>
                     </div>
-                  )}
+                  ))}
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </aside>

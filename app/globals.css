@@ -123,6 +123,11 @@ body {
   width: 60%;
   left: 20%;
 }
+/* Persistent underline for the active link in the auth-flow header. */
+.tg-nav-link--active::after {
+  width: 60%;
+  left: 20%;
+}
 
 /* ── Form controls (auth + onboarding) ── */
 .tg-control {

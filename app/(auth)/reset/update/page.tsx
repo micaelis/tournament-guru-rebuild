@@ -1,10 +1,12 @@
 import UpdatePasswordForm from "./UpdatePasswordForm";
 import AuthShell from "../../AuthShell";
+import { AuthEyebrow } from "../../parts";
 
 export default function UpdatePasswordPage() {
   return (
     <AuthShell>
       <div className="max-w-md">
+        <AuthEyebrow>New password</AuthEyebrow>
         <h1 className="font-[var(--font-heading)] text-3xl font-extrabold text-slate-900">
           Set a new password
         </h1>

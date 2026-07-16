@@ -1,11 +1,13 @@
 import Link from "next/link";
 import RequestResetForm from "./RequestResetForm";
 import AuthShell from "../AuthShell";
+import { AuthEyebrow } from "../parts";
 
 export default function ResetPage() {
   return (
     <AuthShell>
       <div className="max-w-md">
+        <AuthEyebrow>Reset password</AuthEyebrow>
         <h1 className="font-[var(--font-heading)] text-3xl font-extrabold text-slate-900">
           Reset your password
         </h1>

@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { signOutAction } from "@/app/(auth)/actions";
+import { HeaderPill } from "./HeaderPill";
 
 /**
  * Right-hand header slot that reflects auth state: a "Sign in" pill when logged
@@ -21,13 +21,7 @@ import { signOutAction } from "@/app/(auth)/actions";
  * signup on a different email starts from a truly clean session instead of
  * leaking the previous user's server-side context.
  */
-export function HeaderAuth({
-  initialEmail,
-  hideSignInCta = false,
-}: {
-  initialEmail: string | null;
-  hideSignInCta?: boolean;
-}) {
+export function HeaderAuth({ initialEmail }: { initialEmail: string | null }) {
   const [email, setEmail] = useState<string | null>(initialEmail);
 
   useEffect(() => {
@@ -41,22 +35,7 @@ export function HeaderAuth({
   }, []);
 
   if (!email) {
-    // Inside the auth flow the "Sign in" pill is redundant — hide it there.
-    if (hideSignInCta) return null;
-    return (
-      <Link
-        href="/login"
-        className="rounded-full px-5 py-2 text-[15px] font-semibold text-white transition-transform hover:-translate-y-0.5"
-        style={{
-          background:
-            "linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-dark) 100%)",
-          boxShadow: "0 6px 16px -6px rgba(220,38,38,.5)",
-          textDecoration: "none",
-        }}
-      >
-        Sign in
-      </Link>
-    );
+    return <HeaderPill href="/login">Sign in</HeaderPill>;
   }
 
   const initial = email.charAt(0).toUpperCase();

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import SignupForm from "./SignupForm";
 import AuthShell from "../AuthShell";
+import { AuthEyebrow } from "../parts";
 
 type SearchParams = { [key: string]: string | string[] | undefined };
 
@@ -21,6 +22,7 @@ export default async function SignupPage({
   return (
     <AuthShell variant={variant}>
       <div className="max-w-lg">
+        <AuthEyebrow>Create account</AuthEyebrow>
         <h1 className="font-[var(--font-heading)] text-3xl font-extrabold text-slate-900">
           Create your account
         </h1>

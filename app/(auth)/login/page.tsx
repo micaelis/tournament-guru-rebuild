@@ -1,6 +1,7 @@
 import Link from "next/link";
 import LoginForm from "./LoginForm";
 import AuthShell from "../AuthShell";
+import { AuthEyebrow } from "../parts";
 
 type SearchParams = { [key: string]: string | string[] | undefined };
 
@@ -19,6 +20,7 @@ export default async function LoginPage({
   return (
     <AuthShell>
       <div className="max-w-md">
+        <AuthEyebrow>Sign in</AuthEyebrow>
         <h1 className="font-[var(--font-heading)] text-3xl font-extrabold text-slate-900">
           Welcome back
         </h1>
