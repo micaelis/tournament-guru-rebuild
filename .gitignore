@@ -56,3 +56,4 @@ supabase/.branches/
 .claude/skills/
 .claude/settings.local.json
 scripts/seed-demo.js
+!.env*.example
