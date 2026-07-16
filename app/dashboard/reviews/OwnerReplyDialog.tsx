@@ -4,6 +4,7 @@ import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Alert } from "@/app/(auth)/parts";
 import { Button, useToast } from "@/app/components/ui";
+import { useLiveValidation } from "@/app/components/ui/useLiveValidation";
 import { saveComment, type ReviewState } from "@/lib/reviews/actions";
 import { REVIEW_BODY_MAX } from "@/lib/reviews/shared";
 import type { ReviewCardRow } from "@/lib/reviews/queries";
@@ -26,6 +27,16 @@ export function OwnerReplyDialog({
 }) {
   const [state, formAction] = useActionState(saveComment, INITIAL);
   const [body, setBody] = useState("");
+  // Mirrors saveComment's non-empty + length rules; the banned-word
+  // check stays server-side, so those errors also clear on a valid edit
+  // and the server re-verifies on resubmit.
+  const { shownError: bodyError, revalidate: revalidateBody } =
+    useLiveValidation(state.fieldErrors?.body, (v) => {
+      const trimmed = v.trim();
+      return trimmed && trimmed.length <= REVIEW_BODY_MAX
+        ? null
+        : "Invalid reply.";
+    });
   const router = useRouter();
   const { push } = useToast();
 
@@ -72,14 +83,15 @@ export function OwnerReplyDialog({
           className="mt-4 space-y-3"
         >
           <input type="hidden" name="review_id" value={review.id} />
-          {state.fieldErrors?.body && (
-            <Alert kind="error">{state.fieldErrors.body}</Alert>
-          )}
+          {bodyError && <Alert kind="error">{bodyError}</Alert>}
           <textarea
             name="body"
             rows={4}
             value={body}
-            onChange={(e) => setBody(e.target.value)}
+            onChange={(e) => {
+              setBody(e.target.value);
+              revalidateBody(e.currentTarget);
+            }}
             className="tg-control resize-none"
             placeholder="Thanks for coming out, we appreciate…"
           />

@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
+import { useLiveValidation } from "./useLiveValidation";
 
 const labelStyle: React.CSSProperties = {
   display: "block",
@@ -70,6 +71,7 @@ export function TextInput({
   error,
   hint,
   optional,
+  validate,
   id,
   ...props
 }: React.InputHTMLAttributes<HTMLInputElement> & {
@@ -77,17 +79,25 @@ export function TextInput({
   error?: string;
   hint?: string;
   optional?: boolean;
+  /** Mirror of the server rule; while an error shows, edits that pass it
+   * (or native constraints when omitted) clear the message live. */
+  validate?: (value: string) => string | null;
 }) {
   const generatedId = useId();
   const inputId = id ?? generatedId;
+  const { shownError, revalidate } = useLiveValidation(error, validate);
   return (
-    <Field label={label} htmlFor={inputId} error={error} hint={hint} optional={optional}>
+    <Field label={label} htmlFor={inputId} error={shownError} hint={hint} optional={optional}>
       <input
         id={inputId}
         className="tg-control"
-        aria-invalid={error ? true : undefined}
-        aria-describedby={error ? `${inputId}-error` : undefined}
+        aria-invalid={shownError ? true : undefined}
+        aria-describedby={shownError ? `${inputId}-error` : undefined}
         {...props}
+        onInput={(e) => {
+          props.onInput?.(e);
+          revalidate(e.currentTarget);
+        }}
       />
     </Field>
   );
@@ -97,26 +107,33 @@ export function PasswordInput({
   label,
   error,
   hint,
+  validate,
   id,
   ...props
 }: React.InputHTMLAttributes<HTMLInputElement> & {
   label: string;
   error?: string;
   hint?: string;
+  validate?: (value: string) => string | null;
 }) {
   const generatedId = useId();
   const inputId = id ?? generatedId;
   const [show, setShow] = useState(false);
+  const { shownError, revalidate } = useLiveValidation(error, validate);
   return (
-    <Field label={label} htmlFor={inputId} error={error} hint={hint}>
+    <Field label={label} htmlFor={inputId} error={shownError} hint={hint}>
       <div style={{ position: "relative" }}>
         <input
           id={inputId}
           type={show ? "text" : "password"}
           className="tg-control"
-          aria-invalid={error ? true : undefined}
+          aria-invalid={shownError ? true : undefined}
           style={{ paddingRight: 46 }}
           {...props}
+          onInput={(e) => {
+            props.onInput?.(e);
+            revalidate(e.currentTarget);
+          }}
         />
         <button
           type="button"
@@ -151,6 +168,7 @@ export function Select({
   label,
   error,
   optional,
+  validate,
   id,
   placeholder,
   children,
@@ -160,17 +178,23 @@ export function Select({
   error?: string;
   optional?: boolean;
   placeholder?: string;
+  validate?: (value: string) => string | null;
 }) {
   const generatedId = useId();
   const selectId = id ?? generatedId;
+  const { shownError, revalidate } = useLiveValidation(error, validate);
   return (
-    <Field label={label} htmlFor={selectId} error={error} optional={optional}>
+    <Field label={label} htmlFor={selectId} error={shownError} optional={optional}>
       <select
         id={selectId}
         className="tg-control tg-select"
-        aria-invalid={error ? true : undefined}
+        aria-invalid={shownError ? true : undefined}
         defaultValue={props.defaultValue ?? ""}
         {...props}
+        onInput={(e) => {
+          props.onInput?.(e);
+          revalidate(e.currentTarget);
+        }}
       >
         {placeholder && (
           <option value="" disabled>

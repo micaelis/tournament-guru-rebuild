@@ -9,6 +9,7 @@ import {
   Button,
   useToast,
 } from "@/app/components/ui";
+import { useLiveValidation } from "@/app/components/ui/useLiveValidation";
 import { submitCsv, type CsvSubmitState } from "./actions";
 import { emailsToCsv, MAX_CSV_ROWS, parseCsvEmails } from "@/lib/promo/csv";
 
@@ -33,6 +34,20 @@ export function SubmitCsvForm({ events }: { events: EventOption[] }) {
   const [showConfirm, setShowConfirm] = useState(false);
   const router = useRouter();
   const { push } = useToast();
+  // Mirrors submitCsv's parse gate: at least one valid email, capped at
+  // MAX_CSV_ROWS. The file input's value is a fake path, so revalidate
+  // gets a synthetic control carrying the CSV text instead.
+  const { shownError: csvError, revalidate: revalidateCsv } =
+    useLiveValidation(state.fieldErrors?.csv_text, (text) => {
+      const parsed = parseCsvEmails(text);
+      return parsed.rows.length > 0 && parsed.rows.length <= MAX_CSV_ROWS
+        ? null
+        : "Invalid CSV.";
+    });
+  const { shownError: eventError, revalidate: revalidateEvent } =
+    useLiveValidation(state.fieldErrors?.event_id, (v) =>
+      v ? null : "Pick a premium event.",
+    );
 
   const readFile = async (file: File) => {
     setFileName(file.name);
@@ -41,6 +56,7 @@ export function SubmitCsvForm({ events }: { events: EventOption[] }) {
     const parsed = parseCsvEmails(text);
     setPreviewCount(parsed.rows.length);
     setPreviewErrors(parsed.errors);
+    revalidateCsv({ value: text, checkValidity: () => true });
   };
 
   const downloadDemo = () => {
@@ -124,10 +140,8 @@ export function SubmitCsvForm({ events }: { events: EventOption[] }) {
               {previewErrors.length > 0 && ` · ${previewErrors.length} row(s) skipped`}
             </p>
           )}
-          {state.fieldErrors?.csv_text && (
-            <p className="mt-1 text-xs font-medium text-red-600">
-              {state.fieldErrors.csv_text}
-            </p>
+          {csvError && (
+            <p className="mt-1 text-xs font-medium text-red-600">{csvError}</p>
           )}
         </label>
 
@@ -137,7 +151,10 @@ export function SubmitCsvForm({ events }: { events: EventOption[] }) {
           </span>
           <select
             value={eventId}
-            onChange={(e) => setEventId(e.target.value)}
+            onChange={(e) => {
+              setEventId(e.target.value);
+              revalidateEvent(e.currentTarget);
+            }}
             className="tg-control tg-select"
           >
             {events.map((ev) => (
@@ -146,9 +163,9 @@ export function SubmitCsvForm({ events }: { events: EventOption[] }) {
               </option>
             ))}
           </select>
-          {state.fieldErrors?.event_id && (
+          {eventError && (
             <p className="mt-1 text-xs font-medium text-red-600">
-              {state.fieldErrors.event_id}
+              {eventError}
             </p>
           )}
         </label>

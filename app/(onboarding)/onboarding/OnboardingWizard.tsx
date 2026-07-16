@@ -2,6 +2,9 @@
 
 import { useActionState } from "react";
 import { Alert, Field, SubmitButton } from "../../(auth)/parts";
+import { useLiveValidation } from "@/app/components/ui/useLiveValidation";
+import { useSubmittedValues } from "@/app/components/ui/useSubmittedValues";
+import { isAdultDob } from "@/lib/validation";
 import {
   saveStep1,
   saveStep2,
@@ -124,24 +127,37 @@ function Step1Form({
   profile: Profile;
 }) {
   const [state, formAction] = useActionState(saveStep1, INITIAL);
+  const { values, capture } = useSubmittedValues();
   const roles = userType === "event_director" ? ED_ROLES : ATTENDEE_ROLES;
+  const { shownError: roleError, revalidate: revalidateRole } =
+    useLiveValidation(state.fieldErrors?.role_title, (value) =>
+      roles.some((r) => r.value === value) ? null : "Pick a role to continue.",
+    );
   const orgLabel = userType === "event_director" ? "Organization title" : "Club affiliation";
   return (
-    <form action={formAction} className="space-y-5">
+    <form
+      action={(fd) => {
+        capture(fd);
+        formAction(fd);
+      }}
+      className="space-y-5"
+    >
       {state.error && <Alert kind="error">{state.error}</Alert>}
       <div className="grid grid-cols-2 gap-4">
         <Field
           label="First name"
           name="first_name"
-          defaultValue={profile.first_name ?? ""}
+          defaultValue={values.first_name ?? profile.first_name ?? ""}
           required
+          validate={(v) => (v.trim() ? null : "First name is required.")}
           error={state.fieldErrors?.first_name}
         />
         <Field
           label="Last name"
           name="last_name"
-          defaultValue={profile.last_name ?? ""}
+          defaultValue={values.last_name ?? profile.last_name ?? ""}
           required
+          validate={(v) => (v.trim() ? null : "Last name is required.")}
           error={state.fieldErrors?.last_name}
         />
       </div>
@@ -159,28 +175,34 @@ function Step1Form({
                 type="radio"
                 name="role_title"
                 value={role.value}
-                defaultChecked={profile.role_title === role.value}
+                defaultChecked={
+                  values.role_title
+                    ? values.role_title === role.value
+                    : profile.role_title === role.value
+                }
+                onChange={(e) => revalidateRole(e.currentTarget)}
                 className="sr-only"
               />
               {role.label}
             </label>
           ))}
         </div>
-        {state.fieldErrors?.role_title && (
+        {roleError && (
           <p className="mt-1 text-xs font-medium text-red-600">
-            {state.fieldErrors.role_title}
+            {roleError}
           </p>
         )}
       </fieldset>
       <Field
         label={orgLabel}
         name="organization_title"
-        defaultValue={profile.organization_title ?? ""}
+        defaultValue={values.organization_title ?? profile.organization_title ?? ""}
         hint={
           ORG_OPTIONAL_ROLES.has(profile.role_title)
             ? "Optional for parents / spectators."
             : undefined
         }
+        validate={(v) => (v.trim() ? null : "Required.")}
         error={state.fieldErrors?.organization_title}
       />
       <SubmitButton>Continue</SubmitButton>
@@ -190,16 +212,30 @@ function Step1Form({
 
 function Step2Form({ profile }: { profile: Profile }) {
   const [state, formAction] = useActionState(saveStep2, INITIAL);
+  const { values, capture } = useSubmittedValues();
+  const { shownError: genderError, revalidate: revalidateGender } =
+    useLiveValidation(state.fieldErrors?.user_gender, (value) =>
+      USER_GENDERS.some((g) => g.value === value)
+        ? null
+        : "Pick one to continue.",
+    );
   return (
-    <form action={formAction} className="space-y-5">
+    <form
+      action={(fd) => {
+        capture(fd);
+        formAction(fd);
+      }}
+      className="space-y-5"
+    >
       {state.error && <Alert kind="error">{state.error}</Alert>}
       <Field
         label="Location"
         name="location"
         placeholder="City, State, or Zip Code"
-        defaultValue={profile.location_formatted ?? ""}
+        defaultValue={values.location ?? profile.location_formatted ?? ""}
         required
         hint="Where do you spend most of your season? We use this to sort events by distance."
+        validate={(v) => (v.trim() ? null : "Location is required.")}
         error={state.fieldErrors?.location}
       />
       <fieldset>
@@ -216,16 +252,21 @@ function Step2Form({ profile }: { profile: Profile }) {
                 type="radio"
                 name="user_gender"
                 value={g.value}
-                defaultChecked={profile.user_gender === g.value}
+                defaultChecked={
+                  values.user_gender
+                    ? values.user_gender === g.value
+                    : profile.user_gender === g.value
+                }
+                onChange={(e) => revalidateGender(e.currentTarget)}
                 className="sr-only"
               />
               {g.label}
             </label>
           ))}
         </div>
-        {state.fieldErrors?.user_gender && (
+        {genderError && (
           <p className="mt-1 text-xs font-medium text-red-600">
-            {state.fieldErrors.user_gender}
+            {genderError}
           </p>
         )}
       </fieldset>
@@ -233,8 +274,11 @@ function Step2Form({ profile }: { profile: Profile }) {
         label="Date of birth"
         name="dob"
         type="date"
-        defaultValue={profile.dob ?? ""}
+        defaultValue={values.dob ?? profile.dob ?? ""}
         required
+        validate={(v) =>
+          v && isAdultDob(v) ? null : "You must be at least 18."
+        }
         error={state.fieldErrors?.dob}
       />
       <SubmitButton>Continue</SubmitButton>
@@ -250,10 +294,17 @@ function Step3Form({
   profile: Profile;
 }) {
   const [state, formAction] = useActionState(saveStep3, INITIAL);
+  const { values, capture } = useSubmittedValues();
   const isParent = profile.role_title === "parent_spectator";
   const teamCount = isParent ? 1 : 3;
   return (
-    <form action={formAction} className="space-y-6">
+    <form
+      action={(fd) => {
+        capture(fd);
+        formAction(fd);
+      }}
+      className="space-y-6"
+    >
       {state.error && <Alert kind="error">{state.error}</Alert>}
       <fieldset>
         <legend className="mb-2 text-[13px] font-semibold text-slate-800">
@@ -273,7 +324,11 @@ function Step3Form({
                 type="radio"
                 name="distance_pref"
                 value={d.value}
-                defaultChecked={profile.distance_pref === d.value}
+                defaultChecked={
+                  values.distance_pref
+                    ? values.distance_pref === d.value
+                    : profile.distance_pref === d.value
+                }
                 className="sr-only"
               />
               {d.label}
@@ -286,7 +341,7 @@ function Step3Form({
           Your team{teamCount > 1 ? "s" : ""}
         </p>
         {Array.from({ length: teamCount }, (_, i) => i + 1).map((slot) => (
-          <TeamSlot key={slot} slot={slot} />
+          <TeamSlot key={slot} slot={slot} values={values} />
         ))}
       </div>
       <div className="flex items-center justify-between text-xs text-slate-500">
@@ -299,7 +354,13 @@ function Step3Form({
   );
 }
 
-function TeamSlot({ slot }: { slot: number }) {
+function TeamSlot({
+  slot,
+  values,
+}: {
+  slot: number;
+  values: Record<string, string>;
+}) {
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-4">
       <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-500">
@@ -313,7 +374,7 @@ function TeamSlot({ slot }: { slot: number }) {
           <select
             name={`team_${slot}_gender`}
             className="tg-control tg-select"
-            defaultValue=""
+            defaultValue={values[`team_${slot}_gender`] ?? ""}
           >
             <option value="">—</option>
             {TEAM_GENDERS.map((g) => (
@@ -330,7 +391,7 @@ function TeamSlot({ slot }: { slot: number }) {
           <select
             name={`team_${slot}_age`}
             className="tg-control tg-select"
-            defaultValue=""
+            defaultValue={values[`team_${slot}_age`] ?? ""}
           >
             <option value="">—</option>
             {AGE_BRACKETS.map((a) => (
@@ -347,7 +408,7 @@ function TeamSlot({ slot }: { slot: number }) {
           <select
             name={`team_${slot}_level`}
             className="tg-control tg-select"
-            defaultValue=""
+            defaultValue={values[`team_${slot}_level`] ?? ""}
           >
             <option value="">—</option>
             {COMPETITION_LEVELS.map((c) => (
@@ -364,14 +425,25 @@ function TeamSlot({ slot }: { slot: number }) {
 
 function Step4Form({ profile }: { profile: Profile }) {
   const [state, formAction] = useActionState(saveStep4, INITIAL);
+  const { values, capture } = useSubmittedValues();
+  const { shownError: descriptionError, revalidate: revalidateDescription } =
+    useLiveValidation(state.fieldErrors?.org_description, (value) =>
+      value.trim() ? null : "Tell attendees who your organization is.",
+    );
   return (
-    <form action={formAction} className="space-y-5">
+    <form
+      action={(fd) => {
+        capture(fd);
+        formAction(fd);
+      }}
+      className="space-y-5"
+    >
       {state.error && <Alert kind="error">{state.error}</Alert>}
       <Field
         label="Organization logo URL"
         name="org_logo_url"
         type="url"
-        defaultValue={profile.org_logo_url ?? ""}
+        defaultValue={values.org_logo_url ?? profile.org_logo_url ?? ""}
         placeholder="https://…"
         hint="Optional for now — you'll be able to upload a file from your Account settings."
         error={state.fieldErrors?.org_logo_url}
@@ -382,15 +454,16 @@ function Step4Form({ profile }: { profile: Profile }) {
         </span>
         <textarea
           name="org_description"
-          defaultValue={profile.org_description ?? ""}
+          defaultValue={values.org_description ?? profile.org_description ?? ""}
           rows={5}
           required
-          aria-invalid={state.fieldErrors?.org_description ? true : undefined}
+          onInput={(e) => revalidateDescription(e.currentTarget)}
+          aria-invalid={descriptionError ? true : undefined}
           className="tg-control resize-none"
         />
-        {state.fieldErrors?.org_description && (
+        {descriptionError && (
           <span className="mt-1 block text-xs font-medium text-red-600">
-            {state.fieldErrors.org_description}
+            {descriptionError}
           </span>
         )}
       </label>

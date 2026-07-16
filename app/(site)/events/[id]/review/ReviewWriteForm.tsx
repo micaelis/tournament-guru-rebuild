@@ -7,6 +7,7 @@ import {
   Button,
   StarRating,
 } from "@/app/components/ui";
+import { useLiveValidation } from "@/app/components/ui/useLiveValidation";
 import { saveReview, type ReviewState } from "@/lib/reviews/actions";
 import {
   REVIEW_BODY_MAX,
@@ -96,6 +97,16 @@ export function ReviewWriteForm({
     [body, bannedWords],
   );
   const bannedHits = Array.from(new Set([...bannedInTitle, ...bannedInBody]));
+  const { shownError: bodyError, revalidate: revalidateBody } =
+    useLiveValidation(state.fieldErrors?.review_body, (v) => {
+      const trimmed = v.trim();
+      if (!trimmed) return "Add a few details about your experience.";
+      if (trimmed.length > REVIEW_BODY_MAX) return "Over the character limit.";
+      return bannedInTitle.length > 0 ||
+        findBannedWords(v, bannedWords).length > 0
+        ? "Contains words we don't allow."
+        : null;
+    });
 
   useEffect(() => {
     if (state.savedId) {
@@ -188,7 +199,7 @@ export function ReviewWriteForm({
                   }
                 />
               </div>
-              {state.fieldErrors?.[c.key] && (
+              {state.fieldErrors?.[c.key] && ratings[c.key] === null && (
                 <p className="mt-1 text-xs font-medium text-red-600">
                   {state.fieldErrors[c.key]}
                 </p>
@@ -213,6 +224,7 @@ export function ReviewWriteForm({
             required
             value={title}
             onChange={(e) => setTitle(e.target.value)}
+            validate={(v) => (v.trim() ? null : "Include a title.")}
             error={state.fieldErrors?.review_title}
           />
           <label className="block">
@@ -223,7 +235,10 @@ export function ReviewWriteForm({
               name="review_body"
               rows={6}
               value={body}
-              onChange={(e) => setBody(e.target.value)}
+              onChange={(e) => {
+                setBody(e.target.value);
+                revalidateBody(e.currentTarget);
+              }}
               className="tg-control resize-none"
               aria-invalid={bodyOver || undefined}
             />
@@ -232,9 +247,9 @@ export function ReviewWriteForm({
                 {body.length}/{REVIEW_BODY_MAX}
                 {bodyOver && " — over the limit"}
               </span>
-              {state.fieldErrors?.review_body && (
+              {bodyError && (
                 <span className="font-medium text-red-600">
-                  {state.fieldErrors.review_body}
+                  {bodyError}
                 </span>
               )}
             </div>
@@ -274,7 +289,7 @@ export function ReviewWriteForm({
                 </button>
               ))}
             </div>
-            {state.fieldErrors?.would_return && (
+            {state.fieldErrors?.would_return && wouldReturn === null && (
               <p className="text-xs font-medium text-red-600">
                 {state.fieldErrors.would_return}
               </p>

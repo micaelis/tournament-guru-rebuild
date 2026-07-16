@@ -12,6 +12,7 @@ import {
   ConfirmDialog,
   useToast,
 } from "@/app/components/ui";
+import { useSubmittedValues } from "@/app/components/ui/useSubmittedValues";
 import {
   createTournament,
   updateTournament,
@@ -36,6 +37,7 @@ export function CreateTournamentDialog({
   onCreated: (tournamentId: string) => void;
 }) {
   const [state, formAction] = useActionState(createTournament, INITIAL);
+  const { values, submitted, capture } = useSubmittedValues();
 
   useEffect(() => {
     if (state.createdId) onCreated(state.createdId);
@@ -58,19 +60,28 @@ export function CreateTournamentDialog({
         <p className="mt-1 text-sm text-slate-500">
           Give your tournament a title. You&apos;ll add events under it next.
         </p>
-        <form action={formAction} className="mt-5 space-y-4">
+        <form
+          action={(fd) => {
+            capture(fd);
+            formAction(fd);
+          }}
+          className="mt-5 space-y-4"
+        >
           {state.error && <Alert kind="error">{state.error}</Alert>}
           <Field
             label="Tournament title"
             name="title"
             required
             autoFocus
+            defaultValue={values.title ?? ""}
+            validate={(v) => (v.trim() ? null : "Tournament title is required.")}
             error={state.fieldErrors?.title}
           />
           <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50/60 p-3 text-sm">
             <input
               type="checkbox"
               name="recurring"
+              defaultChecked={submitted ? values.recurring != null : false}
               className="mt-0.5 h-4 w-4 accent-slate-900"
             />
             <span>
@@ -154,6 +165,7 @@ export function EditTournamentDialog({
   tournament: { id: string; title: string; recurring: boolean };
 }) {
   const [state, formAction] = useActionState(updateTournament, INITIAL);
+  const { values, submitted, capture } = useSubmittedValues();
   const { push } = useToast();
 
   useEffect(() => {
@@ -175,20 +187,29 @@ export function EditTournamentDialog({
         <h3 className="font-[var(--font-heading)] text-xl font-extrabold text-slate-900">
           Edit tournament
         </h3>
-        <form action={formAction} className="mt-5 space-y-4">
+        <form
+          action={(fd) => {
+            capture(fd);
+            formAction(fd);
+          }}
+          className="mt-5 space-y-4"
+        >
           <input type="hidden" name="id" value={tournament.id} />
           <Field
             label="Tournament title"
             name="title"
-            defaultValue={tournament.title}
+            defaultValue={values.title ?? tournament.title}
             required
+            validate={(v) => (v.trim() ? null : "Tournament title is required.")}
             error={state.fieldErrors?.title}
           />
           <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50/60 p-3 text-sm">
             <input
               type="checkbox"
               name="recurring"
-              defaultChecked={tournament.recurring}
+              defaultChecked={
+                submitted ? values.recurring != null : tournament.recurring
+              }
               className="mt-0.5 h-4 w-4 accent-slate-900"
             />
             <span className="block font-semibold text-slate-900">

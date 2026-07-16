@@ -4,6 +4,7 @@ import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Alert, Field } from "@/app/(auth)/parts";
 import { Button, StarRating, useToast } from "@/app/components/ui";
+import { useLiveValidation } from "@/app/components/ui/useLiveValidation";
 import {
   adminEditReview,
   type ReviewState,
@@ -46,6 +47,11 @@ export function AdminEditDialog({
   const router = useRouter();
   const { push } = useToast();
   const over = body.length > REVIEW_BODY_MAX;
+  // The server only rejects the body on banned words, which we can't
+  // check client-side — so any edit optimistically clears the error and
+  // the server re-verifies on resubmit.
+  const { shownError: bodyError, revalidate: revalidateBody } =
+    useLiveValidation(state.fieldErrors?.review_body);
 
   useEffect(() => {
     if (state.savedId) {
@@ -99,7 +105,10 @@ export function AdminEditDialog({
               name="review_body"
               rows={5}
               value={body}
-              onChange={(e) => setBody(e.target.value)}
+              onChange={(e) => {
+                setBody(e.target.value);
+                revalidateBody(e.currentTarget);
+              }}
               className="tg-control resize-none"
             />
             <div className="mt-1 flex items-center justify-between text-xs">
@@ -108,10 +117,8 @@ export function AdminEditDialog({
               >
                 {body.length}/{REVIEW_BODY_MAX}
               </span>
-              {state.fieldErrors?.review_body && (
-                <span className="font-medium text-red-600">
-                  {state.fieldErrors.review_body}
-                </span>
+              {bodyError && (
+                <span className="font-medium text-red-600">{bodyError}</span>
               )}
             </div>
           </label>

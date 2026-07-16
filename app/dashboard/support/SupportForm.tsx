@@ -3,6 +3,9 @@
 import { useActionState, useEffect } from "react";
 import { Alert, Field } from "@/app/(auth)/parts";
 import { Button, useToast } from "@/app/components/ui";
+import { useLiveValidation } from "@/app/components/ui/useLiveValidation";
+import { useSubmittedValues } from "@/app/components/ui/useSubmittedValues";
+import { validateEmail } from "@/lib/validation";
 import { submitSupportMessage, type SupportState } from "./actions";
 
 const INITIAL: SupportState = {};
@@ -20,6 +23,12 @@ export function SupportForm({
   defaultName: string;
 }) {
   const [state, formAction] = useActionState(submitSupportMessage, INITIAL);
+  const { values, capture } = useSubmittedValues();
+  const { shownError: messageError, revalidate: revalidateMessage } =
+    useLiveValidation(state.fieldErrors?.message, (v) => {
+      const message = v.trim();
+      return message && message.length <= 2000 ? null : "Invalid message.";
+    });
   const { push } = useToast();
 
   useEffect(() => {
@@ -28,7 +37,10 @@ export function SupportForm({
 
   return (
     <form
-      action={formAction}
+      action={(fd) => {
+        capture(fd);
+        formAction(fd);
+      }}
       className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6"
     >
       <h2 className="font-[var(--font-heading)] text-xl font-extrabold text-slate-900">
@@ -40,14 +52,16 @@ export function SupportForm({
         name="email"
         type="email"
         required
-        defaultValue={defaultEmail}
+        defaultValue={values.email ?? defaultEmail}
+        validate={validateEmail}
         error={state.fieldErrors?.email}
       />
       <Field
         label="Full name"
         name="name"
         required
-        defaultValue={defaultName}
+        defaultValue={values.name ?? defaultName}
+        validate={(v) => (v.trim() ? null : "Add your name.")}
         error={state.fieldErrors?.name}
       />
       <label className="block">
@@ -59,11 +73,13 @@ export function SupportForm({
           rows={5}
           required
           placeholder="Describe your problem"
+          defaultValue={values.message ?? ""}
+          onInput={(e) => revalidateMessage(e.currentTarget)}
           className="tg-control resize-none"
         />
-        {state.fieldErrors?.message && (
+        {messageError && (
           <p className="mt-1 text-xs font-medium text-red-600">
-            {state.fieldErrors.message}
+            {messageError}
           </p>
         )}
       </label>

@@ -13,6 +13,7 @@ import {
   TR,
   useToast,
 } from "@/app/components/ui";
+import { useSubmittedValues } from "@/app/components/ui/useSubmittedValues";
 import {
   addBannedWord,
   deleteBannedWord,
@@ -32,6 +33,7 @@ type BannedRow = { id: string; word: string; created_at: string };
  */
 export function BannedWordsClient({ rows }: { rows: BannedRow[] }) {
   const [state, formAction] = useActionState(addBannedWord, INITIAL);
+  const { values, capture } = useSubmittedValues();
   const [confirmDelete, setConfirmDelete] = useState<BannedRow | null>(null);
   const [editing, setEditing] = useState<{ id: string; value: string } | null>(
     null,
@@ -45,13 +47,24 @@ export function BannedWordsClient({ rows }: { rows: BannedRow[] }) {
         <h2 className="font-[var(--font-heading)] text-lg font-extrabold text-slate-900">
           Add a word
         </h2>
-        <form action={formAction} className="mt-3 space-y-3">
+        <form
+          action={(fd) => {
+            capture(fd);
+            formAction(fd);
+          }}
+          className="mt-3 space-y-3"
+        >
           {state.error && <Alert kind="error">{state.error}</Alert>}
           <Field
             label="Word"
             name="word"
             required
             placeholder="Type a word — spaces + special chars kept as-is"
+            defaultValue={values.word ?? ""}
+            validate={(v) => {
+              const word = v.trim();
+              return word && word.length <= 40 ? null : "Invalid word.";
+            }}
             error={state.fieldErrors?.word}
           />
           <div className="flex justify-end">

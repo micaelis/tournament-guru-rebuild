@@ -2,7 +2,9 @@
 
 import { useActionState, useState } from "react";
 import { signupAction, type FormState } from "../actions";
-import { Alert, Field, SubmitButton } from "../parts";
+import { Alert, Field, PasswordField, SubmitButton } from "../parts";
+import { useSubmittedValues } from "@/app/components/ui/useSubmittedValues";
+import { validateEmail, validatePassword } from "@/lib/validation";
 import {
   ATTENDEE_ROLES,
   ED_ROLES,
@@ -20,7 +22,11 @@ export default function SignupForm({
   const [userType, setUserType] = useState<UserTypeValue | "">(
     preselectType ?? "",
   );
+  // Controlled so the picked role survives a failed validation round-trip
+  // (React resets uncontrolled radios once the action settles).
+  const [roleTitle, setRoleTitle] = useState("");
   const [state, formAction] = useActionState(signupAction, INITIAL);
+  const { values, capture } = useSubmittedValues();
 
   const roles =
     userType === "event_director"
@@ -30,7 +36,13 @@ export default function SignupForm({
         : [];
 
   return (
-    <form action={formAction} className="space-y-6">
+    <form
+      action={(formData) => {
+        capture(formData);
+        formAction(formData);
+      }}
+      className="space-y-6"
+    >
       {state.error && <Alert kind="error">{state.error}</Alert>}
       {state.info && <Alert kind="info">{state.info}</Alert>}
 
@@ -46,7 +58,10 @@ export default function SignupForm({
               <button
                 key={option.value}
                 type="button"
-                onClick={() => setUserType(option.value)}
+                onClick={() => {
+                  if (userType !== option.value) setRoleTitle("");
+                  setUserType(option.value);
+                }}
                 className={`rounded-xl border p-4 text-left text-sm transition ${
                   active
                     ? "border-slate-900 bg-slate-900 text-white shadow-md"
@@ -67,7 +82,7 @@ export default function SignupForm({
             );
           })}
         </div>
-        {state.fieldErrors?.user_type && (
+        {state.fieldErrors?.user_type && !userType && (
           <p className="mt-1 text-xs font-medium text-red-600">
             {state.fieldErrors.user_type}
           </p>
@@ -83,7 +98,11 @@ export default function SignupForm({
             {roles.map((role) => (
               <label
                 key={role.value}
-                className="cursor-pointer rounded-xl border border-slate-200 bg-white p-3 text-center text-sm font-semibold text-slate-800 has-[input:checked]:border-slate-900 has-[input:checked]:bg-slate-900 has-[input:checked]:text-white"
+                className={`cursor-pointer rounded-xl border p-3 text-center text-sm font-semibold transition ${
+                  roleTitle === role.value
+                    ? "border-slate-900 bg-slate-900 text-white"
+                    : "border-slate-200 bg-white text-slate-800 hover:border-slate-400"
+                }`}
               >
                 <input
                   type="radio"
@@ -91,12 +110,14 @@ export default function SignupForm({
                   value={role.value}
                   className="sr-only"
                   required
+                  checked={roleTitle === role.value}
+                  onChange={() => setRoleTitle(role.value)}
                 />
                 {role.label}
               </label>
             ))}
           </div>
-          {state.fieldErrors?.role_title && (
+          {state.fieldErrors?.role_title && !roleTitle && (
             <p className="mt-1 text-xs font-medium text-red-600">
               {state.fieldErrors.role_title}
             </p>
@@ -109,17 +130,20 @@ export default function SignupForm({
         name="email"
         type="email"
         autoComplete="email"
+        placeholder="you@club.com"
         required
+        defaultValue={values.email}
         error={state.fieldErrors?.email}
+        validate={validateEmail}
       />
-      <Field
+      <PasswordField
         label="Password"
         name="password"
-        type="password"
         autoComplete="new-password"
-        required
+        placeholder="Create a password"
         hint="8+ characters, at least one uppercase letter and one number."
         error={state.fieldErrors?.password}
+        validate={validatePassword}
       />
       <SubmitButton>Create account</SubmitButton>
     </form>

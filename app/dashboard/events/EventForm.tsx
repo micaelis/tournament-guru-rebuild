@@ -21,6 +21,9 @@ import {
   TEAM_GENDERS,
 } from "@/lib/enums";
 import { Button, useToast } from "@/app/components/ui";
+import { useLiveValidation } from "@/app/components/ui/useLiveValidation";
+import { useSubmittedValues } from "@/app/components/ui/useSubmittedValues";
+import { safeExternalUrl } from "@/lib/url";
 import {
   saveEvent,
   upgradeEvent,
@@ -80,6 +83,27 @@ export type EventFormDefaults = {
 export function EventForm({ defaults }: { defaults: EventFormDefaults }) {
   const isEdit = Boolean(defaults.eventId);
   const [state, formAction] = useActionState(saveEvent, INITIAL);
+  const { values, capture } = useSubmittedValues();
+  const { shownError: websiteUrlError, revalidate: revalidateWebsiteUrl } =
+    useLiveValidation(state.fieldErrors?.website_url, (v) =>
+      safeExternalUrl(v) ? null : "Event website is required.",
+    );
+  const { shownError: descriptionError, revalidate: revalidateDescription } =
+    useLiveValidation(state.fieldErrors?.description, (v) =>
+      v.trim() ? null : "Description is required.",
+    );
+  const { shownError: locationError, revalidate: revalidateLocation } =
+    useLiveValidation(state.fieldErrors?.location_formatted, (v) =>
+      v.trim() ? null : "Location is required.",
+    );
+  const { shownError: regionError, revalidate: revalidateRegion } =
+    useLiveValidation(state.fieldErrors?.region, (v) =>
+      v ? null : "Region is required.",
+    );
+  const { shownError: seasonError, revalidate: revalidateSeason } =
+    useLiveValidation(state.fieldErrors?.season_id, (v) =>
+      v ? null : "Season is required.",
+    );
   const [intent, setIntent] = useState<"draft" | "publish" | "update">(
     isEdit && defaults.lifecycle === "active" ? "update" : "draft",
   );
@@ -119,7 +143,13 @@ export function EventForm({ defaults }: { defaults: EventFormDefaults }) {
   }, [defaults.base.title, state.fieldErrors]);
 
   return (
-    <form action={formAction} className="space-y-8">
+    <form
+      action={(fd) => {
+        capture(fd);
+        formAction(fd);
+      }}
+      className="space-y-8"
+    >
       <input type="hidden" name="intent" value={intent} />
       <input type="hidden" name="tournament_id" value={defaults.tournamentId} />
       {defaults.eventId && (
@@ -152,7 +182,7 @@ export function EventForm({ defaults }: { defaults: EventFormDefaults }) {
               name="logo_url"
               type="url"
               placeholder="https://…"
-              defaultValue={defaults.base.logo_url}
+              defaultValue={values.logo_url ?? defaults.base.logo_url}
               icon={<UploadGlyph />}
             />
           </LabeledField>
@@ -160,21 +190,23 @@ export function EventForm({ defaults }: { defaults: EventFormDefaults }) {
             label="Event title"
             name="title"
             required
-            defaultValue={defaults.base.title}
+            defaultValue={values.title ?? defaults.base.title}
+            validate={(v) => (v.trim() ? null : "Title is required.")}
             error={state.fieldErrors?.title}
           />
           <LabeledField
             label="Event website"
             required
             htmlFor="website_url"
-            error={state.fieldErrors?.website_url}
+            error={websiteUrlError}
           >
             <IconInput
               id="website_url"
               name="website_url"
               type="url"
               placeholder="https://…"
-              defaultValue={defaults.base.website_url}
+              defaultValue={values.website_url ?? defaults.base.website_url}
+              onInput={(e) => revalidateWebsiteUrl(e.currentTarget)}
               icon={<LinkGlyph />}
             />
           </LabeledField>
@@ -182,7 +214,8 @@ export function EventForm({ defaults }: { defaults: EventFormDefaults }) {
             label="Host club"
             name="host_club"
             required
-            defaultValue={defaults.base.host_club}
+            defaultValue={values.host_club ?? defaults.base.host_club}
+            validate={(v) => (v.trim() ? null : "Host club is required.")}
             error={state.fieldErrors?.host_club}
           />
           <Field
@@ -190,7 +223,8 @@ export function EventForm({ defaults }: { defaults: EventFormDefaults }) {
             name="start_date"
             type="date"
             required
-            defaultValue={defaults.base.start_date}
+            defaultValue={values.start_date ?? defaults.base.start_date}
+            validate={(v) => (v ? null : "Starting date is required.")}
             error={state.fieldErrors?.start_date}
           />
           <Field
@@ -198,14 +232,26 @@ export function EventForm({ defaults }: { defaults: EventFormDefaults }) {
             name="end_date"
             type="date"
             required
-            defaultValue={defaults.base.end_date}
+            defaultValue={values.end_date ?? defaults.base.end_date}
+            validate={(v) => {
+              if (!v) return "Ending date is required.";
+              const start = document.querySelector<HTMLInputElement>(
+                'input[name="start_date"]',
+              );
+              return start?.value && v < start.value
+                ? "End date must be on or after the start date."
+                : null;
+            }}
             error={state.fieldErrors?.end_date}
           />
           <Field
             label="Registration deadline"
             name="registration_deadline"
             type="date"
-            defaultValue={defaults.base.registration_deadline}
+            defaultValue={
+              values.registration_deadline ??
+              defaults.base.registration_deadline
+            }
           />
           <LabeledField
             label="Number of teams (this year)"
@@ -216,7 +262,9 @@ export function EventForm({ defaults }: { defaults: EventFormDefaults }) {
               name="num_teams_this_year"
               type="number"
               min={0}
-              defaultValue={defaults.base.num_teams_this_year}
+              defaultValue={
+                values.num_teams_this_year ?? defaults.base.num_teams_this_year
+              }
               icon={<HashGlyph />}
             />
           </LabeledField>
@@ -225,13 +273,14 @@ export function EventForm({ defaults }: { defaults: EventFormDefaults }) {
           label="Description"
           required
           htmlFor="description"
-          error={state.fieldErrors?.description}
+          error={descriptionError}
         >
           <textarea
             id="description"
             name="description"
             rows={5}
-            defaultValue={defaults.base.description}
+            defaultValue={values.description ?? defaults.base.description}
+            onInput={(e) => revalidateDescription(e.currentTarget)}
             className="tg-control resize-none"
           />
         </LabeledField>
@@ -248,12 +297,15 @@ export function EventForm({ defaults }: { defaults: EventFormDefaults }) {
             required
             htmlFor="location_formatted"
             hint="Full address or city + state — used across search filters."
-            error={state.fieldErrors?.location_formatted}
+            error={locationError}
           >
             <input
               id="location_formatted"
               name="location_formatted"
-              defaultValue={defaults.base.location_formatted}
+              defaultValue={
+                values.location_formatted ?? defaults.base.location_formatted
+              }
+              onInput={(e) => revalidateLocation(e.currentTarget)}
               placeholder="City, State, or Zip Code"
               className="tg-control"
             />
@@ -267,7 +319,9 @@ export function EventForm({ defaults }: { defaults: EventFormDefaults }) {
               id="location_state_abbr"
               name="location_state_abbr"
               maxLength={2}
-              defaultValue={defaults.base.location_state_abbr}
+              defaultValue={
+                values.location_state_abbr ?? defaults.base.location_state_abbr
+              }
               className="tg-control uppercase"
             />
           </LabeledField>
@@ -275,12 +329,13 @@ export function EventForm({ defaults }: { defaults: EventFormDefaults }) {
             label="Region"
             required
             htmlFor="region"
-            error={state.fieldErrors?.region}
+            error={regionError}
           >
             <select
               id="region"
               name="region"
-              defaultValue={defaults.base.region}
+              defaultValue={values.region ?? defaults.base.region}
+              onInput={(e) => revalidateRegion(e.currentTarget)}
               className="tg-control tg-select"
             >
               <option value="">Choose a region</option>
@@ -295,12 +350,13 @@ export function EventForm({ defaults }: { defaults: EventFormDefaults }) {
             label="Season"
             required
             htmlFor="season_id"
-            error={state.fieldErrors?.season_id}
+            error={seasonError}
           >
             <select
               id="season_id"
               name="season_id"
-              defaultValue={defaults.base.season_id}
+              defaultValue={values.season_id ?? defaults.base.season_id}
+              onInput={(e) => revalidateSeason(e.currentTarget)}
               className="tg-control tg-select"
             >
               <option value="">Choose a season</option>
@@ -431,7 +487,10 @@ export function EventForm({ defaults }: { defaults: EventFormDefaults }) {
                 id="teams_this_year_url"
                 name="teams_this_year_url"
                 type="url"
-                defaultValue={defaults.base.teams_this_year_url}
+                defaultValue={
+                  values.teams_this_year_url ??
+                  defaults.base.teams_this_year_url
+                }
                 placeholder="https://…"
                 icon={<span className="text-xs font-bold">→</span>}
               />
@@ -444,7 +503,10 @@ export function EventForm({ defaults }: { defaults: EventFormDefaults }) {
                 id="teams_prev_year_url"
                 name="teams_prev_year_url"
                 type="url"
-                defaultValue={defaults.base.teams_prev_year_url}
+                defaultValue={
+                  values.teams_prev_year_url ??
+                  defaults.base.teams_prev_year_url
+                }
                 placeholder="https://…"
                 icon={<span className="text-xs font-bold">→</span>}
               />
@@ -454,7 +516,9 @@ export function EventForm({ defaults }: { defaults: EventFormDefaults }) {
                 id="registration_url"
                 name="registration_url"
                 type="url"
-                defaultValue={defaults.base.registration_url}
+                defaultValue={
+                  values.registration_url ?? defaults.base.registration_url
+                }
                 placeholder="https://…"
                 icon={<span className="text-xs font-bold">→</span>}
               />
@@ -468,7 +532,10 @@ export function EventForm({ defaults }: { defaults: EventFormDefaults }) {
                 name="teams_attended_prev_year"
                 type="number"
                 min={0}
-                defaultValue={defaults.base.teams_attended_prev_year}
+                defaultValue={
+                  values.teams_attended_prev_year ??
+                  defaults.base.teams_attended_prev_year
+                }
                 className="tg-control"
               />
             </LabeledField>
@@ -477,7 +544,7 @@ export function EventForm({ defaults }: { defaults: EventFormDefaults }) {
                 id="video_url"
                 name="video_url"
                 type="url"
-                defaultValue={defaults.base.video_url}
+                defaultValue={values.video_url ?? defaults.base.video_url}
                 placeholder="https://…"
                 icon={<span className="text-xs font-bold">▶</span>}
               />

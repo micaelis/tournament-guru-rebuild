@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useActionState, useState } from "react";
 import { loginAction, type FormState } from "../actions";
-import { Alert, BlockedModal, Field, SubmitButton } from "../parts";
+import { Alert, BlockedModal, Field, PasswordField, SubmitButton } from "../parts";
+import { useSubmittedValues } from "@/app/components/ui/useSubmittedValues";
+import { validateEmail } from "@/lib/validation";
 
 const INITIAL: FormState = {};
 
@@ -16,11 +18,18 @@ export default function LoginForm({
 }) {
   const [state, formAction] = useActionState(loginAction, INITIAL);
   const [dismissed, setDismissed] = useState(false);
+  const { values, capture } = useSubmittedValues();
   const blocked = state.error === "blocked" && !dismissed;
 
   return (
     <>
-      <form action={formAction} className="space-y-4">
+      <form
+        action={(formData) => {
+          capture(formData);
+          formAction(formData);
+        }}
+        className="space-y-4"
+      >
         {next && <input type="hidden" name="next" value={next} />}
         {state.error && state.error !== "blocked" && (
           <Alert kind="error">{state.error}</Alert>
@@ -33,22 +42,27 @@ export default function LoginForm({
           name="email"
           type="email"
           autoComplete="email"
+          placeholder="you@club.com"
           required
+          defaultValue={values.email}
           error={state.fieldErrors?.email}
+          validate={validateEmail}
         />
-        <Field
+        <PasswordField
           label="Password"
           name="password"
-          type="password"
           autoComplete="current-password"
-          required
+          placeholder="Enter your password"
           error={state.fieldErrors?.password}
+          labelAccessory={
+            <Link
+              href="/reset"
+              className="text-[12.5px] font-semibold text-[var(--color-accent)] hover:underline"
+            >
+              Forgot password?
+            </Link>
+          }
         />
-        <div className="text-right text-sm">
-          <Link href="/reset" className="font-semibold text-slate-700">
-            Forgot password?
-          </Link>
-        </div>
         <SubmitButton>Sign in</SubmitButton>
       </form>
       {blocked && <BlockedModal onDismiss={() => setDismissed(true)} />}

@@ -10,6 +10,9 @@ import {
   Button,
   useToast,
 } from "@/app/components/ui";
+import { useLiveValidation } from "@/app/components/ui/useLiveValidation";
+import { useSubmittedValues } from "@/app/components/ui/useSubmittedValues";
+import { safeExternalUrl } from "@/lib/url";
 import {
   submitClaimRequest,
   type ClaimState,
@@ -76,6 +79,20 @@ function ClaimModal({
   onClose: () => void;
 }) {
   const [state, formAction] = useActionState(submitClaimRequest, INITIAL);
+  const { values, capture } = useSubmittedValues();
+  const { shownError: linksError, revalidate: revalidateLinks } =
+    useLiveValidation(state.fieldErrors?.links, (v) => {
+      const links = v
+        .split(/[\n,]+/)
+        .map((l) => l.trim())
+        .filter(Boolean);
+      if (links.length === 0) {
+        return "Add at least one link that shows your connection.";
+      }
+      return links.some((l) => safeExternalUrl(l) === null)
+        ? "One of those links doesn't look valid."
+        : null;
+    });
   const [pending, startTransition] = useTransition();
   const router = useRouter();
   const { push } = useToast();
@@ -111,9 +128,10 @@ function ClaimModal({
           reached.
         </p>
         <form
-          action={(fd) =>
-            startTransition(() => formAction(fd))
-          }
+          action={(fd) => {
+            capture(fd);
+            startTransition(() => formAction(fd));
+          }}
           className="mt-5 space-y-4"
         >
           <input type="hidden" name="event_id" value={eventId} />
@@ -123,6 +141,10 @@ function ClaimModal({
             name="phone"
             required
             placeholder="+1 555 555 5555"
+            defaultValue={values.phone ?? ""}
+            validate={(v) =>
+              v.trim() ? null : "Add a phone number the admin can reach you at."
+            }
             error={state.fieldErrors?.phone}
           />
           <label className="block">
@@ -133,12 +155,14 @@ function ClaimModal({
             <textarea
               name="links"
               rows={3}
+              defaultValue={values.links ?? ""}
+              onInput={(e) => revalidateLinks(e.currentTarget)}
               className="tg-control resize-none"
               placeholder="One URL per line"
             />
-            {state.fieldErrors?.links && (
+            {linksError && (
               <p className="mt-1 text-xs font-medium text-red-600">
-                {state.fieldErrors.links}
+                {linksError}
               </p>
             )}
           </label>
@@ -149,6 +173,7 @@ function ClaimModal({
             <textarea
               name="message"
               rows={3}
+              defaultValue={values.message ?? ""}
               className="tg-control resize-none"
               placeholder="Anything else the admin should know."
             />

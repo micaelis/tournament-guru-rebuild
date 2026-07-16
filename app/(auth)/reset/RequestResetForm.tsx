@@ -3,6 +3,8 @@
 import { useActionState, useEffect, useState } from "react";
 import { requestResetAction, type FormState } from "../actions";
 import { Alert, Field, SubmitButton } from "../parts";
+import { useSubmittedValues } from "@/app/components/ui/useSubmittedValues";
+import { validateEmail } from "@/lib/validation";
 
 const INITIAL: FormState = {};
 const COOLDOWN_SECONDS = 30;
@@ -33,7 +35,6 @@ export default function RequestResetForm() {
     // signal is the correct place for the assignment.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setCooldownUntil(Date.now() + COOLDOWN_SECONDS * 1000);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setNow(Date.now());
   }, [state.info]);
 
@@ -43,8 +44,16 @@ export default function RequestResetForm() {
     return () => clearInterval(id);
   }, [cooldown]);
 
+  const { values, capture } = useSubmittedValues();
+
   return (
-    <form action={formAction} className="space-y-4">
+    <form
+      action={(formData) => {
+        capture(formData);
+        formAction(formData);
+      }}
+      className="space-y-4"
+    >
       {state.error && <Alert kind="error">{state.error}</Alert>}
       {state.info && <Alert kind="info">{state.info}</Alert>}
       <Field
@@ -52,8 +61,11 @@ export default function RequestResetForm() {
         name="email"
         type="email"
         autoComplete="email"
+        placeholder="you@club.com"
         required
+        defaultValue={values.email}
         error={state.fieldErrors?.email}
+        validate={validateEmail}
       />
       <SubmitButton disabled={cooldown > 0}>
         {cooldown > 0 ? `Try again in ${cooldown}s` : "Send reset link"}

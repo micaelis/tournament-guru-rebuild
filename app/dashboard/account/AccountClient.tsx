@@ -3,6 +3,9 @@
 import { useActionState, useState } from "react";
 import { Alert, Field } from "@/app/(auth)/parts";
 import { Button, useToast } from "@/app/components/ui";
+import { useLiveValidation } from "@/app/components/ui/useLiveValidation";
+import { useSubmittedValues } from "@/app/components/ui/useSubmittedValues";
+import { validateEmail, validatePassword } from "@/lib/validation";
 import {
   AGE_BRACKETS,
   COMPETITION_LEVELS,
@@ -135,26 +138,39 @@ function ProfileTab({
   isAdmin: boolean;
 }) {
   const [state, formAction] = useActionState(updateProfile, INITIAL);
+  const { values, capture } = useSubmittedValues();
+  const { shownError: genderError, revalidate: revalidateGender } =
+    useLiveValidation(state.fieldErrors?.user_gender, (value) =>
+      USER_GENDERS.some((g) => g.value === value) ? null : "Invalid gender.",
+    );
   const orgLabel = isEd
     ? "Organization title"
     : "Club affiliation";
   return (
-    <form action={formAction} className="max-w-xl space-y-5 rounded-2xl border border-slate-200 bg-white p-6">
+    <form
+      action={(fd) => {
+        capture(fd);
+        formAction(fd);
+      }}
+      className="max-w-xl space-y-5 rounded-2xl border border-slate-200 bg-white p-6"
+    >
       {state.error && <Alert kind="error">{state.error}</Alert>}
       {state.info && <Alert kind="info">{state.info}</Alert>}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <Field
           label="First name"
           name="first_name"
-          defaultValue={profile.first_name ?? ""}
+          defaultValue={values.first_name ?? profile.first_name ?? ""}
           required
+          validate={(v) => (v.trim() ? null : "First name is required.")}
           error={state.fieldErrors?.first_name}
         />
         <Field
           label="Last name"
           name="last_name"
-          defaultValue={profile.last_name ?? ""}
+          defaultValue={values.last_name ?? profile.last_name ?? ""}
           required
+          validate={(v) => (v.trim() ? null : "Last name is required.")}
           error={state.fieldErrors?.last_name}
         />
       </div>
@@ -162,7 +178,7 @@ function ProfileTab({
         label="Profile photo URL"
         name="profile_photo_url"
         type="url"
-        defaultValue={profile.profile_photo_url ?? ""}
+        defaultValue={values.profile_photo_url ?? profile.profile_photo_url ?? ""}
         hint="Upload flow ships in a follow-up."
       />
       {!isAdmin && (
@@ -170,7 +186,7 @@ function ProfileTab({
           <Field
             label="Location"
             name="location_formatted"
-            defaultValue={profile.location_formatted ?? ""}
+            defaultValue={values.location_formatted ?? profile.location_formatted ?? ""}
           />
           <fieldset>
             <legend className="mb-2 text-[13px] font-semibold text-slate-800">
@@ -186,13 +202,23 @@ function ProfileTab({
                     type="radio"
                     name="user_gender"
                     value={g.value}
-                    defaultChecked={profile.user_gender === g.value}
+                    defaultChecked={
+                      values.user_gender
+                        ? values.user_gender === g.value
+                        : profile.user_gender === g.value
+                    }
+                    onChange={(e) => revalidateGender(e.currentTarget)}
                     className="sr-only"
                   />
                   {g.label}
                 </label>
               ))}
             </div>
+            {genderError && (
+              <p className="mt-1 text-xs font-medium text-red-600">
+                {genderError}
+              </p>
+            )}
           </fieldset>
           {profile.dob && (
             <p className="text-xs text-slate-500">
@@ -202,7 +228,7 @@ function ProfileTab({
           <Field
             label={orgLabel}
             name="organization_title"
-            defaultValue={profile.organization_title ?? ""}
+            defaultValue={values.organization_title ?? profile.organization_title ?? ""}
             hint={
               ORG_OPTIONAL_ROLES.has(profile.role_title)
                 ? "Optional for parents / spectators."
@@ -220,7 +246,7 @@ function ProfileTab({
             <textarea
               name="org_description"
               rows={4}
-              defaultValue={profile.org_description ?? ""}
+              defaultValue={values.org_description ?? profile.org_description ?? ""}
               className="tg-control resize-none"
             />
           </label>
@@ -228,7 +254,7 @@ function ProfileTab({
             label="Organization logo URL"
             name="org_logo_url"
             type="url"
-            defaultValue={profile.org_logo_url ?? ""}
+            defaultValue={values.org_logo_url ?? profile.org_logo_url ?? ""}
           />
         </>
       )}
@@ -246,6 +272,8 @@ function SecurityTab({
 }) {
   const [emailState, emailAction] = useActionState(updateEmail, INITIAL);
   const [pwState, pwAction] = useActionState(updatePassword, INITIAL);
+  const { values: emailValues, capture: captureEmail } = useSubmittedValues();
+  const { values: pwValues, capture: capturePw } = useSubmittedValues();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deletePassword, setDeletePassword] = useState("");
   const [deletePending, setDeletePending] = useState(false);
@@ -255,7 +283,10 @@ function SecurityTab({
   return (
     <div className="max-w-xl space-y-6">
       <form
-        action={emailAction}
+        action={(fd) => {
+          captureEmail(fd);
+          emailAction(fd);
+        }}
         className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6"
       >
         <h3 className="font-[var(--font-heading)] text-lg font-extrabold text-slate-900">
@@ -267,14 +298,18 @@ function SecurityTab({
           label="Email"
           name="email"
           type="email"
-          defaultValue={email}
+          defaultValue={emailValues.email ?? email}
+          validate={validateEmail}
           error={emailState.fieldErrors?.email}
         />
         <Button type="submit">Send confirmation link</Button>
       </form>
 
       <form
-        action={pwAction}
+        action={(fd) => {
+          capturePw(fd);
+          pwAction(fd);
+        }}
         className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6"
       >
         <h3 className="font-[var(--font-heading)] text-lg font-extrabold text-slate-900">
@@ -286,6 +321,8 @@ function SecurityTab({
           label="New password"
           name="password"
           type="password"
+          defaultValue={pwValues.password ?? ""}
+          validate={validatePassword}
           error={pwState.fieldErrors?.password}
         />
         <Button type="submit">Update password</Button>
@@ -399,6 +436,13 @@ function PreferencesTab({
   teams: Team[];
 }) {
   const [state, formAction] = useActionState(updateTeams, INITIAL);
+  const { values, capture } = useSubmittedValues();
+  const { shownError: distanceError, revalidate: revalidateDistance } =
+    useLiveValidation(state.fieldErrors?.distance_pref, (value) =>
+      DISTANCE_PREFS.some((d) => d.value === value)
+        ? null
+        : "Invalid distance option.",
+    );
   const [localTeams, setLocalTeams] = useState<Team[]>(() => {
     const maxSlots = profile.role_title === "parent_spectator" ? 1 : 3;
     const list: Team[] = [];
@@ -417,7 +461,13 @@ function PreferencesTab({
     return list;
   });
   return (
-    <form action={formAction} className="max-w-2xl space-y-5 rounded-2xl border border-slate-200 bg-white p-6">
+    <form
+      action={(fd) => {
+        capture(fd);
+        formAction(fd);
+      }}
+      className="max-w-2xl space-y-5 rounded-2xl border border-slate-200 bg-white p-6"
+    >
       {state.error && <Alert kind="error">{state.error}</Alert>}
       {state.info && <Alert kind="info">{state.info}</Alert>}
       <fieldset>
@@ -434,13 +484,23 @@ function PreferencesTab({
                 type="radio"
                 name="distance_pref"
                 value={d.value}
-                defaultChecked={profile.distance_pref === d.value}
+                defaultChecked={
+                  values.distance_pref
+                    ? values.distance_pref === d.value
+                    : profile.distance_pref === d.value
+                }
+                onChange={(e) => revalidateDistance(e.currentTarget)}
                 className="sr-only"
               />
               {d.label}
             </label>
           ))}
         </div>
+        {distanceError && (
+          <p className="mt-1 text-xs font-medium text-red-600">
+            {distanceError}
+          </p>
+        )}
       </fieldset>
       <div className="space-y-3">
         {localTeams.map((t, i) => (
@@ -448,6 +508,7 @@ function PreferencesTab({
             key={t.slot}
             slot={t.slot}
             team={t}
+            values={values}
             onChange={(next) => {
               const copy = [...localTeams];
               copy[i] = { ...t, ...next };
@@ -464,10 +525,12 @@ function PreferencesTab({
 function TeamSlot({
   slot,
   team,
+  values,
   onChange,
 }: {
   slot: number;
   team: Team;
+  values: Record<string, string>;
   onChange: (next: Partial<Team>) => void;
 }) {
   return (
@@ -482,7 +545,7 @@ function TeamSlot({
           </span>
           <select
             name={`team_${slot}_gender`}
-            defaultValue={team.team_gender ?? ""}
+            defaultValue={values[`team_${slot}_gender`] ?? team.team_gender ?? ""}
             onChange={(e) => onChange({ team_gender: e.target.value || null })}
             className="tg-control tg-select"
           >
@@ -500,7 +563,7 @@ function TeamSlot({
           </span>
           <select
             name={`team_${slot}_age`}
-            defaultValue={team.age ?? ""}
+            defaultValue={values[`team_${slot}_age`] ?? team.age ?? ""}
             onChange={(e) => onChange({ age: e.target.value || null })}
             className="tg-control tg-select"
           >
@@ -518,7 +581,7 @@ function TeamSlot({
           </span>
           <select
             name={`team_${slot}_level`}
-            defaultValue={team.competition_level ?? ""}
+            defaultValue={values[`team_${slot}_level`] ?? team.competition_level ?? ""}
             onChange={(e) => onChange({ competition_level: e.target.value || null })}
             className="tg-control tg-select"
           >

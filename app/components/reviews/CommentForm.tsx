@@ -4,6 +4,7 @@ import { useActionState, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Alert } from "@/app/(auth)/parts";
 import { Button, useToast } from "@/app/components/ui";
+import { useLiveValidation } from "@/app/components/ui/useLiveValidation";
 import { saveComment, type ReviewState } from "@/lib/reviews/actions";
 import { findBannedWords } from "@/lib/reviews/client-check";
 import { REVIEW_BODY_MAX } from "@/lib/reviews/shared";
@@ -40,6 +41,17 @@ export function CommentForm({
   const { push } = useToast();
   const over = body.length > REVIEW_BODY_MAX;
   const banned = useMemo(() => findBannedWords(body, bannedWords), [body, bannedWords]);
+  const { shownError: bodyError, revalidate: revalidateBody } =
+    useLiveValidation(state.fieldErrors?.body, (v) => {
+      const trimmed = v.trim();
+      if (!trimmed) return "Add a comment first.";
+      if (trimmed.length > REVIEW_BODY_MAX) {
+        return `Comments cap at ${REVIEW_BODY_MAX} characters.`;
+      }
+      return findBannedWords(v, bannedWords).length > 0
+        ? "Your comment contains words we don't allow."
+        : null;
+    });
 
   useEffect(() => {
     // A successful save carries no error / fieldErrors. When the action
@@ -69,7 +81,10 @@ export function CommentForm({
       <textarea
         name="body"
         value={body}
-        onChange={(e) => setBody(e.target.value)}
+        onChange={(e) => {
+          setBody(e.target.value);
+          revalidateBody(e.currentTarget);
+        }}
         rows={3}
         placeholder={placeholder ?? "Add a comment…"}
         className="tg-control resize-none"
@@ -85,8 +100,8 @@ export function CommentForm({
           </span>
         )}
       </div>
-      {state.fieldErrors?.body && (
-        <p className="text-xs font-medium text-red-600">{state.fieldErrors.body}</p>
+      {bodyError && (
+        <p className="text-xs font-medium text-red-600">{bodyError}</p>
       )}
       <div className="flex justify-end gap-2">
         {onDone && (
