@@ -1,10 +1,8 @@
 export { Button } from "./Button";
-export { Card, CardHeader } from "./Card";
-export { Chip } from "./Chip";
+export { Card } from "./Card";
 export { ConfirmDialog } from "./ConfirmDialog";
 export { EmptyState } from "./EmptyState";
 export { MetricStrip, MetricTile, type MetricTileData } from "./MetricStrip";
-export { Spinner } from "./Spinner";
 export { StarRating } from "./StarRating";
 export { StatusPill, eventStatusTone, type PillTone } from "./StatusPill";
 export { Table, TD, TH, THead, TR } from "./Table";

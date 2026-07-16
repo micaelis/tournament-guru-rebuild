@@ -176,23 +176,3 @@ export async function fetchTournamentOwnerNames(
   return fetchOwnerFullNames(supabase, ownerIds);
 }
 
-/**
- * Counts events under a set of tournaments (for the "no events yet"
- * placeholder). One query fetches all rows; caller maps by tournament_id.
- */
-export async function countEventsPerTournament(
-  tournamentIds: string[],
-): Promise<Map<string, number>> {
-  if (tournamentIds.length === 0) return new Map();
-  const supabase = await createServerAuthClient();
-  const { data, error } = await supabase
-    .from("events")
-    .select("tournament_id")
-    .in("tournament_id", tournamentIds);
-  if (error) throw new Error(error.message);
-  const counts = new Map<string, number>();
-  for (const row of (data ?? []) as { tournament_id: string }[]) {
-    counts.set(row.tournament_id, (counts.get(row.tournament_id) ?? 0) + 1);
-  }
-  return counts;
-}
