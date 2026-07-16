@@ -142,35 +142,18 @@ export default async function HomePage() {
         </section>
 
         {/* ─ Layer 3: Featured Events ─
-            The showcase zone stays transparent so the page aurora shows
-            through — no surface fill (a solid tint read too heavy). A
-            faint red border + decorative corner glow still mark it as
-            the premium placement strip. The per-card "Featured" text
-            label was dropped (see EventCard); the card border + dual
-            coach/attendee ratings now carry the differentiation. */}
+            No container chrome at all — the section sits directly on the
+            page aurora (the earlier tinted showcase card read too heavy).
+            The per-card "Featured" text label was dropped (see EventCard);
+            the card border + dual coach/attendee ratings carry the
+            differentiation. */}
         <section id="featured-events" className="relative mx-auto max-w-[1280px] px-6 pb-32 md:px-10" style={{ scrollMarginTop: 80 }}>
           <div
-            className="relative overflow-hidden rounded-[28px]"
+            className="relative"
             style={{
               padding: "clamp(32px, 4vw, 56px) clamp(20px, 3vw, 48px)",
-              border: "1px solid rgba(220,38,38,.14)",
             }}
           >
-            {/* Decorative brand glow — top-right corner wash. Kept behind
-               the content on z-index so header text stays crisp. */}
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute z-0"
-              style={{
-                top: -120,
-                right: -140,
-                width: 480,
-                height: 480,
-                borderRadius: "50%",
-                background:
-                  "radial-gradient(circle, rgba(220,38,38,.10), transparent 65%)",
-              }}
-            />
             <div className="relative z-10 max-w-[720px]">
               <SectionHeader
                 eyebrowChip
