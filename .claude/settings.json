@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "defaultMode": "acceptEdits",
+    "allow": [
+      "Read",
+      "Write",
+      "Edit",
+      "WebFetch",
+      "Bash"
+    ],
+    "deny": [
+      "Bash(supabase db push*)",
+      "Bash(supabase db reset --linked*)",
+      "Bash(supabase link*)",
+      "Bash(supabase migration up --linked*)",
+      "Bash(git push*)",
+      "Bash(git reset --hard*)",
+      "Bash(git clean *)",
+      "Bash(rm -rf *)",
+      "Bash(rm -fr *)",
+      "Bash(sudo *)"
+    ]
+  }
+}
