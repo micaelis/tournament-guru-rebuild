@@ -395,3 +395,29 @@ env vars aren't set the log-stub still writes to
 support_messages so the inbox on the admin side (deferred surface)
 can pick it up. Real routing to a distinct SendGrid template is a
 one-liner follow-up.
+
+---
+
+## Slice 7 — Admin content ops
+
+### S7.1 · Delete-flagged-review cascades child comments via FK
+Spec: delete the review + its comments + flag records. The
+schema's ON DELETE CASCADE from reviews to comments handles
+comment removal automatically; the action only has to delete
+flagged_content rows first (so the reviews-recalc trigger picks
+up the aggregate change on the parent event) and then delete the
+review row. No new triggers, no bespoke fan-out.
+
+### S7.2 · Admin block + delete route through SECURITY DEFINER RPCs
+The `blocked` column is deliberately out of the client UPDATE
+allow-list, so the admin flip needs a wrapper. admin_set_blocked
++ admin_delete_user gate on is_admin() at entry; delete_user
+delegates to delete_ed_account / soft_delete_attendee (Slice 6
+rpcs) so the same soft-delete rules apply whether the user
+initiates it or an admin does.
+
+### S7.3 · FAQ CRUD backed by native <details>
+FAQ list uses native <details> for expand/collapse rather than a
+custom accordion. Fewer moving parts, better keyboard support out
+of the box, and it matches the audience-facing display on the
+Support page.
