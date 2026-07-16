@@ -142,24 +142,18 @@ export default async function HomePage() {
         </section>
 
         {/* ─ Layer 3: Featured Events ─
-            Per Franco's brief (June 18): the strip needs to feel more
-            premium so buyers know why they'd pay for placement. Wrapped
-            in a soft red-tinted showcase container — subtle gradient
-            wash + faint red border + double-shadow — with a decorative
-            corner glow that ties back to brand red without shouting.
-            The per-card "Featured" text label was dropped (see
-            EventCard); the card border + dual coach/attendee ratings
-            now carry the differentiation. */}
+            The showcase zone stays transparent so the page aurora shows
+            through — no surface fill (a solid tint read too heavy). A
+            faint red border + decorative corner glow still mark it as
+            the premium placement strip. The per-card "Featured" text
+            label was dropped (see EventCard); the card border + dual
+            coach/attendee ratings now carry the differentiation. */}
         <section id="featured-events" className="relative mx-auto max-w-[1280px] px-6 pb-32 md:px-10" style={{ scrollMarginTop: 80 }}>
           <div
             className="relative overflow-hidden rounded-[28px]"
             style={{
               padding: "clamp(32px, 4vw, 56px) clamp(20px, 3vw, 48px)",
-              background:
-                "linear-gradient(180deg, #fff8f7 0%, #ffffff 55%, #fdfaf8 100%)",
               border: "1px solid rgba(220,38,38,.14)",
-              boxShadow:
-                "0 4px 12px -6px rgba(15,23,42,.06), 0 30px 60px -30px rgba(220,38,38,.16), inset 0 1px 0 rgba(255,255,255,.9)",
             }}
           >
             {/* Decorative brand glow — top-right corner wash. Kept behind
