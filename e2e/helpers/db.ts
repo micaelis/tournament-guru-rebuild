@@ -106,6 +106,100 @@ export async function deleteUser(id: string): Promise<void> {
   await service().auth.admin.deleteUser(id).catch(() => undefined);
 }
 
+export type PromoSeed = {
+  token: string;
+  email: string;
+  eventId: string;
+  tournamentId: string;
+  edId: string;
+  csvId: string;
+};
+
+const daysAgo = (n: number): string =>
+  new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10);
+
+/**
+ * Seed a full verified-review promo addressed to `email`: an ED owner, a
+ * tournament + a recently-concluded event, an approved CSV, and a 'sent'
+ * promo_code. Mirrors the C4 probe fixture. Tear down with deletePromo.
+ */
+export async function seedPromo(email: string): Promise<PromoSeed> {
+  const svc = service();
+  const ed = await createEventDirector({ completeOnboarding: true });
+
+  const { data: t, error: tErr } = await svc
+    .from("tournaments")
+    .insert({
+      title: `E2E Cup ${randomUUID().slice(0, 6)}`,
+      owner_id: ed.id,
+      created_by: ed.id,
+      claimed: true,
+    })
+    .select("id")
+    .single();
+  if (tErr || !t) throw new Error(`seedPromo tournament: ${tErr?.message}`);
+
+  const { data: e, error: eErr } = await svc
+    .from("events")
+    .insert({
+      tournament_id: t.id,
+      owner_id: ed.id,
+      created_by: ed.id,
+      claimed: true,
+      title: `E2E Event ${randomUUID().slice(0, 6)}`,
+      lifecycle: "active",
+      is_premium: true,
+      start_date: daysAgo(3),
+      end_date: daysAgo(1),
+    })
+    .select("id")
+    .single();
+  if (eErr || !e) throw new Error(`seedPromo event: ${eErr?.message}`);
+
+  const token = `T-${randomUUID().replace(/-/g, "").slice(0, 24)}`;
+  const { data: csv, error: csvErr } = await svc
+    .from("submitted_csvs")
+    .insert({
+      ed_id: ed.id,
+      event_id: e.id,
+      file_path: "e2e://",
+      raw_emails: [email],
+      status: "approved",
+    })
+    .select("id")
+    .single();
+  if (csvErr || !csv) throw new Error(`seedPromo csv: ${csvErr?.message}`);
+
+  const { error: pErr } = await svc.from("promo_codes").insert({
+    submitted_csv_id: csv.id,
+    event_id: e.id,
+    email,
+    pretty_code: "E2E12345",
+    url_token: token,
+    status: "sent",
+  });
+  if (pErr) throw new Error(`seedPromo promo_code: ${pErr.message}`);
+
+  return {
+    token,
+    email,
+    eventId: e.id as string,
+    tournamentId: t.id as string,
+    edId: ed.id,
+    csvId: csv.id as string,
+  };
+}
+
+/** Tear down a promo fixture (FK-safe order), then the ED owner. */
+export async function deletePromo(s: PromoSeed): Promise<void> {
+  const svc = service();
+  await svc.from("promo_codes").delete().eq("url_token", s.token);
+  await svc.from("submitted_csvs").delete().eq("id", s.csvId);
+  await svc.from("events").delete().eq("id", s.eventId);
+  await svc.from("tournaments").delete().eq("id", s.tournamentId);
+  await deleteUser(s.edId);
+}
+
 /**
  * A published (non-draft) seeded event to drive the event-detail page.
  * Skips the transient "Probe"/"Second" rows earlier test runs may have left
