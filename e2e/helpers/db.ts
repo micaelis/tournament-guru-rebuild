@@ -133,6 +133,7 @@ export async function deleteTournament(id: string): Promise<void> {
 /** A recently-concluded event owned by `ownerId` (+ its tournament). */
 export async function seedEvent(
   ownerId: string,
+  opts: { premium?: boolean } = {},
 ): Promise<{ tournamentId: string; eventId: string }> {
   const svc = service();
   const { data: t, error: tErr } = await svc
@@ -155,7 +156,7 @@ export async function seedEvent(
       claimed: true,
       title: `E2E Event ${randomUUID().slice(0, 6)}`,
       lifecycle: "active",
-      is_premium: false,
+      is_premium: opts.premium ?? false,
       start_date: daysAgo(3),
       end_date: daysAgo(1),
     })
@@ -167,6 +168,15 @@ export async function seedEvent(
 
 export async function deleteEvent(id: string): Promise<void> {
   await service().from("events").delete().eq("id", id);
+}
+
+/** Remove any submitted CSVs (+ their promo codes) for an event. */
+export async function deleteSubmittedCsvsForEvent(
+  eventId: string,
+): Promise<void> {
+  const svc = service();
+  await svc.from("promo_codes").delete().eq("event_id", eventId);
+  await svc.from("submitted_csvs").delete().eq("event_id", eventId);
 }
 
 /** A published coach review on `eventId` by `authorId`. Returns the id. */

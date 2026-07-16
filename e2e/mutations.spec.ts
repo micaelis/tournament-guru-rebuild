@@ -7,7 +7,9 @@ import {
   deleteUser,
   seedTournament,
   deleteTournament,
+  seedEvent,
   deleteEvent,
+  deleteSubmittedCsvsForEvent,
   deleteBannedWord,
   type SeededUser,
 } from "./helpers/db";
@@ -133,6 +135,50 @@ test.describe("Admin — delete a user", () => {
     } finally {
       if (target) await deleteUser(target.id);
       if (admin) await deleteUser(admin.id);
+    }
+  });
+});
+
+test.describe("Event director — promo CSV", () => {
+  test("uploads a coach CSV and submits it for admin review", async ({
+    page,
+  }) => {
+    let ed: SeededUser | undefined;
+    let seed: { tournamentId: string; eventId: string } | undefined;
+    try {
+      ed = await createEventDirector({ completeOnboarding: true });
+      seed = await seedEvent(ed.id, { premium: true });
+      await signIn(page, ed.email, ed.password);
+      await page.goto("/dashboard/promo-codes"); // ED default tab = submit
+
+      await page.locator('input[type="file"]').setInputFiles({
+        name: "coaches.csv",
+        mimeType: "text/csv",
+        buffer: Buffer.from("email\ncoach1@example.com\ncoach2@example.com"),
+      });
+      await expect(page.getByText(/unique emails parsed/)).toBeVisible();
+
+      await page
+        .getByRole("button", { name: "Submit for review" })
+        .click();
+      await expect(
+        page.getByRole("heading", { name: "Submit CSV for admin review?" }),
+      ).toBeVisible();
+      await page
+        .getByRole("dialog")
+        .getByRole("button", { name: "Submit", exact: true })
+        .click();
+
+      await expect(
+        page.getByText(/successfully submitted to the Admin/),
+      ).toBeVisible();
+    } finally {
+      if (seed) {
+        await deleteSubmittedCsvsForEvent(seed.eventId);
+        await deleteEvent(seed.eventId);
+        await deleteTournament(seed.tournamentId);
+      }
+      if (ed) await deleteUser(ed.id);
     }
   });
 });
