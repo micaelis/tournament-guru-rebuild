@@ -49,22 +49,6 @@ export default function SignupForm({
 
       <input type="hidden" name="user_type" value={userType} />
 
-      <Select
-        label={ROLE_QUESTION[userType]}
-        name="role_title"
-        required
-        placeholder="Select your role"
-        defaultValue={values.role_title ?? ""}
-        error={state.fieldErrors?.role_title}
-        validate={(v) => (v ? null : "Pick a role to continue.")}
-      >
-        {roles.map((role) => (
-          <option key={role.value} value={role.value}>
-            {role.label}
-          </option>
-        ))}
-      </Select>
-
       <Field
         label="Email"
         name="email"
@@ -85,6 +69,22 @@ export default function SignupForm({
         error={state.fieldErrors?.password}
         validate={validatePassword}
       />
+
+      <Select
+        label={ROLE_QUESTION[userType]}
+        name="role_title"
+        required
+        placeholder="Select your role"
+        defaultValue={values.role_title ?? ""}
+        error={state.fieldErrors?.role_title}
+        validate={(v) => (v ? null : "Pick a role to continue.")}
+      >
+        {roles.map((role) => (
+          <option key={role.value} value={role.value}>
+            {role.label}
+          </option>
+        ))}
+      </Select>
       <SubmitButton>Create account</SubmitButton>
     </form>
   );
