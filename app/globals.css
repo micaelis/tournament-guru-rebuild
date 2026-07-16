@@ -146,6 +146,11 @@ body {
 .tg-control::placeholder {
   color: var(--color-text-faint);
 }
+/* Soft hover — border shift per the style guide (borders, not shadows).
+   Focus, invalid, and disabled states keep their own border colors. */
+.tg-control:hover:not(:focus):not(:disabled):not([aria-invalid="true"]) {
+  border-color: #cbd5e1;
+}
 .tg-control:focus {
   outline: none;
   border-color: var(--color-accent);

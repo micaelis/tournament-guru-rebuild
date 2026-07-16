@@ -75,6 +75,9 @@ recurs on rating pools, reviewer cards, and metric strips — keep it consistent
   **border color on hover** (`#e2e8f0` → `#cbd5e1`/`#94a3b8`), NOT box-shadow. This keeps the
   UI flat and calm. Reserve soft shadows only for lifted interactive chips/primary buttons on hover.
 - **Focus:** inputs get `border: ink` + a `3px` soft ring (`rgba(15,23,42,.06)`).
+- **Input hover:** form controls (`.tg-control`) shift border color `#e2e8f0` → `#cbd5e1` on
+  hover — same border-not-shadow language as cards. Focus, invalid, and disabled states win
+  over the hover color.
 - **Hover motion:** interactive chips/primary buttons may lift `translateY(-1px)` with a soft
   shadow; cards do not move.
 
