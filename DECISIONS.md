@@ -504,6 +504,16 @@ one per flow area) all pass on the current tree. `npm test` runs
 the whole suite in ~11 s. Regressions caught: any of the RG1
 issues would flip one of the probes red on the next PR.
 
+### Backlog · event_milestones editor
+The public event page reads `event_milestones` for the "Key dates"
+section, but the Add/Edit Event form doesn't yet include a
+milestones editor — the section always renders empty in production.
+Turbo-check M-DEAD-2 flagged this; for now the render is gated on
+`milestones.length > 0` so an empty section doesn't ship, and
+wiring the editor stays on the backlog (spec calls for two
+auto-created milestones — Early-Bird Ends + Registration Deadline
+— plus manual entries per SCHEMA-DESIGN §3).
+
 ### RG1.Lint · 4 errors fixed
 - `app/(auth)/layout.tsx` — apostrophe → `&apos;`.
 - `app/(auth)/reset/RequestResetForm.tsx` — reworked cooldown to a
