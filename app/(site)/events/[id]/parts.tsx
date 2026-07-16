@@ -60,6 +60,7 @@ export function EventDetail({
   claimState: ClaimCtaState;
 }) {
   const concluded = eventConcluded(event.status, event.end_date);
+  const justEnded = endedWithinReviewWindow(event.end_date);
   const displayHostName =
     director?.display_name ??
     event.host_club ??
@@ -90,6 +91,8 @@ export function EventDetail({
         style={{ paddingTop: "clamp(20px, 3vw, 32px)" }}
       >
         <Breadcrumb title={event.title} />
+
+        {justEnded && <JustEndedReviewBanner event={event} />}
 
         <HeroGallery
           photos={event.photos ?? []}
@@ -157,6 +160,53 @@ export function EventDetail({
           </aside>
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ───────────────────────────────────────────────────────────────────
+   Just-ended review banner (spec §5.3) — a red prompt at the top of the
+   page for events that wrapped up inside the 30-day review window,
+   linking straight to the review-write route.
+   ─────────────────────────────────────────────────────────────────── */
+
+function JustEndedReviewBanner({ event }: { event: EventDetailRow }) {
+  return (
+    <div
+      className="relative mt-4 flex flex-wrap items-center justify-between gap-3 overflow-hidden rounded-2xl px-5 py-4"
+      style={{
+        background: "linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-dark) 100%)",
+        boxShadow: "0 14px 30px -16px rgba(220,38,38,.55)",
+      }}
+    >
+      <div className="min-w-0" style={{ color: "#fff" }}>
+        <div
+          className="font-heading uppercase"
+          style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: ".14em", opacity: 0.9 }}
+        >
+          This event just wrapped up
+        </div>
+        <div
+          className="font-heading"
+          style={{ fontSize: 16, fontWeight: 800, letterSpacing: "-0.01em", marginTop: 2 }}
+        >
+          Was your team at {event.title}? Share your experience.
+        </div>
+      </div>
+      <a
+        href={`/events/${event.id}/review`}
+        className="tg-hover font-heading inline-flex shrink-0 items-center gap-1.5 rounded-full bg-white no-underline"
+        style={{
+          padding: "10px 18px",
+          fontSize: 13,
+          fontWeight: 800,
+          color: "var(--color-accent-dark)",
+          boxShadow: "0 6px 16px -6px rgba(0,0,0,.35)",
+        }}
+      >
+        <PencilIcon />
+        Write a review
+      </a>
     </div>
   );
 }
@@ -2600,6 +2650,18 @@ function eventConcluded(status: string | null, endDate: string | null) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   return d < today;
+}
+
+/* Ended, and within the 30-day review window (spec §11 review edit
+   window) — the trigger for the top "write a review" prompt. */
+function endedWithinReviewWindow(endDate: string | null): boolean {
+  if (!endDate) return false;
+  const end = new Date(endDate);
+  if (isNaN(end.getTime())) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const days = (today.getTime() - end.getTime()) / 86_400_000;
+  return days > 0 && days <= 30;
 }
 
 function compactLocation(e: EventDetailRow): string | null {
