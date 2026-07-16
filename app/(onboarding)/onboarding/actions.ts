@@ -199,9 +199,12 @@ export async function saveStep3(
     }
   }
 
+  // Flip preferences_completed so the wizard's step-picker has an
+  // explicit signal that this step ran, even when the user skipped
+  // every optional field (see DECISIONS §RG1.H2).
   const { error: profileError } = await supabase
     .from("profiles")
-    .update({ distance_pref: distance })
+    .update({ distance_pref: distance, preferences_completed: true })
     .eq("id", user.id);
   if (profileError) return { error: profileError.message };
 

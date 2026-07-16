@@ -43,8 +43,8 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
               </p>
               <p className="mt-3 text-sm text-white/70">
                 Event information and verified reviews from previous attendees,
-                to help families, coaches, and managers pick their team's next
-                event.
+                to help families, coaches, and managers pick their team&apos;s
+                next event.
               </p>
               <div className="mt-6 flex flex-wrap gap-2">
                 {["Coaches", "Team Managers", "Parents", "Event Directors"].map(

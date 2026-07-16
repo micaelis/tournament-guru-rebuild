@@ -1,20 +1,32 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { createServerAuthClient } from "@/lib/supabase/server";
+import { createServerAuthClient, createAnonServerClient } from "@/lib/supabase/server";
 import { Button } from "@/app/components/ui";
 
 type Params = { token: string };
 
 /**
- * Promo landing — the 3rd auth variant. Resolves the URL token,
- * bumps the promo lifecycle from 'sent' → 'active' (spec: "the
- * reviewer (coach) has followed the link in the email, landed on
- * this page"), logs the funnel `landed` event, then routes the
- * caller to either the review form (signed-in + onboarded), the
- * onboarding wizard (signed-in but incomplete), or signup (anon).
+ * Promo landing — the 3rd auth variant, powered by SECURITY DEFINER
+ * RPCs.
  *
- * Invalid / missing token → the spec's "simple placeholder on the
- * left side" so the page never gives away whether a token existed.
+ * Anon caller:
+ *   `promo_landing_info(token)` (anon-callable) resolves the token to
+ *   an event_id + the email the promo was addressed to. We redirect
+ *   to /signup with type=attendee + role=coach + email pre-filled +
+ *   ?next set to this same URL so the coach lands right back here
+ *   post-signup.
+ *
+ * Signed-in caller:
+ *   `claim_promo(token)` (authenticated-only) verifies the caller's
+ *   auth.users.email matches promo.email. On success it flips
+ *   status='active', links user_id, logs a 'landed' funnel event,
+ *   and returns the target event_id. We then route to
+ *   /events/[event]/review?promo=<promo_id>.
+ *
+ * Every error path lands on the "this link isn't active" placeholder
+ * so we never leak which piece of the check failed (spec: "If the
+ * page doesn't have a promo value in the URL or if such a promo
+ * object doesn't exist - they should see a simple placeholder").
  */
 export default async function PromoLandingPage({
   params,
@@ -22,80 +34,29 @@ export default async function PromoLandingPage({
   params: Promise<Params>;
 }) {
   const { token } = await params;
+
   const supabase = await createServerAuthClient();
-  const { data: promo } = await supabase
-    .from("promo_codes")
-    .select("id, event_id, email, status, user_id")
-    .eq("url_token", token)
-    .maybeSingle<{
-      id: string;
-      event_id: string;
-      email: string;
-      status: "staged" | "sent" | "active" | "applied" | "void";
-      user_id: string | null;
-    }>();
-
-  if (!promo || promo.status === "void") {
-    return (
-      <main className="mx-auto max-w-lg px-6 py-24 text-center">
-        <h1 className="font-[var(--font-heading)] text-3xl font-extrabold text-slate-900">
-          This link isn&apos;t active
-        </h1>
-        <p className="mt-3 text-sm text-slate-500">
-          The promo you tried to open isn&apos;t on file — it may have expired
-          or been replaced. Reach out to the event director for a fresh link.
-        </p>
-        <div className="mt-6">
-          <Link href={"/events" as never}>
-            <Button>Browse events</Button>
-          </Link>
-        </div>
-      </main>
-    );
-  }
-
-  // Advance status once — the RPC-free "sent → active" flip. Applied +
-  // active + staged pass through unchanged so a re-hit from the same
-  // link doesn't over-write history.
-  if (promo.status === "sent") {
-    await supabase
-      .from("promo_codes")
-      .update({ status: "active" })
-      .eq("id", promo.id);
-  }
-  // Funnel: log a `landed` event on every hit. Multiple lands over
-  // time still count as separate funnel entries so the client's
-  // "where do reviewers drop off" analysis stays intact.
-  await supabase
-    .from("promo_funnel_events")
-    .insert({ promo_id: promo.id, step: "landed" });
-
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
-    // Route through signup — the coach signup flow with the target
-    // review as the post-auth destination + email pre-filled. Spec:
-    // "If no account exists with such an email — create an account
-    // with the provided details from step 1 and auto-populate the
-    // field user type to Attendee and role to Coach." We use the
-    // standard signup form pre-selected to attendee + coach.
-    const next = `/events/${promo.event_id}/review?promo=${promo.id}`;
+    // Anon lookup — safe: returns only what a valid token owner
+    // already knows (their event + the target email).
+    const anon = createAnonServerClient();
+    const { data } = await anon.rpc("promo_landing_info", { p_token: token });
+    const info = pickFirst<{ event_id: string; email: string }>(data);
+    if (!info) return placeholder();
+    const next = `/promo/${token}`;
     redirect(
-      `/signup?type=attendee&role=coach&email=${encodeURIComponent(promo.email)}&next=${encodeURIComponent(next)}`,
+      `/signup?type=attendee&role=coach&email=${encodeURIComponent(info.email)}&next=${encodeURIComponent(next)}`,
     );
   }
 
-  // Signed in — link the promo to the current user (if not linked)
-  // so the attendee dashboard promo tab can render it.
-  if (!promo.user_id) {
-    await supabase
-      .from("promo_codes")
-      .update({ user_id: user.id })
-      .eq("id", promo.id);
-  }
-
+  // Signed-in: attempt to claim. Definer RPC rejects (raises) when
+  // the caller's auth email doesn't match the promo's target — we
+  // treat every failure the same as a missing promo per the spec's
+  // anti-enumeration copy on this landing.
   const { data: profile } = await supabase
     .from("profiles")
     .select("onboarding_completed, user_type")
@@ -105,17 +66,54 @@ export default async function PromoLandingPage({
       user_type: "attendee" | "event_director" | "admin";
     }>();
   if (!profile) redirect("/login");
-
   if (profile.user_type !== "attendee") {
-    // Event directors + admins can't publish reviews — they've hit a
-    // wrong link. Route to the event page and let them read + share.
-    redirect(`/events/${promo.event_id}`);
+    // The link belongs to a different account type — send them to
+    // the event page instead of trying to claim.
+    const anon = createAnonServerClient();
+    const { data } = await anon.rpc("promo_landing_info", { p_token: token });
+    const info = pickFirst<{ event_id: string; email: string }>(data);
+    if (!info) return placeholder();
+    redirect(`/events/${info.event_id}`);
   }
-
   if (!profile.onboarding_completed) {
-    const next = `/events/${promo.event_id}/review?promo=${promo.id}`;
+    const next = `/promo/${token}`;
     redirect(`/onboarding?next=${encodeURIComponent(next)}`);
   }
 
-  redirect(`/events/${promo.event_id}/review?promo=${promo.id}`);
+  const { data: claim } = await supabase.rpc("claim_promo", { p_token: token });
+  const claimRow = pickFirst<{ promo_id: string; event_id: string }>(claim);
+  if (!claimRow) return placeholder();
+  redirect(
+    `/events/${claimRow.event_id}/review?promo=${claimRow.promo_id}`,
+  );
+}
+
+function placeholder() {
+  return (
+    <main className="mx-auto max-w-lg px-6 py-24 text-center">
+      <h1 className="font-[var(--font-heading)] text-3xl font-extrabold text-slate-900">
+        This link isn&apos;t active
+      </h1>
+      <p className="mt-3 text-sm text-slate-500">
+        The promo you tried to open isn&apos;t on file — it may have expired,
+        been reissued, or been sent to a different address. Reach out to the
+        event director for a fresh link.
+      </p>
+      <div className="mt-6">
+        <Link href={"/events" as never}>
+          <Button>Browse events</Button>
+        </Link>
+      </div>
+    </main>
+  );
+}
+
+/** RPC helpers return `data` as either a single row or an array
+ * depending on the return type. Normalize to `T | null`. */
+function pickFirst<T>(data: unknown): T | null {
+  if (!data) return null;
+  if (Array.isArray(data)) {
+    return (data[0] as T | undefined) ?? null;
+  }
+  return data as T;
 }

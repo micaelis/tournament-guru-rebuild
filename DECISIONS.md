@@ -421,3 +421,95 @@ FAQ list uses native <details> for expand/collapse rather than a
 custom accordion. Fewer moving parts, better keyboard support out
 of the box, and it matches the audience-facing display on the
 Support page.
+
+---
+
+## Review Gate 1 remediation
+
+### RG1.C1 · handle_new_user coerces the type; admin is never a self-signup
+Migration 20260716000011 rewrites the trigger: whatever
+`raw_user_meta_data.user_type` the client sends, we resolve to
+`event_director` iff exact match, otherwise `attendee`. `admin` is
+NEVER accepted. Role_title is then coerced back into the type's
+valid set (mismatched combos land on the safe default per type).
+Probe `c1-signup-privilege-escalation.test.ts` fires
+`signUp({data:{user_type:'admin'}})` via the anon key and asserts
+the resulting profile is attendee.
+
+### RG1.C2 · Pattern-class definer guards + REVOKE sweep
+Same migration:
+- Destructive callables (delete_event, delete_tournament,
+  scrub_profile_identity, anonymize_account, soft_delete_attendee,
+  delete_ed_account) all get an `is_admin() OR ownership` check at
+  entry — a normal user hitting them gets 42501.
+- Trigger-only + recalc helpers have EXECUTE revoked from
+  `public / anon / authenticated` so PostgREST can't call them at
+  all: handle_new_user, touch_updated_at, all trg_*, stamp_premium_at,
+  recalc_event_ratings, recalc_tournament_ratings, review_overall,
+  rate_limit_prune, trg_lock_profile_role, trim_recently_viewed.
+Probes in `c2-definer-guards.test.ts` verify each entry point
+rejects a non-owner authenticated caller.
+
+### RG1.C3 · apply_promo_to_review validates the whole chain
+Function now checks: caller signed in, review exists, review not
+already-guru, caller = review.author_id, promo exists, promo not
+applied/void, promo.event_id = review.event_id, promo.email =
+auth.users.email OR promo.user_id = auth.uid(). Sibling promos
+still auto-void. Probes in `c3-apply-promo.test.ts` cover the
+attacker case + the wrong-email case + the legit path.
+
+### RG1.C4 (+M2) · Definer promo landing RPCs with email binding
+Migration 20260716000012 introduces:
+- `promo_landing_info(p_token)` — anon-callable, returns just event
+  + email so the anon signup can pre-fill the target email. Safe:
+  the caller already has the token from their inbox.
+- `claim_promo(p_token)` — authenticated-only, verifies
+  auth.users.email = promo.email before flipping 'sent'→'active',
+  attaching user_id, and inserting a `landed` funnel event.
+Both grant EXECUTE to the appropriate role. The `/promo/[token]`
+page routes through these instead of touching `promo_codes`
+directly. Full flagship flow probe in `c4-promo-flow.test.ts`:
+CSV → promo issued → anon lands → coach signs up with matching
+email → claim_promo → publishes review → apply_promo_to_review →
+guru_review = true.
+
+### RG1.H1 · Public reviewer/host reads go through DEFINER views
+Same migration widens `review_author_public` to include
+organization_title and adds two new views:
+- `public_comment_authors` (comment_id, first_name, org, org_logo,
+  photo, user_type, is_owner_reply)
+- `public_event_owners` (id, first_name, org, description, logo,
+  photo)
+`listReviewsForEvent` + `listCommentsForReview` now fetch the base
+row set from the RLS-gated tables, then attach identity via a
+batched `.in()` against the view. Public event page's host sidebar
+also switched to `public_event_owners`. `h1-public-views.test.ts`
+asserts anon can read `first_name`+`organization_title` from the
+view but gets no rows on a direct `profiles` read, and that
+`last_name` is not exposed by the view.
+
+### RG1.H2 · preferences_completed drives the wizard, not distance_pref
+Same migration adds a `profiles.preferences_completed boolean`
+column + grants UPDATE on it to authenticated. `saveStep3` sets it
+true regardless of whether the user filled the optional fields;
+`step3Done()` in the page now reads that flag. ED skipping the
+distance / team pickers advances cleanly to step 4.
+`h2-onboarding-step3.test.ts` covers the flip via the client
+UPDATE grant.
+
+### RG1.Tests · vitest wired to `npm test`
+`tests/harness.ts` sets up anon + service_role clients pointed at
+the local Supabase stack. Probe files (one per critical + high +
+one per flow area) all pass on the current tree. `npm test` runs
+the whole suite in ~11 s. Regressions caught: any of the RG1
+issues would flip one of the probes red on the next PR.
+
+### RG1.Lint · 4 errors fixed
+- `app/(auth)/layout.tsx` — apostrophe → `&apos;`.
+- `app/(auth)/reset/RequestResetForm.tsx` — reworked cooldown to a
+  Date.now()-based expiry with an interval-driven `now`. The one
+  cross-effect setState carries a linter disable comment + an
+  inline note explaining why (external form-action signal, not
+  derived state).
+- `app/dashboard/account/page.tsx` — `any` casts replaced with
+  exported `AccountProfile` + `AccountTeam` types.

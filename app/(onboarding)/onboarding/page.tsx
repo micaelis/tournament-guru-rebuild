@@ -23,6 +23,7 @@ type ProfileSlice = {
   org_description: string | null;
   org_logo_url: string | null;
   onboarding_completed: boolean;
+  preferences_completed: boolean;
 };
 
 function step1Done(p: ProfileSlice): boolean {
@@ -38,18 +39,11 @@ function step2Done(p: ProfileSlice): boolean {
 }
 
 function step3Done(p: ProfileSlice): boolean {
-  // Attendee: step 3 is the final step and all fields are optional.
-  // We treat the user finishing step 3 (server sets onboarding_completed)
-  // as done. So if we're on this page and onboarding_completed is false
-  // for an attendee, step 3 hasn't been submitted yet. For ED, step 3
-  // "done" means we've passed it — mark complete when distance_pref is
-  // set or when the user_teams table has ≥1 row.
-  // For simplicity: the wizard advances via the ED action, which does
-  // NOT set a step-3-done flag on the profile. So we use a proxy: if
-  // the user has ANY user_teams row OR distance_pref is set, treat as
-  // done. Otherwise show it once and let the user submit (even empty)
-  // to advance.
-  return p.distance_pref !== null;
+  // Explicit signal (RG1.H2): saveStep3 flips preferences_completed
+  // regardless of whether the user filled the optional distance /
+  // team fields. Previously we guessed from distance_pref, which
+  // dead-ended ED onboarding when they skipped it.
+  return p.preferences_completed;
 }
 
 export default async function OnboardingPage() {
@@ -60,7 +54,7 @@ export default async function OnboardingPage() {
   const { data: profile } = await supabase
     .from("profiles")
     .select(
-      "user_type, role_title, first_name, last_name, organization_title, location_formatted, user_gender, dob, distance_pref, org_description, org_logo_url, onboarding_completed",
+      "user_type, role_title, first_name, last_name, organization_title, location_formatted, user_gender, dob, distance_pref, org_description, org_logo_url, onboarding_completed, preferences_completed",
     )
     .eq("id", userData.user.id)
     .maybeSingle<ProfileSlice>();

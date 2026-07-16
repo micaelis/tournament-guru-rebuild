@@ -29,7 +29,7 @@ type Tab = "profile" | "security" | "preferences" | "notifications";
 
 const INITIAL: AccountState = {};
 
-type Profile = {
+export type AccountProfile = {
   user_type: "attendee" | "event_director" | "admin";
   role_title: string;
   first_name: string | null;
@@ -54,13 +54,16 @@ type Profile = {
   inapp_favorited_events: boolean;
 };
 
-type Team = {
+export type AccountTeam = {
   id: string;
   slot: number;
   team_gender: string | null;
   age: string | null;
   competition_level: string | null;
 };
+
+type Profile = AccountProfile;
+type Team = AccountTeam;
 
 export function AccountClient({
   email,

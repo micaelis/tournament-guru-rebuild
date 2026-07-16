@@ -1,6 +1,6 @@
 import { requireSessionAndProfile } from "@/lib/supabase/session";
 import { createServerAuthClient } from "@/lib/supabase/server";
-import { AccountClient } from "./AccountClient";
+import { AccountClient, type AccountProfile, type AccountTeam } from "./AccountClient";
 
 /**
  * Account hub — server component that loads the user's profile row +
@@ -29,8 +29,8 @@ export default async function AccountPage() {
   return (
     <AccountClient
       email={user.email ?? ""}
-      profile={fullProfile as any}
-      teams={(teams ?? []) as any}
+      profile={fullProfile as unknown as AccountProfile}
+      teams={(teams ?? []) as unknown as AccountTeam[]}
       userType={profile.user_type}
     />
   );

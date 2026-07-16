@@ -78,8 +78,8 @@ export default async function PublicEventPage({
         .order("sort_order"),
       eventRow.owner_id
         ? supabaseAnon
-            .from("profiles")
-            .select("id, first_name, last_name, organization_title, org_description, org_logo_url")
+            .from("public_event_owners")
+            .select("id, first_name, organization_title, org_description, org_logo_url, profile_photo_url")
             .eq("id", eventRow.owner_id as string)
             .maybeSingle()
         : Promise.resolve({ data: null }),
@@ -105,10 +105,10 @@ export default async function PublicEventPage({
   const ownerProfile = (owner.data ?? null) as {
     id: string;
     first_name: string | null;
-    last_name: string | null;
     organization_title: string | null;
     org_description: string | null;
     org_logo_url: string | null;
+    profile_photo_url: string | null;
   } | null;
 
   if (user) {
@@ -338,9 +338,8 @@ export default async function PublicEventPage({
                 <div className="min-w-0">
                   <p className="truncate text-sm font-bold text-slate-900">
                     {ownerProfile.organization_title ??
-                      [ownerProfile.first_name, ownerProfile.last_name]
-                        .filter(Boolean)
-                        .join(" ")}
+                      ownerProfile.first_name ??
+                      "Event host"}
                   </p>
                   <Link
                     href={`/directors/${ownerProfile.id}` as Route}
