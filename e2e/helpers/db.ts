@@ -24,7 +24,7 @@ type UserType = "attendee" | "event_director";
 async function createUser(
   userType: UserType,
   role: string,
-  opts: { completeOnboarding?: boolean } = {},
+  opts: { completeOnboarding?: boolean; becomeAdmin?: boolean } = {},
 ): Promise<SeededUser> {
   const svc = service();
   const email = `e2e-${randomUUID()}@local.test`;
@@ -40,6 +40,16 @@ async function createUser(
     throw new Error(`createUser: ${error?.message ?? "no user returned"}`);
   }
   const id = data.user.id;
+
+  // Elevate BEFORE completing onboarding — a trigger locks user_type/role once
+  // onboarding_completed flips, and that lock applies to the service role too.
+  if (opts.becomeAdmin) {
+    const { error: adminErr } = await svc
+      .from("profiles")
+      .update({ user_type: "admin" })
+      .eq("id", id);
+    if (adminErr) throw new Error(`becomeAdmin: ${adminErr.message}`);
+  }
 
   if (opts.completeOnboarding) {
     const { error: upErr } = await svc
@@ -79,7 +89,42 @@ export function createEventDirector(
   return createUser("event_director", "event_director", opts);
 }
 
+/**
+ * Admin — onboarded, then elevated to user_type=admin via the service role
+ * (the handle_new_user trigger deliberately refuses admin from metadata, so
+ * this must be a post-hoc update; see the C1 probe).
+ */
+export async function createAdmin(): Promise<SeededUser> {
+  return createUser("attendee", "coach", {
+    becomeAdmin: true,
+    completeOnboarding: true,
+  });
+}
+
 /** Best-effort teardown — removes the auth user (cascades the profile). */
 export async function deleteUser(id: string): Promise<void> {
   await service().auth.admin.deleteUser(id).catch(() => undefined);
+}
+
+/**
+ * A published (non-draft) seeded event to drive the event-detail page.
+ * Skips the transient "Probe"/"Second" rows earlier test runs may have left
+ * so the title assertion lands on real demo data.
+ */
+export async function firstViewableEvent(): Promise<{
+  id: string;
+  title: string;
+}> {
+  const { data, error } = await service()
+    .from("events")
+    .select("id, title")
+    .neq("lifecycle", "draft")
+    .not("title", "ilike", "%Probe%")
+    .not("title", "ilike", "%Second%")
+    .order("title", { ascending: true })
+    .limit(1);
+  if (error) throw new Error(`firstViewableEvent: ${error.message}`);
+  const row = data?.[0];
+  if (!row) throw new Error("firstViewableEvent: no seeded events found");
+  return { id: row.id as string, title: row.title as string };
 }
