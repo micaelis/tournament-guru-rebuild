@@ -118,6 +118,25 @@ export type EventProfileSummary = {
   general_rating: number;
 };
 
+/** A director card in the About "Meet our team" directory. */
+export type EventDirectorRow = {
+  id: string;
+  display_name: string;
+  profile_picture: string | null;
+  org_logo: string | null;
+  club_affiliation: string | null;
+  event_count: number;
+  total_reviews: number;
+  avg_rating: number;
+};
+
+/** Paged directory result for the About page. */
+export type EventDirectorsPage = {
+  data: EventDirectorRow[];
+  total: number;
+  source: "rpc" | "unavailable";
+};
+
 /** Public director review row (ED page reviews tab). */
 export type DirectorReviewRow = {
   id: string;

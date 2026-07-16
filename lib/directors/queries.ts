@@ -5,6 +5,8 @@ import { legacyStatus } from "@/lib/events/status";
 import type {
   DirectorProfile,
   DirectorReviewRow,
+  EventDirectorsPage,
+  EventDirectorRow,
   EventRow,
 } from "@/app/components/types";
 
@@ -119,6 +121,100 @@ export async function getDirectorProfile(
     attendee_rating: attRated ? attSum / attRated : 0,
     attendee_reviews: attN,
   };
+}
+
+/**
+ * Paginated director directory for the About "Meet our team" grid.
+ * Replaces the old get_event_directors RPC — public_directors (event
+ * directors only, no PII) plus per-director aggregates derived from
+ * their non-draft events and PUBLISHED reviews.
+ */
+export async function getEventDirectors({
+  page = 1,
+  pageSize = 12,
+}: {
+  page?: number;
+  pageSize?: number;
+}): Promise<EventDirectorsPage> {
+  const supabase = createAnonServerClient();
+  const from = (page - 1) * pageSize;
+  const { data: dirs, count } = await supabase
+    .from("public_directors")
+    .select("id, first_name, last_name, organization_title, org_logo_url, profile_photo_url", {
+      count: "exact",
+    })
+    .order("organization_title", { ascending: true, nullsFirst: false })
+    .range(from, from + pageSize - 1);
+
+  const rows = (dirs ?? []) as {
+    id: string;
+    first_name: string | null;
+    last_name: string | null;
+    organization_title: string | null;
+    org_logo_url: string | null;
+    profile_photo_url: string | null;
+  }[];
+  const total = count ?? 0;
+  if (rows.length === 0) return { data: [], total, source: "rpc" };
+
+  const dirIds = rows.map((r) => r.id);
+  const { data: evs } = await supabase
+    .from("events")
+    .select("id, owner_id")
+    .in("owner_id", dirIds)
+    .neq("lifecycle", "draft");
+  const events = (evs ?? []) as { id: string; owner_id: string | null }[];
+
+  const eventCountByDir = new Map<string, number>();
+  const eventToDir = new Map<string, string>();
+  for (const e of events) {
+    if (!e.owner_id) continue;
+    eventCountByDir.set(e.owner_id, (eventCountByDir.get(e.owner_id) ?? 0) + 1);
+    eventToDir.set(e.id, e.owner_id);
+  }
+
+  const reviewCountByDir = new Map<string, number>();
+  const ratingSumByDir = new Map<string, number>();
+  const ratedCountByDir = new Map<string, number>();
+  if (events.length) {
+    const { data: rvs } = await supabase
+      .from("reviews")
+      .select("event_id, overall")
+      .eq("status", "published")
+      .in(
+        "event_id",
+        events.map((e) => e.id),
+      );
+    for (const rv of (rvs ?? []) as { event_id: string; overall: number | null }[]) {
+      const dir = eventToDir.get(rv.event_id);
+      if (!dir) continue;
+      reviewCountByDir.set(dir, (reviewCountByDir.get(dir) ?? 0) + 1);
+      const o = Number(rv.overall ?? 0);
+      if (o > 0) {
+        ratingSumByDir.set(dir, (ratingSumByDir.get(dir) ?? 0) + o);
+        ratedCountByDir.set(dir, (ratedCountByDir.get(dir) ?? 0) + 1);
+      }
+    }
+  }
+
+  const data: EventDirectorRow[] = rows.map((r) => {
+    const rated = ratedCountByDir.get(r.id) ?? 0;
+    return {
+      id: r.id,
+      display_name:
+        r.organization_title ||
+        [r.first_name, r.last_name].filter(Boolean).join(" ") ||
+        "Director",
+      profile_picture: r.profile_photo_url,
+      org_logo: r.org_logo_url,
+      club_affiliation: r.organization_title,
+      event_count: eventCountByDir.get(r.id) ?? 0,
+      total_reviews: reviewCountByDir.get(r.id) ?? 0,
+      avg_rating: rated ? (ratingSumByDir.get(r.id) ?? 0) / rated : 0,
+    };
+  });
+
+  return { data, total, source: "rpc" };
 }
 
 /** Rows for the events grid on the public ED page (and OtherEvents). */
