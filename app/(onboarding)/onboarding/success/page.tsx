@@ -72,7 +72,7 @@ export default async function OnboardingSuccessPage() {
           <div className="mt-8 space-y-3">
             <Link
               href={isED ? "/dashboard/events" : "/events"}
-              className="flex w-full items-center justify-center rounded-xl px-5 py-3 text-sm font-bold text-white transition-all hover:-translate-y-0.5"
+              className="flex w-full items-center justify-center rounded-2xl px-5 py-3.5 text-[15px] font-bold text-white transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0 active:shadow-md"
               style={{
                 background:
                   "linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-dark) 100%)",
@@ -83,7 +83,7 @@ export default async function OnboardingSuccessPage() {
             </Link>
             {!isED && (
               <Link
-                href="/dashboard/events"
+                href="/dashboard/reviews"
                 className="block w-full rounded-xl border border-slate-200 bg-white px-5 py-3 text-center text-sm font-semibold text-slate-700 transition-all hover:border-slate-300 hover:bg-slate-50"
               >
                 Go to Dashboard

@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import type { Route } from "next";
 import { useActionState } from "react";
 import { Alert, Field, SubmitButton } from "../../(auth)/parts";
 import { LocationAutocomplete } from "@/app/components/LocationAutocomplete";
@@ -47,10 +49,12 @@ type Profile = {
 
 export default function OnboardingWizard({
   step,
+  currentStep,
   userType,
   profile,
 }: {
   step: 1 | 2 | 3 | 4;
+  currentStep: number;
   userType: "attendee" | "event_director" | "admin";
   profile: Profile;
 }) {
@@ -62,11 +66,11 @@ export default function OnboardingWizard({
         {step === 1 && (
           <Step1Form userType={userType} profile={profile} />
         )}
-        {step === 2 && <Step2Form profile={profile} />}
+        {step === 2 && <Step2Form profile={profile} back={1} />}
         {step === 3 && (
-          <Step3Form userType={userType} profile={profile} />
+          <Step3Form userType={userType} profile={profile} back={2} />
         )}
-        {step === 4 && <Step4Form profile={profile} />}
+        {step === 4 && <Step4Form profile={profile} back={3} />}
       </div>
       <Footer />
     </div>
@@ -75,8 +79,8 @@ export default function OnboardingWizard({
 
 function Footer() {
   return (
-    <div className="mt-8 space-y-3 text-center">
-      <p className="text-sm text-slate-500">
+    <div className="mt-8 text-center">
+      <div className="text-sm text-slate-500">
         Wrong account?{" "}
         <form action={signOutAction} className="inline">
           <button
@@ -86,27 +90,7 @@ function Footer() {
             Sign out
           </button>
         </form>
-      </p>
-      <p
-        className="flex items-center justify-center gap-1.5"
-        style={{ fontSize: 11, fontWeight: 500, color: "var(--color-text-muted)" }}
-      >
-        <svg
-          width="12"
-          height="12"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <rect x="3" y="11" width="18" height="11" rx="2" />
-          <path d="M7 11V7a5 5 0 0110 0v4" />
-        </svg>
-        Your details stay private — we never share them.
-      </p>
+      </div>
     </div>
   );
 }
@@ -120,9 +104,9 @@ function Header({ step, totalSteps }: { step: number; totalSteps: number }) {
   ];
   const subtitles = [
     "Tell us a little about yourself.",
-    "Where are you and when's your birthday?",
-    "Help us find the right events for you. Everything here is optional — skip anything and adjust later.",
-    "Just a couple more details so attendees know who they're seeing.",
+    "Where are you and when’s your birthday?",
+    "Help us match the right events for you. Everything here is optional — you can always adjust later.",
+    "Just a couple more details so attendees know who they’re seeing.",
   ];
   return (
     <div>
@@ -157,12 +141,43 @@ function Header({ step, totalSteps }: { step: number; totalSteps: number }) {
   );
 }
 
-/* ── Shared chip styles ── */
+function BackLink({ to }: { to: number }) {
+  return (
+    <Link
+      href={`/onboarding?step=${to}` as Route}
+      className="flex w-full items-center justify-center gap-1.5 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-600 transition-all duration-200 hover:border-slate-300 hover:bg-slate-50 active:scale-[0.98]"
+    >
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M19 12H5M12 19l-7-7 7-7" />
+      </svg>
+      Back
+    </Link>
+  );
+}
 
-const CHIP_BASE =
-  "cursor-pointer select-none rounded-full border px-4 py-2.5 text-center text-sm font-semibold transition-all";
-const CHIP_OFF =
-  "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:shadow-sm";
+function ButtonRow({ back, children }: { back?: number; children: React.ReactNode }) {
+  if (!back) return <>{children}</>;
+  return (
+    <div className="flex gap-3">
+      <div className="w-28 shrink-0">
+        <BackLink to={back} />
+      </div>
+      <div className="flex-1">{children}</div>
+    </div>
+  );
+}
+
+/* ── Shared chip styles ── */
 
 function Chip({
   name,
@@ -181,7 +196,7 @@ function Chip({
 }) {
   return (
     <label
-      className={`${CHIP_BASE} ${CHIP_OFF} has-[input:checked]:border-slate-900 has-[input:checked]:bg-slate-900 has-[input:checked]:text-white has-[input:checked]:shadow-md`}
+      className="cursor-pointer select-none rounded-full border px-5 py-2.5 text-center text-sm font-semibold transition-all duration-150 border-slate-200 bg-white text-slate-700 shadow-sm hover:border-slate-400 hover:shadow-md active:scale-95 has-[input:checked]:border-slate-900 has-[input:checked]:bg-slate-900 has-[input:checked]:text-white has-[input:checked]:shadow-lg has-[input:checked]:scale-[1.02]"
     >
       <input
         type={type}
@@ -274,7 +289,7 @@ function Step1Form({
 
 /* ── Step 2 ── */
 
-function Step2Form({ profile }: { profile: Profile }) {
+function Step2Form({ profile, back }: { profile: Profile; back?: number }) {
   const [state, formAction] = useActionState(saveStep2, INITIAL);
   const { values, capture } = useSubmittedValues();
   const { shownError: genderError, revalidate: revalidateGender } =
@@ -342,15 +357,18 @@ function Step2Form({ profile }: { profile: Profile }) {
         label="Date of birth"
         name="dob"
         type="date"
-        placeholder="mm/dd/yyyy"
+        placeholder="MM/DD/YYYY"
         defaultValue={values.dob ?? profile.dob ?? ""}
         required
+        hint="MM/DD/YYYY — you must be at least 18."
         validate={(v) =>
           v && isAdultDob(v) ? null : "You must be at least 18."
         }
         error={state.fieldErrors?.dob}
       />
-      <SubmitButton>Continue</SubmitButton>
+      <ButtonRow back={back}>
+        <SubmitButton>Continue</SubmitButton>
+      </ButtonRow>
     </form>
   );
 }
@@ -360,9 +378,11 @@ function Step2Form({ profile }: { profile: Profile }) {
 function Step3Form({
   userType,
   profile,
+  back,
 }: {
   userType: "attendee" | "event_director" | "admin";
   profile: Profile;
+  back?: number;
 }) {
   const [state, formAction] = useActionState(saveStep3, INITIAL);
   const { values, capture } = useSubmittedValues();
@@ -379,10 +399,10 @@ function Step3Form({
       {state.error && <Alert kind="error">{state.error}</Alert>}
 
       {/* ── Distance ── */}
-      <fieldset>
+      <fieldset className="rounded-2xl border border-slate-200/80 bg-white/60 p-5 backdrop-blur-sm">
         <SectionLabel
-          label="Distance from your location"
-          hint="Maximum distance your team prefers to travel. Adjustable later on Find Events."
+          label="Travel distance"
+          hint="How far are you willing to travel? You can always change this later."
         />
         <div className="flex flex-wrap gap-2">
           {DISTANCE_PREFS.map((d) => (
@@ -404,11 +424,11 @@ function Step3Form({
       {/* ── Teams ── */}
       <div className="space-y-4">
         <SectionLabel
-          label={isParent ? "Your child's team" : "Your teams"}
+          label="Team details"
           hint={
-            isParent
-              ? "Helps us match events to the right age and level."
-              : "Add up to 3 teams — we'll tailor results to all of them."
+            teamCount > 1
+              ? "Add up to 3 teams — we'll tailor results to all of them."
+              : "Tell us about your team so we can match the right events."
           }
         />
         {Array.from({ length: teamCount }, (_, i) => i + 1).map((slot) => (
@@ -422,13 +442,28 @@ function Step3Form({
       </div>
 
       {/* ── Submit ── */}
-      <div className="pt-1">
-        <SubmitButton>
-          {userType === "event_director" ? "Continue" : "Finish"}
-        </SubmitButton>
-        <p className="mt-3 text-center text-xs text-slate-400">
+      <div className="space-y-4 pt-1">
+        <ButtonRow back={back}>
+          <SubmitButton>
+            {userType === "event_director" ? "Continue" : "Finish"}
+          </SubmitButton>
+        </ButtonRow>
+        <p className="text-center text-xs text-slate-500">
           Everything on this page is optional — skip anything.
         </p>
+        {userType !== "event_director" && (
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-white/50 px-5 py-4 text-center">
+            <p className="text-sm text-slate-500">
+              Want to look around first?
+            </p>
+            <Link
+              href={"/events" as Route}
+              className="mt-1 inline-block text-sm font-bold text-slate-800 underline decoration-slate-400 decoration-2 underline-offset-[3px] transition-colors hover:text-[var(--color-accent)] hover:decoration-[var(--color-accent)]"
+            >
+              Skip &amp; browse events
+            </Link>
+          </div>
+        )}
       </div>
     </form>
   );
@@ -444,7 +479,7 @@ function TeamSlot({
   teamCount: number;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white/70 p-5">
+    <div className="rounded-2xl border border-slate-200/80 bg-white/60 p-5 backdrop-blur-sm">
       {teamCount > 1 && (
         <p className="mb-4 text-[11px] font-bold uppercase tracking-widest text-slate-400">
           Team {slot}
@@ -454,7 +489,7 @@ function TeamSlot({
         {/* Gender — chips */}
         <fieldset>
           <legend className="mb-2 text-xs font-semibold text-slate-700">
-            Gender
+            Division
           </legend>
           <div className="flex flex-wrap gap-2">
             {TEAM_GENDERS.map((g) => (
@@ -512,7 +547,7 @@ function TeamSlot({
 
 /* ── Step 4 ── */
 
-function Step4Form({ profile }: { profile: Profile }) {
+function Step4Form({ profile, back }: { profile: Profile; back?: number }) {
   const [state, formAction] = useActionState(saveStep4, INITIAL);
   const { values, capture } = useSubmittedValues();
   const { shownError: descriptionError, revalidate: revalidateDescription } =
@@ -557,7 +592,9 @@ function Step4Form({ profile }: { profile: Profile }) {
           </span>
         )}
       </label>
-      <SubmitButton>Finish onboarding</SubmitButton>
+      <ButtonRow back={back}>
+        <SubmitButton>Finish onboarding</SubmitButton>
+      </ButtonRow>
     </form>
   );
 }

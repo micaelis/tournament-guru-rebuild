@@ -53,7 +53,12 @@ function step3Done(p: ProfileSlice): boolean {
   return p.preferences_completed;
 }
 
-export default async function OnboardingPage() {
+export default async function OnboardingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const sp = await searchParams;
   const supabase = await createServerAuthClient();
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) redirect("/login");
@@ -71,7 +76,7 @@ export default async function OnboardingPage() {
     redirect(postOnboardingDestination(profile.user_type));
   }
 
-  const step = !step1Done(profile)
+  const currentStep = !step1Done(profile)
     ? 1
     : !step2Done(profile)
       ? 2
@@ -79,9 +84,17 @@ export default async function OnboardingPage() {
         ? 4
         : 3;
 
+  // Allow navigating back to a completed step via ?step=N
+  const requestedStep = Number(sp.step);
+  const step =
+    requestedStep >= 1 && requestedStep < currentStep
+      ? (requestedStep as 1 | 2 | 3 | 4)
+      : currentStep;
+
   return (
     <OnboardingWizard
       step={step}
+      currentStep={currentStep}
       userType={profile.user_type}
       profile={{
         first_name: profile.first_name,

@@ -192,7 +192,7 @@ export function SubmitButton({
     <button
       type="submit"
       disabled={pending || disabled}
-      className={`flex w-full items-center justify-center rounded-xl px-5 py-3 text-sm font-bold text-white transition-transform hover:-translate-y-0.5 disabled:opacity-60 disabled:hover:translate-y-0 ${
+      className={`flex w-full items-center justify-center rounded-2xl px-5 py-3.5 text-[15px] font-bold text-white transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0 active:shadow-md disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none ${
         className ?? ""
       }`}
       style={{
