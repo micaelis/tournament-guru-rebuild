@@ -1,0 +1,72 @@
+name: CI
+
+# Runs typecheck, lint, and the Vitest RLS/logic probes against a fresh local
+# Supabase (schema + seed built from zero). This makes the security-floor probes
+# (c1–c4, h1, h2, rls-writes, claim-flow, validation) permanent regression guards:
+# a Gate-1-class regression can no longer merge silently.
+
+on:
+  push:
+    branches: [rebuild, main]
+  pull_request:
+    branches: [rebuild, main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start Supabase (boots local stack via Docker)
+        run: supabase start
+
+      - name: Reset DB from zero (applies migrations + seed.sql)
+        run: supabase db reset
+
+      - name: Export local Supabase env for the tests
+        # tests/harness.ts reads TEST_SUPABASE_URL / TEST_SUPABASE_ANON_KEY /
+        # TEST_SUPABASE_SERVICE_ROLE_KEY. The build step (next build) also
+        # wants the NEXT_PUBLIC_SUPABASE_URL / _ANON_KEY pair, so we
+        # export both under the same values.
+        run: |
+          STATUS=$(supabase status -o json)
+          API_URL=$(echo "$STATUS" | jq -r '.API_URL')
+          ANON_KEY=$(echo "$STATUS" | jq -r '.ANON_KEY')
+          SERVICE_ROLE_KEY=$(echo "$STATUS" | jq -r '.SERVICE_ROLE_KEY')
+          {
+            echo "TEST_SUPABASE_URL=$API_URL"
+            echo "TEST_SUPABASE_ANON_KEY=$ANON_KEY"
+            echo "TEST_SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+            echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY"
+          } >> "$GITHUB_ENV"
+
+      - name: Run tests (RLS / logic / flow probes)
+        run: npm test
+
+      # Optional build gate — remove if it's flaky against prerender.
+      - name: Build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ env.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ env.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
