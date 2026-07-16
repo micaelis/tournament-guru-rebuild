@@ -31,10 +31,10 @@ export default async function PromoCodesPage({
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="font-[var(--font-heading)] text-3xl font-extrabold text-slate-900">
+          <h1 className="font-[var(--font-heading)] text-2xl font-extrabold text-slate-900">
             Promo Codes
           </h1>
-          <p className="mt-2 text-sm text-slate-500">
+          <p className="mt-1.5 text-[13.5px] text-slate-500">
             Every promo code sent to you. Use the &quot;Write review&quot; CTA to
             land on the verified review form with your code pre-applied.
           </p>
@@ -55,10 +55,10 @@ export default async function PromoCodesPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-[var(--font-heading)] text-3xl font-extrabold text-slate-900">
+        <h1 className="font-[var(--font-heading)] text-2xl font-extrabold text-slate-900">
           Promo Codes
         </h1>
-        <p className="mt-2 text-sm text-slate-500">
+        <p className="mt-1.5 text-[13.5px] text-slate-500">
           {isAdmin
             ? "Review submitted CSVs and manage sent promo codes."
             : "Submit coach CSVs for admin approval and track the promo codes generated for your events."}

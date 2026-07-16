@@ -229,10 +229,7 @@ export function Alert({
   );
 }
 
-/**
- * The blocked-user modal. Shows once when loginAction returns
- * error === 'blocked'. The dismiss button routes back to /login.
- */
+/** Shows once when loginAction returns error === 'blocked'. */
 export function BlockedModal({ onDismiss }: { onDismiss: () => void }) {
   return (
     <div
@@ -246,12 +243,19 @@ export function BlockedModal({ onDismiss }: { onDismiss: () => void }) {
         </h3>
         <p className="mt-2 text-sm text-slate-600">
           We&apos;re sorry to let you know that your account has been
-          indefinitely blocked.
+          indefinitely blocked. If you believe this is a mistake, please
+          reach out to our support team.
         </p>
+        <a
+          href="mailto:support@tournamentguru.net"
+          className="mt-3 block text-sm font-semibold text-red-600 underline underline-offset-2 hover:text-red-700"
+        >
+          Contact support
+        </a>
         <button
           type="button"
           onClick={onDismiss}
-          className="mt-5 w-full rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-slate-700"
+          className="mt-4 w-full rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-slate-700"
         >
           Got it
         </button>

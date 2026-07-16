@@ -3,14 +3,11 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createServerAuthClient } from "@/lib/supabase/server";
-import { postOnboardingDestination } from "@/lib/supabase/session";
 import { isAdultDob } from "@/lib/validation";
 import { parseGeoFields } from "@/lib/geo";
 import {
-  ATTENDEE_ROLES,
   COMPETITION_LEVELS,
   DISTANCE_PREFS,
-  ED_ROLES,
   ORG_OPTIONAL_ROLES,
   TEAM_GENDERS,
   USER_GENDERS,
@@ -23,8 +20,9 @@ export type OnboardingState = {
 };
 
 /**
- * Step 1: first_name, last_name, role_title (within locked user_type),
- * organization_title (required unless the chosen role is parent_spectator).
+ * Step 1: first_name, last_name, organization_title (required unless the
+ * chosen role is parent_spectator). Role is captured during signup and is
+ * no longer asked here.
  */
 export async function saveStep1(
   _prev: OnboardingState,
@@ -32,7 +30,6 @@ export async function saveStep1(
 ): Promise<OnboardingState> {
   const first_name = String(formData.get("first_name") ?? "").trim();
   const last_name = String(formData.get("last_name") ?? "").trim();
-  const role_title = String(formData.get("role_title") ?? "").trim();
   const organization_title = String(
     formData.get("organization_title") ?? "",
   ).trim();
@@ -40,7 +37,6 @@ export async function saveStep1(
   const fieldErrors: Record<string, string> = {};
   if (!first_name) fieldErrors.first_name = "First name is required.";
   if (!last_name) fieldErrors.last_name = "Last name is required.";
-  if (!role_title) fieldErrors.role_title = "Pick a role to continue.";
 
   const supabase = await createServerAuthClient();
   const { data: userData } = await supabase.auth.getUser();
@@ -49,20 +45,12 @@ export async function saveStep1(
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("user_type")
+    .select("user_type, role_title")
     .eq("id", user.id)
-    .maybeSingle<{ user_type: "attendee" | "event_director" | "admin" }>();
+    .maybeSingle<{ user_type: "attendee" | "event_director" | "admin"; role_title: string }>();
   if (!profile) redirect("/login");
 
-  const validRoles: readonly string[] =
-    profile.user_type === "event_director"
-      ? ED_ROLES.map((r) => r.value)
-      : ATTENDEE_ROLES.map((r) => r.value);
-  if (role_title && !validRoles.includes(role_title)) {
-    fieldErrors.role_title = "That role doesn't match your account type.";
-  }
-
-  const orgRequired = !ORG_OPTIONAL_ROLES.has(role_title);
+  const orgRequired = !ORG_OPTIONAL_ROLES.has(profile.role_title);
   if (orgRequired && !organization_title) {
     fieldErrors.organization_title =
       profile.user_type === "event_director"
@@ -77,7 +65,6 @@ export async function saveStep1(
     .update({
       first_name,
       last_name,
-      role_title,
       organization_title: organization_title || null,
     })
     .eq("id", user.id);
@@ -219,13 +206,12 @@ export async function saveStep3(
   }
 
   if (profile.user_type !== "event_director") {
-    // Attendee → mark done + redirect out.
     const { error } = await supabase
       .from("profiles")
       .update({ onboarding_completed: true })
       .eq("id", user.id);
     if (error) return { error: error.message };
-    redirect(postOnboardingDestination(profile.user_type));
+    redirect("/onboarding/success");
   }
 
   revalidatePath("/onboarding");
@@ -265,5 +251,5 @@ export async function saveStep4(
     .eq("id", user.id);
   if (error) return { error: error.message };
 
-  redirect("/dashboard/events");
+  redirect("/onboarding/success");
 }

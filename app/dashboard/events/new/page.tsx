@@ -84,7 +84,7 @@ export default async function NewEventPage({
           <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-red-600">
             {tournament.title}
           </p>
-          <h1 className="mt-2 font-[var(--font-heading)] text-3xl font-extrabold text-slate-900">
+          <h1 className="mt-2 font-[var(--font-heading)] text-2xl font-extrabold text-slate-900">
             Add Event
           </h1>
         </div>

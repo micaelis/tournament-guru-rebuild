@@ -3,7 +3,7 @@
 import { useActionState, useState } from "react";
 import { Alert, Field } from "@/app/(auth)/parts";
 import { LocationAutocomplete } from "@/app/components/LocationAutocomplete";
-import { Button, useToast } from "@/app/components/ui";
+import { Button, Checkbox, FormButton, useToast } from "@/app/components/ui";
 import { useLiveValidation } from "@/app/components/ui/useLiveValidation";
 import { useSubmittedValues } from "@/app/components/ui/useSubmittedValues";
 import { validateEmail, validatePassword } from "@/lib/validation";
@@ -69,8 +69,6 @@ export type AccountTeam = {
   competition_level: string | null;
 };
 
-type Profile = AccountProfile;
-type Team = AccountTeam;
 
 export function AccountClient({
   email,
@@ -79,8 +77,8 @@ export function AccountClient({
   userType,
 }: {
   email: string;
-  profile: Profile;
-  teams: Team[];
+  profile: AccountProfile;
+  teams: AccountTeam[];
   userType: "attendee" | "event_director" | "admin";
 }) {
   const [tab, setTab] = useState<Tab>("profile");
@@ -141,7 +139,7 @@ function ProfileTab({
   isEd,
   isAdmin,
 }: {
-  profile: Profile;
+  profile: AccountProfile;
   isEd: boolean;
   isAdmin: boolean;
 }) {
@@ -276,7 +274,7 @@ function ProfileTab({
           />
         </>
       )}
-      <Button type="submit">Save changes</Button>
+      <FormButton pendingLabel="Saving…">Save changes</FormButton>
     </form>
   );
 }
@@ -320,7 +318,7 @@ function SecurityTab({
           validate={validateEmail}
           error={emailState.fieldErrors?.email}
         />
-        <Button type="submit">Send confirmation link</Button>
+        <FormButton pendingLabel="Sending…">Send confirmation link</FormButton>
       </form>
 
       <form
@@ -343,7 +341,7 @@ function SecurityTab({
           validate={validatePassword}
           error={pwState.fieldErrors?.password}
         />
-        <Button type="submit">Update password</Button>
+        <FormButton pendingLabel="Updating…">Update password</FormButton>
       </form>
 
       {canDelete && (
@@ -450,8 +448,8 @@ function PreferencesTab({
   profile,
   teams,
 }: {
-  profile: Profile;
-  teams: Team[];
+  profile: AccountProfile;
+  teams: AccountTeam[];
 }) {
   const [state, formAction] = useActionState(updateTeams, INITIAL);
   const { values, capture } = useSubmittedValues();
@@ -461,9 +459,9 @@ function PreferencesTab({
         ? null
         : "Invalid distance option.",
     );
-  const [localTeams, setLocalTeams] = useState<Team[]>(() => {
+  const [localTeams, setLocalTeams] = useState<AccountTeam[]>(() => {
     const maxSlots = profile.role_title === "parent_spectator" ? 1 : 3;
-    const list: Team[] = [];
+    const list: AccountTeam[] = [];
     for (let i = 1; i <= maxSlots; i++) {
       const existing = teams.find((t) => t.slot === i);
       list.push(
@@ -535,7 +533,7 @@ function PreferencesTab({
           />
         ))}
       </div>
-      <Button type="submit">Save preferences</Button>
+      <FormButton pendingLabel="Saving…">Save preferences</FormButton>
     </form>
   );
 }
@@ -547,9 +545,9 @@ function TeamSlot({
   onChange,
 }: {
   slot: number;
-  team: Team;
+  team: AccountTeam;
   values: Record<string, string>;
-  onChange: (next: Partial<Team>) => void;
+  onChange: (next: Partial<AccountTeam>) => void;
 }) {
   return (
     <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
@@ -620,7 +618,7 @@ function NotificationsTab({
   profile,
   isEd,
 }: {
-  profile: Profile;
+  profile: AccountProfile;
   isEd: boolean;
 }) {
   const [state, formAction] = useActionState(updateNotificationPrefs, INITIAL);
@@ -688,7 +686,7 @@ function NotificationsTab({
           />
         </>
       )}
-      <Button type="submit">Save</Button>
+      <FormButton pendingLabel="Saving…">Save</FormButton>
     </form>
   );
 }
@@ -711,22 +709,18 @@ function NotifRow({
       <p className="text-[13px] font-bold text-slate-800">{title}</p>
       <p className="mt-1 text-xs text-slate-500">{subtitle}</p>
       <div className="mt-2 flex flex-wrap gap-3">
-        <label className="flex items-center gap-2 text-xs font-semibold text-slate-800">
-          <input
-            type="checkbox"
-            name={namePair[0]}
-            defaultChecked={defaults.inapp}
-          />
-          In-app
-        </label>
-        <label className="flex items-center gap-2 text-xs font-semibold text-slate-800">
-          <input
-            type="checkbox"
-            name={namePair[1]}
-            defaultChecked={defaults.email}
-          />
-          Email
-        </label>
+        <Checkbox
+          size="sm"
+          name={namePair[0]}
+          defaultChecked={defaults.inapp}
+          label="In-app"
+        />
+        <Checkbox
+          size="sm"
+          name={namePair[1]}
+          defaultChecked={defaults.email}
+          label="Email"
+        />
       </div>
       <input type="hidden" name={`section:${section}`} value="1" />
     </div>

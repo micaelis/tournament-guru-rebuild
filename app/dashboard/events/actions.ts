@@ -58,10 +58,7 @@ export async function createTournament(
   return { createdId: data.id };
 }
 
-/**
- * Rename a tournament / toggle recurring. Callers only reach this on
- * tournaments they own (or via admin path).
- */
+/** Rename a tournament / toggle recurring. RLS restricts to owner. */
 export async function updateTournament(
   _prev: ActionState,
   formData: FormData,

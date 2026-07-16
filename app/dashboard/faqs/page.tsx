@@ -18,10 +18,10 @@ export default async function FaqsAdminPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-[var(--font-heading)] text-3xl font-extrabold text-slate-900">
+        <h1 className="font-[var(--font-heading)] text-2xl font-extrabold text-slate-900">
           FAQs
         </h1>
-        <p className="mt-2 text-sm text-slate-500">
+        <p className="mt-1.5 text-[13.5px] text-slate-500">
           Manage the questions shown to each audience under Support.
         </p>
       </div>

@@ -15,10 +15,8 @@ import {
 } from "./actions";
 import {
   AGE_BRACKETS,
-  ATTENDEE_ROLES,
   COMPETITION_LEVELS,
   DISTANCE_PREFS,
-  ED_ROLES,
   ORG_OPTIONAL_ROLES,
   TEAM_GENDERS,
   USER_GENDERS,
@@ -58,7 +56,7 @@ export default function OnboardingWizard({
 }) {
   const totalSteps = userType === "event_director" ? 4 : 3;
   return (
-    <div className="max-w-lg">
+    <div className="w-full max-w-xl">
       <Header step={step} totalSteps={totalSteps} />
       <div className="mt-8">
         {step === 1 && (
@@ -70,14 +68,45 @@ export default function OnboardingWizard({
         )}
         {step === 4 && <Step4Form profile={profile} />}
       </div>
-      <div className="mt-8 text-sm text-slate-500">
+      <Footer />
+    </div>
+  );
+}
+
+function Footer() {
+  return (
+    <div className="mt-8 space-y-3 text-center">
+      <p className="text-sm text-slate-500">
         Wrong account?{" "}
         <form action={signOutAction} className="inline">
-          <button type="submit" className="font-semibold text-slate-700 underline">
+          <button
+            type="submit"
+            className="font-semibold text-slate-700 underline decoration-slate-300 underline-offset-2 transition-colors hover:text-[var(--color-accent)] hover:decoration-[var(--color-accent)]"
+          >
             Sign out
           </button>
         </form>
-      </div>
+      </p>
+      <p
+        className="flex items-center justify-center gap-1.5"
+        style={{ fontSize: 11, fontWeight: 500, color: "var(--color-text-muted)" }}
+      >
+        <svg
+          width="12"
+          height="12"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <rect x="3" y="11" width="18" height="11" rx="2" />
+          <path d="M7 11V7a5 5 0 0110 0v4" />
+        </svg>
+        Your details stay private — we never share them.
+      </p>
     </div>
   );
 }
@@ -89,6 +118,12 @@ function Header({ step, totalSteps }: { step: number; totalSteps: number }) {
     "Preferred Event Criteria",
     "Your Organization",
   ];
+  const subtitles = [
+    "Tell us a little about yourself.",
+    "Where are you and when's your birthday?",
+    "Help us find the right events for you. Everything here is optional — skip anything and adjust later.",
+    "Just a couple more details so attendees know who they're seeing.",
+  ];
   return (
     <div>
       <div className="mb-4 flex items-center gap-2">
@@ -98,7 +133,7 @@ function Header({ step, totalSteps }: { step: number; totalSteps: number }) {
           return (
             <span
               key={n}
-              className={`h-1.5 flex-1 rounded-full ${
+              className={`h-1.5 flex-1 rounded-full transition-colors ${
                 done
                   ? "bg-slate-900"
                   : active
@@ -116,16 +151,69 @@ function Header({ step, totalSteps }: { step: number; totalSteps: number }) {
         {labels[step - 1]}
       </h1>
       <p className="mt-2 text-sm text-slate-600">
-        {step === 1 && "Tell us a little about yourself."}
-        {step === 2 && "Where are you and when's your birthday?"}
-        {step === 3 &&
-          "This information will make your event searching faster, easier, and more aligned with your specific needs. Feel free to skip anything."}
-        {step === 4 &&
-          "Just a couple more details so attendees know who they're seeing."}
+        {subtitles[step - 1]}
       </p>
     </div>
   );
 }
+
+/* ── Shared chip styles ── */
+
+const CHIP_BASE =
+  "cursor-pointer select-none rounded-full border px-4 py-2.5 text-center text-sm font-semibold transition-all";
+const CHIP_OFF =
+  "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:shadow-sm";
+
+function Chip({
+  name,
+  value,
+  label,
+  defaultChecked,
+  onChange,
+  type = "radio",
+}: {
+  name: string;
+  value: string;
+  label: string;
+  defaultChecked?: boolean;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  type?: "radio" | "checkbox";
+}) {
+  return (
+    <label
+      className={`${CHIP_BASE} ${CHIP_OFF} has-[input:checked]:border-slate-900 has-[input:checked]:bg-slate-900 has-[input:checked]:text-white has-[input:checked]:shadow-md`}
+    >
+      <input
+        type={type}
+        name={name}
+        value={value}
+        defaultChecked={defaultChecked}
+        onChange={onChange}
+        className="sr-only"
+      />
+      {label}
+    </label>
+  );
+}
+
+function SectionLabel({
+  label,
+  hint,
+}: {
+  label: string;
+  hint?: string;
+}) {
+  return (
+    <div className="mb-3">
+      <p className="text-[13px] font-semibold text-slate-800">{label}</p>
+      {hint && (
+        <p className="mt-0.5 text-xs text-slate-500">{hint}</p>
+      )}
+    </div>
+  );
+}
+
+/* ── Step 1 ── */
 
 function Step1Form({
   userType,
@@ -136,11 +224,6 @@ function Step1Form({
 }) {
   const [state, formAction] = useActionState(saveStep1, INITIAL);
   const { values, capture } = useSubmittedValues();
-  const roles = userType === "event_director" ? ED_ROLES : ATTENDEE_ROLES;
-  const { shownError: roleError, revalidate: revalidateRole } =
-    useLiveValidation(state.fieldErrors?.role_title, (value) =>
-      roles.some((r) => r.value === value) ? null : "Pick a role to continue.",
-    );
   const orgLabel = userType === "event_director" ? "Organization title" : "Club affiliation";
   return (
     <form
@@ -155,6 +238,7 @@ function Step1Form({
         <Field
           label="First name"
           name="first_name"
+          placeholder="Jane"
           defaultValue={values.first_name ?? profile.first_name ?? ""}
           required
           validate={(v) => (v.trim() ? null : "First name is required.")}
@@ -163,47 +247,17 @@ function Step1Form({
         <Field
           label="Last name"
           name="last_name"
+          placeholder="Doe"
           defaultValue={values.last_name ?? profile.last_name ?? ""}
           required
           validate={(v) => (v.trim() ? null : "Last name is required.")}
           error={state.fieldErrors?.last_name}
         />
       </div>
-      <fieldset>
-        <legend className="mb-2 text-[13px] font-semibold text-slate-800">
-          Role
-        </legend>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-          {roles.map((role) => (
-            <label
-              key={role.value}
-              className="cursor-pointer rounded-xl border border-slate-200 bg-white p-3 text-center text-sm font-semibold text-slate-800 has-[input:checked]:border-slate-900 has-[input:checked]:bg-slate-900 has-[input:checked]:text-white"
-            >
-              <input
-                type="radio"
-                name="role_title"
-                value={role.value}
-                defaultChecked={
-                  values.role_title
-                    ? values.role_title === role.value
-                    : profile.role_title === role.value
-                }
-                onChange={(e) => revalidateRole(e.currentTarget)}
-                className="sr-only"
-              />
-              {role.label}
-            </label>
-          ))}
-        </div>
-        {roleError && (
-          <p className="mt-1 text-xs font-medium text-red-600">
-            {roleError}
-          </p>
-        )}
-      </fieldset>
       <Field
         label={orgLabel}
         name="organization_title"
+        placeholder={userType === "event_director" ? "e.g. Florida Premier FC" : "e.g. Tampa Bay United"}
         defaultValue={values.organization_title ?? profile.organization_title ?? ""}
         hint={
           ORG_OPTIONAL_ROLES.has(profile.role_title)
@@ -217,6 +271,8 @@ function Step1Form({
     </form>
   );
 }
+
+/* ── Step 2 ── */
 
 function Step2Form({ profile }: { profile: Profile }) {
   const [state, formAction] = useActionState(saveStep2, INITIAL);
@@ -260,26 +316,20 @@ function Step2Form({ profile }: { profile: Profile }) {
         <legend className="mb-2 text-[13px] font-semibold text-slate-800">
           Gender
         </legend>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="flex flex-wrap gap-2">
           {USER_GENDERS.map((g) => (
-            <label
+            <Chip
               key={g.value}
-              className="cursor-pointer rounded-xl border border-slate-200 bg-white p-3 text-center text-sm font-semibold text-slate-800 has-[input:checked]:border-slate-900 has-[input:checked]:bg-slate-900 has-[input:checked]:text-white"
-            >
-              <input
-                type="radio"
-                name="user_gender"
-                value={g.value}
-                defaultChecked={
-                  values.user_gender
-                    ? values.user_gender === g.value
-                    : profile.user_gender === g.value
-                }
-                onChange={(e) => revalidateGender(e.currentTarget)}
-                className="sr-only"
-              />
-              {g.label}
-            </label>
+              name="user_gender"
+              value={g.value}
+              label={g.label}
+              defaultChecked={
+                values.user_gender
+                  ? values.user_gender === g.value
+                  : profile.user_gender === g.value
+              }
+              onChange={(e) => revalidateGender(e.currentTarget)}
+            />
           ))}
         </div>
         {genderError && (
@@ -292,6 +342,7 @@ function Step2Form({ profile }: { profile: Profile }) {
         label="Date of birth"
         name="dob"
         type="date"
+        placeholder="mm/dd/yyyy"
         defaultValue={values.dob ?? profile.dob ?? ""}
         required
         validate={(v) =>
@@ -303,6 +354,8 @@ function Step2Form({ profile }: { profile: Profile }) {
     </form>
   );
 }
+
+/* ── Step 3 — Preferred Event Criteria ── */
 
 function Step3Form({
   userType,
@@ -321,52 +374,61 @@ function Step3Form({
         capture(fd);
         formAction(fd);
       }}
-      className="space-y-6"
+      className="space-y-8"
     >
       {state.error && <Alert kind="error">{state.error}</Alert>}
+
+      {/* ── Distance ── */}
       <fieldset>
-        <legend className="mb-2 text-[13px] font-semibold text-slate-800">
-          Distance from your location
-        </legend>
-        <p className="mb-3 text-xs text-slate-500">
-          Maximum distance your team prefers to travel for events. Adjustable
-          later on Find Events.
-        </p>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <SectionLabel
+          label="Distance from your location"
+          hint="Maximum distance your team prefers to travel. Adjustable later on Find Events."
+        />
+        <div className="flex flex-wrap gap-2">
           {DISTANCE_PREFS.map((d) => (
-            <label
+            <Chip
               key={d.value}
-              className="cursor-pointer rounded-xl border border-slate-200 bg-white p-3 text-center text-sm font-semibold text-slate-800 has-[input:checked]:border-slate-900 has-[input:checked]:bg-slate-900 has-[input:checked]:text-white"
-            >
-              <input
-                type="radio"
-                name="distance_pref"
-                value={d.value}
-                defaultChecked={
-                  values.distance_pref
-                    ? values.distance_pref === d.value
-                    : profile.distance_pref === d.value
-                }
-                className="sr-only"
-              />
-              {d.label}
-            </label>
+              name="distance_pref"
+              value={d.value}
+              label={d.label}
+              defaultChecked={
+                values.distance_pref
+                  ? values.distance_pref === d.value
+                  : profile.distance_pref === d.value
+              }
+            />
           ))}
         </div>
       </fieldset>
+
+      {/* ── Teams ── */}
       <div className="space-y-4">
-        <p className="text-[13px] font-semibold text-slate-800">
-          Your team{teamCount > 1 ? "s" : ""}
-        </p>
+        <SectionLabel
+          label={isParent ? "Your child's team" : "Your teams"}
+          hint={
+            isParent
+              ? "Helps us match events to the right age and level."
+              : "Add up to 3 teams — we'll tailor results to all of them."
+          }
+        />
         {Array.from({ length: teamCount }, (_, i) => i + 1).map((slot) => (
-          <TeamSlot key={slot} slot={slot} values={values} />
+          <TeamSlot
+            key={slot}
+            slot={slot}
+            values={values}
+            teamCount={teamCount}
+          />
         ))}
       </div>
-      <div className="flex items-center justify-between text-xs text-slate-500">
-        <span>All fields optional.</span>
-        <SubmitButton className="!w-auto">
+
+      {/* ── Submit ── */}
+      <div className="pt-1">
+        <SubmitButton>
           {userType === "event_director" ? "Continue" : "Finish"}
         </SubmitButton>
+        <p className="mt-3 text-center text-xs text-slate-400">
+          Everything on this page is optional — skip anything.
+        </p>
       </div>
     </form>
   );
@@ -375,43 +437,49 @@ function Step3Form({
 function TeamSlot({
   slot,
   values,
+  teamCount,
 }: {
   slot: number;
   values: Record<string, string>;
+  teamCount: number;
 }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4">
-      <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-500">
-        Team {slot}
-      </p>
-      <div className="grid grid-cols-3 gap-3">
-        <label className="block">
-          <span className="mb-1 block text-xs font-semibold text-slate-700">
+    <div className="rounded-2xl border border-slate-200 bg-white/70 p-5">
+      {teamCount > 1 && (
+        <p className="mb-4 text-[11px] font-bold uppercase tracking-widest text-slate-400">
+          Team {slot}
+        </p>
+      )}
+      <div className="space-y-4">
+        {/* Gender — chips */}
+        <fieldset>
+          <legend className="mb-2 text-xs font-semibold text-slate-700">
             Gender
-          </span>
-          <select
-            name={`team_${slot}_gender`}
-            className="tg-control tg-select"
-            defaultValue={values[`team_${slot}_gender`] ?? ""}
-          >
-            <option value="">—</option>
+          </legend>
+          <div className="flex flex-wrap gap-2">
             {TEAM_GENDERS.map((g) => (
-              <option key={g.value} value={g.value}>
-                {g.label}
-              </option>
+              <Chip
+                key={g.value}
+                name={`team_${slot}_gender`}
+                value={g.value}
+                label={g.label}
+                defaultChecked={values[`team_${slot}_gender`] === g.value}
+              />
             ))}
-          </select>
-        </label>
+          </div>
+        </fieldset>
+
+        {/* Age — dropdown (too many options for chips) */}
         <label className="block">
-          <span className="mb-1 block text-xs font-semibold text-slate-700">
-            Age
+          <span className="mb-1.5 block text-xs font-semibold text-slate-700">
+            Age group
           </span>
           <select
             name={`team_${slot}_age`}
-            className="tg-control tg-select"
+            className="tg-control tg-select transition-all"
             defaultValue={values[`team_${slot}_age`] ?? ""}
           >
-            <option value="">—</option>
+            <option value="">Select age group</option>
             {AGE_BRACKETS.map((a) => (
               <option key={a} value={a}>
                 {a}
@@ -419,27 +487,30 @@ function TeamSlot({
             ))}
           </select>
         </label>
-        <label className="block">
-          <span className="mb-1 block text-xs font-semibold text-slate-700">
-            Level
-          </span>
-          <select
-            name={`team_${slot}_level`}
-            className="tg-control tg-select"
-            defaultValue={values[`team_${slot}_level`] ?? ""}
-          >
-            <option value="">—</option>
+
+        {/* Competitive level — chips */}
+        <fieldset>
+          <legend className="mb-2 text-xs font-semibold text-slate-700">
+            Competitive level
+          </legend>
+          <div className="flex flex-wrap gap-2">
             {COMPETITION_LEVELS.map((c) => (
-              <option key={c.value} value={c.value}>
-                {c.label}
-              </option>
+              <Chip
+                key={c.value}
+                name={`team_${slot}_level`}
+                value={c.value}
+                label={c.label}
+                defaultChecked={values[`team_${slot}_level`] === c.value}
+              />
             ))}
-          </select>
-        </label>
+          </div>
+        </fieldset>
       </div>
     </div>
   );
 }
+
+/* ── Step 4 ── */
 
 function Step4Form({ profile }: { profile: Profile }) {
   const [state, formAction] = useActionState(saveStep4, INITIAL);
@@ -462,7 +533,7 @@ function Step4Form({ profile }: { profile: Profile }) {
         name="org_logo_url"
         type="url"
         defaultValue={values.org_logo_url ?? profile.org_logo_url ?? ""}
-        placeholder="https://…"
+        placeholder="https://yoursite.com/logo.png"
         hint="Optional for now — you'll be able to upload a file from your Account settings."
         error={state.fieldErrors?.org_logo_url}
       />
@@ -475,9 +546,10 @@ function Step4Form({ profile }: { profile: Profile }) {
           defaultValue={values.org_description ?? profile.org_description ?? ""}
           rows={5}
           required
+          placeholder="Tell potential attendees about your organization, history, and what makes your events special..."
           onInput={(e) => revalidateDescription(e.currentTarget)}
           aria-invalid={descriptionError ? true : undefined}
-          className="tg-control resize-none"
+          className="tg-control resize-none transition-all"
         />
         {descriptionError && (
           <span className="mt-1 block text-xs font-medium text-red-600">

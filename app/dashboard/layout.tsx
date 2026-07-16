@@ -48,7 +48,7 @@ export default async function DashboardLayout({
               role_label: roleLabel,
             }}
           />
-          <main className="flex-1 px-6 py-8 md:px-10 md:py-10">
+          <main className="flex-1 px-6 py-8 md:px-12 md:py-12">
             <div className="mx-auto max-w-6xl">{children}</div>
           </main>
         </div>

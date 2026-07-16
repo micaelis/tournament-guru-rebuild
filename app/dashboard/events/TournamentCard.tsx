@@ -54,12 +54,12 @@ export function TournamentCard({
 
   return (
     <Card className="overflow-hidden">
-      <header className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 p-5">
+      <header className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 px-5 py-4">
         <div>
-          <h2 className="font-[var(--font-heading)] text-xl font-extrabold text-slate-900">
+          <h2 className="font-[var(--font-heading)] text-lg font-extrabold text-slate-900">
             {tournament.title}
           </h2>
-          <p className="mt-1 text-xs font-medium text-slate-500">
+          <p className="mt-1 text-[12px] font-medium text-slate-400">
             {eventCount === 0
               ? "No events yet"
               : `${eventCount} ${eventCount === 1 ? "event" : "events"}`}

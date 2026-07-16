@@ -73,6 +73,7 @@ export function ClaimRequestsTable({
         <input
           type="search"
           placeholder="Search by event or organization…"
+          aria-label="Search claim requests"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="tg-control min-w-[240px] flex-1"
@@ -80,6 +81,7 @@ export function ClaimRequestsTable({
         <select
           value={status}
           onChange={(e) => setStatus(e.target.value as FilterStatus)}
+          aria-label="Filter by status"
           className="tg-control tg-select w-auto min-w-[180px]"
         >
           <option value="all">All statuses</option>

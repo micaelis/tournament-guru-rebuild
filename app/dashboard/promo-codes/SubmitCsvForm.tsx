@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState, useTransition } from "react";
+import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { Route } from "next";
@@ -34,6 +34,25 @@ export function SubmitCsvForm({ events }: { events: EventOption[] }) {
   const [showConfirm, setShowConfirm] = useState(false);
   const router = useRouter();
   const { push } = useToast();
+  const submittedRef = useRef(false);
+
+  useEffect(() => {
+    if (!submittedRef.current) return;
+    if (state.error) {
+      push("error", state.error);
+    } else {
+      push(
+        "success",
+        "Your file has been successfully submitted to the Admin and will be reviewed shortly.",
+      );
+      setCsvText("");
+      setFileName("");
+      setPreviewCount(null);
+      setPreviewErrors([]);
+      router.refresh();
+    }
+    submittedRef.current = false;
+  }, [state, push, router]);
   // Mirrors submitCsv's parse gate: at least one valid email, capped at
   // MAX_CSV_ROWS. The file input's value is a fake path, so revalidate
   // gets a synthetic control carrying the CSV text instead.
@@ -199,20 +218,15 @@ export function SubmitCsvForm({ events }: { events: EventOption[] }) {
                 Back
               </Button>
               <Button
+                disabled={pending}
                 onClick={() => {
                   const fd = new FormData();
                   fd.set("event_id", eventId);
                   fd.set("csv_text", csvText);
                   fd.set("file_name", fileName || "coach-list.csv");
                   setShowConfirm(false);
-                  startTransition(async () => {
-                    await formAction(fd);
-                    push(
-                      "success",
-                      "Your file has been successfully submitted to the Admin and will be reviewed shortly.",
-                    );
-                    router.refresh();
-                  });
+                  submittedRef.current = true;
+                  startTransition(() => formAction(fd));
                 }}
               >
                 Submit

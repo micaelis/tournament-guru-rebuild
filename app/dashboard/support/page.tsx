@@ -33,10 +33,10 @@ export default async function SupportPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-[var(--font-heading)] text-3xl font-extrabold text-slate-900">
+        <h1 className="font-[var(--font-heading)] text-2xl font-extrabold text-slate-900">
           Support
         </h1>
-        <p className="mt-2 text-sm text-slate-500">
+        <p className="mt-1.5 text-[13.5px] text-slate-500">
           Get in touch and let us know how we can help.
         </p>
       </div>

@@ -110,7 +110,7 @@ export function ReviewWriteForm({
 
   useEffect(() => {
     if (state.savedId) {
-      router.push(`/events/${eventId}?msg=saved`);
+      router.push(`/events/${eventId}?flash=success:Review saved`);
     }
   }, [state.savedId, router, eventId]);
 

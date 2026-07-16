@@ -11,11 +11,6 @@ export type MetricTileData = {
   hint?: string;
 };
 
-/**
- * One metric tile — yellow-fill tone matches the ED dashboard mock
- * ("nice yellow card fill for average of overall rating"). Renders
- * a compact star row + two-decimal average + review count.
- */
 export function MetricTile({
   label,
   value,
@@ -27,30 +22,24 @@ export function MetricTile({
   return (
     <div
       className={cn(
-        "rounded-xl border border-amber-100 bg-amber-50/70 p-3",
-        empty && "opacity-60",
+        "rounded-xl border border-slate-150 bg-slate-50/80 p-3",
+        empty && "opacity-50",
         className,
       )}
     >
-      <p className="text-[11px] font-bold uppercase tracking-wider text-amber-900/70">
+      <p className="text-[10.5px] font-bold uppercase tracking-wider text-slate-400">
         {label}
       </p>
       <div className="mt-1.5">
         <StarRating value={value ?? 0} count={count} size={13} />
       </div>
       {hint && (
-        <p className="mt-1 text-[11px] font-medium text-amber-900/60">{hint}</p>
+        <p className="mt-1 text-[11px] font-medium text-slate-500">{hint}</p>
       )}
     </div>
   );
 }
 
-/**
- * The horizontal metric row on the ED Events page (6 or 9 tiles),
- * with an optional collapse chevron. The 9-tile tournament strip
- * shows Overall/Coach/Attendee first, then the 6 categories; the
- * 6-tile event strip shows just the categories.
- */
 export function MetricStrip({
   tiles,
   collapsible = true,
@@ -73,13 +62,13 @@ export function MetricStrip({
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             {title && (
-              <p className="text-[13px] font-bold text-slate-800">{title}</p>
+              <p className="text-[13px] font-bold text-slate-700">{title}</p>
             )}
             {collapsible && (
               <button
                 type="button"
                 onClick={() => setOpen((o) => !o)}
-                className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:border-slate-400"
+                className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-500 transition-colors hover:border-slate-400 hover:text-slate-700"
               >
                 {open ? "Hide" : "Show"}
               </button>
@@ -90,7 +79,7 @@ export function MetricStrip({
       )}
       {open && (
         <div
-          className="grid gap-3"
+          className="grid gap-2.5"
           style={{
             gridTemplateColumns: `repeat(auto-fit, minmax(140px, 1fr))`,
           }}

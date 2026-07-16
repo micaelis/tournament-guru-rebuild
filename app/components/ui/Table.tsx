@@ -32,7 +32,7 @@ export function Table({
 
 export function THead({ children }: { children: ReactNode }) {
   return (
-    <thead className="border-b border-slate-100 bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+    <thead className="border-b border-slate-100 bg-slate-50/70 text-[10.5px] font-bold uppercase tracking-wider text-slate-400">
       {children}
     </thead>
   );
@@ -62,7 +62,7 @@ export function TH({
   ...rest
 }: { children: ReactNode } & ThHTMLAttributes<HTMLTableCellElement>) {
   return (
-    <th {...rest} className={cn("px-4 py-3 font-bold", className)}>
+    <th {...rest} className={cn("px-4 py-3.5 font-bold", className)}>
       {children}
     </th>
   );
@@ -76,7 +76,7 @@ export function TD({
   children: ReactNode;
 } & TdHTMLAttributes<HTMLTableCellElement>) {
   return (
-    <td {...rest} className={cn("px-4 py-3 text-slate-800", className)}>
+    <td {...rest} className={cn("px-4 py-3.5 text-slate-700", className)}>
       {children}
     </td>
   );

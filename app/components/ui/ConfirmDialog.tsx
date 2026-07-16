@@ -1,14 +1,8 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Button } from "./Button";
 
-/**
- * Destructive-action confirmation modal. Every "Delete", "Block user",
- * "Reject", "Cancel event" flow in the ED/Admin dashboards routes
- * through this one component (per the RTF spec: "should prompt a
- * confirmation popup first"). Confirm button is red-tinted by default.
- */
 export function ConfirmDialog({
   open,
   title,
@@ -25,12 +19,15 @@ export function ConfirmDialog({
   confirmLabel?: string;
   cancelLabel?: string;
   destructive?: boolean;
-  onConfirm: () => void;
+  onConfirm: () => void | Promise<void>;
   onClose: () => void;
 }) {
   const ref = useRef<HTMLDivElement | null>(null);
+  const [pending, setPending] = useState(false);
+
   useEffect(() => {
     if (!open) return;
+    setPending(false);
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
@@ -40,13 +37,23 @@ export function ConfirmDialog({
   }, [open, onClose]);
 
   if (!open) return null;
+
+  const handleConfirm = async () => {
+    setPending(true);
+    try {
+      await onConfirm();
+    } finally {
+      setPending(false);
+    }
+  };
+
   return (
     <div
       role="dialog"
       aria-modal="true"
       className="fixed inset-0 z-50 grid place-items-center bg-slate-900/50 p-4"
       onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (e.target === e.currentTarget && !pending) onClose();
       }}
     >
       <div
@@ -59,14 +66,15 @@ export function ConfirmDialog({
         </h3>
         {body && <p className="mt-2 text-sm text-slate-600">{body}</p>}
         <div className="mt-6 flex justify-end gap-2">
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="ghost" onClick={onClose} disabled={pending}>
             {cancelLabel}
           </Button>
           <Button
             variant={destructive ? "danger" : "primary"}
-            onClick={onConfirm}
+            onClick={handleConfirm}
+            disabled={pending}
           >
-            {confirmLabel}
+            {pending ? "…" : confirmLabel}
           </Button>
         </div>
       </div>

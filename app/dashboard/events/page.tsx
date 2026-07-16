@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { requireSessionAndProfile } from "@/lib/supabase/session";
 import { WelcomeCard } from "./WelcomeCard";
 import { TournamentCard } from "./TournamentCard";
@@ -33,7 +34,7 @@ const VALID_SORTS: TournamentSort[] = [
  * see the WelcomeCard (empty state); as soon as at least one exists
  * they see the searchable / sortable list of TournamentCards. Admin
  * sees the same page scoped to all tournaments (RLS lets them read
- * everyone's); the admin-only columns + CSV + QR ship in S1.5.
+ * everyone's).
  */
 export default async function EventsDashboardPage({
   searchParams,
@@ -41,6 +42,7 @@ export default async function EventsDashboardPage({
   searchParams: Promise<SearchParams>;
 }) {
   const { profile, user } = await requireSessionAndProfile();
+  if (profile.user_type === "attendee") redirect("/events");
   const sp = await searchParams;
   const scope: "own" | "all" = profile.user_type === "admin" ? "all" : "own";
 
@@ -84,12 +86,12 @@ export default async function EventsDashboardPage({
     tournaments.length === 0 && !search && profile.user_type !== "admin";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <h1 className="font-[var(--font-heading)] text-3xl font-extrabold text-slate-900">
+        <h1 className="font-[var(--font-heading)] text-2xl font-extrabold text-slate-900">
           {profile.user_type === "admin" ? "All events" : "Your events"}
         </h1>
-        <p className="mt-2 text-sm text-slate-500">
+        <p className="mt-1.5 text-[13.5px] text-slate-500">
           {profile.user_type === "admin"
             ? "Every tournament on the platform, in one place."
             : "Manage your tournaments and the events under them."}
@@ -106,7 +108,7 @@ export default async function EventsDashboardPage({
           <EventsToolbar
             initialSearch={search}
             initialSort={sort}
-            showAdd={profile.user_type !== "attendee"}
+            showAdd
             isAdmin={isAdmin}
             hasResults={tournaments.length > 0}
           />
@@ -115,7 +117,7 @@ export default async function EventsDashboardPage({
               No tournaments matched &quot;{search}&quot;.
             </p>
           ) : (
-            <div className="space-y-6">
+            <div className="space-y-5">
               {tournaments.map((t) => (
                 <TournamentCard
                   key={t.id}

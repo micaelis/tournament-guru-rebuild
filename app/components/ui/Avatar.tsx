@@ -11,11 +11,13 @@ export function Avatar({
   src,
   name,
   size = 36,
+  dark,
   className,
 }: {
   src?: string | null;
   name?: string | null;
   size?: number;
+  dark?: boolean;
   className?: string;
 }) {
   const safe = safeImageSrc(src);
@@ -23,7 +25,10 @@ export function Avatar({
   return (
     <span
       className={cn(
-        "inline-flex flex-none items-center justify-center overflow-hidden rounded-full bg-slate-100 text-[13px] font-bold text-slate-600",
+        "inline-flex flex-none items-center justify-center overflow-hidden rounded-full text-[13px] font-bold",
+        dark
+          ? "bg-white/[0.12] text-white/70"
+          : "bg-slate-100 text-slate-600",
         className,
       )}
       style={{ width: size, height: size }}

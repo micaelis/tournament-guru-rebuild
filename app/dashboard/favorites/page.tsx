@@ -44,10 +44,10 @@ export default async function FavoritesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-[var(--font-heading)] text-3xl font-extrabold text-slate-900">
+        <h1 className="font-[var(--font-heading)] text-2xl font-extrabold text-slate-900">
           Favorites
         </h1>
-        <p className="mt-2 text-sm text-slate-500">
+        <p className="mt-1.5 text-[13.5px] text-slate-500">
           Events you&apos;ve favorited — where notification updates will land
           once we ship them.
         </p>

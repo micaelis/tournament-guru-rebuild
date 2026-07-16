@@ -79,9 +79,11 @@ type Metric = {
 export default async function AuthShell({
   children,
   variant = "default",
+  wide = false,
 }: {
   children: ReactNode;
   variant?: Variant;
+  wide?: boolean;
 }) {
   const panel = PANELS[variant];
 
@@ -117,7 +119,7 @@ export default async function AuthShell({
         {/* ── Left: logo + form ── */}
         <section className="flex w-full flex-col px-6 pt-6 pb-8 md:w-1/2 md:px-14">
           <div className="flex flex-1 items-center justify-center">
-            <div className="w-full" style={{ maxWidth: 396 }}>
+            <div className="w-full" style={{ maxWidth: wide ? 520 : 396 }}>
               <div style={{ marginBottom: 24 }}>
                 <TGLogo href="/" size="xl" />
               </div>

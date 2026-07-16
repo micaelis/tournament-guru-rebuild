@@ -106,7 +106,7 @@ export default async function EditEventPage({
                 ? "Canceled"
                 : "Published"}
           </p>
-          <h1 className="mt-2 font-[var(--font-heading)] text-3xl font-extrabold text-slate-900">
+          <h1 className="mt-2 font-[var(--font-heading)] text-2xl font-extrabold text-slate-900">
             {payload.event.title || "Untitled event"}
           </h1>
         </div>

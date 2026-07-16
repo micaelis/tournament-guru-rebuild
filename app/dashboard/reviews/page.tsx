@@ -28,12 +28,12 @@ export default async function ReviewsDashboardPage({
   if (profile.user_type === "attendee") {
     const rows = await listReviewsRaw({ authorId: user.id });
     return (
-      <div className="space-y-6">
+      <div className="space-y-8">
         <div className="flex items-center gap-3">
-          <h1 className="font-[var(--font-heading)] text-3xl font-extrabold text-slate-900">
+          <h1 className="font-[var(--font-heading)] text-2xl font-extrabold text-slate-900">
             My Reviews
           </h1>
-          <span className="rounded-full border border-slate-200 bg-white px-3 py-0.5 text-xs font-bold text-slate-600">
+          <span className="rounded-full border border-slate-200 bg-white px-2.5 py-0.5 text-[11px] font-bold text-slate-500">
             {rows.length}
           </span>
         </div>
@@ -69,12 +69,12 @@ export default async function ReviewsDashboardPage({
   ).sort();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <h1 className="font-[var(--font-heading)] text-3xl font-extrabold text-slate-900">
+        <h1 className="font-[var(--font-heading)] text-2xl font-extrabold text-slate-900">
           Reviews
         </h1>
-        <p className="mt-2 text-sm text-slate-500">
+        <p className="mt-1.5 text-[13.5px] text-slate-500">
           {profile.user_type === "admin"
             ? "Every published + drafted review on the platform."
             : "Reviews on events you own."}

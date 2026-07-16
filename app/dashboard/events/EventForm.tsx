@@ -21,7 +21,7 @@ import {
   SURFACES,
   TEAM_GENDERS,
 } from "@/lib/enums";
-import { Button, useToast } from "@/app/components/ui";
+import { Button, FormButton, useToast } from "@/app/components/ui";
 import { useLiveValidation } from "@/app/components/ui/useLiveValidation";
 import { useSubmittedValues } from "@/app/components/ui/useSubmittedValues";
 import { safeExternalUrl } from "@/lib/url";
@@ -140,7 +140,7 @@ export function EventForm({ defaults }: { defaults: EventFormDefaults }) {
 
   const canPublish = useMemo(() => {
     return (
-      defaults.base.title.length > 0 ||
+      defaults.base.title.length > 0 &&
       (state.fieldErrors ?? {}).title === undefined
     );
   }, [defaults.base.title, state.fieldErrors]);
@@ -621,29 +621,29 @@ export function EventForm({ defaults }: { defaults: EventFormDefaults }) {
             Cancel
           </Button>
           {isEdit && defaults.lifecycle === "draft" && (
-            <Button
-              type="submit"
+            <FormButton
               variant="ghost"
               formNoValidate
+              pendingLabel="Saving…"
               onClick={() => setIntent("draft")}
             >
               Save as draft
-            </Button>
+            </FormButton>
           )}
           {!isEdit && (
-            <Button
-              type="submit"
+            <FormButton
               variant="ghost"
               formNoValidate
+              pendingLabel="Saving…"
               onClick={() => setIntent("draft")}
             >
               Save as draft
-            </Button>
+            </FormButton>
           )}
-          <Button
-            type="submit"
+          <FormButton
             variant="primary"
             disabled={!canPublish}
+            pendingLabel="Saving…"
             onClick={() =>
               setIntent(isEdit && defaults.lifecycle === "active" ? "update" : "publish")
             }
@@ -653,7 +653,7 @@ export function EventForm({ defaults }: { defaults: EventFormDefaults }) {
                 ? "Update"
                 : "Update & publish"
               : "Publish"}
-          </Button>
+          </FormButton>
         </div>
       </div>
     </form>

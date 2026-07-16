@@ -8,12 +8,6 @@ import { Avatar } from "@/app/components/ui/Avatar";
 import { cn } from "@/app/components/ui/cn";
 import type { NavItem } from "./nav-items";
 
-/**
- * Role-aware sidebar. Groups nav items by their `section` label,
- * highlights the active route, and shows the user card + sign-out at
- * the bottom. On < md screens the sidebar collapses into a drawer
- * behind a hamburger.
- */
 export function Sidebar({
   items,
   user,
@@ -29,9 +23,9 @@ export function Sidebar({
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const groups = groupBySection(items);
-  const fullName = [user.first_name, user.last_name]
-    .filter(Boolean)
-    .join(" ") || "Your account";
+  const fullName =
+    [user.first_name, user.last_name].filter(Boolean).join(" ") ||
+    "Your account";
 
   return (
     <>
@@ -46,7 +40,7 @@ export function Sidebar({
 
       <div
         className={cn(
-          "fixed inset-0 z-40 bg-slate-900/50 md:hidden",
+          "fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px] md:hidden",
           open ? "block" : "hidden",
         )}
         onClick={() => setOpen(false)}
@@ -54,38 +48,40 @@ export function Sidebar({
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-40 flex w-[260px] flex-col border-r border-slate-200 bg-white transition-transform md:sticky md:top-0 md:h-dvh md:translate-x-0",
+          "fixed inset-y-0 left-0 z-40 flex w-[260px] flex-col bg-[var(--color-dark)] transition-transform md:sticky md:top-0 md:h-dvh md:translate-x-0",
           open ? "translate-x-0" : "-translate-x-full",
         )}
       >
-        <div className="flex items-center justify-between px-5 py-6">
-          <Link href={"/" as never} className="flex items-center gap-2">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-slate-900 text-white text-sm font-extrabold">
+        {/* Logo */}
+        <div className="flex items-center justify-between px-5 py-7">
+          <Link href={"/" as never} className="flex items-center gap-2.5">
+            <span className="grid h-8 w-8 place-items-center rounded-lg bg-white/10 text-sm font-extrabold text-white">
               TG
             </span>
-            <span className="font-[var(--font-heading)] text-[15px] font-extrabold text-slate-900">
+            <span className="font-[var(--font-heading)] text-[15px] font-extrabold text-white">
               Tournament Guru
             </span>
           </Link>
           <button
             type="button"
             onClick={() => setOpen(false)}
-            className="text-slate-400 md:hidden"
+            className="text-white/40 hover:text-white/70 md:hidden"
             aria-label="Close menu"
           >
             ✕
           </button>
         </div>
 
-        <nav className="flex-1 space-y-6 overflow-y-auto px-3 pb-6">
+        {/* Navigation */}
+        <nav className="flex-1 space-y-7 overflow-y-auto px-3 pb-6">
           {groups.map(([section, entries]) => (
             <div key={section}>
               {section && (
-                <p className="mb-2 px-3 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">
+                <p className="mb-3 px-3 text-[10.5px] font-bold uppercase tracking-[0.16em] text-white/30">
                   {section}
                 </p>
               )}
-              <ul className="space-y-1">
+              <ul className="space-y-0.5">
                 {entries.map((item) => {
                   const active =
                     pathname === item.href ||
@@ -96,10 +92,10 @@ export function Sidebar({
                         href={item.href}
                         onClick={() => setOpen(false)}
                         className={cn(
-                          "block rounded-xl px-3 py-2 text-sm font-semibold transition",
+                          "block rounded-xl px-3 py-2.5 text-[13.5px] font-semibold transition-colors",
                           active
-                            ? "bg-slate-900 text-white"
-                            : "text-slate-700 hover:bg-slate-100",
+                            ? "bg-white/[0.12] text-white"
+                            : "text-white/60 hover:bg-white/[0.06] hover:text-white/90",
                         )}
                       >
                         {item.label}
@@ -112,18 +108,20 @@ export function Sidebar({
           ))}
         </nav>
 
-        <div className="border-t border-slate-100 p-4">
-          <div className="flex items-center gap-3">
+        {/* User card */}
+        <div className="border-t border-white/[0.08] px-4 py-5">
+          <div className="flex items-center gap-3 rounded-xl bg-white/[0.06] px-3 py-3">
             <Avatar
               src={user.profile_photo_url}
               name={fullName}
-              size={40}
+              size={38}
+              dark
             />
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-bold text-slate-900">
+              <p className="truncate text-[13px] font-bold text-white">
                 {fullName}
               </p>
-              <p className="truncate text-xs text-slate-500">
+              <p className="truncate text-[11px] font-medium text-white/40">
                 {user.role_label}
               </p>
             </div>
@@ -131,7 +129,7 @@ export function Sidebar({
           <form action={signOutAction} className="mt-3">
             <button
               type="submit"
-              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:border-slate-400"
+              className="w-full rounded-xl border border-white/[0.1] bg-white/[0.04] px-3 py-2 text-[13px] font-semibold text-white/50 transition-colors hover:border-white/20 hover:text-white/70"
             >
               Sign out
             </button>

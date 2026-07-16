@@ -24,10 +24,10 @@ export default async function BannedWordsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-[var(--font-heading)] text-3xl font-extrabold text-slate-900">
+        <h1 className="font-[var(--font-heading)] text-2xl font-extrabold text-slate-900">
           Banned Words
         </h1>
-        <p className="mt-2 text-sm text-slate-500">
+        <p className="mt-1.5 text-[13.5px] text-slate-500">
           Reviews and comments containing any of these words are rejected at
           the API layer. Word-boundary matching is case-insensitive.
         </p>

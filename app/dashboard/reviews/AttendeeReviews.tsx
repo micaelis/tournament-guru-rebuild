@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import {
   Button,
   Card,
+  EmptyState,
   StarRating,
   StatusPill,
 } from "@/app/components/ui";
@@ -72,6 +73,7 @@ export function AttendeeReviews({ rows }: { rows: ReviewCardRow[] }) {
         <select
           value={sort}
           onChange={(e) => setSort(e.target.value as SortKey)}
+          aria-label="Sort reviews"
           className="tg-control tg-select w-auto min-w-[200px]"
         >
           <option value="newest">Newest</option>
@@ -83,6 +85,7 @@ export function AttendeeReviews({ rows }: { rows: ReviewCardRow[] }) {
           <select
             value={state}
             onChange={(e) => setState(e.target.value)}
+            aria-label="Filter by state"
             className="tg-control tg-select w-auto min-w-[160px]"
             disabled={availableStates.length === 0}
           >
@@ -96,11 +99,30 @@ export function AttendeeReviews({ rows }: { rows: ReviewCardRow[] }) {
         )}
       </div>
 
-      <div className="space-y-4">
-        {sorted.map((r) => (
-          <MyReviewCard key={r.id} row={r} />
-        ))}
-      </div>
+      {sorted.length === 0 ? (
+        rows.length === 0 ? (
+          <EmptyState
+            title="No reviews yet"
+            body="After you attend an event, come back here to leave a review."
+            action={
+              <Link href={"/events" as Route}>
+                <Button>Browse events</Button>
+              </Link>
+            }
+          />
+        ) : (
+          <EmptyState
+            title="No reviews match your filters"
+            body="Try adjusting the state filter above."
+          />
+        )
+      ) : (
+        <div className="space-y-4">
+          {sorted.map((r) => (
+            <MyReviewCard key={r.id} row={r} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect } from "react";
 import { Alert, Field } from "@/app/(auth)/parts";
-import { Button, useToast } from "@/app/components/ui";
+import { FormButton, useToast } from "@/app/components/ui";
 import { useLiveValidation } from "@/app/components/ui/useLiveValidation";
 import { useSubmittedValues } from "@/app/components/ui/useSubmittedValues";
 import { validateEmail } from "@/lib/validation";
@@ -84,7 +84,7 @@ export function SupportForm({
         )}
       </label>
       <div className="flex justify-end">
-        <Button type="submit">Send message</Button>
+        <FormButton pendingLabel="Sending…">Send message</FormButton>
       </div>
     </form>
   );

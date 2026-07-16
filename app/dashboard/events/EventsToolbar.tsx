@@ -78,12 +78,14 @@ export function EventsToolbar({
             }}
             onBlur={() => pushParam("q", search)}
             placeholder="Search tournaments…"
+            aria-label="Search tournaments"
             className="tg-control"
           />
         </div>
         <select
           defaultValue={initialSort}
           onChange={(e) => pushParam("sort", e.target.value)}
+          aria-label="Sort tournaments"
           className="tg-control tg-select w-auto min-w-[220px] flex-none"
         >
           {sortOptions.map((opt) => (
@@ -114,7 +116,6 @@ export function EventsToolbar({
         )}
       </div>
 
-      {/* CSV href builder */}
       <CreateTournamentDialog
         open={creating}
         onClose={() => setCreating(false)}

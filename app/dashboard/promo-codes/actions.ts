@@ -100,11 +100,6 @@ export async function submitCsv(
 }
 
 /**
- * ED cancels a pending submission. Only allowed while status is
- * still `pending` (spec: "Pending submissions can be cancelled by
- * the ED").
- */
-/**
  * Admin rejects a pending submission with a reason (spec: reason is
  * shown to both admin + ED). The `raw_emails` list is cleared to
  * match the "delete csv rows, keep the master entry" rule.
@@ -143,6 +138,7 @@ export async function rejectSubmittedCsv(
   return {};
 }
 
+/** ED cancels a pending submission. Only allowed while status is still `pending`. */
 export async function cancelSubmittedCsv(
   csvId: string,
 ): Promise<CsvSubmitState> {

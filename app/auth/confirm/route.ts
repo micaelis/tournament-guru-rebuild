@@ -52,10 +52,14 @@ export async function GET(request: NextRequest) {
   if (user) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("onboarding_completed")
+      .select("onboarding_completed, user_type")
       .eq("id", user.id)
       .maybeSingle();
-    dest = profile?.onboarding_completed ? "/dashboard/events" : "/onboarding";
+    dest = profile?.onboarding_completed
+      ? profile.user_type === "attendee"
+        ? "/events"
+        : "/dashboard/events"
+      : "/onboarding";
   }
 
   const redirect = NextResponse.redirect(new URL(dest, origin));

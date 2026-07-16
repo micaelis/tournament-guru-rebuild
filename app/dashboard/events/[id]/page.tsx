@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Route } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { requireSessionAndProfile } from "@/lib/supabase/session";
 import {
   Button,
@@ -38,6 +38,7 @@ export default async function EventDetailPage({
   params: Promise<Params>;
 }) {
   const { profile, user } = await requireSessionAndProfile();
+  if (profile.user_type === "attendee") redirect("/events");
   const { id } = await params;
   const [payload, seasons] = await Promise.all([
     getEventForEdit(id),
@@ -71,10 +72,10 @@ export default async function EventDetailPage({
             <StatusPill tone={eventStatusTone(status)}>{status}</StatusPill>
             {event.is_premium && <StatusPill tone="warning">Premium</StatusPill>}
           </div>
-          <h1 className="mt-3 font-[var(--font-heading)] text-3xl font-extrabold text-slate-900">
+          <h1 className="mt-3 font-[var(--font-heading)] text-2xl font-extrabold text-slate-900">
             {event.title || "Untitled event"}
           </h1>
-          <p className="mt-2 text-sm text-slate-500">
+          <p className="mt-1.5 text-[13.5px] text-slate-500">
             {event.host_club && <>Hosted by {event.host_club} · </>}
             {seasonLabel} season · {formatDateRange(event.start_date, event.end_date)}
           </p>

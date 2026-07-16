@@ -1,9 +1,9 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Alert } from "@/app/(auth)/parts";
-import { Button, useToast } from "@/app/components/ui";
+import { Button, FormButton, useToast } from "@/app/components/ui";
 import { useLiveValidation } from "@/app/components/ui/useLiveValidation";
 import { saveComment, type ReviewState } from "@/lib/reviews/actions";
 import { REVIEW_BODY_MAX } from "@/lib/reviews/shared";
@@ -39,10 +39,19 @@ export function OwnerReplyDialog({
     });
   const router = useRouter();
   const { push } = useToast();
+  const submittedRef = useRef(false);
 
   useEffect(() => {
-    if (state.error) push("error", state.error);
-  }, [state.error, push]);
+    if (!submittedRef.current) return;
+    if (state.error) {
+      push("error", state.error);
+    } else {
+      push("success", "Reply posted.");
+      onClose();
+      router.refresh();
+    }
+    submittedRef.current = false;
+  }, [state, push, onClose, router]);
 
   const over = body.length > REVIEW_BODY_MAX;
 
@@ -68,17 +77,13 @@ export function OwnerReplyDialog({
           </p>
         </div>
         <form
-          action={async (fd) => {
+          action={(fd) => {
             if (over) {
               push("error", "Trim your reply below the character limit.");
               return;
             }
-            await formAction(fd);
-            if (!state.error) {
-              push("success", "Reply posted.");
-              onClose();
-              router.refresh();
-            }
+            submittedRef.current = true;
+            formAction(fd);
           }}
           className="mt-4 space-y-3"
         >
@@ -104,9 +109,9 @@ export function OwnerReplyDialog({
             <Button type="button" variant="ghost" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={!body.trim() || over}>
+            <FormButton disabled={!body.trim() || over} pendingLabel="Posting…">
               Post reply
-            </Button>
+            </FormButton>
           </div>
         </form>
       </div>

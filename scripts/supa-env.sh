@@ -15,8 +15,8 @@ case "${1:-}" in
       echo "Local Supabase isn't running. Start it with: supabase start"
       exit 1
     }
-    URL=$(echo "$STATUS" | grep '^API_URL=' | cut -d= -f2-)
-    ANON=$(echo "$STATUS" | grep '^ANON_KEY=' | cut -d= -f2-)
+    URL=$(echo "$STATUS" | grep '^API_URL=' | cut -d= -f2- | tr -d '"')
+    ANON=$(echo "$STATUS" | grep '^ANON_KEY=' | cut -d= -f2- | tr -d '"')
     if [ -z "$URL" ] || [ -z "$ANON" ]; then
       echo "Could not parse local Supabase credentials."
       exit 1

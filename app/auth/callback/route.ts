@@ -4,8 +4,7 @@ import { createServerClient } from "@supabase/ssr";
 /**
  * Landing point for Supabase email links (confirmation + password reset).
  * Exchanges the `code` for a session, then routes the user by onboarding
- * status. The dashboard shell + attendee post-onboarding redirect handle
- * the role-specific destinations from there.
+ * status and role — attendees go to /events, EDs/admins to /dashboard.
  */
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
@@ -56,10 +55,14 @@ export async function GET(request: NextRequest) {
   if (user && next === "/") {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("onboarding_completed")
+      .select("onboarding_completed, user_type")
       .eq("id", user.id)
       .maybeSingle();
-    dest = profile?.onboarding_completed ? "/dashboard/events" : "/onboarding";
+    dest = profile?.onboarding_completed
+      ? profile.user_type === "attendee"
+        ? "/events"
+        : "/dashboard/events"
+      : "/onboarding";
   }
 
   const redirect = NextResponse.redirect(new URL(dest, origin));

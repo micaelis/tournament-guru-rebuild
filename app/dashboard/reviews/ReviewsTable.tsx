@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import {
   Avatar,
   Button,
+  Checkbox,
   ConfirmDialog,
   StarRating,
   StatusPill,
@@ -166,7 +167,7 @@ export function ReviewsTable({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div className="flex flex-wrap items-center gap-3">
         <input
           type="search"
@@ -176,6 +177,7 @@ export function ReviewsTable({
             setPage(0);
           }}
           placeholder="Search by user name…"
+          aria-label="Search reviews"
           className="tg-control min-w-[240px] flex-1"
         />
         <select
@@ -184,6 +186,7 @@ export function ReviewsTable({
             setPromoFilter(e.target.value);
             setPage(0);
           }}
+          aria-label="Filter by review type"
           className="tg-control tg-select w-auto min-w-[200px]"
         >
           <option value="">Any review type</option>
@@ -197,6 +200,7 @@ export function ReviewsTable({
               setStateFilter(e.target.value);
               setPage(0);
             }}
+            aria-label="Filter by state"
             className="tg-control tg-select w-auto min-w-[160px]"
           >
             <option value="">Any state</option>
@@ -210,6 +214,7 @@ export function ReviewsTable({
         <select
           value={sort}
           onChange={(e) => setSort(e.target.value as SortKey)}
+          aria-label="Sort reviews"
           className="tg-control tg-select w-auto min-w-[200px]"
         >
           <option value="created_desc">Newest</option>
@@ -244,8 +249,8 @@ export function ReviewsTable({
           <THead>
             <TR>
               <TH className="w-8">
-                <input
-                  type="checkbox"
+                <Checkbox
+                  size="sm"
                   aria-label="Select all on this page"
                   checked={allSelected}
                   onChange={(e) => {
@@ -378,8 +383,8 @@ function ReviewRow({
   return (
     <TR>
       <TD>
-        <input
-          type="checkbox"
+        <Checkbox
+          size="sm"
           checked={selected}
           onChange={onToggleSelect}
           aria-label={`Select review ${row.id}`}

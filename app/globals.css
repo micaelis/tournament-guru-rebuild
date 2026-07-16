@@ -20,8 +20,8 @@
   --color-border-light: #f1f5f9;
   --color-surface: #fafbfc;
   --color-surface-alt: #f1f5f9;
-  --color-gold: #f59e0b;
-  --color-gold-bright: #fbbf24;
+  --color-gold: #d4a017;
+  --color-gold-bright: #e0b434;
 }
 
 /* Visible keyboard focus ring — applies to buttons, links, tabs, etc.
@@ -41,6 +41,17 @@ input:focus-visible,
 textarea:focus-visible,
 select:focus-visible {
   outline: none;
+}
+
+/* Smooth state transitions on all interactive elements. Elements that
+   need custom timing can override with a more specific selector. */
+a,
+button,
+[role="button"],
+label[class*="cursor-pointer"] {
+  transition: color 0.15s ease, background-color 0.15s ease,
+    border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease,
+    opacity 0.15s ease;
 }
 
 /* Container focus for wrapped date / text fields — put this class on the

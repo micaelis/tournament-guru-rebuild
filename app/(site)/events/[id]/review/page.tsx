@@ -49,7 +49,7 @@ export default async function ReviewWritePage({
   if (!profile) redirect("/login");
   if (!profile.onboarding_completed) redirect("/onboarding");
   if (profile.user_type !== "attendee") {
-    redirect(`/events/${id}?msg=attendees-only`);
+    redirect(`/events/${id}?flash=info:Only attendees can write reviews`);
   }
 
   const [{ data: event }, myReview, bannedWords] = await Promise.all([

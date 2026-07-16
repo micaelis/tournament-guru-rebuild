@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Alert,
@@ -9,6 +9,7 @@ import {
 } from "../../(auth)/parts";
 import {
   Button,
+  Checkbox,
   ConfirmDialog,
   useToast,
 } from "@/app/components/ui";
@@ -77,22 +78,16 @@ export function CreateTournamentDialog({
             validate={(v) => (v.trim() ? null : "Tournament title is required.")}
             error={state.fieldErrors?.title}
           />
-          <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50/60 p-3 text-sm">
-            <input
-              type="checkbox"
+          <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3 text-sm">
+            <Checkbox
               name="recurring"
               defaultChecked={submitted ? values.recurring != null : false}
-              className="mt-0.5 h-4 w-4 accent-slate-900"
+              label="Recurring event"
             />
-            <span>
-              <span className="block font-semibold text-slate-900">
-                Recurring event
-              </span>
-              <span className="block text-xs text-slate-500">
-                Informational — the event still needs its own dates.
-              </span>
-            </span>
-          </label>
+            <p className="ml-[25px] mt-0.5 text-xs text-slate-500">
+              Informational — the event still needs its own dates.
+            </p>
+          </div>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="ghost" onClick={onClose}>
               Cancel
@@ -167,11 +162,18 @@ export function EditTournamentDialog({
   const [state, formAction] = useActionState(updateTournament, INITIAL);
   const { values, submitted, capture } = useSubmittedValues();
   const { push } = useToast();
+  const submittedRef = useRef(false);
 
   useEffect(() => {
-    if (!open) return;
-    if (state.error) push("error", state.error);
-  }, [state, open, push]);
+    if (!submittedRef.current) return;
+    submittedRef.current = false;
+    if (state.error) {
+      push("error", state.error);
+    } else {
+      push("success", "Tournament updated.");
+      onClose();
+    }
+  }, [state, push, onClose]);
 
   if (!open) return null;
   return (
@@ -190,6 +192,7 @@ export function EditTournamentDialog({
         <form
           action={(fd) => {
             capture(fd);
+            submittedRef.current = true;
             formAction(fd);
           }}
           className="mt-5 space-y-4"
@@ -203,19 +206,15 @@ export function EditTournamentDialog({
             validate={(v) => (v.trim() ? null : "Tournament title is required.")}
             error={state.fieldErrors?.title}
           />
-          <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50/60 p-3 text-sm">
-            <input
-              type="checkbox"
+          <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3 text-sm">
+            <Checkbox
               name="recurring"
               defaultChecked={
                 submitted ? values.recurring != null : tournament.recurring
               }
-              className="mt-0.5 h-4 w-4 accent-slate-900"
+              label="Recurring event"
             />
-            <span className="block font-semibold text-slate-900">
-              Recurring event
-            </span>
-          </label>
+          </div>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="ghost" onClick={onClose}>
               Cancel

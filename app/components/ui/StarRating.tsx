@@ -22,7 +22,7 @@ export function StarRating({
   size = 15,
   interactive = false,
   onChange,
-  filledColor = "#f59e0b",
+  filledColor = "#d4a017",
   emptyColor = "#e2e8f0",
   className,
   showNumber = true,

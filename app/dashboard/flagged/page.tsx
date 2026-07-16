@@ -134,10 +134,10 @@ export default async function FlaggedContentPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-[var(--font-heading)] text-3xl font-extrabold text-slate-900">
+        <h1 className="font-[var(--font-heading)] text-2xl font-extrabold text-slate-900">
           Flagged Content
         </h1>
-        <p className="mt-2 text-sm text-slate-500">
+        <p className="mt-1.5 text-[13.5px] text-slate-500">
           Community-reported reviews + comments. Dismiss clears the flags;
           Delete removes the content.
         </p>

@@ -8,9 +8,7 @@ export type NavItem = {
 
 /**
  * Nav items per role. Kept as static arrays because the sidebar has no
- * per-user overrides in this sprint. `ED Dashboard pages.rtf` says
- * "Hide Transactions, Add-on Pricing and Notifications, FAQ in this
- * sprint" — those routes exist as stubs but do not appear here yet.
+ * per-user overrides in this sprint.
  */
 export const ATTENDEE_NAV: NavItem[] = [
   { href: "/events" as Route, label: "Search Events", section: "Browse" },

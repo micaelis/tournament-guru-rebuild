@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Button, useToast } from "@/app/components/ui";
+import { Button, Checkbox, useToast } from "@/app/components/ui";
 import type { SubmittedCsvRow } from "./queries";
 import { sendPromoEmails, validateEmails } from "./send-actions";
 
@@ -119,8 +119,8 @@ export function SendEmailsDialog({
                     : "bg-white text-slate-800"
                 }`}
               >
-                <input
-                  type="checkbox"
+                <Checkbox
+                  size="sm"
                   checked={!dropped}
                   onChange={() => toggle(p.email)}
                   disabled={disabled}

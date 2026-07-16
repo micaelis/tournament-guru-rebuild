@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Alert, Field } from "@/app/(auth)/parts";
-import { Button, StarRating, useToast } from "@/app/components/ui";
+import { Button, FormButton, StarRating, useToast } from "@/app/components/ui";
 import { useLiveValidation } from "@/app/components/ui/useLiveValidation";
 import {
   adminEditReview,
@@ -146,9 +146,9 @@ export function AdminEditDialog({
             <Button type="button" variant="ghost" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={over}>
+            <FormButton disabled={over} pendingLabel="Saving…">
               Save changes
-            </Button>
+            </FormButton>
           </div>
         </form>
       </div>
