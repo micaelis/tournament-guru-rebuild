@@ -60,7 +60,7 @@ export default async function HomePage() {
       <div className="relative isolate">
         {/* ─ Layer 2: Who We Serve ─ */}
         <section
-          className="relative mx-auto max-w-[1280px] px-6 pb-14 md:px-10"
+          className="relative mx-auto max-w-[1280px] px-6 pb-28 md:px-10"
           style={{ paddingTop: 124 }}
         >
           <SectionHeader
