@@ -98,3 +98,23 @@ Same left/right chrome as the auth screens.
   separate feature from any map display. If deferred, the location field degrades to a plain
   text input.
 - **No social/OAuth sign-in** anywhere — email + password only.
+
+## Design decisions log
+Running log of auth-screen visual decisions (kept here so future changes stay consistent).
+
+- **Layout:** full site Header on top (auth mode — logo-less nav + "Browse events" CTA);
+  form column left over the landing aurora; sticky dusk-stadium photo right with a floating
+  editorial hero (frosted badge chip, big headline + brand HighlightSwipe on "Tournament Guru",
+  tagline, audience chips, real-stats metric bar).
+- **Brand mark:** the full logo lockup lives at the top of the left form column. The header
+  carries a compact monogram mark only (icon, no wordmark) so it doesn't read as bare.
+- **Header nav:** centered; auth CTA "Browse events" reuses the public red-gradient pill —
+  smaller font (~13.5px) with a touch more vertical padding than the public one.
+- **Primary CTA (Sign in / Continue / etc.):** public red-gradient pill, hover-lift +
+  active-press. Secondary links (Create an account, Forgot password) are brand-red + hover
+  underline; footer lines (Create an account, privacy note) are centered.
+- **Password field:** show/hide via an eye / eye-off icon toggle (hover + active-applied
+  state), not a text button.
+- **Metric bar:** render ONLY when at least TWO metrics are non-zero; if 0 or 1 has data,
+  omit the whole section (a lone stat looks unfinished).
+- **Contrast:** faint UI-text token darkened to #5b6675 to meet WCAG AA (was #94a3b8).

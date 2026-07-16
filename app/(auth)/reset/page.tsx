@@ -18,9 +18,12 @@ export default function ResetPage() {
         <div className="mt-8">
           <RequestResetForm />
         </div>
-        <p className="mt-6 text-sm text-slate-600">
+        <p className="mt-6 text-center text-sm text-slate-600">
           Remembered it?{" "}
-          <Link href="/login" className="font-semibold text-red-600">
+          <Link
+            href="/login"
+            className="font-semibold text-red-600 hover:underline"
+          >
             Sign in
           </Link>
         </p>

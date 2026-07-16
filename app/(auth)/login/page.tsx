@@ -30,9 +30,12 @@ export default async function LoginPage({
         <div className="mt-8">
           <LoginForm next={next} initialInfo={initialInfo} />
         </div>
-        <p className="mt-6 text-sm text-slate-600">
+        <p className="mt-6 text-center text-sm text-slate-600">
           New here?{" "}
-          <Link href="/signup" className="font-semibold text-red-600">
+          <Link
+            href="/signup"
+            className="font-semibold text-red-600 hover:underline"
+          >
             Create an account
           </Link>
         </p>

@@ -118,17 +118,17 @@ export default async function AuthShell({
         <section className="flex w-full flex-col px-6 pt-6 pb-8 md:w-1/2 md:px-14">
           <div className="flex flex-1 items-center justify-center">
             <div className="w-full" style={{ maxWidth: 396 }}>
-              <div style={{ marginBottom: 30 }}>
+              <div style={{ marginBottom: 24 }}>
                 <TGLogo href="/" size="xl" />
               </div>
               {children}
               <p
-                className="mt-3.5 flex items-center gap-2"
-                style={{ fontSize: 12.5, fontWeight: 500, color: "var(--color-text-secondary)" }}
+                className="mt-4 flex items-center justify-center gap-1.5"
+                style={{ fontSize: 11, fontWeight: 500, color: "var(--color-text-muted)" }}
               >
                 <svg
-                  width="14"
-                  height="14"
+                  width="12"
+                  height="12"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -276,8 +276,9 @@ export default async function AuthShell({
                 ))}
               </div>
 
-              {/* Metric bar — real counters, dark glass so the numbers pop */}
-              {metrics.length > 0 && (
+              {/* Metric bar — real counters, dark glass so the numbers pop.
+                 Shown only when ≥2 have data; a lone stat looks unfinished. */}
+              {metrics.length >= 2 && (
                 <div
                   className="flex overflow-hidden"
                   style={{
