@@ -101,6 +101,41 @@ test.describe("Admin — block a user", () => {
   });
 });
 
+test.describe("Admin — delete a user", () => {
+  test("searches for a user and deletes them", async ({ page }) => {
+    const marker = `Deltarget${randomUUID().slice(0, 8)}`;
+    let admin: SeededUser | undefined;
+    let target: SeededUser | undefined;
+    try {
+      admin = await createAdmin();
+      target = await createAttendee({
+        completeOnboarding: true,
+        firstName: marker,
+      });
+
+      await signIn(page, admin.email, admin.password);
+      await page.goto("/dashboard/users");
+      await page.getByLabel("Search users").fill(marker);
+      await page.getByRole("button", { name: "Search" }).click();
+      await expect(page.getByText(marker)).toBeVisible();
+
+      await page.getByRole("button", { name: "Delete", exact: true }).click();
+      await expect(
+        page.getByRole("heading", { name: "Delete this user?" }),
+      ).toBeVisible();
+      await page
+        .getByRole("dialog")
+        .getByRole("button", { name: "Delete" })
+        .click();
+
+      await expect(page.getByText("User deleted.")).toBeVisible();
+    } finally {
+      if (target) await deleteUser(target.id);
+      if (admin) await deleteUser(admin.id);
+    }
+  });
+});
+
 test.describe("Event director — create event", () => {
   test("reaches the Add Event form for an owned tournament", async ({
     page,

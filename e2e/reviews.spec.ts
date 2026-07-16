@@ -6,6 +6,11 @@ import {
   firstViewableEvent,
   seedPromo,
   deletePromo,
+  seedEvent,
+  deleteEvent,
+  deleteTournament,
+  seedReview,
+  deleteReview,
   type SeededUser,
   type PromoSeed,
 } from "./helpers/db";
@@ -112,6 +117,42 @@ test.describe("Review write — publish (verified via promo)", () => {
     } finally {
       if (promo) await deletePromo(promo);
       if (coach) await deleteUser(coach.id);
+    }
+  });
+});
+
+test.describe("Review interactions", () => {
+  test("a signed-in coach marks another coach's review helpful", async ({
+    page,
+  }) => {
+    let author: SeededUser | undefined;
+    let viewer: SeededUser | undefined;
+    let seed: { tournamentId: string; eventId: string } | undefined;
+    let reviewId: string | undefined;
+    try {
+      author = await createAttendee({ completeOnboarding: true });
+      viewer = await createAttendee({ completeOnboarding: true });
+      seed = await seedEvent(author.id);
+      const title = `E2E seeded review ${Date.now()}`;
+      reviewId = await seedReview(seed.eventId, author.id, title);
+
+      await signIn(page, viewer.email, viewer.password);
+      await page.goto(`/events/${seed.eventId}`);
+      await expect(page.getByText(title)).toBeVisible();
+
+      const helpful = page.getByRole("button", { name: /Helpful/ });
+      await expect(helpful).toHaveAttribute("aria-pressed", "false");
+      await helpful.click();
+      await expect(helpful).toHaveAttribute("aria-pressed", "true");
+      await expect(helpful).toContainText("1");
+    } finally {
+      if (reviewId) await deleteReview(reviewId);
+      if (seed) {
+        await deleteEvent(seed.eventId);
+        await deleteTournament(seed.tournamentId);
+      }
+      if (viewer) await deleteUser(viewer.id);
+      if (author) await deleteUser(author.id);
     }
   });
 });

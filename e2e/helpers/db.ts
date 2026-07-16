@@ -130,6 +130,79 @@ export async function deleteTournament(id: string): Promise<void> {
   await service().from("tournaments").delete().eq("id", id);
 }
 
+/** A recently-concluded event owned by `ownerId` (+ its tournament). */
+export async function seedEvent(
+  ownerId: string,
+): Promise<{ tournamentId: string; eventId: string }> {
+  const svc = service();
+  const { data: t, error: tErr } = await svc
+    .from("tournaments")
+    .insert({
+      title: `E2E Cup ${randomUUID().slice(0, 6)}`,
+      owner_id: ownerId,
+      created_by: ownerId,
+      claimed: true,
+    })
+    .select("id")
+    .single();
+  if (tErr || !t) throw new Error(`seedEvent tournament: ${tErr?.message}`);
+  const { data: e, error: eErr } = await svc
+    .from("events")
+    .insert({
+      tournament_id: t.id,
+      owner_id: ownerId,
+      created_by: ownerId,
+      claimed: true,
+      title: `E2E Event ${randomUUID().slice(0, 6)}`,
+      lifecycle: "active",
+      is_premium: false,
+      start_date: daysAgo(3),
+      end_date: daysAgo(1),
+    })
+    .select("id")
+    .single();
+  if (eErr || !e) throw new Error(`seedEvent event: ${eErr?.message}`);
+  return { tournamentId: t.id as string, eventId: e.id as string };
+}
+
+export async function deleteEvent(id: string): Promise<void> {
+  await service().from("events").delete().eq("id", id);
+}
+
+/** A published coach review on `eventId` by `authorId`. Returns the id. */
+export async function seedReview(
+  eventId: string,
+  authorId: string,
+  title: string,
+): Promise<string> {
+  const { data, error } = await service()
+    .from("reviews")
+    .insert({
+      event_id: eventId,
+      author_id: authorId,
+      status: "published",
+      review_title: title,
+      review_body: "Solid event overall — well organized, strong competition.",
+      rating_fields: 4,
+      rating_facilities: 4,
+      rating_management: 4,
+      rating_competition: 4,
+      rating_diversity: 4,
+      rating_cost_value: 4,
+      reviewer_user_type: "attendee",
+      reviewer_role: "coach",
+      published_at: new Date().toISOString(),
+    })
+    .select("id")
+    .single();
+  if (error || !data) throw new Error(`seedReview: ${error?.message}`);
+  return data.id as string;
+}
+
+export async function deleteReview(id: string): Promise<void> {
+  await service().from("reviews").delete().eq("id", id);
+}
+
 /** Remove a banned word (E2E cleanup for the admin banned-words test). */
 export async function deleteBannedWord(word: string): Promise<void> {
   await service().from("banned_words").delete().eq("word", word);
