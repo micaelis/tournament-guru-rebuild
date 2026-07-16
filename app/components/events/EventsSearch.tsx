@@ -49,6 +49,9 @@ type Props = {
   stats: { events: number; reviews: number; tournaments: number };
   /** Viewer context for the per-card Claim CTA (computed server-side). */
   claimViewer: ClaimViewer;
+  /** Event ids the signed-in viewer has favorited (their full set, so any
+   *  card — initial or client-filtered — reflects the right heart state). */
+  favoritedIds?: string[];
 };
 
 export function EventsSearch({
@@ -61,9 +64,16 @@ export function EventsSearch({
   pageSize,
   stats,
   claimViewer,
+  favoritedIds,
 }: Props) {
   const pathname = usePathname();
   const options = useMemo(() => buildFilterOptions(facets), [facets]);
+  // Any signed-in viewer can favorite; anon gets the sign-in nudge.
+  const canFavorite = claimViewer === "ed" || claimViewer === "other";
+  const favoriteSet = useMemo(
+    () => new Set(favoritedIds ?? []),
+    [favoritedIds],
+  );
 
   const [filters, setFilters] = useState<Filters>(initialFilters);
   const [sort, setSort] = useState<EventSort>(initialSort);
@@ -195,7 +205,12 @@ export function EventsSearch({
       }
       style={activeId === event.id ? { "--tw-ring-color": "var(--color-accent)" } as React.CSSProperties : undefined}
     >
-      <EventCard event={event} claimViewer={claimViewer} />
+      <EventCard
+        event={event}
+        claimViewer={claimViewer}
+        favorited={favoriteSet.has(event.id)}
+        canFavorite={canFavorite}
+      />
     </div>
   );
 

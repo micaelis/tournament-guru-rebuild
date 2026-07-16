@@ -26,6 +26,20 @@ async function resolveClaimViewer(): Promise<ClaimViewer> {
   return data?.user_type === "event_director" ? "ed" : "other";
 }
 
+/** The signed-in viewer's favorited event ids (empty for anon). */
+async function fetchFavoritedIds(): Promise<string[]> {
+  const supabase = await createServerAuthClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+  const { data } = await supabase
+    .from("favorites")
+    .select("event_id")
+    .eq("user_id", user.id);
+  return (data ?? []).map((r) => r.event_id as string);
+}
+
 export const metadata: Metadata = {
   title: "Find Events · Tournament Guru",
   description:
@@ -40,11 +54,12 @@ export default async function EventsPage({
   const sp = await searchParams;
   const { filters, sort, page } = parseSearchParams(sp);
 
-  const [search, facets, stats, claimViewer] = await Promise.all([
+  const [search, facets, stats, claimViewer, favoritedIds] = await Promise.all([
     searchEvents(filters, { page, pageSize: PAGE_SIZE, sort }),
     getEventFacets(),
     fetchPlatformStats(),
     resolveClaimViewer(),
+    fetchFavoritedIds(),
   ]);
 
   return (
@@ -62,6 +77,7 @@ export default async function EventsPage({
         tournaments: stats.tournaments,
       }}
       claimViewer={claimViewer}
+      favoritedIds={favoritedIds}
     />
   );
 }

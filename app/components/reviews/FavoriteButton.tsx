@@ -5,38 +5,73 @@ import { toggleFavorite } from "@/lib/user-events/actions";
 import { useToast } from "@/app/components/ui";
 import { cn } from "@/app/components/ui/cn";
 
-/** Heart-style favorite toggle. Optimistic — revert on error. */
+/**
+ * Favorite toggle, optimistic (reverts on error). Two looks:
+ * - "pill" (default): labelled Favorite / Favorited chip (event page).
+ * - "icon": round heart button for event cards (search results).
+ * Signed-out callers pass `disabled` → a click nudges them to sign in
+ * rather than hitting the action.
+ */
 export function FavoriteButton({
   eventId,
   initialFavorited,
   disabled,
+  variant = "pill",
 }: {
   eventId: string;
   initialFavorited: boolean;
   disabled?: boolean;
+  variant?: "pill" | "icon";
 }) {
   const [favorited, setFavorited] = useState(initialFavorited);
   const [, startTransition] = useTransition();
   const { push } = useToast();
 
+  const toggle = () => {
+    if (disabled) {
+      push("info", "Sign in to favorite events.");
+      return;
+    }
+    const next = !favorited;
+    setFavorited(next);
+    startTransition(async () => {
+      const res = await toggleFavorite(eventId);
+      if (res.error) {
+        setFavorited(!next);
+        push("error", res.error);
+      }
+    });
+  };
+
+  if (variant === "icon") {
+    return (
+      <button
+        type="button"
+        onClick={toggle}
+        aria-pressed={favorited}
+        aria-label={favorited ? "Remove from favorites" : "Save event"}
+        className="tg-save-heart inline-flex shrink-0 cursor-pointer items-center justify-center rounded-full"
+        style={{
+          width: 32,
+          height: 32,
+          border: "1px solid rgba(220,38,38,.18)",
+          background: "#fff",
+          color: favorited ? "#dc2626" : "#94a3b8",
+          boxShadow:
+            "0 2px 6px rgba(15,23,42,.10), 0 6px 14px -6px rgba(15,23,42,.14)",
+          transition:
+            "color .15s ease, background .15s ease, transform .1s ease, box-shadow .15s ease, border-color .15s ease",
+        }}
+      >
+        <HeartGlyph filled={favorited} />
+      </button>
+    );
+  }
+
   return (
     <button
       type="button"
-      onClick={() => {
-        if (disabled) {
-          push("info", "Sign in to favorite events.");
-          return;
-        }
-        const next = !favorited;
-        setFavorited(next);
-        startTransition(async () => {
-          const res = await toggleFavorite(eventId);
-          if (res.error) {
-            setFavorited(!next);
-            push("error", res.error);
-          }
-        });
-      }}
+      onClick={toggle}
       aria-pressed={favorited}
       className={cn(
         "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[12.5px] font-semibold transition",

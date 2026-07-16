@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Avatar } from "./Avatar";
 import { ClaimEventCta } from "@/app/(site)/events/[id]/ClaimEventCta";
+import { FavoriteButton } from "@/app/components/reviews/FavoriteButton";
 import type { EventRow } from "@/app/components/types";
 import { safeImageSrc } from "@/lib/url";
 
@@ -327,9 +328,16 @@ function shortExcerpt(desc: string | null, max = 120): string | null {
 export function EventCard({
   event,
   claimViewer,
+  favorited,
+  canFavorite,
 }: {
   event: EventRow;
   claimViewer?: ClaimViewer;
+  /** Whether the current viewer has favorited this event. */
+  favorited?: boolean;
+  /** When defined, the save heart becomes interactive (search results);
+   *  false = signed out → clicking nudges them to sign in. */
+  canFavorite?: boolean;
 }) {
   const isFeatured = !!event.premium;
   // Unclaimed (admin-created) events carry a Claim CTA per spec §9.7 —
@@ -411,7 +419,16 @@ export function EventCard({
         ) : isOpen ? (
           <StatusPill kind="open">Open</StatusPill>
         ) : null}
-        <SaveHeart />
+        {canFavorite === undefined ? (
+          <SaveHeart />
+        ) : (
+          <FavoriteButton
+            variant="icon"
+            eventId={event.id}
+            initialFavorited={favorited ?? false}
+            disabled={!canFavorite}
+          />
+        )}
       </div>
       <div className="flex items-stretch" style={{ padding: 8, gap: 4 }}>
         {/* ── LEFT COLUMN — logo panel with the host row stacked underneath.
