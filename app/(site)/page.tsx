@@ -52,82 +52,15 @@ export default async function HomePage() {
         popular={popularTerms}
       />
 
-      {/* ─── Group holding three independent layers, aligned-to-parent style ───
-          Container is the "group"; its three children (image, section, section)
-          are peers. The image is not a background — it's its own <Image>
-          element positioned absolutely, free-floating over the other two
-          layers. Sections stack in natural flow with no gap between them. */}
+      {/* ─── Group holding the two mid-page sections. The decorative photo
+          lives INSIDE the Featured Events wrapper below, anchored to that
+          section's top, so the ball always rides the "Find your next
+          tournament" heading row no matter how tall the surrounding
+          content is (the old %-of-group anchor drifted with data). */}
       <div className="relative isolate">
-        {/* ─ Layer 1: photo, an independent absolutely-positioned element.
-             Right-anchored, capped at 65vw wide so the text on the left is
-             never fighting the image. Shifted down so the ball in the image
-             aligns with the "Find your next tournament" heading. Feather is
-             ASYMMETRIC on the horizontal axis: very heavy on the left (where
-             the image meets the text column) and light on the right (which
-             hits the viewport edge and is naturally hidden). */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -z-10 hidden md:block"
-          style={{
-            // Push the right edge 40px past the viewport so the mask's fully-
-            // opaque right side (where the image shows at full intensity) never
-            // meets a visible boundary. Any potential color seam sits offscreen.
-            right: -40,
-            top: "62%",
-            width: "55vw",
-            maxWidth: "55vw",
-            height: 400,
-            transform: "translateY(-50%)",
-            overflow: "hidden",
-          }}
-        >
-          <div
-            className="absolute inset-0"
-            style={{
-              // Vertical: heavy 42% feather on top AND bottom (~250px each on
-              // the 600px layer) so the image dissolves generously into the
-              // page bg above and below.
-              // Horizontal: heavy 48% feather on the LEFT (where the image
-              // meets the text column) then fully opaque all the way to the
-              // right edge — no feather on the right side, so the image
-              // extends cleanly to the viewport edge without any dissolve.
-              WebkitMaskImage:
-                "linear-gradient(to bottom, transparent 0%, #000 42%, #000 58%, transparent 100%), linear-gradient(to right, transparent 0%, #000 48%, #000 100%)",
-              WebkitMaskComposite: "source-in",
-              maskImage:
-                "linear-gradient(to bottom, transparent 0%, #000 42%, #000 58%, transparent 100%), linear-gradient(to right, transparent 0%, #000 48%, #000 100%)",
-              maskComposite: "intersect",
-            }}
-          >
-            <Image
-              src="/hero3.webp"
-              alt=""
-              fill
-              sizes="55vw"
-              className="object-cover"
-              style={{ objectPosition: "center 55%" }}
-            />
-            {/* Pale wash lives INSIDE the mask so it only paints where the
-               image also paints. At the layer's feathered edges the mask goes
-               to zero and BOTH the image and the wash disappear together —
-               revealing the actual page background (with its gold/blue radial
-               gradient contributions) intact. No blue-ish #eef2f9 patch fights
-               the local page tint at the top/bottom or left. Wash is a soft
-               left-heavy horizontal that mutes the image for readability where
-               it IS visible. */}
-            <div
-              className="absolute inset-0"
-              style={{
-                background:
-                  "linear-gradient(to right, rgba(238,242,249,.65) 0%, rgba(238,242,249,.48) 45%, rgba(238,242,249,.32) 100%)",
-              }}
-            />
-          </div>
-        </div>
-
         {/* ─ Layer 2: Who We Serve ─ */}
         <section
-          className="relative mx-auto max-w-[1280px] px-6 pb-28 md:px-10"
+          className="relative mx-auto max-w-[1280px] px-6 pb-14 md:px-10"
           style={{ paddingTop: 124 }}
         >
           <SectionHeader
@@ -146,12 +79,66 @@ export default async function HomePage() {
             page aurora (the earlier tinted showcase card read too heavy).
             The per-card "Featured" text label was dropped (see EventCard);
             the card border + dual coach/attendee ratings carry the
-            differentiation. */}
+            differentiation. The wrapper hosts the decorative photo,
+            anchored to the section top so the ball in the image rides the
+            heading row regardless of surrounding content height. */}
+        <div className="relative">
+          {/* Decorative photo — right-anchored, capped at 55vw so the text
+              column never fights the image. Feather is ASYMMETRIC on the
+              horizontal axis: very heavy on the left (where the image meets
+              the text column) and none on the right (which runs 40px past
+              the viewport edge so no seam is ever visible). The negative top
+              centers the layer's opaque band (42–58% of its 400px height)
+              on the "Find your next tournament" heading. */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -z-10 hidden md:block"
+            style={{
+              right: -40,
+              top: -120,
+              width: "55vw",
+              maxWidth: "55vw",
+              height: 400,
+              overflow: "hidden",
+            }}
+          >
+            <div
+              className="absolute inset-0"
+              style={{
+                WebkitMaskImage:
+                  "linear-gradient(to bottom, transparent 0%, #000 42%, #000 58%, transparent 100%), linear-gradient(to right, transparent 0%, #000 48%, #000 100%)",
+                WebkitMaskComposite: "source-in",
+                maskImage:
+                  "linear-gradient(to bottom, transparent 0%, #000 42%, #000 58%, transparent 100%), linear-gradient(to right, transparent 0%, #000 48%, #000 100%)",
+                maskComposite: "intersect",
+              }}
+            >
+              <Image
+                src="/hero3.webp"
+                alt=""
+                fill
+                sizes="55vw"
+                className="object-cover"
+                style={{ objectPosition: "center 55%" }}
+              />
+              {/* Pale wash lives INSIDE the mask so it only paints where the
+                 image also paints — at the feathered edges both disappear
+                 together, revealing the page aurora intact. */}
+              <div
+                className="absolute inset-0"
+                style={{
+                  background:
+                    "linear-gradient(to right, rgba(238,242,249,.65) 0%, rgba(238,242,249,.48) 45%, rgba(238,242,249,.32) 100%)",
+                }}
+              />
+            </div>
+          </div>
+
         <section id="featured-events" className="relative mx-auto max-w-[1280px] px-6 pb-32 md:px-10" style={{ scrollMarginTop: 80 }}>
           <div
             className="relative"
             style={{
-              padding: "clamp(32px, 4vw, 56px) clamp(20px, 3vw, 48px)",
+              padding: "0 clamp(20px, 3vw, 48px)",
             }}
           >
             <div className="relative z-10 max-w-[720px]">
@@ -190,6 +177,7 @@ export default async function HomePage() {
             </div>
           </div>
         </section>
+        </div>
       </div>
 
 
