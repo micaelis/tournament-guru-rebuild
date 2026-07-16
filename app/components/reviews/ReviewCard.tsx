@@ -74,7 +74,19 @@ export function ReviewCard({
                 {promoChip ? ` · ${promoChip}` : ""}
               </span>
               {review.guru_review && (
-                <span className="rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-white">
+                <span
+                  className="inline-flex items-center gap-1 rounded-full bg-red-600 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-white shadow-[0_2px_8px_rgba(220,38,38,0.35)]"
+                  title="Verified — written by a coach through the promo-code flow"
+                >
+                  <svg
+                    width="11"
+                    height="11"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path d="M12 1.6l2.6 1.9 3.2-.1 1 3.05 2.6 1.85-1 3.05 1 3.05-2.6 1.85-1 3.05-3.2-.1L12 22.4l-2.6-1.9-3.2.1-1-3.05L2.6 15.7l1-3.05-1-3.05 2.6-1.85 1-3.05 3.2.1L12 1.6zm-1.2 13.9l5-5-1.4-1.4-3.6 3.6-1.8-1.8L7.6 12l3.2 3.5z" />
+                  </svg>
                   Guru Review
                 </span>
               )}
