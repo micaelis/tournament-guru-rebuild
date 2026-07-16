@@ -20,7 +20,12 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # Node 22+ is required — supabase-js v2.110+ resolves
+          # WebSocket via `globalThis.WebSocket`, which lands on
+          # Node 22 (undici's native ws). Node 20 throws
+          # "Node.js detected but native WebSocket not found" the
+          # moment a client is constructed.
+          node-version: 22
           cache: npm
 
       - name: Install dependencies
