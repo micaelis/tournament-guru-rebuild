@@ -138,6 +138,13 @@ Providers), NOT this file. Required prod settings:
 - `.claude/settings*.json` are NOT secret stores; the global rule in
   `~/.claude/CLAUDE.md` enforces this.
 
+### Docs stay in sync
+
+When a change affects routing, entry points, auth/onboarding screens, the
+design system, or any documented behavior, update the relevant `docs/*.md`
+(and this file if a convention changes) in the SAME commit. Docs must not
+describe behavior the change removed.
+
 ### Comments
 
 - Explain *why*, not *what*. Well-named identifiers do the "what".
