@@ -21,7 +21,13 @@ import { signOutAction } from "@/app/(auth)/actions";
  * signup on a different email starts from a truly clean session instead of
  * leaking the previous user's server-side context.
  */
-export function HeaderAuth({ initialEmail }: { initialEmail: string | null }) {
+export function HeaderAuth({
+  initialEmail,
+  hideSignInCta = false,
+}: {
+  initialEmail: string | null;
+  hideSignInCta?: boolean;
+}) {
   const [email, setEmail] = useState<string | null>(initialEmail);
 
   useEffect(() => {
@@ -35,6 +41,8 @@ export function HeaderAuth({ initialEmail }: { initialEmail: string | null }) {
   }, []);
 
   if (!email) {
+    // Inside the auth flow the "Sign in" pill is redundant — hide it there.
+    if (hideSignInCta) return null;
     return (
       <Link
         href="/login"

@@ -54,7 +54,15 @@ function useIsActive() {
   };
 }
 
-export function Header({ initialEmail = null }: { initialEmail?: string | null }) {
+export function Header({
+  initialEmail = null,
+  hideSignInCta = false,
+}: {
+  initialEmail?: string | null;
+  /** On the auth/onboarding flow the header "Sign in" pill is redundant.
+   *  Hides it for signed-out visitors; signed-in users keep avatar + Log out. */
+  hideSignInCta?: boolean;
+}) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
@@ -193,7 +201,7 @@ export function Header({ initialEmail = null }: { initialEmail?: string | null }
           </nav>
 
           <div className="flex items-center gap-2.5">
-            <HeaderAuth initialEmail={initialEmail} />
+            <HeaderAuth initialEmail={initialEmail} hideSignInCta={hideSignInCta} />
             <button
               type="button"
               onClick={() => setMenuOpen((v) => !v)}
