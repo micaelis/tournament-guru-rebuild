@@ -19,6 +19,12 @@
 --           RLS · grants (column allow-lists) · views · seed reference data
 -- =====================================================================
 
+-- Hosted Supabase installs extensions into the `extensions` schema and does
+-- NOT put it on the default search_path, so unqualified `citext` / `pg_trgm`
+-- refs below would fail at CREATE-time. Local dev's stack already keeps
+-- extensions on the path so this is a no-op there.
+set search_path = public, extensions, pg_temp;
+
 -- ---------- Extensions ----------
 -- On Supabase Cloud these live in the `extensions` schema; functions that use
 -- them must include `extensions` in their search_path (see functions section).
@@ -1588,6 +1594,11 @@ $$;
 --     end to end and enforces one-review-per-event resolution.
 -- ─────────────────────────────────────────────────────────────────────
 
+-- Hosted Supabase leaves `extensions` off the session search_path, so citext
+-- arg types below would fail at CREATE-time. Local dev's stack already has
+-- extensions on the path so this is a no-op there.
+set search_path = public, extensions, pg_temp;
+
 -- ── C1: signup trigger must never trust raw_user_meta_data.user_type
 create or replace function handle_new_user()
   returns trigger
@@ -1932,6 +1943,11 @@ revoke execute on function review_overall(reviews)        from public, anon, aut
 -- explicit signal.
 -- ─────────────────────────────────────────────────────────────────────
 
+-- Hosted Supabase leaves `extensions` off the session search_path, so citext
+-- return / arg types below would fail at CREATE-time. Local dev's stack
+-- already has extensions on the path so this is a no-op there.
+set search_path = public, extensions, pg_temp;
+
 -- ── C4: promo landing RPCs
 create or replace function promo_landing_info(p_token text)
   returns table(event_id uuid, email citext)
@@ -2163,6 +2179,11 @@ drop table if exists regions;
 -- swaps the two AND conjunctions to OR + reruns the full C3 probe
 -- suite to prove authorization didn't weaken.
 -- ─────────────────────────────────────────────────────────────────────
+
+-- Hosted Supabase leaves `extensions` off the session search_path, so citext
+-- declares below would fail at CREATE-time. Local dev's stack already has
+-- extensions on the path so this is a no-op there.
+set search_path = public, extensions, pg_temp;
 
 create or replace function apply_promo_to_review(
   p_review uuid,

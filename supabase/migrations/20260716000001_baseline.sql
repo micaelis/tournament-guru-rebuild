@@ -5,6 +5,12 @@
 --           RLS · grants (column allow-lists) · views · seed reference data
 -- =====================================================================
 
+-- Hosted Supabase installs extensions into the `extensions` schema and does
+-- NOT put it on the default search_path, so unqualified `citext` / `pg_trgm`
+-- refs below would fail at CREATE-time. Local dev's stack already keeps
+-- extensions on the path so this is a no-op there.
+set search_path = public, extensions, pg_temp;
+
 -- ---------- Extensions ----------
 -- On Supabase Cloud these live in the `extensions` schema; functions that use
 -- them must include `extensions` in their search_path (see functions section).

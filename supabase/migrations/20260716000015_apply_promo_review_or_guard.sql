@@ -15,6 +15,11 @@
 -- suite to prove authorization didn't weaken.
 -- ─────────────────────────────────────────────────────────────────────
 
+-- Hosted Supabase leaves `extensions` off the session search_path, so citext
+-- declares below would fail at CREATE-time. Local dev's stack already has
+-- extensions on the path so this is a no-op there.
+set search_path = public, extensions, pg_temp;
+
 create or replace function apply_promo_to_review(
   p_review uuid,
   p_promo  uuid

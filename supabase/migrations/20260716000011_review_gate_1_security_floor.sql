@@ -19,6 +19,11 @@
 --     end to end and enforces one-review-per-event resolution.
 -- ─────────────────────────────────────────────────────────────────────
 
+-- Hosted Supabase leaves `extensions` off the session search_path, so citext
+-- arg types below would fail at CREATE-time. Local dev's stack already has
+-- extensions on the path so this is a no-op there.
+set search_path = public, extensions, pg_temp;
+
 -- ── C1: signup trigger must never trust raw_user_meta_data.user_type
 create or replace function handle_new_user()
   returns trigger

@@ -26,6 +26,11 @@
 -- explicit signal.
 -- ─────────────────────────────────────────────────────────────────────
 
+-- Hosted Supabase leaves `extensions` off the session search_path, so citext
+-- return / arg types below would fail at CREATE-time. Local dev's stack
+-- already has extensions on the path so this is a no-op there.
+set search_path = public, extensions, pg_temp;
+
 -- ── C4: promo landing RPCs
 create or replace function promo_landing_info(p_token text)
   returns table(event_id uuid, email citext)
