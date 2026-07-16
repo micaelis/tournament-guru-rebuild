@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { signOutAction } from "@/app/(auth)/actions";
-import { HeaderPill } from "./HeaderPill";
+import { HeaderPill, headerPillLook } from "./HeaderPill";
 
 /**
  * Right-hand header slot that reflects auth state: a "Sign in" pill when logged
@@ -26,6 +26,15 @@ export function HeaderAuth({ initialEmail }: { initialEmail: string | null }) {
 
   useEffect(() => {
     const supabase = createClient();
+    // Read the current session once on mount: a navigation served right
+    // after a server-action login can carry a header rendered before the
+    // session cookie landed, so don't rely on the change subscription
+    // alone. Only ever *adds* the email here — clearing stays with the
+    // explicit SIGNED_OUT event below, so a client that can't read the
+    // cookie can never blank a server-verified session.
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user?.email) setEmail(user.email);
+    });
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -55,19 +64,22 @@ export function HeaderAuth({ initialEmail }: { initialEmail: string | null }) {
         {initial}
       </span>
       <form action={signOutAction}>
-        <button
-          type="submit"
-          className="rounded-full border px-4 py-1.5 text-sm font-semibold transition-colors hover:bg-gray-50"
-          style={{
-            borderColor: "var(--color-border)",
-            color: "var(--color-dark)",
-            background: "transparent",
-            cursor: "pointer",
-          }}
-        >
-          Log out
-        </button>
+        <LogOutButton />
       </form>
     </div>
+  );
+}
+
+/** Same outline-pill look as the auth-header "Browse events" CTA. */
+function LogOutButton() {
+  const look = headerPillLook("outline", "sm");
+  return (
+    <button
+      type="submit"
+      className={`cursor-pointer ${look.className}`}
+      style={look.style}
+    >
+      Log out
+    </button>
   );
 }

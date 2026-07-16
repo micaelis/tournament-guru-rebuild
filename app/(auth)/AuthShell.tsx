@@ -47,8 +47,8 @@ const PANELS: Record<
     chips: ["Coaches", "Team Managers", "Parents", "Event Directors"],
   },
   "ed-claim": {
-    badge: "For Event Directors",
-    headline: <>Become Part of the Largest &amp; Growing Soccer Community</>,
+    badge: "Tournament Guru",
+    headline: <>Become Part of the Largest and Growing Soccer Community</>,
     lead: "Tournament Guru lists all publicly available tournament listings from around the United States. Claiming your event allows Event Directors to maximize their visibility by customizing the information available to the thousands of tournament seekers.",
     chips: ["Coaches", "Team Managers", "Parents", "Event Directors"],
   },

@@ -45,14 +45,19 @@ reference for building/verifying the UI.
 - Uses Supabase default reset emails.
 
 ## 4. ED-Claim variant
-Reached from an event's **Claim** CTA (when logged out) or the header "Claim Your Listing Free"
-link. Shared layout; right-panel copy differs:
+Reached via `/signup?type=event_director` from any of:
+- an event's **Claim** CTA (when logged out; carries `&next=<event>`),
+- the header **For Event Directors → "Claim / List Your Event Free"** sub-link,
+- the For Event Directors page's **"Claim / Create Free Listing"** CTA.
+
+Shared layout (`AuthShell variant="ed-claim"` — never a forked layout); right-panel copy differs:
+- Badge: **"Tournament Guru"**
 - Title: **"Become Part of the Largest and Growing Soccer Community"**
 - Subtitle: "Tournament Guru lists all publicly available tournament listings from around the
   United States. Claiming your event allows Event Directors to maximize their visibility by
   customizing the information available to the thousands of tournament seekers."
-- Switching to signup mode → user type **auto-selected to Event Director**.
-- After auth → return to the event to complete the claim (preserve intent).
+- User type **auto-selected to Event Director** on the signup form.
+- After auth from a claim CTA → return to the event to complete the claim (preserve intent).
 
 ## 5. Promo-Review variant (`?promo=<token>`)
 The "2nd auth version" for the verified-review flow. Accessible by anon + signed-in.
@@ -108,8 +113,10 @@ Running log of auth-screen visual decisions (kept here so future changes stay co
   tagline, audience chips, real-stats metric bar).
 - **Brand mark:** the full logo lockup lives at the top of the left form column. The header
   carries a compact monogram mark only (icon, no wordmark) so it doesn't read as bare.
-- **Header nav:** centered; auth CTA "Browse events" reuses the public red-gradient pill —
-  smaller font (~13.5px) with a touch more vertical padding than the public one.
+- **Header nav:** centered; auth CTA "Browse events" is the *outline* header pill (white bg,
+  accent text/border, hover tint + lift) so it reads quieter than the primary red-gradient
+  actions — smaller font (~13.5px) with a touch more vertical padding than the public pill.
+  The signed-in "Log out" button shares the exact same outline-pill look (`headerPillLook`).
 - **Primary CTA (Sign in / Continue / etc.):** public red-gradient pill, hover-lift +
   active-press. Secondary links (Create an account, Forgot password) are brand-red + hover
   underline; footer lines (Create an account, privacy note) are centered.

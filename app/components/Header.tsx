@@ -32,7 +32,9 @@ const NAV: NavItem[] = [
     label: "For Event Directors",
     href: "/host",
     children: [
-      { label: "Claim / List Your Event Free", href: "/host" },
+      // Straight to the ED-claim auth screen (ED type pre-selected), not
+      // the marketing hub — see docs/AUTH-SCREENS.md §4.
+      { label: "Claim / List Your Event Free", href: "/signup?type=event_director" },
       { label: "Upgrade Your Event Listing", href: "/host" },
     ],
   },
