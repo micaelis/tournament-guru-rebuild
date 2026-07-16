@@ -54,10 +54,20 @@ jobs:
         # wants the NEXT_PUBLIC_SUPABASE_URL / _ANON_KEY pair, so we
         # export both under the same values.
         run: |
-          STATUS=$(supabase status -o json)
-          API_URL=$(echo "$STATUS" | jq -r '.API_URL')
-          ANON_KEY=$(echo "$STATUS" | jq -r '.ANON_KEY')
-          SERVICE_ROLE_KEY=$(echo "$STATUS" | jq -r '.SERVICE_ROLE_KEY')
+          set -euo pipefail
+          STATUS=$(supabase status -o env)
+          # Every key/value in `-o env` is quoted; strip the quotes.
+          API_URL=$(printf '%s\n' "$STATUS" | awk -F= '/^API_URL=/{gsub(/"/,"",$2); print $2}')
+          ANON_KEY=$(printf '%s\n' "$STATUS" | awk -F= '/^ANON_KEY=/{gsub(/"/,"",$2); print $2}')
+          SERVICE_ROLE_KEY=$(printf '%s\n' "$STATUS" | awk -F= '/^SERVICE_ROLE_KEY=/{gsub(/"/,"",$2); print $2}')
+          if [ -z "$API_URL" ] || [ -z "$ANON_KEY" ] || [ -z "$SERVICE_ROLE_KEY" ]; then
+            echo "Failed to parse supabase status output:"
+            printf '%s\n' "$STATUS"
+            exit 1
+          fi
+          echo "API_URL=$API_URL"
+          echo "ANON_KEY starts with $(printf '%s' "$ANON_KEY" | cut -c1-20)…"
+          echo "SERVICE_ROLE_KEY starts with $(printf '%s' "$SERVICE_ROLE_KEY" | cut -c1-20)…"
           {
             echo "TEST_SUPABASE_URL=$API_URL"
             echo "TEST_SUPABASE_ANON_KEY=$ANON_KEY"
