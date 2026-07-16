@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createServerAuthClient, createAnonServerClient } from "@/lib/supabase/server";
 import { Button } from "@/app/components/ui";
+import AuthShell from "@/app/(auth)/AuthShell";
 
 type Params = { token: string };
 
@@ -90,21 +91,23 @@ export default async function PromoLandingPage({
 
 function placeholder() {
   return (
-    <main className="mx-auto max-w-lg px-6 py-24 text-center">
-      <h1 className="font-[var(--font-heading)] text-3xl font-extrabold text-slate-900">
-        This link isn&apos;t active
-      </h1>
-      <p className="mt-3 text-sm text-slate-500">
-        The promo you tried to open isn&apos;t on file — it may have expired,
-        been reissued, or been sent to a different address. Reach out to the
-        event director for a fresh link.
-      </p>
-      <div className="mt-6">
-        <Link href={"/events" as never}>
-          <Button>Browse events</Button>
-        </Link>
+    <AuthShell>
+      <div className="max-w-md">
+        <h1 className="font-[var(--font-heading)] text-3xl font-extrabold text-slate-900">
+          This link isn&apos;t active
+        </h1>
+        <p className="mt-3 text-sm text-slate-600">
+          The promo you tried to open isn&apos;t on file — it may have expired,
+          been reissued, or been sent to a different address. Reach out to the
+          event director for a fresh link.
+        </p>
+        <div className="mt-6">
+          <Link href={"/events" as never}>
+            <Button>Browse events</Button>
+          </Link>
+        </div>
       </div>
-    </main>
+    </AuthShell>
   );
 }
 
