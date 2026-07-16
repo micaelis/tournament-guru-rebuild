@@ -37,6 +37,7 @@ export const ADMIN_NAV: NavItem[] = [
   { href: "/dashboard/reviews" as Route, label: "Reviews", section: "Content" },
   { href: "/dashboard/flagged" as Route, label: "Flagged", section: "Content" },
   { href: "/dashboard/banned-words" as Route, label: "Banned Words", section: "Content" },
+  { href: "/dashboard/faqs" as Route, label: "FAQs", section: "Content" },
   { href: "/dashboard/users" as Route, label: "Users", section: "People" },
   { href: "/dashboard/claim-requests" as Route, label: "Claim Requests", section: "People" },
   { href: "/dashboard/promo-codes" as Route, label: "Promo Codes", section: "People" },
