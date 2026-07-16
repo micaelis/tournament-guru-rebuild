@@ -1,0 +1,100 @@
+# Authentication & Onboarding — Screen Specifications
+
+Per-screen spec for the auth surfaces. All variants share one layout component; only the
+copy and a few behaviors differ. Deep behavior/logic is authoritative in
+`docs/SPECIFICATION.md` (Authentication & Onboarding); this file is the screen-by-screen
+reference for building/verifying the UI.
+
+> **No social sign-in.** Authentication is **email + password only**. Do NOT build Google
+> or any OAuth/social login. If a restored design includes a "Continue with Google" (or
+> similar) button, remove it.
+
+## Shared layout & rules (all variants)
+- Two-column layout: form/inputs on the **left**; a sticky, full-height **image on the right**
+  with a glassmorphism overlay (headline, labels, chips). Dark overlay behind the text for
+  legibility. Backdrop uses an image from `public/`.
+- Implemented as **one shared auth-layout component** that takes copy/variant as props — no
+  duplicate per-variant layouts.
+- **Blocked-account rule:** on login or any protected page, if the account is `blocked` →
+  force logout + popup "We're sorry to let you know that your account has been indefinitely
+  blocked," redirect to login.
+
+## 1. Login
+- Fields: email (required), password (required). "Forgot password?" → reset.
+- On success: onboarding complete → role-based dashboard; incomplete → onboarding.
+- Link to signup.
+- Copy: "Welcome back to Tournament Guru" + a short sign-in subtitle.
+- Email/password only — no social sign-in button.
+
+## 2. Signup
+- Fields: email (required), password (required — **8 chars, ≥1 uppercase, ≥1 number**, enforced
+  server-side).
+- Role selection: choose **type** first (Event Director / Attendee), then **role** under it
+  (one each). Type is locked after signup.
+- "Skip registration" CTA → Search Events page.
+- Deep-link: arriving from "Claim/List your event free" → **Event Director type pre-selected**;
+  if a signed-in user clicked it → log them out first, then signup with ED pre-selected.
+- On success → onboarding.
+- Email/password only — no social sign-in button.
+
+## 3. Password Reset
+- Field: email.
+- Rate limit: **1 email / 30 seconds** — server-side enforced, with a client countdown.
+- **Anti-enumeration:** identical generic response whether or not the email exists
+  ("If an account exists for this email, we've sent a reset link"). Never reveal existence.
+- Uses Supabase default reset emails.
+
+## 4. ED-Claim variant
+Reached from an event's **Claim** CTA (when logged out) or the header "Claim Your Listing Free"
+link. Shared layout; right-panel copy differs:
+- Title: **"Become Part of the Largest and Growing Soccer Community"**
+- Subtitle: "Tournament Guru lists all publicly available tournament listings from around the
+  United States. Claiming your event allows Event Directors to maximize their visibility by
+  customizing the information available to the thousands of tournament seekers."
+- Switching to signup mode → user type **auto-selected to Event Director**.
+- After auth → return to the event to complete the claim (preserve intent).
+
+## 5. Promo-Review variant (`?promo=<token>`)
+The "2nd auth version" for the verified-review flow. Accessible by anon + signed-in.
+- If no `?promo` value, or the promo object doesn't exist → **simple placeholder on the left**
+  (no form).
+- If a signed-in, onboarding-complete user opens a valid promo → redirect straight to the
+  promo's event page (keep the `?promo` param).
+- Left-panel copy: "To get started with your review, please provide us with a few bits of
+  information about yourself so that we can best utilize and understand your review. The info
+  you provide will be used only for internal purposes. We will not share your contact info with
+  anyone."
+- **Step 1** — Email (auto: current user, else the promo's stored email), First Name, Last Name,
+  Organization. Continue → validate all present, then resolve the account:
+  logged-in → save to profile; not logged-in but an account exists for that email → log them in +
+  save; onboarding already complete → redirect to the promo event; no account → create one with
+  type = Attendee, role = Coach.
+- **Step 2** — location / gender / DOB (same as onboarding Screen 2).
+- **Step 3** — team info, up to 3 teams (same as onboarding Screen 3).
+- Funnel tracking records the step reached (landed / step1 / step2 / step3 / applied).
+
+## 6. Onboarding (post-signup, signed-in only)
+Same left/right chrome as the auth screens.
+- Guard: authed-only; if all mandatory fields present → dashboard; else → Screen 1 with saved
+  data prefilled. Logout available → login.
+- **Screen 1 — Personal Information:** First name*, Last name*, role dropdown (type-scoped;
+  adjustable here, **locked after completion**), Organization Title* (required for all except
+  Parent/Spectator).
+- **Screen 2:** Location* (Google Places autocomplete, **mandatory**), Gender* (Female/Male as
+  selectable blocks, **mandatory**), Date of Birth* (calendar with easy year change;
+  **under-18 blocked**).
+- **Screen 3 — Preferred Event Criteria (all optional):** Distance (No limit / <150 / <300 /
+  <450 mi); Team info (Parent/Spectator = 1 team, others = up to 3; each: gender Boys/Girls/Both,
+  age U4–U20 dropdown, competitive level Highest→Lowest).
+- **Screen 4 — Event Directors only:** Organization logo (PNG/JPG/JPEG, 5MB max), Organization
+  description* (required).
+- Redirects: Attendee → Search Events; Event Director → dashboard.
+- Role: adjustable during onboarding, locked once onboarding completes.
+- Mandatory-to-complete set: first_name, last_name, role, dob, gender, location,
+  organization_title (except Parent/Spectator), org_description (ED).
+
+## Notes on scope
+- **Google Places autocomplete** (Screen 2 location) uses the client's existing keys; it is a
+  separate feature from any map display. If deferred, the location field degrades to a plain
+  text input.
+- **No social/OAuth sign-in** anywhere — email + password only.
