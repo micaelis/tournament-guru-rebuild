@@ -300,6 +300,20 @@ update events
    set cancel_reason='Field permits could not be renewed in time for the scheduled dates. Refunds processed to all registered teams.'
  where id='22222222-0000-0000-0000-000000000007';
 
+-- Real venue coordinates so the Find Events map lights up with pins.
+-- (lat/lng are otherwise null; the search map only plots numeric points.)
+update events set location_lat = v.lat, location_lng = v.lng
+from (values
+  ('22222222-0000-0000-0000-000000000001'::uuid, 30.1328, -97.6411),  -- Circuit of the Americas, Austin TX
+  ('22222222-0000-0000-0000-000000000002'::uuid, 30.1328, -97.6411),  -- COTA, Austin TX
+  ('22222222-0000-0000-0000-000000000003'::uuid, 30.5460, -97.6836),  -- Round Rock Multipurpose Complex, TX
+  ('22222222-0000-0000-0000-000000000004'::uuid, 41.7506, -87.8103),  -- SeatGeek Stadium, Bridgeview IL
+  ('22222222-0000-0000-0000-000000000005'::uuid, 41.7506, -87.8103),  -- Bridgeview IL
+  ('22222222-0000-0000-0000-000000000006'::uuid, 33.6883, -111.9760), -- Reach 11 Sports Complex, Phoenix AZ
+  ('22222222-0000-0000-0000-000000000008'::uuid, 38.4967, -90.4360)   -- WWT Soccer Park, St. Louis MO
+) as v(id, lat, lng)
+where events.id = v.id;
+
 -- ── Event child data ──────────────────────────────────────────────────
 insert into event_age_groups (event_id, team_gender, age, price, field_size) values
   ('22222222-0000-0000-0000-000000000001', 'boys',  'U10', 550, '7v7'),

@@ -16,7 +16,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Route } from "next";
-import type { EventSearchRow } from "@/app/components/types";
+import type { EventRow } from "@/app/components/types";
 import { safeImageSrc } from "@/lib/url";
 
 type Mode = "review" | "browse";
@@ -25,7 +25,7 @@ function capitalize(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-function ageGenderLabel(e: EventSearchRow): string | null {
+function ageGenderLabel(e: EventRow): string | null {
   const ages = e.event_ages?.map((a) => a.age.toUpperCase()).sort() ?? [];
   const age =
     ages.length > 1 ? `${ages[0]}–${ages[ages.length - 1]}` : ages[0];
@@ -191,7 +191,7 @@ export function EventSearchOverlay({
 }) {
   const router = useRouter();
   const [query, setQuery] = useState(initialQuery);
-  const [results, setResults] = useState<EventSearchRow[]>([]);
+  const [results, setResults] = useState<EventRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [active, setActive] = useState(-1);
@@ -222,7 +222,7 @@ export function EventSearchOverlay({
       : "Find a tournament by name, city, or state.");
 
   const select = useCallback(
-    (e: EventSearchRow) => {
+    (e: EventRow) => {
       onClose();
       // Both discovery and review flows land on the event page — the review
       // form itself lives there, so the search picker just needs to hand

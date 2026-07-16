@@ -48,19 +48,16 @@ export type EventRow = {
   event_genders?: { gender: string }[];
 };
 
-/** Typeahead row for the header EventSearchOverlay. */
-export type EventSearchRow = {
-  id: string;
-  title: string;
-  host_club: string | null;
-  location_text: string | null;
-  state: string | null;
-  start_date: string | null;
-  end_date: string | null;
-  status: string | null;
-  logo: string | null;
-  event_ages?: { age: string }[];
-  event_genders?: { gender: string }[];
+/** Sort options for the search page. "recommended" is an alias for "teams". */
+export type EventSort = "recommended" | "date" | "rating" | "teams";
+
+/** Facet value sets that populate the search filter drawer. */
+export type EventFacets = {
+  ages: string[];
+  genders: string[];
+  levels: string[];
+  surfaces: string[];
+  states: string[];
 };
 
 /** Event-detail row: the card contract plus the detail-only extras. */

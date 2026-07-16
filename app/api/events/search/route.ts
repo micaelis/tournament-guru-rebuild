@@ -1,85 +1,54 @@
 import { NextResponse } from "next/server";
-import { createAnonServerClient } from "@/lib/supabase/server";
-import { deriveEventStatus } from "@/app/dashboard/events/event-shared";
-import type { EventSearchRow } from "@/app/components/types";
+import { searchEvents, type SearchFilters } from "@/lib/events/search";
+import type { EventSort } from "@/app/components/types";
 
 /**
- * Typeahead search feeding the header EventSearchOverlay. Public,
- * read-only, anon client (RLS + column grants keep sensitive columns
- * off the wire). Returns the `EventSearchRow` shape the overlay renders
- * — the presentation is main's design; only this data source is new.
- *
- * `?q=` matches title / host club / location. `?concluded=1` narrows to
- * events that have already ended (the "write a review" flow).
+ * Public event search. Feeds both the Find Events client (EventsSearch —
+ * full EventRow cards + total for pagination) and the header
+ * EventSearchOverlay (typeahead; `?concluded=1` narrows to ended events
+ * for the review flow). Read-only, anon client — the new-schema search
+ * lives in lib/events/search; the presentation is main's design.
  */
+const csv = (v: string | null) =>
+  (v ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+const VALID_SORTS: EventSort[] = ["recommended", "date", "rating", "teams"];
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const q = (searchParams.get("q") ?? "").trim();
   const concludedOnly = searchParams.get("concluded") === "1";
 
-  const supabase = createAnonServerClient();
-  let query = supabase
-    .from("events")
-    .select(
-      "id, title, logo_url, host_club, location_formatted, location_state_abbr, start_date, end_date, lifecycle, event_age_groups(age, team_gender)",
-    )
-    .eq("lifecycle", "active");
-
-  if (q) {
-    const like = `%${q}%`;
-    query = query.or(
-      `title.ilike.${like},host_club.ilike.${like},location_formatted.ilike.${like}`,
-    );
-  }
-  if (concludedOnly) {
-    const today = new Date().toISOString().slice(0, 10);
-    query = query.lt("end_date", today);
-  }
-
-  const { data, error } = await query
-    .order("start_date", { ascending: false })
-    .limit(8);
-
-  if (error) {
-    return NextResponse.json({ error: "Search failed" }, { status: 500 });
-  }
-
-  type Row = {
-    id: string;
-    title: string;
-    logo_url: string | null;
-    host_club: string | null;
-    location_formatted: string | null;
-    location_state_abbr: string | null;
-    start_date: string | null;
-    end_date: string | null;
-    lifecycle: "draft" | "active" | "canceled";
-    event_age_groups: { age: string | null; team_gender: string | null }[] | null;
+  const filters: SearchFilters = {
+    q: searchParams.get("q") ?? "",
+    ages: csv(searchParams.get("ages")),
+    genders: csv(searchParams.get("genders")),
+    levels: csv(searchParams.get("levels")),
+    surfaces: csv(searchParams.get("surfaces")),
+    states: csv(searchParams.get("states")).map((s) => s.toUpperCase()),
+    dateStart: searchParams.get("dateStart") || null,
+    dateEnd: searchParams.get("dateEnd") || null,
+    openOnly: searchParams.get("open") === "1",
+    concludedOnly,
   };
 
-  const events: EventSearchRow[] = ((data ?? []) as Row[]).map((r) => {
-    const ages = Array.from(
-      new Set((r.event_age_groups ?? []).map((g) => g.age).filter(Boolean)),
-    ) as string[];
-    const genders = Array.from(
-      new Set(
-        (r.event_age_groups ?? []).map((g) => g.team_gender).filter(Boolean),
-      ),
-    ) as string[];
-    return {
-      id: r.id,
-      title: r.title,
-      logo: r.logo_url,
-      host_club: r.host_club,
-      location_text: r.location_formatted,
-      state: r.location_state_abbr,
-      start_date: r.start_date,
-      end_date: r.end_date,
-      status: deriveEventStatus(r),
-      event_ages: ages.map((age) => ({ age })),
-      event_genders: genders.map((gender) => ({ gender })),
-    };
-  });
+  const sortRaw = searchParams.get("sort");
+  const sort: EventSort =
+    sortRaw && VALID_SORTS.includes(sortRaw as EventSort) && sortRaw !== "recommended"
+      ? (sortRaw as EventSort)
+      : "teams";
+  const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10) || 1);
+  // Overlay asks for a short typeahead list; the full page paginates.
+  const pageSize = concludedOnly
+    ? 8
+    : Math.min(48, Math.max(1, parseInt(searchParams.get("pageSize") ?? "12", 10) || 12));
 
-  return NextResponse.json({ events });
+  try {
+    const { data, total } = await searchEvents(filters, { page, pageSize, sort });
+    return NextResponse.json({ events: data, total });
+  } catch {
+    return NextResponse.json({ error: "Search failed" }, { status: 500 });
+  }
 }
