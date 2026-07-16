@@ -8,6 +8,10 @@ import { firstViewableEvent } from "./helpers/db";
  * Leaflet map is third-party and excluded).
  */
 async function seriousViolations(page: Page) {
+  // Let content settle + animations finish (the suite runs with reduced
+  // motion, so the app's fade-ins complete instantly) before scanning —
+  // otherwise axe can catch text mid-fade and report transient low contrast.
+  await page.waitForLoadState("networkidle");
   const results = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
     .exclude(".leaflet-container")
@@ -31,6 +35,11 @@ function summarize(violations: Awaited<ReturnType<typeof seriousViolations>>) {
 }
 
 test.describe("Accessibility (critical/serious)", () => {
+  // Instant animations → axe scans the settled, final-state colors.
+  test.beforeEach(async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+  });
+
   test("login", async ({ page }) => {
     await page.goto("/login");
     const v = await seriousViolations(page);
