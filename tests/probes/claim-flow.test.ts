@@ -54,6 +54,8 @@ describe("Claim flow", () => {
         created_by: adminHost.id,
         title: "First",
         lifecycle: "active",
+        start_date: "2026-09-01",
+        end_date: "2026-09-03",
       })
       .select("id")
       .single();
@@ -65,6 +67,8 @@ describe("Claim flow", () => {
         created_by: adminHost.id,
         title: "Second",
         lifecycle: "active",
+        start_date: "2026-09-01",
+        end_date: "2026-09-03",
       })
       .select("id")
       .single();

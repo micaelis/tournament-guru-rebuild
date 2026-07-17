@@ -3,7 +3,7 @@
  * actions. These aren't RLS-specific but BUILD-PLAN §2.5 lists them
  * as required per-slice tests.
  */
-import { describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it } from "vitest";
 import {
   isAdultDob,
   validateEmail,
@@ -11,6 +11,7 @@ import {
 } from "../../lib/validation";
 import { findBannedWords } from "../../lib/reviews/client-check";
 import { parseCsvEmails } from "../../lib/promo/csv";
+import { createUser, purge, service } from "../harness";
 
 describe("validatePassword", () => {
   it("passes on 8+ chars, upper, digit", () => {
@@ -55,6 +56,73 @@ describe("findBannedWords", () => {
   });
   it("returns empty on clean text", () => {
     expect(findBannedWords("hello world", ["crap"])).toEqual([]);
+  });
+});
+
+const users: string[] = [];
+afterAll(() => purge(users));
+
+describe("event date constraints (DB)", () => {
+  it("rejects null end_date on INSERT", async () => {
+    const ed = await createUser({
+      metadata: { user_type: "event_director", role_title: "event_director" },
+      completeOnboarding: true,
+      role: "event_director",
+    });
+    users.push(ed.id);
+    const svc = service();
+    const { data: t } = await svc
+      .from("tournaments")
+      .insert({
+        title: "Probe T",
+        owner_id: ed.id,
+        created_by: ed.id,
+        claimed: true,
+      })
+      .select("id")
+      .single();
+    const { error } = await svc.from("events").insert({
+      tournament_id: t!.id,
+      owner_id: ed.id,
+      created_by: ed.id,
+      claimed: true,
+      title: "No End Date",
+      start_date: "2026-08-01",
+      lifecycle: "draft",
+    });
+    expect(error).not.toBeNull();
+    expect(error!.message).toMatch(/end_date|not-null|null/i);
+  });
+
+  it("rejects end_date < start_date via CHECK", async () => {
+    const ed = await createUser({
+      metadata: { user_type: "event_director", role_title: "event_director" },
+      completeOnboarding: true,
+      role: "event_director",
+    });
+    users.push(ed.id);
+    const svc = service();
+    const { data: t } = await svc
+      .from("tournaments")
+      .insert({
+        title: "Probe T2",
+        owner_id: ed.id,
+        created_by: ed.id,
+        claimed: true,
+      })
+      .select("id")
+      .single();
+    const { error } = await svc.from("events").insert({
+      tournament_id: t!.id,
+      owner_id: ed.id,
+      created_by: ed.id,
+      claimed: true,
+      title: "Bad Dates",
+      start_date: "2026-08-10",
+      end_date: "2026-08-05",
+      lifecycle: "draft",
+    });
+    expect(error).not.toBeNull();
   });
 });
 

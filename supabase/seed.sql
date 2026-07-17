@@ -292,7 +292,7 @@ insert into events (id, tournament_id, owner_id, created_by, claimed,
    'aaaaaaaa-0000-0000-0000-000000000002', 'aaaaaaaa-0000-0000-0000-000000000002', true,
    null, 'Summer Classic — U16 (Draft)',
    null, 'Lone Star Youth Sports',
-   null, null, null, null, null, null, null, null, null, null, null, 'draft',
+   current_date + 120, current_date + 122, null, null, null, null, null, null, null, null, null, 'draft',
    false, false, null, null, null, null, null,
    now() - interval '3 days');
 
