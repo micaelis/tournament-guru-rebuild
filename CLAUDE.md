@@ -46,6 +46,40 @@ it (`full_name`, `contact_email`, `profile_picture`, `onboarding_complete`,
 - `supabase/migrations/` — timestamped DDL; `20260716000001_baseline.sql`
   is the from-scratch schema
 
+## Documentation map
+
+Every doc and when to read it. Orientation is read-first; for the rule on which doc to
+UPDATE when you change something, see the "Documentation is a first-class deliverable"
+convention.
+
+Root:
+- `README.md` — product overview (what TG is, who it's for). Start here for context.
+- `AGENTS.md` — ⚠ Next 16 has breaking changes vs. training data; read the guides in
+  `node_modules/next/dist/docs/` before writing Next code. Read before any framework work.
+- `DECISIONS.md` — non-obvious calls, add-only, slice-ID'd (S<n>.<m> / RG<n>.x). Read before
+  reversing a choice; append here when you make one.
+- `DEPLOYMENT.md` — ordered runbook for provisioning a client-owned Supabase + Vercel. Read
+  before any deploy/provisioning; ⚠ steps change external state.
+- `TURBOCHECK.md` — the latest whole-repo reliability/dead-code audit report. Read for known
+  rot + backlog before a release cut.
+- `CLAUDE.md` — this file: conventions + this map. Read first, every session.
+
+docs/:
+- `SPECIFICATION.md` — the full product spec: what every page does + the rules behind it.
+  The single best deep read; authoritative for behavior.
+- `SCHEMA-DESIGN.md` — the data model / entity map (not DDL). Read before schema changes.
+- `STYLE-GUIDE.md` — design system: tokens, colors, type, the app/components/ui primitives.
+  Read before any UI/design work.
+- `AUTH-SCREENS.md` — per-screen auth + onboarding spec (variants, copy, entry points).
+- `SMOKE-TESTS.md` — smoke-test scenarios per flow. Read before manual QA.
+- `TESTING.md` — automated-test coverage map (per-flow matrix). Read before adding tests;
+  update it when you cover a new flow.
+- `DEMO.md` — seeded demo accounts + the shared password for clicking between roles.
+
+supabase/:
+- `migrations/` — the schema + RLS. **Security is enforced here**, not just in the app.
+- `README.md` — local Supabase / migrations workflow.
+
 ## Commands
 
 ```
@@ -143,12 +177,29 @@ Providers), NOT this file. Required prod settings:
 - `.claude/settings*.json` are NOT secret stores; the global rule in
   `~/.claude/CLAUDE.md` enforces this.
 
-### Docs stay in sync
+### Documentation is a first-class deliverable
 
-When a change affects routing, entry points, auth/onboarding screens, the
-design system, or any documented behavior, update the relevant `docs/*.md`
-(and this file if a convention changes) in the SAME commit. Docs must not
-describe behavior the change removed.
+Documentation is this project's most important asset. Keeping it accurate is part of the
+work, never an afterthought. Any change that alters behavior, structure, or intent updates
+the docs in the SAME commit — a change isn't "done" until its docs are true.
+
+- Keep OLD docs true, not just add new ones. When a change makes existing documentation
+  wrong or stale, fix it in place. Docs must never describe behavior a change removed or renamed.
+- Update by area:
+  - routing / entry points / auth & onboarding → docs/AUTH-SCREENS.md
+  - product behavior / rules / page responsibilities → docs/SPECIFICATION.md
+  - design system / components / tokens → docs/STYLE-GUIDE.md
+  - schema / RLS / migrations → the migration + docs/SCHEMA-DESIGN.md
+  - test coverage of a flow → docs/TESTING.md (coverage matrix)
+  - a non-obvious decision, trade-off, audit finding, or bug fix → append a new entry to
+    DECISIONS.md in its existing format (### <ID> · title; what / why / alternative; add-only,
+    never rewrite past entries — supersede by referencing the old heading)
+  - a changed convention → this file (CLAUDE.md)
+- Capture findings. After any audit, review gate, or bug fix, record the conclusion in
+  DECISIONS.md so the reasoning survives between sessions.
+- Reconcile context. If new work has drifted from what a doc says — or two docs disagree —
+  reconcile them as part of the task, don't leave the contradiction.
+- Keep entries concise and in the existing style.
 
 ### Comments
 
