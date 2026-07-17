@@ -611,3 +611,30 @@ UPDATE denied × 2, ED RPC denied × 2, admin RPC succeeds × 1).
 action. Rejected — RLS is the security boundary per CLAUDE.md; client
 checks are UX only. Column grants enforce at the DB so even a direct
 PostgREST call can't bypass.
+
+### S6.3 · Spotlight column filter corrected — end_date > now − 25 days
+
+The initial build filtered the Spotlight column on `lifecycle = 'active'`
+AND `start_date >= today`. The correct rule (decoded from the Bubble
+spec, item A1) is: `is_general_ad = true` AND lifecycle is NOT draft or
+canceled AND `end_date > now − 25 days`. This shows events that ended
+up to 25 days ago, ongoing events, and upcoming events — broader than
+"future only" so recently-concluded events stay visible briefly.
+
+Card fields updated: date range (start – end), city + state code
+(instead of full location_formatted), and a favourite heart button.
+
+### S6.4 · start_date / end_date made NOT NULL
+
+The Spotlight filter and the derived event status (Upcoming / Ongoing /
+Concluded) both depend on `end_date`. Null values would break the
+filter and produce undefined status. Migration `20260718000003` backfills
+nulls (`end_date = coalesce(start_date, current_date)`, same for
+start_date) then adds NOT NULL constraints on both columns. Server-side
+validation now requires dates for ALL intents (draft + publish), not
+just publish.
+
+**Alternative:** keep nullable and handle nulls in every query.
+Rejected — dates are fundamental to the event model and every consumer
+needs them; nullable dates add defensive code everywhere for a case
+that shouldn't exist.

@@ -157,9 +157,15 @@ Listings below.
 ### 2.4.2 Attendee dashboard Spotlight column
 
 A **permanent sticky right column** (max-width 270 px) on the attendee dashboard
-showing up to **3** General Ads events, sorted soonest → latest, **shuffled
-randomly on each page load**. Hidden on non-attendee dashboards and when no
-General Ads events exist.
+showing up to **3** General Ads events, **shuffled randomly on each page load**.
+Hidden on non-attendee dashboards and when no qualifying events exist.
+
+**Filter:** `is_general_ad = true` AND lifecycle is not draft or canceled AND
+`end_date > now − 25 days` (shows events that ended ≤ 25 days ago, ongoing, or
+upcoming). Up to 10 are fetched; 3 are randomly selected per page load.
+
+**Card fields:** event logo (image), title, date range (start – end), city +
+state code, and an add-to-favourites heart button.
 
 ### 2.4.3 Admin General Ads toggle
 
@@ -211,8 +217,9 @@ for case-insensitive email/banned-word matching.
   `recurring` (stored no-op, informational), `claimed`, and denormalized
   aggregate ratings rolled up across child events.
 - **`events`** (→ tournaments): `owner_id`, `created_by`, `claimed`, `logo_url`
-  (mandatory to publish), `title`, `website_url`, `host_club`, `start_date`,
-  `end_date`, `registration_deadline`, `description`, the 8-field `location_*`
+  (mandatory to publish), `title`, `website_url`, `host_club`, `start_date`
+  (NOT NULL), `end_date` (NOT NULL, ≥ start_date), `registration_deadline`,
+  `description`, the 8-field `location_*`
   block, `num_teams_this_year`, `region`, `season_id`, `lifecycle`,
   `cancel_reason`, `is_premium`, `is_general_ad`, `premium_at`, premium media
   (`video_url` ≤ 200MB, `teams_this_year_url`, `teams_prev_year_url`,
@@ -1185,7 +1192,7 @@ without rework:
 | Events per tournament before pagination | 10 |
 | Recently-viewed cap | 50 |
 | Featured Events on landing | 4 (start > now − 30 days) |
-| Attendee-dashboard Spotlight column | 3 max (soonest upcoming, shuffled) |
+| Attendee-dashboard Spotlight column | 3 max (general-ad, end_date > now − 25 d, shuffled) |
 | Landing Recent Reviews (demo) | 4 |
 | Featured Events window | start_date > now − 30 days |
 | CSV rows per file | **1000** (⚠ confirm — see §6.3) |

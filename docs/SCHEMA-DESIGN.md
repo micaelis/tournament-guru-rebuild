@@ -97,7 +97,7 @@ auth.users; where a public surface needs it, it does NOT get exposed (PII rule).
 | title | text | |
 | website_url | text | render via safeExternalUrl |
 | host_club | text | |
-| start_date, end_date | date | end ≥ start enforced on publish |
+| start_date, end_date | date NOT NULL | end ≥ start (CHECK + server validation); required for all intents (draft + publish) |
 | registration_deadline | date null | |
 | description | text | |
 | location_* | (same 8 fields as profiles) | state used in search/facets |

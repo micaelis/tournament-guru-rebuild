@@ -270,7 +270,7 @@ seed for the permanent automated suite (BUILD-PLAN §2.5).
 - **[DATA] Recently-viewed registration + 50 cap** (upsert latest).
 - **[FLOW] Favorites page** — newest-faves-first, Unfollow + Visit CTAs.
 - **[FLOW] Unfollow confirmation** — "Are you sure…no longer receive update notifications…" → removed.
-- **[STATE] Right-column Spotlight column** — max 3 general-ad events, soonest upcoming, shuffled per load, hidden if none. Max width 270px.
+- **[STATE] Right-column Spotlight column** — max 3 general-ad events (not draft/canceled, end_date > now − 25 d), shuffled per load, hidden if none. Cards: logo, title, date range, city + state code, favourite heart. Max width 270px.
 - **[PERM] Favourite requires account** — not-logged-in → prompt account creation.
 
 ### Landing / Search / Event page
