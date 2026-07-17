@@ -526,3 +526,12 @@ auto-created milestones — Early-Bird Ends + Registration Deadline
   derived state).
 - `app/dashboard/account/page.tsx` — `any` casts replaced with
   exported `AccountProfile` + `AccountTeam` types.
+
+### S5.1 · KeyDatesCard gated on `event.premium`
+The Key Dates & Deadlines card on the event-detail page now renders
+only when `event.premium` is true. The spec already designates Key
+Dates as "featured only" (§5.3, §3.2); this aligns the code with
+that rule. Previously the card rendered for all events but showed
+empty because no milestones editor exists yet for free-tier events
+(see Backlog · event_milestones editor above). Gating it avoids
+an empty card rendering for non-premium listings.

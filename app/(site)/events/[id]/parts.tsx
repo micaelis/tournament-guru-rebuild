@@ -119,7 +119,7 @@ export function EventDetail({
         <div className="tg-ev-main mt-8 grid gap-8">
           <div className="flex min-w-0 flex-col gap-6">
             <KeyFactsAboutCard event={event} ageGroups={ageGroups} />
-            <KeyDatesCard event={event} concluded={concluded} />
+            {event.premium && <KeyDatesCard event={event} concluded={concluded} />}
             <LocationCard event={event} />
             <ReviewsSection
               event={event}
@@ -646,8 +646,21 @@ function HeroHeader({
             ) : event.status === "open" ? (
               <StatusPill kind="open">Open</StatusPill>
             ) : null}
-            <span style={{ fontSize: 12.5, color: "var(--color-text-muted)" }}>
-              Hosted by {hostName}
+            <span style={{ fontSize: 13, color: "var(--color-text-secondary)" }}>
+              Hosted by{" "}
+              {event.owner_id ? (
+                <Link
+                  href={`/directors/${event.owner_id}`}
+                  className="font-heading no-underline transition-colors hover:opacity-80"
+                  style={{ fontWeight: 700, color: "var(--color-dark)" }}
+                >
+                  {hostName}
+                </Link>
+              ) : (
+                <span className="font-heading" style={{ fontWeight: 700, color: "var(--color-dark)" }}>
+                  {hostName}
+                </span>
+              )}
             </span>
           </div>
           <h1
@@ -1277,6 +1290,8 @@ function ReviewsSection({
 
   const [filter, setFilter] = useState<"all" | "coach" | "attendee">("all");
   const [sort, setSort] = useState<"recent" | "top">("recent");
+  const [showAll, setShowAll] = useState(false);
+  const PREVIEW_LIMIT = 5;
 
   const filtered = useMemo(() => {
     let out =
@@ -1393,23 +1408,42 @@ function ReviewsSection({
                 No reviews in this view.
               </div>
             ) : (
-              <ul
-                className="mt-4 flex flex-col gap-3.5"
-                style={{ listStyle: "none", margin: 0, padding: 0 }}
-              >
-                {filtered.map((r) => (
-                  <li key={r.id}>
-                    <ReviewCard
-                      review={r}
-                      comments={commentsByReview[r.id] ?? []}
-                      currentUserId={currentUserId}
-                      isAdmin={isAdmin}
-                      helpful={helpfulSet.has(r.id)}
-                      bannedWords={bannedWords}
-                    />
-                  </li>
-                ))}
-              </ul>
+              <>
+                <ul
+                  className="mt-4 flex flex-col gap-3.5"
+                  style={{ listStyle: "none", margin: 0, padding: 0 }}
+                >
+                  {(showAll ? filtered : filtered.slice(0, PREVIEW_LIMIT)).map((r) => (
+                    <li key={r.id}>
+                      <ReviewCard
+                        review={r}
+                        comments={commentsByReview[r.id] ?? []}
+                        currentUserId={currentUserId}
+                        isAdmin={isAdmin}
+                        helpful={helpfulSet.has(r.id)}
+                        bannedWords={bannedWords}
+                      />
+                    </li>
+                  ))}
+                </ul>
+                {!showAll && filtered.length > PREVIEW_LIMIT && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAll(true)}
+                    className="tg-hover font-heading mt-4 inline-flex items-center gap-1.5 self-center rounded-full bg-white"
+                    style={{
+                      padding: "10px 20px",
+                      fontSize: 13,
+                      fontWeight: 700,
+                      color: "var(--color-dark)",
+                      border: "1px solid var(--color-border)",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Show all {filtered.length} reviews
+                  </button>
+                )}
+              </>
             )}
           </Card>
         </>
@@ -1938,17 +1972,32 @@ function ContactPanel({
           >
             Hosted by
           </div>
-          <div
-            className="font-heading truncate"
-            style={{
-              fontSize: 15,
-              fontWeight: 800,
-              color: "var(--color-dark)",
-              letterSpacing: "-0.01em",
-            }}
-          >
-            {hostName}
-          </div>
+          {event.owner_id ? (
+            <Link
+              href={`/directors/${event.owner_id}`}
+              className="font-heading block truncate no-underline transition-colors hover:opacity-80"
+              style={{
+                fontSize: 15,
+                fontWeight: 800,
+                color: "var(--color-dark)",
+                letterSpacing: "-0.01em",
+              }}
+            >
+              {hostName}
+            </Link>
+          ) : (
+            <div
+              className="font-heading truncate"
+              style={{
+                fontSize: 15,
+                fontWeight: 800,
+                color: "var(--color-dark)",
+                letterSpacing: "-0.01em",
+              }}
+            >
+              {hostName}
+            </div>
+          )}
           {director?.club_affiliation && (
             <div
               className="mt-0.5 truncate"
@@ -1959,6 +2008,27 @@ function ContactPanel({
           )}
         </div>
       </div>
+
+      {/* Host dual ratings */}
+      {director && (director.coach_reviews > 0 || director.attendee_reviews > 0) && (
+        <div
+          className="mt-3 grid gap-2"
+          style={{ gridTemplateColumns: "1fr 1fr" }}
+        >
+          <PanelRating
+            label="Coach"
+            score={director.coach_rating}
+            count={director.coach_reviews}
+            tone="accent"
+          />
+          <PanelRating
+            label="Attendee"
+            score={director.attendee_rating}
+            count={director.attendee_reviews}
+            tone="gold"
+          />
+        </div>
+      )}
 
       {/* Price + dates row */}
       <div
@@ -2045,7 +2115,26 @@ function ContactPanel({
             }}
           >
             <ExternalIcon />
-            Visit registration page
+            Visit Tournament Website
+          </a>
+        )}
+        {event.website && safeExternalUrl(event.website) && (
+          <a
+            href={safeExternalUrl(event.website)!}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="tg-btn-ghost tg-hover font-heading inline-flex items-center justify-center gap-2 rounded-full bg-white"
+            style={{
+              padding: "10px 16px",
+              fontSize: 13,
+              fontWeight: 700,
+              color: "var(--color-dark)",
+              border: "1px solid var(--color-border)",
+              textDecoration: "none",
+            }}
+          >
+            <ExternalIcon />
+            Visit Organization Website
           </a>
         )}
       </div>
@@ -2066,12 +2155,6 @@ function ContactPanel({
         </>
       )}
 
-      <div className="mt-4">
-        <InfoTip>
-          Questions about brackets, housing, or schedule? The host&apos;s
-          registration page has the latest details.
-        </InfoTip>
-      </div>
     </div>
   );
 }
@@ -2135,6 +2218,64 @@ function PanelStat({
           {sub}
         </div>
       )}
+    </div>
+  );
+}
+
+function PanelRating({
+  label,
+  score,
+  count,
+  tone,
+}: {
+  label: string;
+  score: number;
+  count: number;
+  tone: "accent" | "gold";
+}) {
+  const has = score > 0 && count > 0;
+  const color = tone === "accent" ? "var(--color-accent)" : "var(--color-gold)";
+  return (
+    <div
+      className="rounded-xl px-3 py-2.5"
+      style={{
+        background: "var(--color-surface)",
+        border: "1px solid var(--color-border-light)",
+      }}
+    >
+      <div
+        className="font-heading uppercase"
+        style={{
+          fontSize: 9.5,
+          fontWeight: 800,
+          letterSpacing: ".14em",
+          color: "var(--color-text-muted)",
+        }}
+      >
+        {label}
+      </div>
+      <div className="mt-1 flex items-baseline gap-1.5">
+        <span
+          className="font-heading"
+          style={{
+            fontSize: 16,
+            fontWeight: 800,
+            color: has ? color : "var(--color-text-faint)",
+            letterSpacing: "-0.02em",
+          }}
+        >
+          {has ? (score % 1 === 0 ? `${score}.0` : score.toFixed(2)) : "—"}
+        </span>
+        <span style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text-faint)" }}>
+          /5
+        </span>
+      </div>
+      <div
+        className="mt-0.5"
+        style={{ fontSize: 11, color: "var(--color-text-muted)" }}
+      >
+        {has ? `${count} review${count === 1 ? "" : "s"}` : "No reviews yet"}
+      </div>
     </div>
   );
 }
@@ -2456,11 +2597,11 @@ function CalendarDate({ start, end }: { start: string; end: string | null }) {
       <div
         className="font-heading uppercase"
         style={{
-          fontSize: 10,
+          fontSize: 11,
           fontWeight: 800,
-          letterSpacing: ".16em",
+          letterSpacing: ".14em",
           color: "var(--color-accent)",
-          padding: "10px 12px 3px",
+          padding: "10px 14px 3px",
         }}
       >
         {header}
@@ -2468,22 +2609,23 @@ function CalendarDate({ start, end }: { start: string; end: string | null }) {
       <div
         className="font-heading"
         style={{
-          fontSize: 22,
+          fontSize: 26,
           fontWeight: 800,
           color: "var(--color-dark)",
-          padding: "3px 12px 4px",
+          padding: "3px 14px 4px",
           letterSpacing: "-0.03em",
         }}
       >
         {days}
       </div>
       <div
+        className="font-heading"
         style={{
-          fontSize: 10,
-          fontWeight: 600,
-          letterSpacing: ".08em",
-          color: "var(--color-text-faint)",
-          padding: "0 12px 10px",
+          fontSize: 12,
+          fontWeight: 700,
+          letterSpacing: ".04em",
+          color: "var(--color-dark-light)",
+          padding: "0 14px 10px",
         }}
       >
         {year}
