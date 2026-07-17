@@ -1,27 +1,53 @@
 import Link from "next/link";
 import type { Route } from "next";
-import { createAnonServerClient } from "@/lib/supabase/server";
+import { createServerAuthClient } from "@/lib/supabase/server";
 import { safeImageSrc } from "@/lib/url";
+import { FavoriteButton } from "@/app/components/reviews/FavoriteButton";
 
 type SpotlightEvent = {
   id: string;
   title: string;
   logo_url: string | null;
-  start_date: string | null;
-  location_formatted: string | null;
+  start_date: string;
+  end_date: string;
+  location_city: string | null;
+  location_state_abbr: string | null;
 };
 
-async function fetchSpotlightEvents(): Promise<SpotlightEvent[]> {
-  const supabase = createAnonServerClient();
+async function fetchSpotlightEvents(
+  userId: string | null,
+): Promise<{ events: SpotlightEvent[]; favoritedIds: Set<string> }> {
+  const supabase = await createServerAuthClient();
+  const cutoff = new Date(Date.now() - 25 * 86_400_000)
+    .toISOString()
+    .slice(0, 10);
   const { data } = await supabase
     .from("events")
-    .select("id, title, logo_url, start_date, location_formatted")
-    .eq("lifecycle", "active")
+    .select(
+      "id, title, logo_url, start_date, end_date, location_city, location_state_abbr",
+    )
     .eq("is_general_ad", true)
-    .gte("start_date", new Date().toISOString().slice(0, 10))
+    .not("lifecycle", "in", "(draft,canceled)")
+    .gte("end_date", cutoff)
     .order("start_date", { ascending: true })
     .limit(10);
-  return (data ?? []) as SpotlightEvent[];
+
+  const events = (data ?? []) as SpotlightEvent[];
+
+  let favoritedIds = new Set<string>();
+  if (userId && events.length > 0) {
+    const { data: favs } = await supabase
+      .from("favorites")
+      .select("event_id")
+      .eq("user_id", userId)
+      .in(
+        "event_id",
+        events.map((e) => e.id),
+      );
+    favoritedIds = new Set((favs ?? []).map((f) => f.event_id as string));
+  }
+
+  return { events, favoritedIds };
 }
 
 function shuffle<T>(arr: T[]): T[] {
@@ -33,17 +59,20 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-  });
+function formatDateRange(start: string, end: string): string {
+  const s = new Date(start);
+  const e = new Date(end);
+  if (isNaN(s.getTime())) return start;
+  const fmt = (d: Date) =>
+    d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  if (start === end || isNaN(e.getTime())) return fmt(s);
+  return `${fmt(s)} – ${fmt(e)}`;
 }
 
-export async function SpotlightColumn() {
-  const all = await fetchSpotlightEvents();
+export async function SpotlightColumn({ userId }: { userId?: string | null }) {
+  const { events: all, favoritedIds } = await fetchSpotlightEvents(
+    userId ?? null,
+  );
   if (all.length === 0) return null;
 
   const events = shuffle(all).slice(0, 3);
@@ -66,47 +95,59 @@ export async function SpotlightColumn() {
         Check out these events
       </p>
       <div className="mt-4 flex flex-col gap-3">
-        {events.map((ev) => (
-          <Link
-            key={ev.id}
-            href={`/events/${ev.id}` as Route}
-            className="group block overflow-hidden rounded-xl border border-slate-200 bg-white transition hover:border-slate-300 hover:shadow-sm"
-          >
-            {ev.logo_url && (
-              <div className="relative h-[100px] w-full overflow-hidden bg-slate-100">
-                <img
-                  src={safeImageSrc(ev.logo_url) ?? undefined}
-                  alt=""
-                  className="h-full w-full object-cover transition-transform group-hover:scale-105"
+        {events.map((ev) => {
+          const location = [ev.location_city, ev.location_state_abbr]
+            .filter(Boolean)
+            .join(", ");
+          return (
+            <div
+              key={ev.id}
+              className="group relative overflow-hidden rounded-xl border border-slate-200 bg-white transition hover:border-slate-300 hover:shadow-sm"
+            >
+              <div className="absolute right-2 top-2 z-10">
+                <FavoriteButton
+                  variant="icon"
+                  eventId={ev.id}
+                  initialFavorited={favoritedIds.has(ev.id)}
+                  disabled={!userId}
                 />
               </div>
-            )}
-            <div className="p-3">
-              <h3
-                className="line-clamp-2 text-[13px] font-bold leading-snug"
-                style={{ color: "var(--color-dark)" }}
-              >
-                {ev.title}
-              </h3>
-              {ev.start_date && (
-                <p
-                  className="mt-1 text-[11px] font-medium"
-                  style={{ color: "var(--color-text-secondary)" }}
-                >
-                  {formatDate(ev.start_date)}
-                </p>
-              )}
-              {ev.location_formatted && (
-                <p
-                  className="mt-0.5 text-[11px] truncate"
-                  style={{ color: "var(--color-text-muted)" }}
-                >
-                  {ev.location_formatted}
-                </p>
-              )}
+              <Link href={`/events/${ev.id}` as Route} className="block">
+                {ev.logo_url && (
+                  <div className="relative h-[100px] w-full overflow-hidden bg-slate-100">
+                    <img
+                      src={safeImageSrc(ev.logo_url) ?? undefined}
+                      alt=""
+                      className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                    />
+                  </div>
+                )}
+                <div className="p-3">
+                  <h3
+                    className="line-clamp-2 text-[13px] font-bold leading-snug"
+                    style={{ color: "var(--color-dark)" }}
+                  >
+                    {ev.title}
+                  </h3>
+                  <p
+                    className="mt-1 text-[11px] font-medium"
+                    style={{ color: "var(--color-text-secondary)" }}
+                  >
+                    {formatDateRange(ev.start_date, ev.end_date)}
+                  </p>
+                  {location && (
+                    <p
+                      className="mt-0.5 truncate text-[11px]"
+                      style={{ color: "var(--color-text-muted)" }}
+                    >
+                      {location}
+                    </p>
+                  )}
+                </div>
+              </Link>
             </div>
-          </Link>
-        ))}
+          );
+        })}
       </div>
     </aside>
   );

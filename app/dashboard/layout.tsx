@@ -55,7 +55,7 @@ export default async function DashboardLayout({
               <div className="min-w-0 flex-1">{children}</div>
               {profile.user_type === "attendee" && (
                 <Suspense>
-                  <SpotlightColumn />
+                  <SpotlightColumn userId={profile.id} />
                 </Suspense>
               )}
             </div>
