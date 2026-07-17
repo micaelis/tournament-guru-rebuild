@@ -107,7 +107,7 @@ auth.users; where a public surface needs it, it does NOT get exposed (PII rule).
 | lifecycle | event_lifecycle default draft | draft/active/canceled; upcoming/ongoing/concluded DERIVED from dates (§4) |
 | cancel_reason | text null | capped; shown publicly when canceled |
 | is_premium | bool default false | unlocks fields + top-of-search + landing "Premium Events" |
-| is_sponsored | bool default false | "General Ads"; sponsored strip (search strip = sprint 2, flag survives) |
+| is_general_ad | bool default false | "General Ads" (public label "Spotlight"); places event in Spotlight search section + attendee-dashboard column; admin-toggled |
 | premium_at | timestamptz null | stamped on false→true only |
 | video_url | text null | premium; max 200MB (direct-to-storage upload) |
 | teams_this_year_url, teams_prev_year_url, registration_url | text null | premium "Teams" section |
@@ -285,7 +285,10 @@ New/adjusted:
 - RLS on every table; `USING` (row visibility) + `WITH CHECK` (written values) split.
 - **Column-grant allow-lists** as the privilege-escalation cap (Postgres checks column
   privileges before RLS): `revoke update/insert` then `grant (safe cols)` — omits
-  user_type, role, blocked, guru_review, published, counters. `is_admin() or (...)` bypass.
+  user_type, role, blocked, guru_review, published, counters on profiles/reviews; omits
+  is_premium, is_general_ad, premium_at, and denormalized aggregates on events (migration
+  20260718000002). Tier flag writes go through `admin_set_premium` / `admin_set_general_ad`
+  SECURITY DEFINER RPCs with `is_admin()` entry checks.
 - **PII column REVOKE** ordering: revoke table SELECT first, then grant per-column
   (omit email/enumeration keys). service_role bypasses for admin surfaces.
 - Every SECURITY DEFINER fn pins `search_path = public, pg_temp` (+ `extensions` if it
@@ -310,7 +313,7 @@ Your files reflect the pre-chat state. These chat decisions **supersede** them (
 8. **Deletion model** fully reworked: detach+snapshot on event delete; anonymize-and-disclose on account delete (files describe simple delete/retain — superseded).
 9. **Promo status** = engagement lifecycle; account-existence = separate Account chip.
 10. **Promo URL token** = nanoid, not the 8-char pretty code.
-11. **is_premium vs is_sponsored** are two independent flags; "Premium Events" rename on landing + nav.
+11. **is_premium vs is_general_ad** are two independent flags. `is_sponsored` renamed to `is_general_ad` (migration 20260718000001). Internal label "General Ads", public label "Spotlight". "Featured Events" stays for premium.
 12. **Bulk promo send** = background queue; **CSV files** = private bucket.
 13. **Email delivery** = SendGrid from server actions (not Edge Functions), except bulk send (queue).
 14. **Surface** rename (grass/turf → "surface") everywhere.
@@ -337,7 +340,7 @@ Confirmed answers (supersede §11/§12 where they differ):
 2. **Gender + Location = MANDATORY** (reverses earlier "optional"). Onboarding-complete set = first_name, last_name, role, dob, gender, location, organization_title (except parent_spectator), org_description (ED).
 3. Password reset generic message ✓. 4. Reset rate-limit server-side ✓.
 5. organization_title = name (one field).
-6. **Landing/public "Featured Events" label STAYS** (no rename). Section shows **premium OR sponsored** events (per Favorites-file correction), soonest-first, start > now−30d. `is_premium`/`is_sponsored` remain distinct flags; only the public label is unchanged.
+6. **Landing/public "Featured Events" label STAYS** (no rename). Section shows **premium OR general-ad** events, soonest-first, start > now−30d. `is_premium`/`is_general_ad` remain distinct flags; only the public label is unchanged.
 7. **would_return required for both coach AND team_manager** reviews (not parent_spectator).
 8. Tournament aggregates denormalized ✓. 9. recently_viewed capped at 50. 10. citext ✓.
 11. No admin-facing FAQ (audience = attendee | event_director | both).

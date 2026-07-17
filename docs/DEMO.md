@@ -21,9 +21,9 @@ never touches real data.
 
 | Email                     | Org                     | Highlights                                                       |
 | ------------------------- | ----------------------- | ---------------------------------------------------------------- |
-| `dir-amber@example.test`  | Lone Star Youth Sports  | 4 events (1 premium, 1 sponsored, 1 concluded, 1 draft). Reviews. |
+| `dir-amber@example.test`  | Lone Star Youth Sports  | 4 events (1 premium, 1 Spotlight, 1 concluded, 1 draft). Reviews. |
 | `dir-marcus@example.test` | Great Lakes United FC   | 2 events; open claim request on Heartland Fall Championship.     |
-| `dir-elena@example.test`  | Desert Sun Tournaments  | 1 premium+sponsored event; 1 canceled sibling; declined claim.   |
+| `dir-elena@example.test`  | Desert Sun Tournaments  | 1 premium+Spotlight event; 1 canceled sibling; declined claim.   |
 
 ### Attendees
 
@@ -39,7 +39,7 @@ never touches real data.
 ## What the seed populates
 
 - **Tournaments:** 5 (4 claimed by EDs, 1 admin-created + unclaimed).
-- **Events:** 9, covering premium, sponsored, upcoming, ongoing, concluded, canceled, draft, and admin-created + unclaimed.
+- **Events:** 9, covering premium, Spotlight (General Ad), upcoming, ongoing, concluded, canceled, draft, and admin-created + unclaimed.
 - **Event child data:** age groups + prices, competition levels, surfaces, features, images, sponsors, and milestones (Key Dates & Deadlines) on premium events.
 - **Reviews:** 5 published + 1 draft, spanning coach and team-manager roles; 1 is a verified GURU review via applied promo.
 - **Comments:** threaded (owner reply + attendee replies) with a nested reply chain.

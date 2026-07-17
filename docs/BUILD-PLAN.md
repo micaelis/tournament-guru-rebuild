@@ -69,7 +69,7 @@ approve once → it executes unattended. Review at the slice boundary, not mid-s
 ## Part 2 — Slice sequence (dependency-ordered)
 
 Each slice lists: **goal · depends on · builds · done-when**. Build them in order;
-review between them. Deferred items (payments, notifications delivery, sponsored
+review between them. Deferred items (payments, notifications delivery, Spotlight
 search strip) stay parked — flags/tables exist, no UI.
 
 ### Slice 0 — Foundation  *(everything depends on this)*
@@ -84,7 +84,7 @@ search strip) stay parked — flags/tables exist, no UI.
 
 ### Slice 1 — Events (ED + Admin)  *(the flagship)*
 - **Depends on:** 0.
-- **Builds:** tournaments + events CRUD; ED Events page (tournament groups, metric strips, event rows, status derivation); Add/Edit Event form (age groups, sponsors, surfaces, levels, milestones, premium section); internal event detail; duplicate / copy-link; premium/sponsored flags; Admin Events variant (search-by-owner, owner column, CSV export matching filters, QR generate/open).
+- **Builds:** tournaments + events CRUD; ED Events page (tournament groups, metric strips, event rows, status derivation); Add/Edit Event form (age groups, sponsors, surfaces, levels, milestones, premium section); internal event detail; duplicate / copy-link; premium/General Ad flags; Admin Events variant (search-by-owner, owner column, CSV export matching filters, QR generate/open).
 - **Done when:** an ED can create a tournament + events, publish/draft/cancel, and see correct derived statuses + metrics; admin variant works.
 
 ### Slice 2 — Reviews & engagement
@@ -104,7 +104,7 @@ search strip) stay parked — flags/tables exist, no UI.
 
 ### Slice 5 — Public discovery
 - **Depends on:** 1 + 2 (displays events + reviews).
-- **Builds:** landing (stats, popular searches, Featured Events = premium+sponsored, dummy recent reviews); search events page (filters, sticky map, distance-from-me, states, sort); public event details page (media grid, host info, ratings breakdown, sponsors, key dates); public ED page; directors directory. Match the tgredesign design language.
+- **Builds:** landing (stats, popular searches, Featured Events = premium+Spotlight, dummy recent reviews); search events page (filters, sticky map, distance-from-me, states, sort); public event details page (media grid, host info, ratings breakdown, sponsors, key dates); public ED page; directors directory. Match the tgredesign design language.
 - **Done when:** public can browse/search/filter events and read reviews; not-found placeholder on deleted events.
 
 ### Slice 6 — Account & activity
@@ -121,7 +121,7 @@ search strip) stay parked — flags/tables exist, no UI.
 - **Depends on:** all prior slices.
 - **Goal:** a clean, GitHub-ready repo that looks built-from-scratch on the new schema, with a populated demo DB.
 - **Builds / does:**
-  1. **Dummy seed data.** Generate `supabase/seed.sql` with realistic fake data for the new schema — tournaments, events (varied statuses + premium/sponsored), reviews (coach + attendee, some Guru), profiles (all roles, emails as `<name>@example.test`), promos, claims, favorites — enough to populate EVERY page. Verify `supabase db reset` yields a fully browsable app, not empty pages. (This is dummy data ONLY — NOT the real Bubble data.)
+  1. **Dummy seed data.** Generate `supabase/seed.sql` with realistic fake data for the new schema — tournaments, events (varied statuses + premium/Spotlight), reviews (coach + attendee, some Guru), profiles (all roles, emails as `<name>@example.test`), promos, claims, favorites — enough to populate EVERY page. Verify `supabase db reset` yields a fully browsable app, not empty pages. (This is dummy data ONLY — NOT the real Bubble data.)
   2. **turbo-check** across the finished app: no dead code, no dangling refs, fixes systemic. Fix findings.
   3. **Consolidate migrations.** `schema.sql` = the single baseline migration; archive the old Bubble-era + audit migrations (they describe the dead model — keep them only in the old private repo's history). A fresh `db reset` must build the whole new schema from the baseline + seed alone.
   4. **Docs:** rewrite `README.md` (what it is, setup from scratch, architecture, the DB note below); add `.env.example`, `LICENSE`; ensure `CLAUDE.md` reflects the new model. REMOVE stale/outdated working files. Do NOT include AUDIT.md / CHANGES.md / TURBOCHECK.md (old-model artifacts — they stay in the private repo).
@@ -136,7 +136,7 @@ search strip) stay parked — flags/tables exist, no UI.
 
 ### Deferred (not this build) — parked, flags/tables exist
 Payments/Stripe (Payment Methods, Transactions, Add-on Pricing, the paywall),
-Notifications delivery, the sponsored search strip (sprint 2), the admin funnel dashboard,
+Notifications delivery, the Spotlight search strip (sprint 2), the admin funnel dashboard,
 and the real Bubble-data → new-schema migration (a separate production ETL, NOT in this repo).
 Marked in code as intentional deferrals so a reviewer/turbo-check reads them as known.
 

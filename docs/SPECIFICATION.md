@@ -123,19 +123,52 @@ This derivation is exposed through a helper (`event_display_status(events)`) and
 used everywhere status is shown. When an event's dates are edited, its displayed
 status recomputes automatically — no stored status to update.
 
-### 2.4 Premium vs Sponsored (two independent flags)
+### 2.4 The three event tiers (Premium, General Ads, Standard)
 
-`is_premium` and `is_sponsored` are **two independent booleans**:
+`is_premium` and `is_general_ad` are **two independent booleans**. An event can
+be in both tiers (Premium + General Ads). Together with the default (neither
+flag), they define three placement tiers:
 
-- **`is_premium`** ("Premium Events") unlocks the premium fields (extra images,
+| Tier | Flag | Public label | Placement |
+|---|---|---|---|
+| **Premium** | `is_premium` | "Featured" | Top of search, landing Featured section, premium fields |
+| **General Ads** | `is_general_ad` | **"Spotlight"** | Horizontal-scroll section between Featured and Listings on search; sticky right column on the attendee dashboard |
+| **Standard** | (neither) | "Event Listings" | Below Spotlight on search |
+
+- **`is_premium`** ("Featured Events") unlocks the premium fields (extra images,
   video, features, teams section, milestones), places the event at the top of
   search, and lists it in the landing/public Featured section. `premium_at` is
   stamped once on the `false → true` transition.
-- **`is_sponsored`** ("General Ads") drives the sponsored strip (the in-search
-  sponsored strip is deferred to sprint 2, but the flag survives now).
+- **`is_general_ad`** ("General Ads" internally, **"Spotlight"** publicly) places
+  the event in the Spotlight horizontal-scroll section on the search page
+  (between Featured and Listings) and in the attendee-dashboard Spotlight column.
+  Admin-toggled; no paywall this sprint.
 
-The public **Featured Events** section and the attendee-dashboard premium strip
-both draw from **premium OR sponsored** events.
+The public **Featured Events** section and the landing showcase draw from
+**premium OR general-ad** events. The attendee-dashboard right column draws from
+**general-ad** events only (max 3, shuffled each page load).
+
+### 2.4.1 Search page tier order
+
+Featured (Premium) at top → **Spotlight** horizontal-scroll section in the middle
+(hidden if empty; sorted soonest → latest by start date) → standard Event
+Listings below.
+
+### 2.4.2 Attendee dashboard Spotlight column
+
+A **permanent sticky right column** (max-width 270 px) on the attendee dashboard
+showing up to **3** General Ads events, sorted soonest → latest, **shuffled
+randomly on each page load**. Hidden on non-attendee dashboards and when no
+General Ads events exist.
+
+### 2.4.3 Admin General Ads toggle
+
+The admin dashboard event detail page has a **General Ads on/off toggle** (like
+the existing Premium upgrade). EDs cannot toggle General Ads this sprint — it is
+admin-only while the paywall is off. Enforced at the DB via column grants
+(authenticated cannot UPDATE `is_premium` / `is_general_ad` / `premium_at`) and
+SECURITY DEFINER RPCs (`admin_set_premium`, `admin_set_general_ad`) with
+`is_admin()` entry checks.
 
 ### 2.5 Enumerations
 
@@ -181,7 +214,7 @@ for case-insensitive email/banned-word matching.
   (mandatory to publish), `title`, `website_url`, `host_club`, `start_date`,
   `end_date`, `registration_deadline`, `description`, the 8-field `location_*`
   block, `num_teams_this_year`, `region`, `season_id`, `lifecycle`,
-  `cancel_reason`, `is_premium`, `is_sponsored`, `premium_at`, premium media
+  `cancel_reason`, `is_premium`, `is_general_ad`, `premium_at`, premium media
   (`video_url` ≤ 200MB, `teams_this_year_url`, `teams_prev_year_url`,
   `registration_url`, `teams_attended_prev_year`), `would_return_pct`,
   denormalized aggregate ratings + six category averages, and full-text search
@@ -359,7 +392,7 @@ Featured Events · About Us · Contact.
   total reviews, total events listed (status ≠ Draft), total tournaments listed.
 - **3 popular searches**, client-provided and **hardcoded** (not from
   `search_queries`).
-- **Featured Events** — exactly **4** events drawn from **premium OR sponsored**,
+- **Featured Events** — exactly **4** events drawn from **premium OR general-ad**,
   sorted soonest-first, restricted to `start_date > now − 30 days`. Each card:
   event logo, status, title, host org, host avatar, location, dates, age
   groups/brackets, description, plus two rating pools (**Coach Rating** and
@@ -1069,13 +1102,9 @@ without rework:
 - **Notifications delivery.** The `notifications` table and the six per-user
   preference toggles exist, but no in-app/email notification delivery is built
   (defaults off). Only the key transactional emails ship this sprint.
-- **Sponsored search strip.** `is_sponsored` survives and the sponsored/premium
-  strip appears on the attendee dashboard, but the **in-search sponsored strip**
-  is a sprint-2 item.
 - **Google Places / map.** Location autocomplete is wired to Google Maps; the
-  full map behavior on search is present but the sponsored-search map polish and
-  multi-venue facilities modeling are deferred (full address shown, Facilities
-  section hidden).
+  full map behavior on search is present but multi-venue facilities modeling is
+  deferred (full address shown, Facilities section hidden).
 - **Real background queue.** Bulk promo sends are queued/batched; a production-grade
   job runner is the target (the queue is stubbed now).
 - **Hidden ED items**: Transactions, Add-on Pricing, Notifications, and **FAQ**
@@ -1156,7 +1185,7 @@ without rework:
 | Events per tournament before pagination | 10 |
 | Recently-viewed cap | 50 |
 | Featured Events on landing | 4 (start > now − 30 days) |
-| Attendee-dashboard premium strip | 4 max (ended ≤ 1 month ago, shuffled) |
+| Attendee-dashboard Spotlight column | 3 max (soonest upcoming, shuffled) |
 | Landing Recent Reviews (demo) | 4 |
 | Featured Events window | start_date > now − 30 days |
 | CSV rows per file | **1000** (⚠ confirm — see §6.3) |

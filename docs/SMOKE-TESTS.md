@@ -270,13 +270,13 @@ seed for the permanent automated suite (BUILD-PLAN §2.5).
 - **[DATA] Recently-viewed registration + 50 cap** (upsert latest).
 - **[FLOW] Favorites page** — newest-faves-first, Unfollow + Visit CTAs.
 - **[FLOW] Unfollow confirmation** — "Are you sure…no longer receive update notifications…" → removed.
-- **[STATE] Right-column premium strip** — max 4 paid (premium OR sponsored) events ended ≤1mo, shuffled per load, hidden if none.
+- **[STATE] Right-column Spotlight column** — max 3 general-ad events, soonest upcoming, shuffled per load, hidden if none. Max width 270px.
 - **[PERM] Favourite requires account** — not-logged-in → prompt account creation.
 
 ### Landing / Search / Event page
 - **[STATE] Landing counters** — total reviews / events (≠Draft) / tournaments (durable counters).
 - **[STATE] 3 popular searches hardcoded** (not search_queries).
-- **[STATE] Featured Events** — 4, soonest-first, start > now−30d, from premium OR sponsored; card fields per spec.
+- **[STATE] Featured Events** — 4, soonest-first, start > now−30d, from premium OR general-ad; card fields per spec.
 - **[STATE] Recent Reviews from demo_reviews** (never real reviews).
 - **[FLOW] Search fields** — title/tournament/ED name/org title/city/state(+code)/age group/level.
 - **[FLOW] Filter chips + modal** — Dates/Age/Gender/Level/Distance/States/All; applied highlight; clearable.

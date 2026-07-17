@@ -559,3 +559,55 @@ Five E2E specs failed on the clean tree. Root-caused each:
    reviews` (the URL-driven toast system). The flash param is
    consumed and stripped by the client. Test updated to assert
    the toast message text instead of the URL param.
+
+---
+
+### S6.1 · Three-tier model — Premium / General Ads / Standard
+
+**What:** `is_sponsored` renamed to `is_general_ad` (migration
+20260718000001). The two paid tiers are Premium (`is_premium`, public
+label "Featured") and General Ads (`is_general_ad`, public label
+**"Spotlight"**). Everything else is a standard listing (not a tier).
+The old `SponsoredBanner` component was removed.
+
+**Why:** the client confirmed that the old "sponsored" concept IS
+General Ads — one flag, one concept, no second boolean. The rename
+aligns the DB with the agreed naming. "Spotlight" was chosen as the
+public label (per call with Tanya) because the old "Recommended for you"
+placeholder was misleading.
+
+**Placements built:**
+- Search page: Spotlight horizontal-scroll section between Featured and
+  Event Listings (hidden if empty, soonest → latest).
+- Attendee dashboard: permanent sticky right column (270 px, max 3
+  events, shuffled each page load).
+- Admin dashboard: General Ads on/off toggle on the event detail page.
+  EDs cannot toggle — admin-only while paywall is off.
+
+**Alternative:** keep `is_sponsored` and add a separate `is_general_ad`.
+Rejected — the client confirmed they are the same concept, and carrying
+two booleans would create contradictory state.
+
+### S6.2 · Event tier column grants — admin-only at the DB boundary
+
+`is_premium`, `is_general_ad`, and `premium_at` on `events` were writable
+by any event owner via the RLS `p_events_write` policy (which checks
+`owner_id = auth.uid() OR is_admin()`). The server actions hid the
+controls from non-admins, but a motivated ED could call `.update()`
+directly and self-promote their event.
+
+**Fix (migration `20260718000002`):** revoke blanket UPDATE/INSERT on
+`events` from `authenticated`; re-grant on all columns except the tier
+flags and denormalized aggregates (same pattern as profiles/reviews
+column grants in the baseline). Two SECURITY DEFINER RPCs
+(`admin_set_premium`, `admin_set_general_ad`) with `is_admin()` entry
+checks are the only write path. Server actions now call the RPCs
+instead of `.update()`.
+
+**Probes:** `event-tier-escalation.test.ts` — 5 cases (ED direct
+UPDATE denied × 2, ED RPC denied × 2, admin RPC succeeds × 1).
+
+**Alternative:** application-level `is_admin()` check in the server
+action. Rejected — RLS is the security boundary per CLAUDE.md; client
+checks are UX only. Column grants enforce at the DB so even a direct
+PostgREST call can't bypass.

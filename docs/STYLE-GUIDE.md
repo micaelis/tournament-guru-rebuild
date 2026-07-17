@@ -41,7 +41,7 @@ for ratings and status. Do not introduce new hues outside this set.
 | amber | `#b45309` | attendee pool accent, draft status text |
 | green | `#16a34a` (bg `#ecfdf5`, bd `#bbf7d0`, ink `#15803d`) | open/ongoing/active status |
 | blue | `#1d4ed8` (bg `#eff6ff`) | upcoming status |
-| violet | `#7c3aed` (bg `#f5f3ff`, bd `#ddd6fe`) | sponsored tag |
+| violet | `#7c3aed` (bg `#f5f3ff`, bd `#ddd6fe`) | Spotlight tag |
 
 **Semantic pairings to memorize:** Coach = **red**, Attendee = **amber/gold**. This split
 recurs on rating pools, reviewer cards, and metric strips — keep it consistent everywhere.
@@ -92,7 +92,7 @@ Build screens from these; don't hand-roll equivalents.
 - **Card** — white surface, `1px` line border, radius 14–16px, border-color hover. The base
   container for tournaments, events, reviews, panels.
 - **Chip** — small pill: `count` (slate, neutral), `prem` (red, "Premium"), `spons` (violet,
-  "Sponsored"), role/eyebrow variants. Uppercase, 10px, weight 800.
+  "Spotlight"), role/eyebrow variants. Uppercase, 10px, weight 800.
 - **StatusPill** — the event lifecycle pill; one color per status (see §6).
 - **StarRating** — gold filled stars (`#f59e0b`) on `#e2e8f0` empty, 0.5 step, with the numeric
   value in Bricolage bold and optional `(x reviews)` count. The canonical rating display —
@@ -124,10 +124,17 @@ Build screens from these; don't hand-roll equivalents.
 
 **Badges & tags:**
 - **Premium** — solid red pill on the event card (per-event flag).
-- **Sponsored** — violet outline pill on the event card.
+- **Spotlight** — violet outline pill on the event card (internal column: `is_general_ad`).
 - **Guru Review / Verified** — solid red badge on verified-coach reviews; the review card is
   visually elevated. Coach role chip additionally shows the 8-char promo code.
 - **Account chip** — `Registered` (linked) / `Invited` (no account yet) on promo rows.
+
+**Layout patterns for Spotlight events:**
+- **Search page:** Spotlight events render in a horizontal-scroll section above the main
+  result list. Cards scroll left/right; the section is hidden when no Spotlight events match
+  the current filters.
+- **Attendee dashboard (Favorites / Activity):** a sticky 270px right column displays up to
+  3 Spotlight events (ended ≤1 month ago, shuffled per load, hidden if none qualify).
 
 ---
 
