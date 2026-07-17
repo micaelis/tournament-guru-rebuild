@@ -535,3 +535,27 @@ that rule. Previously the card rendered for all events but showed
 empty because no milestones editor exists yet for free-tier events
 (see Backlog · event_milestones editor above). Gating it avoids
 an empty card rendering for non-premium listings.
+
+### S5.2 · E2E regression sweep — 1 app bug, 4 stale tests
+Five E2E specs failed on the clean tree. Root-caused each:
+
+1. **APP BUG — EventForm `canPublish` always false for new events.**
+   `canPublish` read `defaults.base.title` (the empty initial prop)
+   instead of the live input value. The Publish button stayed
+   `disabled` permanently. Fixed by tracking the title with state.
+
+2. **STALE — onboarding tests expected direct redirect to /events
+   or /dashboard/events.** The app now routes through an
+   `/onboarding/success` interstitial (intentional UX). Tests
+   updated to click through the success page CTA.
+
+3. **STALE — dashboard attendee-bounce expected /dashboard/events.**
+   Attendees cascade: /dashboard/users → /dashboard/events →
+   /events (the events dashboard redirects attendees to public
+   search). Test updated to expect /events.
+
+4. **STALE — reviews ED-bounce expected `?msg=attendees-only`.**
+   The redirect now uses `?flash=info:Only attendees can write
+   reviews` (the URL-driven toast system). The flash param is
+   consumed and stripped by the client. Test updated to assert
+   the toast message text instead of the URL param.

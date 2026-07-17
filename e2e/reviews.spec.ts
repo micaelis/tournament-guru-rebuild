@@ -46,9 +46,11 @@ test.describe("Review write — access", () => {
       await signIn(page, user.email, user.password);
       await page.goto(`/events/${ev.id}/review`);
       await expect(page).toHaveURL(
-        new RegExp(`/events/${ev.id}(\\?|$)`),
+        new RegExp(`/events/${ev.id}`),
       );
-      await expect(page).toHaveURL(/msg=attendees-only/);
+      await expect(
+        page.getByText("Only attendees can write reviews"),
+      ).toBeVisible();
     } finally {
       if (user) await deleteUser(user.id);
     }

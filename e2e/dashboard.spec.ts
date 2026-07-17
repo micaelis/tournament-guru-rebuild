@@ -47,7 +47,9 @@ test.describe("Dashboard — attendee", () => {
       user = await createAttendee({ completeOnboarding: true });
       await signIn(page, user.email, user.password);
       await page.goto("/dashboard/users");
-      await expect(page).toHaveURL(/\/dashboard\/events/);
+      // Attendees cascade: /dashboard/users → /dashboard/events (non-admin)
+      // → /events (attendee), landing on the public search page.
+      await expect(page).toHaveURL(/\/events/);
       await expect(
         page.getByRole("heading", { name: "Users" }),
       ).toHaveCount(0);

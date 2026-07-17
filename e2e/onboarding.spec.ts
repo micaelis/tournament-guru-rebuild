@@ -50,6 +50,8 @@ test.describe("Onboarding — attendee", () => {
       ).toBeVisible();
       await page.getByRole("button", { name: "Finish" }).click();
 
+      await expect(page).toHaveURL(/\/onboarding\/success/);
+      await page.getByRole("link", { name: "Browse Events", exact: true }).click();
       await expect(page).toHaveURL(/\/events/);
     } finally {
       if (user) await deleteUser(user.id);
@@ -125,6 +127,8 @@ test.describe("Onboarding — event director", () => {
         .fill("We run premier youth soccer tournaments across the Midwest.");
       await page.getByRole("button", { name: "Finish onboarding" }).click();
 
+      await expect(page).toHaveURL(/\/onboarding\/success/);
+      await page.getByRole("link", { name: "Go to Dashboard" }).click();
       await expect(page).toHaveURL(/\/dashboard\/events/);
     } finally {
       if (user) await deleteUser(user.id);

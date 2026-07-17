@@ -116,6 +116,7 @@ export function EventForm({ defaults }: { defaults: EventFormDefaults }) {
   const [surfaces, setSurfaces] = useState<string[]>(defaults.surfaces);
   const [features, setFeatures] = useState<string[]>(defaults.features);
   const [images, setImages] = useState<string[]>(defaults.images);
+  const [liveTitle, setLiveTitle] = useState(defaults.base.title);
   const [isPremium, setIsPremium] = useState(defaults.isPremium);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const errorAnchorRef = useRef<HTMLDivElement | null>(null);
@@ -140,10 +141,10 @@ export function EventForm({ defaults }: { defaults: EventFormDefaults }) {
 
   const canPublish = useMemo(() => {
     return (
-      defaults.base.title.length > 0 &&
+      liveTitle.trim().length > 0 &&
       (state.fieldErrors ?? {}).title === undefined
     );
-  }, [defaults.base.title, state.fieldErrors]);
+  }, [liveTitle, state.fieldErrors]);
 
   return (
     <form
@@ -196,6 +197,9 @@ export function EventForm({ defaults }: { defaults: EventFormDefaults }) {
             defaultValue={values.title ?? defaults.base.title}
             validate={(v) => (v.trim() ? null : "Title is required.")}
             error={state.fieldErrors?.title}
+            onInput={(e: React.FormEvent<HTMLInputElement>) =>
+              setLiveTitle(e.currentTarget.value)
+            }
           />
           <LabeledField
             label="Event website"
