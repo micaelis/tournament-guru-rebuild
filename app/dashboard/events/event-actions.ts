@@ -394,13 +394,32 @@ export async function upgradeEvent(
   eventId: string,
 ): Promise<EventFormState> {
   const supabase = await createServerAuthClient();
-  const { error } = await supabase
-    .from("events")
-    .update({ is_premium: true })
-    .eq("id", eventId);
+  const { error } = await supabase.rpc("admin_set_premium", {
+    target_event: eventId,
+    val: true,
+  });
   if (error) return { error: error.message };
   revalidatePath(`/dashboard/events/${eventId}`);
   revalidatePath(`/dashboard/events/${eventId}/edit`);
+  revalidatePath("/dashboard/events");
+  return {};
+}
+
+/**
+ * Toggle the is_general_ad flag (admin-only). The "General Ads" tier
+ * is managed by an admin toggle while the paywall is off.
+ */
+export async function toggleGeneralAd(
+  eventId: string,
+  value: boolean,
+): Promise<EventFormState> {
+  const supabase = await createServerAuthClient();
+  const { error } = await supabase.rpc("admin_set_general_ad", {
+    target_event: eventId,
+    val: value,
+  });
+  if (error) return { error: error.message };
+  revalidatePath(`/dashboard/events/${eventId}`);
   revalidatePath("/dashboard/events");
   return {};
 }
@@ -495,8 +514,6 @@ export async function duplicateEvent(
     region: src.region,
     season_id: src.season_id,
     lifecycle: "draft" as const,
-    is_premium: false,
-    is_sponsored: false,
   };
 
   const { data: created, error: insertError } = await supabase

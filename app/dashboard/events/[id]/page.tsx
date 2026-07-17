@@ -12,6 +12,7 @@ import {
   type MetricTileData,
 } from "@/app/components/ui";
 import { EventActions } from "../EventActions";
+import { GeneralAdToggle } from "../GeneralAdToggle";
 import {
   deriveEventStatus,
   getEventForEdit,
@@ -71,6 +72,10 @@ export default async function EventDetailPage({
           <div className="flex flex-wrap items-center gap-2">
             <StatusPill tone={eventStatusTone(status)}>{status}</StatusPill>
             {event.is_premium && <StatusPill tone="warning">Premium</StatusPill>}
+            {event.is_general_ad && <StatusPill tone="info">Spotlight</StatusPill>}
+            {profile.user_type === "admin" && (
+              <GeneralAdToggle eventId={event.id} enabled={event.is_general_ad} />
+            )}
           </div>
           <h1 className="mt-3 font-[var(--font-heading)] text-2xl font-extrabold text-slate-900">
             {event.title || "Untitled event"}
@@ -95,6 +100,7 @@ export default async function EventDetailPage({
             lifecycle={event.lifecycle}
             isPremium={event.is_premium}
             canManage={canManage}
+            isAdmin={profile.user_type === "admin"}
           />
         </div>
       </div>
