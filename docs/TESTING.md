@@ -40,7 +40,7 @@ idling and the pane stays blank. Verify via typecheck + build + `npm test` + `np
 | `event-tier-escalation` | ED cannot self-upgrade `is_premium` / `is_general_ad` (column grant + RPC guard); admin CAN via `admin_set_premium` / `admin_set_general_ad`. |
 | `rls-writes` | Write authorization across roles (who may insert/update/delete which rows). |
 | `claim-flow` | Claim approve/decline ownership transfer + sibling auto-decline. |
-| `validation` | Server-side input validation is authoritative; end_date NOT NULL + end ≥ start CHECK enforced at DB. |
+| `validation` | Server-side input validation is authoritative; draft allows null dates; end ≥ start CHECK enforced at DB. |
 | `platform-counters` | Counter invariants (published-reviews total increments, never decrements on delete). |
 | `reauth-delete` | Account deletion / anonymize-and-scrub behavior. |
 

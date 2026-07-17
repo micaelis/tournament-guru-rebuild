@@ -62,8 +62,8 @@ describe("findBannedWords", () => {
 const users: string[] = [];
 afterAll(() => purge(users));
 
-describe("event date constraints (DB)", () => {
-  it("rejects null end_date on INSERT", async () => {
+describe("event date constraints (DB + CHECK)", () => {
+  it("draft allows null start_date and end_date", async () => {
     const ed = await createUser({
       metadata: { user_type: "event_director", role_title: "event_director" },
       completeOnboarding: true,
@@ -81,17 +81,22 @@ describe("event date constraints (DB)", () => {
       })
       .select("id")
       .single();
-    const { error } = await svc.from("events").insert({
-      tournament_id: t!.id,
-      owner_id: ed.id,
-      created_by: ed.id,
-      claimed: true,
-      title: "No End Date",
-      start_date: "2026-08-01",
-      lifecycle: "draft",
-    });
-    expect(error).not.toBeNull();
-    expect(error!.message).toMatch(/end_date|not-null|null/i);
+    const { data, error } = await svc
+      .from("events")
+      .insert({
+        tournament_id: t!.id,
+        owner_id: ed.id,
+        created_by: ed.id,
+        claimed: true,
+        title: "Draft No Dates",
+        lifecycle: "draft",
+      })
+      .select("id")
+      .single();
+    expect(error).toBeNull();
+    expect(data).not.toBeNull();
+    await svc.from("events").delete().eq("id", data!.id);
+    await svc.from("tournaments").delete().eq("id", t!.id);
   });
 
   it("rejects end_date < start_date via CHECK", async () => {
@@ -123,6 +128,7 @@ describe("event date constraints (DB)", () => {
       lifecycle: "draft",
     });
     expect(error).not.toBeNull();
+    await svc.from("tournaments").delete().eq("id", t!.id);
   });
 });
 

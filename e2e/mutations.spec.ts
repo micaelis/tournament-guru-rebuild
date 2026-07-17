@@ -215,8 +215,7 @@ test.describe("Event director — create event", () => {
 
       const title = `E2E Draft Event ${Date.now()}`;
       await page.locator('input[name="title"]').fill(title);
-      await page.locator('input[name="start_date"]').fill("2026-09-01");
-      await page.locator('input[name="end_date"]').fill("2026-09-03");
+      // A draft only requires a title; saveEvent redirects to the event page.
       await page.getByRole("button", { name: "Save as draft" }).click();
 
       await expect(page).toHaveURL(

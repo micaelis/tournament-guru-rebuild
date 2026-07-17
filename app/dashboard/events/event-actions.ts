@@ -123,19 +123,18 @@ export async function saveEvent(
 
   const fieldErrors: Record<string, string> = {};
 
-  // Title + dates are required for ALL intents (including draft).
-  // end_date is NOT NULL in the schema; start_date likewise.
+  // Draft requires only a title. Publish enforces everything.
   if (!base.title) fieldErrors.title = "Title is required.";
-  if (!base.start_date) fieldErrors.start_date = "Starting date is required.";
-  if (!base.end_date) fieldErrors.end_date = "Ending date is required.";
-  if (base.start_date && base.end_date && base.end_date < base.start_date) {
-    fieldErrors.end_date = "End date must be on or after the start date.";
-  }
 
   if (intent === "publish") {
     if (!base.logo_url) fieldErrors.logo_url = "Add a logo to publish.";
     if (!base.website_url) fieldErrors.website_url = "Event website is required.";
     if (!base.host_club) fieldErrors.host_club = "Host club is required.";
+    if (!base.start_date) fieldErrors.start_date = "Starting date is required.";
+    if (!base.end_date) fieldErrors.end_date = "Ending date is required.";
+    if (base.start_date && base.end_date && base.end_date < base.start_date) {
+      fieldErrors.end_date = "End date must be on or after the start date.";
+    }
     if (!base.description) fieldErrors.description = "Description is required.";
     if (!base.location_formatted)
       fieldErrors.location_formatted = "Location is required.";

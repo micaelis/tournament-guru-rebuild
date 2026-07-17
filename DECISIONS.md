@@ -624,17 +624,15 @@ up to 25 days ago, ongoing events, and upcoming events — broader than
 Card fields updated: date range (start – end), city + state code
 (instead of full location_formatted), and a favourite heart button.
 
-### S6.4 · start_date / end_date made NOT NULL
+### S6.4 · start_date / end_date stay nullable — publish enforces
 
-The Spotlight filter and the derived event status (Upcoming / Ongoing /
-Concluded) both depend on `end_date`. Null values would break the
-filter and produce undefined status. Migration `20260718000003` backfills
-nulls (`end_date = coalesce(start_date, current_date)`, same for
-start_date) then adds NOT NULL constraints on both columns. Server-side
-validation now requires dates for ALL intents (draft + publish), not
-just publish.
+Dates are nullable for drafts (a draft requires only a title) and
+required at publish via server-side validation. The Spotlight filter
+already excludes drafts, so every published event reaching the filter
+has an `end_date` — no DB NOT NULL constraint is needed. The existing
+`end_after_start` CHECK constraint passes when either date is null,
+which is correct for drafts.
 
-**Alternative:** keep nullable and handle nulls in every query.
-Rejected — dates are fundamental to the event model and every consumer
-needs them; nullable dates add defensive code everywhere for a case
-that shouldn't exist.
+**Alternative:** NOT NULL on both columns. Rejected — drafts don't
+require dates, and forcing them would break the "a draft needs only a
+title" rule.

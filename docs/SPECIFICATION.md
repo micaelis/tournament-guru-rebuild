@@ -217,9 +217,9 @@ for case-insensitive email/banned-word matching.
   `recurring` (stored no-op, informational), `claimed`, and denormalized
   aggregate ratings rolled up across child events.
 - **`events`** (→ tournaments): `owner_id`, `created_by`, `claimed`, `logo_url`
-  (mandatory to publish), `title`, `website_url`, `host_club`, `start_date`
-  (NOT NULL), `end_date` (NOT NULL, ≥ start_date), `registration_deadline`,
-  `description`, the 8-field `location_*`
+  (mandatory to publish), `title`, `website_url`, `host_club`, `start_date`,
+  `end_date` (both nullable for drafts; required at publish, end ≥ start),
+  `registration_deadline`, `description`, the 8-field `location_*`
   block, `num_teams_this_year`, `region`, `season_id`, `lifecycle`,
   `cancel_reason`, `is_premium`, `is_general_ad`, `premium_at`, premium media
   (`video_url` ≤ 200MB, `teams_this_year_url`, `teams_prev_year_url`,
