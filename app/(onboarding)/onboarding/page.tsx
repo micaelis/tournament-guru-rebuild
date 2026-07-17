@@ -94,7 +94,6 @@ export default async function OnboardingPage({
   return (
     <OnboardingWizard
       step={step}
-      currentStep={currentStep}
       userType={profile.user_type}
       profile={{
         first_name: profile.first_name,

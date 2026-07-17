@@ -1,10 +1,25 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "./Button";
 
-export function ConfirmDialog({
-  open,
+type Props = {
+  open: boolean;
+  title: React.ReactNode;
+  body?: React.ReactNode;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  destructive?: boolean;
+  onConfirm: () => void | Promise<void>;
+  onClose: () => void;
+};
+
+export function ConfirmDialog(props: Props) {
+  if (!props.open) return null;
+  return <ConfirmDialogInner {...props} />;
+}
+
+function ConfirmDialogInner({
   title,
   body,
   confirmLabel = "Confirm",
@@ -12,31 +27,18 @@ export function ConfirmDialog({
   destructive = true,
   onConfirm,
   onClose,
-}: {
-  open: boolean;
-  title: ReactNode;
-  body?: ReactNode;
-  confirmLabel?: string;
-  cancelLabel?: string;
-  destructive?: boolean;
-  onConfirm: () => void | Promise<void>;
-  onClose: () => void;
-}) {
+}: Props) {
   const ref = useRef<HTMLDivElement | null>(null);
   const [pending, setPending] = useState(false);
 
   useEffect(() => {
-    if (!open) return;
-    setPending(false);
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
     document.addEventListener("keydown", onKey);
     ref.current?.focus();
     return () => document.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
-
-  if (!open) return null;
+  }, [onClose]);
 
   const handleConfirm = async () => {
     setPending(true);

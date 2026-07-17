@@ -49,12 +49,10 @@ type Profile = {
 
 export default function OnboardingWizard({
   step,
-  currentStep,
   userType,
   profile,
 }: {
   step: 1 | 2 | 3 | 4;
-  currentStep: number;
   userType: "attendee" | "event_director" | "admin";
   profile: Profile;
 }) {

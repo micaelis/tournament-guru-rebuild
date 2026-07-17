@@ -72,7 +72,8 @@ export async function saveEvent(
 
   // Hidden Places payload ("place" prefix — the visible state input owns
   // the location_state_abbr name, so its geo twin is dropped here).
-  const { location_state_abbr: _geoAbbr, ...geo } = parseGeoFields(
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { location_state_abbr, ...geo } = parseGeoFields(
     formData,
     "place",
   );

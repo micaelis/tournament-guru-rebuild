@@ -24,6 +24,24 @@ type EventOption = { id: string; title: string };
  * for authoritative validation + insert.
  */
 export function SubmitCsvForm({ events }: { events: EventOption[] }) {
+  const [successCount, setSuccessCount] = useState(0);
+
+  return (
+    <SubmitCsvFormInner
+      key={successCount}
+      events={events}
+      onSuccess={() => setSuccessCount((c) => c + 1)}
+    />
+  );
+}
+
+function SubmitCsvFormInner({
+  events,
+  onSuccess,
+}: {
+  events: EventOption[];
+  onSuccess: () => void;
+}) {
   const [state, formAction] = useActionState(submitCsv, INITIAL);
   const [eventId, setEventId] = useState(events[0]?.id ?? "");
   const [csvText, setCsvText] = useState("");
@@ -45,14 +63,11 @@ export function SubmitCsvForm({ events }: { events: EventOption[] }) {
         "success",
         "Your file has been successfully submitted to the Admin and will be reviewed shortly.",
       );
-      setCsvText("");
-      setFileName("");
-      setPreviewCount(null);
-      setPreviewErrors([]);
       router.refresh();
+      onSuccess();
     }
     submittedRef.current = false;
-  }, [state, push, router]);
+  }, [state, push, router, onSuccess]);
   // Mirrors submitCsv's parse gate: at least one valid email, capped at
   // MAX_CSV_ROWS. The file input's value is a fake path, so revalidate
   // gets a synthetic control carrying the CSV text instead.
