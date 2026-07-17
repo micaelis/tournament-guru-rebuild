@@ -10,7 +10,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import dynamic from "next/dynamic";
 import { EventCard, type ClaimViewer } from "@/app/components/EventCard";
-import { SponsoredBanner } from "@/app/components/SponsoredBanner";
 import { HighlightSwipe } from "@/app/components/HighlightSwipe";
 import type { EventRow, EventFacets, EventSort } from "@/app/components/types";
 import {
@@ -199,14 +198,12 @@ export function EventsSearch({
   const showSideMap = !mapCollapsed && !mapFullscreen;
   const resizeNonce = `${viewMode}-${mapCollapsed}-${mapFullscreen}`;
 
-  // Split the current page's results into Featured (premium) and Standard
-  // (non-premium) so we can wrap each with its own section header + info
-  // tooltip per Franco's June 18 brief. Sponsor banner sits between them,
-  // replacing the earlier "Recommended for you" strip.
+  // Three tiers: Featured (premium), Spotlight (general ads, not premium),
+  // Standard (neither). Spotlight renders as a horizontal carousel between
+  // Featured and Listings; hidden if empty.
   const featured = results.filter((r) => r.premium);
-  const standard = results.filter((r) => !r.premium);
-  const showSponsorSeparator = featured.length > 0 && standard.length > 0;
-
+  const spotlight = results.filter((r) => r.spotlight && !r.premium);
+  const standard = results.filter((r) => !r.premium && !r.spotlight);
   const renderCard = (event: EventRow) => (
     <div
       key={event.id}
@@ -276,22 +273,16 @@ export function EventsSearch({
                 <span style={{ color: "var(--color-accent)" }}>tournament</span>{" "}
                 using the world&rsquo;s first youth sports{" "}
                 <HighlightSwipe>
-                  {/* inherit 800 from the H1 — the browser's default `<b>` is
-                     700 which read as visibly lighter than the surrounding
-                     extrabold copy. Force it to match the parent. */}
                   <span style={{ fontWeight: 800 }}>search engine AND review platform</span>
                 </HighlightSwipe>
               </h1>
-              {/* Subtitle bumped to 16px — its role is "what the platform
-                  actually does". At 14px it was reading as fine print. */}
               <p
                 className="mt-3.5 max-w-2xl text-[16px] leading-[1.55]"
                 style={{ color: "var(--color-text-secondary)" }}
               >
-                Comprehensive tournament information paired with verified
-                reviews from real coaches, team managers, and families &mdash;
-                so you know which events are worth attending, not just which
-                ones exist.
+                Search for tournaments, read verified reviews from real
+                coaches, team managers, and families &mdash; and find the
+                events that are actually worth your time and money.
               </p>
               {(stats.events > 0 || stats.reviews > 0 || stats.tournaments > 0) && (
                 <div className="mt-[18px] flex flex-wrap items-center gap-2.5">
@@ -377,16 +368,55 @@ export function EventsSearch({
                     </section>
                   )}
 
-                  {showSponsorSeparator && (
-                    <div className="my-5">
-                      <SponsoredBanner />
-                    </div>
+                  {spotlight.length > 0 && (
+                    <section
+                      aria-labelledby="tg-spotlight-heading"
+                      className={featured.length > 0 ? "mt-6" : "mt-4"}
+                    >
+                      <SectionHeader
+                        id="tg-spotlight-heading"
+                        title="Spotlight"
+                        info={{
+                          summary:
+                            "Check out these events — curated picks worth a closer look.",
+                          detail: SPOTLIGHT_INFO,
+                        }}
+                      />
+                      <div
+                        className="flex gap-4 overflow-x-auto pb-3"
+                        style={{ scrollSnapType: "x mandatory", WebkitOverflowScrolling: "touch" }}
+                      >
+                        {spotlight
+                          .slice()
+                          .sort(
+                            (a, b) =>
+                              (a.start_date ?? "").localeCompare(b.start_date ?? ""),
+                          )
+                          .map((event) => (
+                            <div
+                              key={event.id}
+                              className="w-[340px] shrink-0"
+                              style={{ scrollSnapAlign: "start" }}
+                              data-card-id={event.id}
+                              onMouseEnter={() => setHoverId(event.id)}
+                              onMouseLeave={() => setHoverId(null)}
+                            >
+                              <EventCard
+                                event={event}
+                                claimViewer={claimViewer}
+                                favorited={favoriteSet.has(event.id)}
+                                canFavorite={canFavorite}
+                              />
+                            </div>
+                          ))}
+                      </div>
+                    </section>
                   )}
 
                   {standard.length > 0 && (
                     <section
                       aria-labelledby="tg-listings-heading"
-                      className={featured.length > 0 && !showSponsorSeparator ? "mt-6" : undefined}
+                      className={featured.length > 0 || spotlight.length > 0 ? "mt-6" : undefined}
                     >
                       <SectionHeader
                         id="tg-listings-heading"
@@ -564,7 +594,7 @@ function CalendarGlyph() {
   );
 }
 
-/* ── Section header for Featured / Listings ─────────────────────────────────
+/* ── Section header for Featured / Spotlight / Listings ────────────────────
    Per Franco's brief the section is titled prominently — reads as a real
    heading, not a small eyebrow — and the full explanation lives behind an (i)
    affordance so we don't push results below the fold with a paragraph of
@@ -572,6 +602,9 @@ function CalendarGlyph() {
 
 const FEATURED_INFO =
   "Featured Events include Event Details verified by the event host and verified Coach & Manager Reviews from those who attended previously, plus Attendee Reviews from parents and spectators. The most comprehensive picture of what to expect before you attend. All Featured Event profiles are managed by the event operators.";
+
+const SPOTLIGHT_INFO =
+  "Spotlight events are curated picks that deserve a closer look — tournaments and events highlighted by Tournament Guru for their quality and relevance.";
 
 const LISTINGS_INFO =
   "Listings include Event Information and Attendee (parent / spectator) Reviews. Event listings with the checkmark indicate that this event profile is maintained by the event organizer. Listings without it are created by Tournament Guru using publicly available information — details should be confirmed with the organizer.";
