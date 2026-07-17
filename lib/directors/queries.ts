@@ -237,7 +237,7 @@ export async function getDirectorEventRows(
   let query = supabase
     .from("events")
     .select(
-      "id, owner_id, title, description, host_club, logo_url, location_formatted, location_state_abbr, start_date, end_date, lifecycle, is_premium, region, teams_attended_prev_year, general_rating, coach_rating, attendee_rating, review_count, created_at, event_age_groups(age, team_gender), event_competition_levels(level), event_surfaces(surface)",
+      "id, owner_id, title, description, host_club, logo_url, location_formatted, location_state_abbr, start_date, end_date, lifecycle, is_premium, is_general_ad, region, teams_attended_prev_year, general_rating, coach_rating, attendee_rating, review_count, created_at, event_age_groups(age, team_gender), event_competition_levels(level), event_surfaces(surface)",
     )
     .eq("owner_id", id)
     .neq("lifecycle", "draft")
@@ -340,6 +340,7 @@ type RawEventRow = {
   end_date: string | null;
   lifecycle: "draft" | "active" | "canceled";
   is_premium: boolean;
+  is_general_ad: boolean;
   region: string | null;
   teams_attended_prev_year: number | null;
   general_rating: number | null;
@@ -377,6 +378,7 @@ function mapEventRows(rows: RawEventRow[], hostLogo: string | null): EventRow[] 
       end_date: r.end_date,
       status: legacyStatus(r),
       premium: r.is_premium,
+      spotlight: r.is_general_ad,
       logo: r.logo_url,
       owner_id: r.owner_id,
       host_logo: hostLogo,

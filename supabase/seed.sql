@@ -186,7 +186,7 @@ insert into events (id, tournament_id, owner_id, created_by, claimed,
   start_date, end_date, registration_deadline,
   description, location_formatted, location_state_abbr, location_city, location_state_full,
   num_teams_this_year, region, season_id, lifecycle,
-  is_premium, is_sponsored, video_url,
+  is_premium, is_general_ad, video_url,
   teams_this_year_url, teams_prev_year_url, registration_url, teams_attended_prev_year,
   created_at
 ) values

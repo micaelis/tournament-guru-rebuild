@@ -1,7 +1,6 @@
 /* ManifestoBand — the page's one dark tonal beat. Merges the mission statement
    with the real stats, rendered large. Kept in the prototype's design family:
-   the same aurora glow + grain language as the SponsoredBanner and page bg,
-   just quieter. */
+   the same aurora glow + grain language as the page bg, just quieter. */
 
 type StatsData = {
   eventsCount: number;
@@ -98,7 +97,7 @@ export function ManifestoBand({ stats }: { stats: StatsData }) {
       className="relative isolate overflow-hidden"
       style={{ background: "#0b1120" }}
     >
-      {/* Aurora glow — same family as the page bg / sponsored banner, quieter */}
+      {/* Aurora glow — same family as the page bg, quieter */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 z-0"

@@ -304,7 +304,7 @@ async function FeaturedEventsSection() {
     return (
       <EmptyState
         message="No featured events yet."
-        detail="Events that are premium or sponsored will appear here."
+        detail="Premium and Spotlight events will appear here."
       />
     );
   }

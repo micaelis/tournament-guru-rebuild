@@ -131,7 +131,7 @@ export async function GET(request: NextRequest) {
       e.end_date ?? "",
       seasonLabels.get(e.season_id ?? "") ?? "",
       status,
-      e.is_premium || e.is_sponsored ? "Yes" : "No",
+      e.is_premium || e.is_general_ad ? "Yes" : "No",
       String(e.review_count),
       e.general_rating !== null ? e.general_rating.toFixed(2) : "",
       "", // attendee rating lives on the row's aggregate; kept blank until a follow-up joins it

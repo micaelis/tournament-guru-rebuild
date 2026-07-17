@@ -61,14 +61,14 @@ export type FeaturedEventRow = {
   start_date: string | null;
   end_date: string | null;
   is_premium: boolean;
-  is_sponsored: boolean;
+  is_general_ad: boolean;
   general_rating: number | null;
   review_count: number;
   would_return_pct: number | null;
 };
 
 /**
- * Featured Events strip: premium OR sponsored + not concluded > 30
+ * Featured Events strip: premium OR general-ad + not concluded > 30
  * days ago (spec: "start > now-30d"). Soonest-first.
  */
 export async function fetchFeaturedEvents(): Promise<FeaturedEventRow[]> {
@@ -79,10 +79,10 @@ export async function fetchFeaturedEvents(): Promise<FeaturedEventRow[]> {
   const { data } = await supabase
     .from("events")
     .select(
-      "id, title, logo_url, host_club, location_formatted, start_date, end_date, is_premium, is_sponsored, general_rating, review_count, would_return_pct",
+      "id, title, logo_url, host_club, location_formatted, start_date, end_date, is_premium, is_general_ad, general_rating, review_count, would_return_pct",
     )
     .eq("lifecycle", "active")
-    .or("is_premium.eq.true,is_sponsored.eq.true")
+    .or("is_premium.eq.true,is_general_ad.eq.true")
     .gte("start_date", cutoff)
     .order("start_date", { ascending: true })
     .limit(6);
@@ -107,10 +107,10 @@ export async function fetchFeaturedEventRows(): Promise<EventRow[]> {
   const { data } = await supabase
     .from("events")
     .select(
-      "id, owner_id, title, description, host_club, logo_url, location_formatted, location_state_abbr, start_date, end_date, lifecycle, is_premium, region, teams_attended_prev_year, would_return_pct, general_rating, coach_rating, attendee_rating, review_count, created_at, event_age_groups(age, team_gender)",
+      "id, owner_id, title, description, host_club, logo_url, location_formatted, location_state_abbr, start_date, end_date, lifecycle, is_premium, is_general_ad, region, teams_attended_prev_year, would_return_pct, general_rating, coach_rating, attendee_rating, review_count, created_at, event_age_groups(age, team_gender)",
     )
     .eq("lifecycle", "active")
-    .or("is_premium.eq.true,is_sponsored.eq.true")
+    .or("is_premium.eq.true,is_general_ad.eq.true")
     .gte("start_date", cutoff)
     .order("start_date", { ascending: true })
     .limit(4);
@@ -128,6 +128,7 @@ export async function fetchFeaturedEventRows(): Promise<EventRow[]> {
     end_date: string | null;
     lifecycle: "draft" | "active" | "canceled";
     is_premium: boolean;
+    is_general_ad: boolean;
     region: string | null;
     teams_attended_prev_year: number | null;
     would_return_pct: number | null;
@@ -190,6 +191,7 @@ export async function fetchFeaturedEventRows(): Promise<EventRow[]> {
       end_date: r.end_date,
       status: legacyStatus(r),
       premium: r.is_premium,
+      spotlight: r.is_general_ad,
       logo: r.logo_url,
       owner_id: r.owner_id,
       host_logo: r.owner_id ? logoByOwner.get(r.owner_id) ?? null : null,

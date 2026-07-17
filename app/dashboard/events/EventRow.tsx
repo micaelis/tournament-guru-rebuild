@@ -39,7 +39,7 @@ export function EventRow({
   const [showMetrics, setShowMetrics] = useState(true);
   const status = deriveEventStatus(event);
   const isCanceled = event.lifecycle === "canceled";
-  const featured = event.is_premium || event.is_sponsored;
+  const featured = event.is_premium || event.is_general_ad;
   const tiles = buildEventTiles(event);
 
   return (
@@ -64,6 +64,9 @@ export function EventRow({
             <StatusPill tone={eventStatusTone(status)}>{status}</StatusPill>
             {event.is_premium && (
               <StatusPill tone="warning">Premium</StatusPill>
+            )}
+            {event.is_general_ad && (
+              <StatusPill tone="info">Spotlight</StatusPill>
             )}
           </div>
           <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">

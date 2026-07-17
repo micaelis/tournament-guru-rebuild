@@ -32,7 +32,7 @@ export type SearchFilters = {
 const ZERO_UUID = "00000000-0000-0000-0000-000000000000";
 
 const SEARCH_SELECT =
-  "id, owner_id, title, description, host_club, logo_url, location_formatted, location_state_abbr, location_lat, location_lng, start_date, end_date, lifecycle, is_premium, region, teams_attended_prev_year, would_return_pct, general_rating, coach_rating, attendee_rating, review_count, created_at, event_age_groups(age, team_gender), event_competition_levels(level), event_surfaces(surface)";
+  "id, owner_id, title, description, host_club, logo_url, location_formatted, location_state_abbr, location_lat, location_lng, start_date, end_date, lifecycle, is_premium, is_general_ad, region, teams_attended_prev_year, would_return_pct, general_rating, coach_rating, attendee_rating, review_count, created_at, event_age_groups(age, team_gender), event_competition_levels(level), event_surfaces(surface)";
 
 /**
  * Facet value sets for the search filter drawer. The taxonomy UI expects
@@ -69,6 +69,7 @@ type RawSearchRow = {
   end_date: string | null;
   lifecycle: "draft" | "active" | "canceled";
   is_premium: boolean;
+  is_general_ad: boolean;
   region: string | null;
   teams_attended_prev_year: number | null;
   would_return_pct: number | null;
@@ -285,6 +286,7 @@ export async function searchEvents(
       end_date: r.end_date,
       status: legacyStatus(r),
       premium: r.is_premium,
+      spotlight: r.is_general_ad,
       logo: r.logo_url,
       owner_id: r.owner_id,
       host_logo: r.owner_id ? logoByOwner.get(r.owner_id) ?? null : null,

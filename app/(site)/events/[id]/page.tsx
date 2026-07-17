@@ -24,7 +24,7 @@ import { EventDetail } from "./parts";
 type Params = { id: string };
 
 const EVENT_SELECT =
-  "id, tournament_id, owner_id, title, description, host_club, logo_url, website_url, start_date, end_date, registration_deadline, location_formatted, location_state_abbr, num_teams_this_year, teams_attended_prev_year, teams_this_year_url, teams_prev_year_url, registration_url, region, lifecycle, is_premium, cancel_reason, would_return_pct, general_rating, coach_rating, attendee_rating, review_count, updated_at, event_age_groups(id, age, team_gender, price, field_size), event_competition_levels(level), event_surfaces(surface), event_images(url, sort_order), sponsors(id, name, link, logo_url)";
+  "id, tournament_id, owner_id, title, description, host_club, logo_url, website_url, start_date, end_date, registration_deadline, location_formatted, location_state_abbr, num_teams_this_year, teams_attended_prev_year, teams_this_year_url, teams_prev_year_url, registration_url, region, lifecycle, is_premium, is_general_ad, cancel_reason, would_return_pct, general_rating, coach_rating, attendee_rating, review_count, updated_at, event_age_groups(id, age, team_gender, price, field_size), event_competition_levels(level), event_surfaces(surface), event_images(url, sort_order), sponsors(id, name, link, logo_url)";
 
 type RawEvent = {
   id: string;
@@ -48,6 +48,7 @@ type RawEvent = {
   region: string | null;
   lifecycle: "draft" | "active" | "canceled";
   is_premium: boolean;
+  is_general_ad: boolean;
   cancel_reason: string | null;
   would_return_pct: number | null;
   general_rating: number | null;
@@ -106,6 +107,7 @@ function toDetailRow(ev: RawEvent, hostLogo: string | null): EventDetailRow {
     end_date: ev.end_date,
     status: legacyStatus(ev),
     premium: ev.is_premium,
+    spotlight: ev.is_general_ad,
     logo: ev.logo_url,
     owner_id: ev.owner_id,
     host_logo: hostLogo,

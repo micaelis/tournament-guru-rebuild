@@ -31,7 +31,7 @@ export type EventBaseRow = {
   lifecycle: "draft" | "active" | "canceled";
   cancel_reason: string | null;
   is_premium: boolean;
-  is_sponsored: boolean;
+  is_general_ad: boolean;
   premium_at: string | null;
   video_url: string | null;
   teams_this_year_url: string | null;
@@ -80,7 +80,7 @@ export type EventImageRow = {
 export type SeasonRow = { id: string; label: string; start_year: number };
 
 const EVENT_BASE_COLUMNS =
-  "id, tournament_id, owner_id, created_by, claimed, logo_url, title, website_url, host_club, start_date, end_date, registration_deadline, description, location_formatted, location_state_abbr, location_lat, location_lng, location_place_id, location_city, location_state_full, location_zip, num_teams_this_year, region, season_id, lifecycle, cancel_reason, is_premium, is_sponsored, premium_at, video_url, teams_this_year_url, teams_prev_year_url, registration_url, teams_attended_prev_year, would_return_pct, general_rating, coach_rating, attendee_rating, review_count, avg_fields, avg_facilities, avg_management, avg_competition, avg_diversity, avg_cost_value, created_at, updated_at";
+  "id, tournament_id, owner_id, created_by, claimed, logo_url, title, website_url, host_club, start_date, end_date, registration_deadline, description, location_formatted, location_state_abbr, location_lat, location_lng, location_place_id, location_city, location_state_full, location_zip, num_teams_this_year, region, season_id, lifecycle, cancel_reason, is_premium, is_general_ad, premium_at, video_url, teams_this_year_url, teams_prev_year_url, registration_url, teams_attended_prev_year, would_return_pct, general_rating, coach_rating, attendee_rating, review_count, avg_fields, avg_facilities, avg_management, avg_competition, avg_diversity, avg_cost_value, created_at, updated_at";
 
 /**
  * Fetches an event and its child data in parallel. Returns null if the
@@ -165,7 +165,7 @@ export async function getTournamentForHeader(
 }
 
 const EVENT_LIST_COLUMNS =
-  "id, tournament_id, title, host_club, start_date, end_date, lifecycle, is_premium, is_sponsored, owner_id, season_id, location_formatted, general_rating, attendee_rating, review_count, avg_fields, avg_facilities, avg_management, avg_competition, avg_diversity, avg_cost_value";
+  "id, tournament_id, title, host_club, start_date, end_date, lifecycle, is_premium, is_general_ad, owner_id, season_id, location_formatted, general_rating, attendee_rating, review_count, avg_fields, avg_facilities, avg_management, avg_competition, avg_diversity, avg_cost_value";
 
 /**
  * Lists events under one or more tournaments for the dashboard. Sort:

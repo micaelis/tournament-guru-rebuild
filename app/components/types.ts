@@ -28,6 +28,7 @@ export type EventRow = {
   end_date: string | null;
   status: string | null;
   premium: boolean;
+  spotlight: boolean;
   logo: string | null;
   owner_id?: string | null;
   host_logo?: string | null;

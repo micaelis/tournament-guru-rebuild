@@ -14,7 +14,7 @@ export type EventListRow = {
   end_date: string | null;
   lifecycle: "draft" | "active" | "canceled";
   is_premium: boolean;
-  is_sponsored: boolean;
+  is_general_ad: boolean;
   owner_id: string | null;
   season_id: string | null;
   location_formatted: string | null;
