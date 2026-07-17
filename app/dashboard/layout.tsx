@@ -1,7 +1,9 @@
 import type { ReactNode } from "react";
+import { Suspense } from "react";
 import { requireSessionAndProfile } from "@/lib/supabase/session";
 import { navFor } from "./nav-items";
 import { Sidebar } from "./Sidebar";
+import { SpotlightColumn } from "./SpotlightColumn";
 import {
   FlashToast,
   ToastProvider,
@@ -49,7 +51,14 @@ export default async function DashboardLayout({
             }}
           />
           <main className="flex-1 px-6 py-8 md:px-12 md:py-12">
-            <div className="mx-auto max-w-6xl">{children}</div>
+            <div className="mx-auto flex max-w-6xl gap-8">
+              <div className="min-w-0 flex-1">{children}</div>
+              {profile.user_type === "attendee" && (
+                <Suspense>
+                  <SpotlightColumn />
+                </Suspense>
+              )}
+            </div>
           </main>
         </div>
       </div>
