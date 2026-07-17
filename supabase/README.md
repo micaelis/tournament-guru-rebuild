@@ -15,7 +15,7 @@ Start it and confirm with `docker info`.
 ## Bring the stack up
 
 ```bash
-cd ~/Desktop/tournament-guru
+cd tournament-guru
 supabase start           # first run downloads images (~a few minutes)
 supabase db reset        # apply migrations + seeds (idempotent)
 ```

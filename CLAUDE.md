@@ -8,12 +8,12 @@ Youth-sports tournament discovery + reviews. Attendees (coaches, parents,
 team managers) find events and read verified reviews; Event Directors
 claim and manage listings; Admins moderate the platform. Next.js 16
 (App Router, React 19, Server Actions) on Supabase (Postgres 15+, RLS,
-Storage, Auth). See [BUILD-PLAN in `~/Desktop/tg scoping/BUILD-PLAN.md`]
-for the slice-by-slice roadmap and [DECISIONS.md](DECISIONS.md) for
-non-obvious calls.
+Storage, Auth). See [docs/BUILD-PLAN.md](docs/BUILD-PLAN.md) for the
+slice-by-slice roadmap and [DECISIONS.md](DECISIONS.md) for non-obvious
+calls.
 
-**Rebuild status:** on the `rebuild` branch, working from the
-`~/Desktop/tg scoping/` scope + `~/Desktop/tgredesign/` design language.
+**Rebuild status:** on the `rebuild` branch, following the tgredesign
+design language.
 Slice 0 (this one) lays the schema, auth, and shared component library.
 The old codebase's data model is gone — do not reintroduce columns from
 it (`full_name`, `contact_email`, `profile_picture`, `onboarding_complete`,
@@ -65,6 +65,8 @@ Root:
 - `CLAUDE.md` — this file: conventions + this map. Read first, every session.
 
 docs/:
+- `BUILD-PLAN.md` — slice-by-slice rebuild roadmap + autonomy setup. Read for build
+  sequencing and slice dependencies.
 - `SPECIFICATION.md` — the full product spec: what every page does + the rules behind it.
   The single best deep read; authoritative for behavior.
 - `SCHEMA-DESIGN.md` — the data model / entity map (not DDL). Read before schema changes.
