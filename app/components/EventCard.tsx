@@ -615,6 +615,12 @@ export function EventCard({
               </div>
             ) : null}
 
+            {event.would_return_pct != null && event.would_return_pct > 0 && (
+              <div className="mt-2.5">
+                <WouldReturnCue pct={event.would_return_pct} />
+              </div>
+            )}
+
             {excerpt && (
               <p
                 className="mt-2.5"
@@ -669,9 +675,6 @@ export function EventCard({
                   )}
                   count={event.attendee_reviews ?? event.reviews ?? 0}
                 />
-              )}
-              {event.would_return_pct != null && event.would_return_pct > 0 && (
-                <WouldReturnCue pct={event.would_return_pct} />
               )}
             </div>
             {claimable && (
