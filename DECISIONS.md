@@ -1036,3 +1036,23 @@ Restored state green.
 500 on sign-in against the hosted demo (GoTrue chokes on SQL-seeded
 auth.users rows missing the non-null token columns); bogus creds get a
 clean 400, so auth itself is healthy. Needs a seed.sql fix + re-seed.
+
+### R2.7 · Gender search: "both" is a union value, not an opaque tag
+
+**What:** the search gender facet expands its match set instead of a
+literal `IN`: selecting Both matches boys-, girls-, and both-tagged
+events, and a coed ("both"-tagged) event now also satisfies a Boys or
+Girls search.
+
+**Why:** Round-2 #7 — "Both" returned nothing because no seeded age
+group is literally tagged 'both'. Fixing only the reported direction
+would leave the mirror asymmetry (a coed event invisible to a Boys
+search) which reads as the same bug. The symmetric union is the only
+coherent semantic for "events my team can attend". Alternative
+(rejected): make Both mean "has BOTH boys and girls rows" — that's an
+intersection nobody asked for and still hides coed events.
+
+**Tripwire:** `tests/probes/search-gender-both.test.ts` seeds
+boys/girls/coed events and pins all three directions + a no-filter
+control. Verified by mutation: reverting to the literal `IN` fails 3
+of 4 cases.

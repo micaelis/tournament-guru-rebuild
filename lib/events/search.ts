@@ -142,11 +142,17 @@ export async function searchEvents(
     idSets.push(dedupe(rows));
   }
   if (genders.length) {
+    // "both" is a union value on either side of the match: a Both
+    // search finds boys-, girls-, and both-tagged events, and a coed
+    // ("both"-tagged) event satisfies a Boys or Girls search.
+    const genderMatch = genders.includes("both")
+      ? ["boys", "girls", "both"]
+      : [...genders, "both"];
     const rows = unwrapRows<{ event_id: string }>(
       await supabase
         .from("event_age_groups")
         .select("event_id")
-        .in("team_gender", genders),
+        .in("team_gender", genderMatch),
       "searchEvents genders facet",
     );
     idSets.push(dedupe(rows));
