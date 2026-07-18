@@ -16,6 +16,9 @@ const eslintConfig = defineConfig([
     ".next-e2e/**",
     "test-results/**",
     "playwright-report/**",
+    // Claude Code worktrees — parallel-session checkouts with their own
+    // build output; linting them triple-counts every finding.
+    ".claude/**",
   ]),
 ]);
 
