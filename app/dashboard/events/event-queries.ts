@@ -165,7 +165,7 @@ export async function getTournamentForHeader(
 }
 
 const EVENT_LIST_COLUMNS =
-  "id, tournament_id, title, host_club, start_date, end_date, lifecycle, is_premium, is_general_ad, owner_id, season_id, location_formatted, general_rating, attendee_rating, review_count, avg_fields, avg_facilities, avg_management, avg_competition, avg_diversity, avg_cost_value";
+  "id, tournament_id, title, description, host_club, start_date, end_date, lifecycle, is_premium, is_general_ad, owner_id, season_id, location_formatted, general_rating, attendee_rating, review_count, avg_fields, avg_facilities, avg_management, avg_competition, avg_diversity, avg_cost_value";
 
 /**
  * Lists events under one or more tournaments for the dashboard. Sort:

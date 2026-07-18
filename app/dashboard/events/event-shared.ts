@@ -9,6 +9,7 @@ export type EventListRow = {
   id: string;
   tournament_id: string;
   title: string;
+  description: string | null;
   host_club: string | null;
   start_date: string | null;
   end_date: string | null;

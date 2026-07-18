@@ -126,7 +126,7 @@ export async function GET(request: NextRequest) {
       Array.from(new Set(agesByEvent.get(e.id) ?? [])).sort().join(", "),
       Array.from(gendersByEvent.get(e.id) ?? []).join(", "),
       Array.from(new Set(levelsByEvent.get(e.id) ?? [])).join(", "),
-      "", // description omitted from listEvents projection; kept blank for now to keep the export cheap
+      e.description ?? "",
       e.start_date ?? "",
       e.end_date ?? "",
       seasonLabels.get(e.season_id ?? "") ?? "",
@@ -134,7 +134,7 @@ export async function GET(request: NextRequest) {
       e.is_premium || e.is_general_ad ? "Yes" : "No",
       String(e.review_count),
       e.general_rating !== null ? e.general_rating.toFixed(2) : "",
-      "", // attendee rating lives on the row's aggregate; kept blank until a follow-up joins it
+      e.attendee_rating !== null ? e.attendee_rating.toFixed(2) : "",
     ];
   });
 
