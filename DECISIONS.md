@@ -636,3 +636,16 @@ which is correct for drafts.
 **Alternative:** NOT NULL on both columns. Rejected — drafts don't
 require dates, and forcing them would break the "a draft needs only a
 title" rule.
+
+### RG1.C3 · Claim approve parked
+
+The `approve_claim_request` RPC exists and is tested (claim-flow
+probes), but the feature isn't ready for production use — the admin
+workflow still needs manual verification steps before ownership
+transfer. The Approve button is visibly disabled and the server action
+short-circuits with an error message. Decline remains functional so
+admins can still reject bad claims.
+
+**Alternative:** leave Approve live. Rejected — premature ownership
+transfer in production could reassign events to the wrong ED with no
+undo path.

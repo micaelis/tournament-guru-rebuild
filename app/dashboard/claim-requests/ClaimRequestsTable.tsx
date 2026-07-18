@@ -225,7 +225,7 @@ function ClaimRow({
             </Button>
             {isAdmin && row.status === "pending" && (
               <>
-                <Button size="sm" onClick={onApprove}>
+                <Button size="sm" disabled title="Approve is temporarily parked">
                   Approve
                 </Button>
                 <Button size="sm" variant="danger" onClick={onDecline}>

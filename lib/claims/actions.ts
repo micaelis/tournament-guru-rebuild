@@ -98,16 +98,9 @@ export async function submitClaimRequest(
  * sibling pending claims — all atomic.
  */
 export async function approveClaimRequest(
-  claimId: string,
+  _claimId: string,
 ): Promise<ClaimState> {
-  const supabase = await createServerAuthClient();
-  const { error } = await supabase.rpc("approve_claim_request", {
-    target_claim: claimId,
-  });
-  if (error) return { error: error.message };
-  revalidatePath("/dashboard/claim-requests");
-  revalidatePath("/dashboard/events");
-  return {};
+  return { error: "Claim approval is temporarily parked." };
 }
 
 /**
