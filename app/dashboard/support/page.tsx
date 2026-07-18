@@ -3,31 +3,38 @@ import { SupportForm } from "./SupportForm";
 import { createServerAuthClient } from "@/lib/supabase/server";
 
 /**
- * Support hub. Contact form + audience-scoped FAQ list. FAQ RLS is
- * public-read; we filter by audience client-side because the list is
- * small.
+ * Support hub. Contact form + audience-scoped FAQ list.
+ *
+ * Mirrors the `/dashboard/faq` query: entries must be both published
+ * and visible, and audience targeting comes from the `faq_audiences`
+ * child table (a null `role_title` targets the whole user type). The
+ * filter runs server-side, so only matching rows reach the client.
  */
 export default async function SupportPage() {
   const { profile, user } = await requireSessionAndProfile();
   const supabase = await createServerAuthClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("faqs")
-    .select("id, title, body, audience, sort_order")
+    .select("id, title, content, faq_audiences!inner(user_type, role_title)")
+    .eq("status", "published")
+    .eq("is_visible", true)
     .order("sort_order", { ascending: true });
-  const audienceKey =
-    profile.user_type === "attendee"
-      ? "attendee"
-      : profile.user_type === "event_director"
-        ? "event_director"
-        : "both";
-  const faqs = ((data ?? []) as {
+  // Surface the failure instead of rendering an empty list that looks
+  // like "no FAQs yet" — a swallowed error here hid a dropped-column
+  // regression for an entire release.
+  if (error) throw new Error(`Support FAQ query failed: ${error.message}`);
+
+  const faqs = ((data ?? []) as unknown as {
     id: string;
     title: string;
-    body: string;
-    audience: "attendee" | "event_director" | "both";
-    sort_order: number;
-  }[]).filter(
-    (f) => f.audience === audienceKey || f.audience === "both",
+    content: string;
+    faq_audiences: { user_type: string; role_title: string | null }[];
+  }[]).filter((f) =>
+    f.faq_audiences.some(
+      (a) =>
+        a.user_type === profile.user_type &&
+        (a.role_title === null || a.role_title === profile.role_title),
+    ),
   );
 
   return (
@@ -62,7 +69,7 @@ export default async function SupportPage() {
                     {f.title}
                   </summary>
                   <p className="mt-2 whitespace-pre-line text-sm text-slate-700">
-                    {f.body}
+                    {f.content}
                   </p>
                 </details>
               ))}

@@ -762,3 +762,39 @@ is added; that list is the guard.
 **Alternative:** set `security_invoker = true` on the views. Rejected —
 these views exist precisely to expose a narrow public projection of
 RLS-protected rows to anon, which invoker semantics would break.
+
+### S8.6 · Support-page FAQ ported to the new schema + a schema-drift probe
+
+**What:** `/dashboard/support` was still selecting `faqs.body` and
+`faqs.audience`, both removed by [S8.4](#s84--faq-system--audience-targeted-with-two-gate-visibility)
+(20260718000007 renamed `body`→`content` and dropped `audience`). The
+query now mirrors `/dashboard/faq`: two-gate filters (`status =
+'published'` and `is_visible`) plus audience targeting via the
+`faq_audiences` child table, and it throws on error instead of
+discarding it. Added `tests/probes/schema-drift.test.ts`.
+
+**Why:** three things had to line up for this to ship green. The error
+was discarded (`const { data } =`), so PostgREST's 42703 became `null`
+→ `data ?? []` → an empty list. The result was cast with
+`as unknown as`, so `tsc` saw nothing. And the empty state read *"We'll
+add answers here soon"* — indistinguishable from success. Every
+attendee and ED saw a permanently empty FAQ list for a full release.
+
+The root cause is structural: the DB boundary is untyped, so no static
+check can see column drift. The probe replays every
+`.from(t).select(c)` pair in `app/` and `lib/` against the live DB with
+`limit(0)` — PostgREST parses the select natively, so a dropped or
+renamed column fails as 42703 there. 134 sites covered; selects built
+from template literals are skipped and logged so the blind spot stays
+visible. Verified non-vacuous by mutation: restoring the old column
+list fails the probe with the exact original error.
+
+**Note:** this page's FAQ block now duplicates `/dashboard/faq`, which
+sits directly above it in the same nav section. Fixing was chosen over
+deleting to keep the change reversible; consolidating the two surfaces
+is tracked in TURBOCHECK.md (M-3).
+
+**Alternative:** generate types via `supabase gen types typescript` and
+type the clients. Strictly better and still worth doing, but it is a
+repo-wide change; the probe delivers the same regression coverage for
+this class today without touching 155 call sites.
