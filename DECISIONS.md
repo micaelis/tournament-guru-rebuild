@@ -649,3 +649,39 @@ admins can still reject bad claims.
 **Alternative:** leave Approve live. Rejected — premature ownership
 transfer in production could reassign events to the wrong ED with no
 undo path.
+
+### S8.1 · Review eligibility model — attendee-only writes + paid-only guru
+
+**What:** reviews INSERT policy tightened to attendee-type, non-blocked
+users only. EDs and admins are denied at the RLS boundary, not just
+the UI. The `apply_promo_to_review` RPC now rejects promo applications
+on non-paid events (requires `is_premium` or `is_general_ad`).
+
+**Why:** the scope doc (SCOPE-review-eligibility.md) defines reviews as
+an attendee activity; EDs interact via replies on their own events,
+admins via moderation (edit/delete). The paid-event guru gate prevents
+verified badges from appearing on free listings (the promo model only
+makes sense for paid tiers).
+
+**Alternative:** allow EDs/admins to write reviews (old behavior). Rejected
+— conflates the reviewer and platform-operator roles. An ED reviewing
+events (including competitors') is a conflict of interest the platform
+should prevent at the DB, not rely on UI to hide.
+
+### S8.2 · Default table grants fix for `supabase db reset`
+
+**What:** migration 20260718000005 sets `ALTER DEFAULT PRIVILEGES FOR ROLE
+postgres` to match the `supabase_admin` defaults, then retroactively
+grants on all existing tables + re-applies column-level restrictions
+(profiles, reviews, events).
+
+**Why:** `supabase db reset` runs migrations as the `postgres` role, whose
+default privileges only grant DELETE/TRUNCATE/TRIGGER/REFERENCES — not
+SELECT/INSERT/UPDATE. Tables created during reset lacked basic access
+for `authenticated` and `service_role`, breaking all RLS-gated reads and
+writes. Also fixed: `dob` and `preferences_completed` added to the
+profiles UPDATE column grant (both are written by the authenticated
+client during onboarding).
+
+**Alternative:** run migrations as `supabase_admin`. Not possible with the
+local CLI's `db reset` command.

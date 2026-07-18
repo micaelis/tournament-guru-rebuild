@@ -171,6 +171,9 @@ Exposed via a generated column or a `SELECT` helper (`event_display_status(event
 Rules: one published review per (author, event) — partial unique index. Draft excluded
 from all ED/admin/public lists (RLS). Column-level grant allow-list (no user-write of
 guru_review/published/promo_id). `user_email`-equivalent PII never exposed to anon.
+**INSERT policy:** attendee-type + non-blocked only (EDs and admins blocked at RLS).
+**Guru/verified:** `apply_promo_to_review` rejects non-paid events (requires
+`is_premium` or `is_general_ad`).
 
 ### comments  (→ reviews; self-threaded)
 | Field | Type | Notes |

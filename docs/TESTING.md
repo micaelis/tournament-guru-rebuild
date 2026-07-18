@@ -43,6 +43,7 @@ idling and the pane stays blank. Verify via typecheck + build + `npm test` + `np
 | `validation` | Server-side input validation is authoritative; draft allows null dates; end ≥ start CHECK enforced at DB. |
 | `platform-counters` | Counter invariants (published-reviews total increments, never decrements on delete). |
 | `reauth-delete` | Account deletion / anonymize-and-scrub behavior. |
+| `review-eligibility` | Attendee CAN write reviews; ED/admin/blocked CANNOT (RLS). Guru/verified blocked on non-paid events; succeeds on paid. |
 
 ## Layer 2 — E2E journeys (`e2e/`)
 

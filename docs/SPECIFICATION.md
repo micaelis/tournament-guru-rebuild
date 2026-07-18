@@ -587,6 +587,19 @@ Image" once generated; download shows an alert).
 
 ### 6.2 Reviews
 
+**Who can write a review:** attendee-type users only (Coach, Team Manager,
+Parent/Spectator), non-blocked. **Event Directors and Admins cannot write
+reviews** — enforced in RLS, not just the UI. One review per user per event.
+
+**Replies:** the **owner ED** may reply to reviews on their own events (one
+pinned reply per review). **Admins** may reply to any review. Both may
+edit/delete their own replies. **Admins** may edit or delete any review
+(moderation).
+
+**Guru/verified badge:** promo-coach-only, **restricted to paid events**
+(Premium or General Ads). The `apply_promo_to_review` RPC rejects promos on
+non-paid events.
+
 Accessible to **ED and Admin**. The ED sees reviews on **their own events**; the
 admin sees **all**.
 
