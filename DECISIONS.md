@@ -834,3 +834,42 @@ mutation: restoring the unconditional write fails with
 **Alternative:** render the hidden fields as disabled inputs carrying
 current values. Rejected — it ships every user's stored location and
 gender to the client on a page that deliberately hides them.
+
+### S8.8 · searchEvents surfaces facet errors; filter input is allow-listed
+
+**What:** every query in `lib/events/search.ts` — the five facet
+sub-queries, the distance prefilter, the main events query, the two
+enrichment reads, and `getEventFacets`' states read — now routes through
+a checked `unwrap()` / `unwrapRows()` (`lib/supabase/unwrap.ts`). In the
+same change, user-supplied filter values are normalized before any query
+runs: unknown facet values are dropped against the enum allow-lists,
+malformed dates are ignored, and the `q` ilike patterns are
+double-quoted for PostgREST's `or()` grammar.
+
+**Why:** the earlier searchEvents fix guarded only the last of its six
+queries, and the facet sub-queries routed failures *around* that guard —
+a facet error became an empty id set, which became `.eq("id",
+ZERO_UUID)`, which made the guarded query succeed with 0 rows. An RLS or
+schema change on any facet table would silently blank every filtered
+search (TURBOCHECK H-0). Surfacing those errors exposed a coupled hole:
+the facet columns are Postgres enums and both routes pass raw URL values
+into `.in()`, so a hand-edited `?genders=zzz` raises a real 22P02 —
+which post-fix would be a user-triggerable 500. The two halves must land
+together: once user input cannot manufacture a query error, every error
+that remains is a genuine infrastructure failure and throwing is
+correct. The same sweep fixed a live pre-existing bug: a `q` containing
+a comma or paren broke the `or()` grammar and 500'd the events page.
+
+**Behavior change:** a filter carrying only unknown values previously
+returned 0 events (via the swallowed enum-cast error); it now behaves as
+if that filter were unset — the same convention both routes already
+apply to an invalid `sort` or `dist`.
+
+**Tripwire:** `tests/probes/h0-search-error-surfacing.test.ts` runs the
+real `searchEvents` under vitest (new `@/` + `server-only` aliases in
+`vitest.config.ts`); the client factory is mocked to wrap a real
+local-stack client in a proxy that rewrites one table name per test to a
+nonexistent one, so each failure is a genuine PostgREST error that hits
+ONLY the targeted sub-query while the main query stays healthy — exactly
+the case that used to slip through. Verified by mutation: reverting
+`search.ts` to the pre-fix version fails 10 of 15 cases.

@@ -9,6 +9,7 @@ import {
 } from "@/lib/enums";
 import type { EventRow, EventFacets, EventSort } from "@/app/components/types";
 import { boundingBox, milesBetween } from "@/lib/geo";
+import { unwrap, unwrapRows } from "@/lib/supabase/unwrap";
 
 export type SearchFilters = {
   q?: string;
@@ -31,6 +32,27 @@ export type SearchFilters = {
 
 const ZERO_UUID = "00000000-0000-0000-0000-000000000000";
 
+/**
+ * Filter values arrive from raw URL query strings, and the facet columns
+ * are Postgres enums — an unknown value raises a cast error at the DB.
+ * Since query errors now propagate (a real failure must never render as
+ * "0 events"), user input has to be incapable of manufacturing one:
+ * unknown facet values are dropped against the enum allow-lists before
+ * they reach a query, the same way both routes already drop an invalid
+ * `sort` or `dist`. A dropped value means that filter simply doesn't
+ * constrain the search.
+ */
+const VALID_AGES = new Set<string>(AGE_BRACKETS);
+const VALID_GENDERS = new Set<string>(TEAM_GENDERS.map((g) => g.value));
+const VALID_LEVELS = new Set<string>(COMPETITION_LEVELS.map((l) => l.value));
+const VALID_SURFACES = new Set<string>(SURFACES.map((s) => s.value));
+
+/** Only pass real ISO dates into date-typed comparisons. */
+function isoDateOrNull(value: string | null | undefined): string | null {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  return Number.isNaN(Date.parse(value)) ? null : value;
+}
+
 const SEARCH_SELECT =
   "id, owner_id, title, description, host_club, logo_url, location_formatted, location_state_abbr, location_lat, location_lng, start_date, end_date, lifecycle, is_premium, is_general_ad, region, teams_attended_prev_year, would_return_pct, general_rating, coach_rating, attendee_rating, review_count, created_at, event_age_groups(age, team_gender), event_competition_levels(level), event_surfaces(surface)";
 
@@ -41,16 +63,16 @@ const SEARCH_SELECT =
  */
 export async function getEventFacets(): Promise<EventFacets> {
   const supabase = createAnonServerClient();
-  const { data: states } = await supabase
-    .from("us_states")
-    .select("code")
-    .order("code");
+  const states = unwrapRows<{ code: string }>(
+    await supabase.from("us_states").select("code").order("code"),
+    "getEventFacets states",
+  );
   return {
     ages: AGE_BRACKETS.map((a) => a.toLowerCase()),
     genders: TEAM_GENDERS.map((g) => g.value),
     levels: COMPETITION_LEVELS.map((l) => l.value),
     surfaces: SURFACES.map((s) => s.value),
-    states: ((states ?? []) as { code: string }[]).map((s) => s.code),
+    states: states.map((s) => s.code),
   };
 }
 
@@ -92,44 +114,62 @@ export async function searchEvents(
   const pageSize = opts.pageSize ?? 12;
   const sort = opts.sort ?? "teams";
 
+  const ages = (filters.ages ?? [])
+    .map((a) => a.toUpperCase())
+    .filter((a) => VALID_AGES.has(a));
+  const genders = (filters.genders ?? []).filter((g) => VALID_GENDERS.has(g));
+  const surfaces = (filters.surfaces ?? []).filter((s) => VALID_SURFACES.has(s));
+  const levels = (filters.levels ?? []).filter((l) => VALID_LEVELS.has(l));
+  const dateStart = isoDateOrNull(filters.dateStart);
+  const dateEnd = isoDateOrNull(filters.dateEnd);
+
   // Child-table facet filters resolve to matching event-id sets, then
   // intersect (an event must satisfy every active facet group). Each
   // active group contributes a set of matching event ids; they're
   // intersected at the end (no closure mutation, so type narrows cleanly).
-  const dedupe = (rows: { event_id: string }[] | null) =>
-    Array.from(new Set((rows ?? []).map((r) => r.event_id)));
+  // A facet query ERROR throws via unwrapRows — it must never collapse
+  // into an empty id set, which the ZERO_UUID branch below would turn
+  // into a successful "0 events" result.
+  const dedupe = (rows: { event_id: string }[]) =>
+    Array.from(new Set(rows.map((r) => r.event_id)));
   const idSets: string[][] = [];
 
-  if (filters.ages?.length) {
-    const { data } = await supabase
-      .from("event_age_groups")
-      .select("event_id")
-      .in(
-        "age",
-        filters.ages.map((a) => a.toUpperCase()),
-      );
-    idSets.push(dedupe(data as { event_id: string }[] | null));
+  if (ages.length) {
+    const rows = unwrapRows<{ event_id: string }>(
+      await supabase.from("event_age_groups").select("event_id").in("age", ages),
+      "searchEvents ages facet",
+    );
+    idSets.push(dedupe(rows));
   }
-  if (filters.genders?.length) {
-    const { data } = await supabase
-      .from("event_age_groups")
-      .select("event_id")
-      .in("team_gender", filters.genders);
-    idSets.push(dedupe(data as { event_id: string }[] | null));
+  if (genders.length) {
+    const rows = unwrapRows<{ event_id: string }>(
+      await supabase
+        .from("event_age_groups")
+        .select("event_id")
+        .in("team_gender", genders),
+      "searchEvents genders facet",
+    );
+    idSets.push(dedupe(rows));
   }
-  if (filters.surfaces?.length) {
-    const { data } = await supabase
-      .from("event_surfaces")
-      .select("event_id")
-      .in("surface", filters.surfaces);
-    idSets.push(dedupe(data as { event_id: string }[] | null));
+  if (surfaces.length) {
+    const rows = unwrapRows<{ event_id: string }>(
+      await supabase
+        .from("event_surfaces")
+        .select("event_id")
+        .in("surface", surfaces),
+      "searchEvents surfaces facet",
+    );
+    idSets.push(dedupe(rows));
   }
-  if (filters.levels?.length) {
-    const { data } = await supabase
-      .from("event_competition_levels")
-      .select("event_id")
-      .in("level", filters.levels);
-    idSets.push(dedupe(data as { event_id: string }[] | null));
+  if (levels.length) {
+    const rows = unwrapRows<{ event_id: string }>(
+      await supabase
+        .from("event_competition_levels")
+        .select("event_id")
+        .in("level", levels),
+      "searchEvents levels facet",
+    );
+    idSets.push(dedupe(rows));
   }
   if (
     filters.distanceMiles != null &&
@@ -143,17 +183,22 @@ export async function searchEvents(
       filters.centerLng,
       filters.distanceMiles,
     );
-    const { data } = await supabase
-      .from("events")
-      .select("id, location_lat, location_lng")
-      .eq("lifecycle", "active")
-      .gte("location_lat", box.minLat)
-      .lte("location_lat", box.maxLat)
-      .gte("location_lng", box.minLng)
-      .lte("location_lng", box.maxLng);
-    const within = (
-      (data ?? []) as { id: string; location_lat: number; location_lng: number }[]
-    )
+    const rows = unwrapRows<{
+      id: string;
+      location_lat: number;
+      location_lng: number;
+    }>(
+      await supabase
+        .from("events")
+        .select("id, location_lat, location_lng")
+        .eq("lifecycle", "active")
+        .gte("location_lat", box.minLat)
+        .lte("location_lat", box.maxLat)
+        .gte("location_lng", box.minLng)
+        .lte("location_lng", box.maxLng),
+      "searchEvents distance facet",
+    );
+    const within = rows
       .filter(
         (r) =>
           milesBetween(
@@ -183,13 +228,16 @@ export async function searchEvents(
   if (filters.states?.length)
     query = query.in("location_state_abbr", filters.states);
   if (filters.q?.trim()) {
-    const like = `%${filters.q.trim()}%`;
+    // The pattern is double-quoted so PostgREST's or() grammar tolerates
+    // commas/parens in the typed term; quotes and backslashes are
+    // stripped since they'd escape out of the quoted literal.
+    const like = `%${filters.q.trim().replace(/["\\]/g, " ")}%`;
     query = query.or(
-      `title.ilike.${like},host_club.ilike.${like},location_formatted.ilike.${like}`,
+      `title.ilike."${like}",host_club.ilike."${like}",location_formatted.ilike."${like}"`,
     );
   }
-  if (filters.dateStart) query = query.gte("start_date", filters.dateStart);
-  if (filters.dateEnd) query = query.lte("start_date", filters.dateEnd);
+  if (dateStart) query = query.gte("start_date", dateStart);
+  if (dateEnd) query = query.lte("start_date", dateEnd);
   if (filters.openOnly)
     query = query.gte("end_date", new Date().toISOString().slice(0, 10));
   if (filters.concludedOnly)
@@ -214,27 +262,29 @@ export async function searchEvents(
   query = query.order("created_at", { ascending: false });
 
   const from = (page - 1) * pageSize;
-  const { data, count, error } = await query.range(from, from + pageSize - 1);
-  if (error) throw new Error(`searchEvents query failed: ${error.message}`);
+  const { data, count } = unwrap(
+    await query.range(from, from + pageSize - 1),
+    "searchEvents events query",
+  );
   const rows = (data ?? []) as RawSearchRow[];
   if (rows.length === 0) return { data: [], total: count ?? 0 };
 
+  type OwnerRow = {
+    id: string;
+    org_logo_url: string | null;
+    profile_photo_url: string | null;
+  };
   const ownerIds = Array.from(
     new Set(rows.map((r) => r.owner_id).filter(Boolean)),
   ) as string[];
-  const [{ data: owners }, { data: reviewRows }] = await Promise.all([
+  const [owners, reviewRows] = await Promise.all([
     ownerIds.length
       ? supabase
           .from("public_event_owners")
           .select("id, org_logo_url, profile_photo_url")
           .in("id", ownerIds)
-      : Promise.resolve({
-          data: [] as {
-            id: string;
-            org_logo_url: string | null;
-            profile_photo_url: string | null;
-          }[],
-        }),
+          .then((r) => unwrapRows<OwnerRow>(r, "searchEvents owner logos"))
+      : Promise.resolve([] as OwnerRow[]),
     supabase
       .from("reviews")
       .select("event_id, reviewer_role")
@@ -242,23 +292,20 @@ export async function searchEvents(
       .in(
         "event_id",
         rows.map((r) => r.id),
+      )
+      .then((r) =>
+        unwrapRows<{ event_id: string; reviewer_role: string | null }>(
+          r,
+          "searchEvents review counts",
+        ),
       ),
   ]);
   const logoByOwner = new Map(
-    (
-      (owners ?? []) as {
-        id: string;
-        org_logo_url: string | null;
-        profile_photo_url: string | null;
-      }[]
-    ).map((o) => [o.id, o.org_logo_url ?? o.profile_photo_url ?? null] as const),
+    owners.map((o) => [o.id, o.org_logo_url ?? o.profile_photo_url ?? null] as const),
   );
   const coachCount = new Map<string, number>();
   const attendeeCount = new Map<string, number>();
-  for (const rv of (reviewRows ?? []) as {
-    event_id: string;
-    reviewer_role: string | null;
-  }[]) {
+  for (const rv of reviewRows) {
     const bucket = rv.reviewer_role === "coach" ? coachCount : attendeeCount;
     bucket.set(rv.event_id, (bucket.get(rv.event_id) ?? 0) + 1);
   }

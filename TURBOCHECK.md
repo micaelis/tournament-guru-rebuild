@@ -597,8 +597,13 @@ The three Criticals are **fixed** (`9da8c9a`, `adfdd61`, `e54140c`) — see the
 post-fix table above. Everything else in this report is **still open** and
 awaiting approval; nothing below Critical has been changed.
 
-Next by leverage, unchanged from the plan above: **H-0** (the search fix is
-still unreachable — 5 facet queries route failures around its guard), **H-1**
+Next by leverage, unchanged from the plan above: **H-1**
 (generated Supabase types; the schema-drift probe covers the symptom, not the
 untyped boundary), **H-4** (5 of 6 flag-orphan delete paths), and **H-9**
 (4 forms that don't reset, one holding a plaintext password).
+
+**H-0 is fixed** (DECISIONS S8.8): all queries in `lib/events/search.ts` route
+through a checked `unwrap()` (`lib/supabase/unwrap.ts`), filter input is
+allow-listed so URL values can't manufacture a query error, and
+`tests/probes/h0-search-error-surfacing.test.ts` pins both halves
+(mutation-verified: the pre-fix file fails 10 of 15 cases).
