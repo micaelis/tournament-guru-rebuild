@@ -343,9 +343,10 @@ export function EventsSearch({
             )}
 
             <div
-              className={"mt-8 transition-opacity " + (loading ? "opacity-60" : "opacity-100")}
+              className={"relative mt-8 transition-opacity " + (loading ? "opacity-60" : "opacity-100")}
               aria-busy={loading}
             >
+              {loading && <SearchingOverlay />}
               {results.length === 0 && !loading ? (
                 <EmptyState onReset={clearAll} hasFilters={activeFilterCount > 0 || !!filters.q.trim()} />
               ) : (
@@ -527,6 +528,43 @@ export function EventsSearch({
 }
 
 // HighlightSwipe is imported from ../HighlightSwipe.
+
+/* Floating "Searching…" pill over the dimmed results while a fetch is in
+   flight — the dim alone read as nothing happening (Round-2 #10). White
+   pill + the toolbar's double shadow so it keys to the same system;
+   pointer-events-none keeps stale results clickable underneath. */
+function SearchingOverlay() {
+  return (
+    <div
+      className="pointer-events-none absolute inset-x-0 top-10 z-10 flex justify-center"
+      aria-hidden="true"
+    >
+      <span
+        className="inline-flex items-center gap-2.5 rounded-full border bg-white px-4 py-2.5"
+        style={{
+          borderColor: "var(--color-border)",
+          boxShadow:
+            "0 2px 6px rgba(15,23,42,.06), 0 12px 28px -14px rgba(15,23,42,.16)",
+        }}
+      >
+        <span
+          className="inline-block h-4 w-4 rounded-full"
+          style={{
+            border: "2.5px solid var(--color-border)",
+            borderTopColor: "var(--color-accent)",
+            animation: "tg-spin .7s linear infinite",
+          }}
+        />
+        <span
+          className="font-heading text-[13px] font-bold"
+          style={{ color: "var(--color-dark)" }}
+        >
+          Searching…
+        </span>
+      </span>
+    </div>
+  );
+}
 
 /* Round-icon stat pill in the header, brand palette only. The number is the
    hero of the chip — value is now noticeably larger than the label so the

@@ -61,6 +61,19 @@ test.describe("Public discovery", () => {
     await expect(img.locator("xpath=..")).toHaveClass(/rounded-full/);
   });
 
+  test("results show a Searching indicator while a fetch is in flight", async ({ page }) => {
+    // Hold the search response so the loading state is deterministic.
+    await page.route("**/api/events/search**", async (route) => {
+      await new Promise((r) => setTimeout(r, 1200));
+      await route.continue();
+    });
+    await page.goto("/events");
+    await page.getByPlaceholder(/Search tournaments/).fill("soccer");
+    await expect(page.getByText("Searching…")).toBeVisible();
+    // Resolves back to results once the response lands.
+    await expect(page.getByText("Searching…")).toBeHidden({ timeout: 10_000 });
+  });
+
   test("filter drawer dates are masked mm/dd/yyyy (US, locale-independent)", async ({ page }) => {
     await page.goto("/events");
     await page.getByRole("button", { name: /All filters/ }).click();

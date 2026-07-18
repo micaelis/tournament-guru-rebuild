@@ -1131,3 +1131,21 @@ Feb 30, month 13); onboarding e2e types US format through the real
 wizard (advance + under-18 block) and asserts the mm/dd/yyyy
 placeholder; drawer e2e asserts mask formatting + preset adoption
 through the controlled ISO prop.
+
+### R2.10 · Search loading = dim + floating "Searching…" pill, not skeletons
+
+**What:** while a results fetch is in flight, EventsSearch overlays a
+centered white pill (tg-spin ring + "Searching…") over the dimmed
+results; pointer-events-none so stale results stay clickable.
+
+**Why:** Round-2 #10 — the opacity dim alone read as "nothing is
+happening"; the only signal was the "…" in the events-count chip.
+Skeleton cards were rejected: results usually resolve in well under a
+second locally, and the page deliberately KEEPS the previous results
+during a fetch (S8.8 error-preserving behavior) — skeletons would
+throw that context away. Also corrected STYLE-GUIDE §5: it listed a
+Spinner primitive that was never built.
+
+**Tripwire:** e2e holds /api/events/search for 1.2s via route
+interception and asserts the pill is visible mid-flight and hidden
+after resolve.

@@ -115,7 +115,8 @@ Build screens from these; don't hand-roll equivalents.
   labelled Field-wrapped variant (onboarding DOB); `USDateText` is bare (filter drawer dates).
   User-facing date ENTRY goes through these; dashboard ED tooling may still use native pickers.
 - **Toast** — transient confirmations ("Link copied", "Downloaded", "Saved").
-- **Spinner** — inline/section loading.
+- **Spinner** — no shared component yet; build section loaders from the `tg-spin` keyframe
+  (globals.css) like the search results' "Searching…" overlay pill (EventsSearch).
 
 ---
 
