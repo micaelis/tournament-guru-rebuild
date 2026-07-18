@@ -30,6 +30,7 @@ import {
   upgradeEvent,
   type AgeGroupInput,
   type EventFormState,
+  type MilestoneInput,
   type SponsorInput,
 } from "./event-actions";
 import { ConfirmDialog } from "@/app/components/ui";
@@ -71,6 +72,7 @@ export type EventFormDefaults = {
   };
   ageGroups: AgeGroupInput[];
   sponsors: SponsorInput[];
+  milestones: MilestoneInput[];
   competitionLevels: string[];
   surfaces: string[];
   features: string[];
@@ -112,6 +114,7 @@ export function EventForm({ defaults }: { defaults: EventFormDefaults }) {
   );
   const [ageGroups, setAgeGroups] = useState<AgeGroupInput[]>(defaults.ageGroups);
   const [sponsors, setSponsors] = useState<SponsorInput[]>(defaults.sponsors);
+  const [milestones, setMilestones] = useState<MilestoneInput[]>(defaults.milestones);
   const [levels, setLevels] = useState<string[]>(defaults.competitionLevels);
   const [surfaces, setSurfaces] = useState<string[]>(defaults.surfaces);
   const [features, setFeatures] = useState<string[]>(defaults.features);
@@ -161,6 +164,7 @@ export function EventForm({ defaults }: { defaults: EventFormDefaults }) {
       )}
       <input type="hidden" name="age_groups" value={JSON.stringify(ageGroups)} />
       <input type="hidden" name="sponsors" value={JSON.stringify(sponsors)} />
+      <input type="hidden" name="milestones" value={JSON.stringify(milestones)} />
       <input
         type="hidden"
         name="competition_levels"
@@ -441,6 +445,14 @@ export function EventForm({ defaults }: { defaults: EventFormDefaults }) {
           onChange={setSponsors}
           error={state.fieldErrors?.sponsors}
         />
+      </section>
+
+      <section className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6">
+        <SectionHeader
+          title="Key dates"
+          subtitle="Optional — milestones like registration open, team assignments, etc."
+        />
+        <MilestonesEditor value={milestones} onChange={setMilestones} />
       </section>
 
       <section className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6">
@@ -882,6 +894,81 @@ function SponsorsEditor({
         + Add sponsor
       </Button>
       {error && <p className="text-xs font-medium text-red-600">{error}</p>}
+    </div>
+  );
+}
+
+function MilestonesEditor({
+  value,
+  onChange,
+}: {
+  value: MilestoneInput[];
+  onChange: (next: MilestoneInput[]) => void;
+}) {
+  return (
+    <div className="space-y-3">
+      {value.map((row, i) => (
+        <div
+          key={i}
+          className="grid grid-cols-1 items-end gap-3 rounded-xl border border-slate-200 bg-slate-50/60 p-4 md:grid-cols-[1fr_auto_1fr_auto]"
+        >
+          <LabeledField label="Title" htmlFor={`ms_t_${i}`}>
+            <input
+              id={`ms_t_${i}`}
+              className="tg-control"
+              value={row.title}
+              onChange={(e) =>
+                onChange(
+                  value.map((r, idx) =>
+                    idx === i ? { ...r, title: e.target.value } : r,
+                  ),
+                )
+              }
+            />
+          </LabeledField>
+          <LabeledField label="Date" htmlFor={`ms_d_${i}`}>
+            <input
+              id={`ms_d_${i}`}
+              type="date"
+              className="tg-control"
+              value={row.milestone_date}
+              onChange={(e) =>
+                onChange(
+                  value.map((r, idx) =>
+                    idx === i ? { ...r, milestone_date: e.target.value } : r,
+                  ),
+                )
+              }
+            />
+          </LabeledField>
+          <LabeledField label="Description" htmlFor={`ms_desc_${i}`}>
+            <input
+              id={`ms_desc_${i}`}
+              className="tg-control"
+              value={row.description}
+              onChange={(e) =>
+                onChange(
+                  value.map((r, idx) =>
+                    idx === i ? { ...r, description: e.target.value } : r,
+                  ),
+                )
+              }
+            />
+          </LabeledField>
+          <RemoveRowButton
+            onClick={() => onChange(value.filter((_, idx) => idx !== i))}
+          />
+        </div>
+      ))}
+      <Button
+        type="button"
+        variant="ghost"
+        onClick={() =>
+          onChange([...value, { title: "", milestone_date: "", description: "" }])
+        }
+      >
+        + Add milestone
+      </Button>
     </div>
   );
 }

@@ -86,6 +86,11 @@ export default async function EditEventPage({
       link: s.link,
       logo_url: s.logo_url,
     })),
+    milestones: payload.milestones.map((m) => ({
+      title: m.title,
+      milestone_date: m.milestone_date ?? "",
+      description: m.description ?? "",
+    })),
     competitionLevels: payload.competitionLevels,
     surfaces: payload.surfaces,
     features: payload.features,

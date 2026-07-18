@@ -86,11 +86,19 @@ const EVENT_BASE_COLUMNS =
  * Fetches an event and its child data in parallel. Returns null if the
  * event isn't visible to the caller (either wrong id or RLS denied).
  */
+export type MilestoneRow = {
+  title: string;
+  milestone_date: string | null;
+  description: string | null;
+  sort_order: number;
+};
+
 export async function getEventForEdit(eventId: string): Promise<{
   event: EventBaseRow;
   ageGroups: AgeGroupRow[];
   sponsors: SponsorRow[];
   images: EventImageRow[];
+  milestones: MilestoneRow[];
   competitionLevels: string[];
   surfaces: string[];
   features: string[];
@@ -102,6 +110,7 @@ export async function getEventForEdit(eventId: string): Promise<{
     ageGroupsRes,
     sponsorsRes,
     imagesRes,
+    milestonesRes,
     levelsRes,
     surfacesRes,
     featuresRes,
@@ -110,6 +119,7 @@ export async function getEventForEdit(eventId: string): Promise<{
     supabase.from("event_age_groups").select("*").eq("event_id", eventId),
     supabase.from("sponsors").select("*").eq("event_id", eventId),
     supabase.from("event_images").select("*").eq("event_id", eventId).order("sort_order"),
+    supabase.from("event_milestones").select("title, milestone_date, description, sort_order").eq("event_id", eventId).order("sort_order"),
     supabase.from("event_competition_levels").select("level").eq("event_id", eventId),
     supabase.from("event_surfaces").select("surface").eq("event_id", eventId),
     supabase.from("event_features").select("feature").eq("event_id", eventId),
@@ -123,6 +133,7 @@ export async function getEventForEdit(eventId: string): Promise<{
     ageGroups: (ageGroupsRes.data ?? []) as unknown as AgeGroupRow[],
     sponsors: (sponsorsRes.data ?? []) as unknown as SponsorRow[],
     images: (imagesRes.data ?? []) as unknown as EventImageRow[],
+    milestones: (milestonesRes.data ?? []) as unknown as MilestoneRow[],
     competitionLevels: (
       (levelsRes.data ?? []) as { level: string }[]
     ).map((r) => r.level),

@@ -68,6 +68,7 @@ export default async function NewEventPage({
     },
     ageGroups: [],
     sponsors: [],
+    milestones: [],
     competitionLevels: [],
     surfaces: [],
     features: [],

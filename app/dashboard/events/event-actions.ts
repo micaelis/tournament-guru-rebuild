@@ -37,6 +37,12 @@ export type SponsorInput = {
   logo_url: string;
 };
 
+export type MilestoneInput = {
+  title: string;
+  milestone_date: string;
+  description: string;
+};
+
 /**
  * Save an event as draft OR publish it. Draft mode only requires the
  * title (spec: "only the event title is mandatory"); publish enforces
@@ -120,6 +126,7 @@ export async function saveEvent(
   const surfaces = parseJson<string[]>(formData.get("surfaces")) ?? [];
   const features = parseJson<string[]>(formData.get("features")) ?? [];
   const images = parseJson<string[]>(formData.get("images")) ?? [];
+  const milestones = parseJson<MilestoneInput[]>(formData.get("milestones")) ?? [];
 
   const fieldErrors: Record<string, string> = {};
 
@@ -288,6 +295,7 @@ export async function saveEvent(
     supabase.from("event_surfaces").delete().eq("event_id", savedId),
     supabase.from("event_features").delete().eq("event_id", savedId),
     supabase.from("event_images").delete().eq("event_id", savedId),
+    supabase.from("event_milestones").delete().eq("event_id", savedId),
   ]);
 
   const childInserts: Array<PromiseLike<{ error: unknown }>> = [];
@@ -332,6 +340,20 @@ export async function saveEvent(
         safeImages.map((url, i) => ({
           event_id: savedId,
           url,
+          sort_order: i,
+        })),
+      ),
+    );
+  }
+  const validMilestones = milestones.filter((m) => m.title.trim());
+  if (validMilestones.length) {
+    childInserts.push(
+      supabase.from("event_milestones").insert(
+        validMilestones.map((m, i) => ({
+          event_id: savedId,
+          title: m.title.trim(),
+          milestone_date: m.milestone_date || null,
+          description: m.description.trim() || null,
           sort_order: i,
         })),
       ),

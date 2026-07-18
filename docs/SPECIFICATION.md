@@ -554,8 +554,8 @@ the ED's own dashboard (RLS: draft = creator-only). **Publish** requires all
 mandatory fields with valid types and **end date ≥ start date**. On creation the
 event is assigned to the tournament under which it was initiated, dates are
 stored so search filters work, and status derives from the dates (§2.3).
-Temporary age-groups/sponsors added and deleted in the same session are not
-persisted. On success, redirect to the **internal event details page** (created
+Temporary age-groups/sponsors/milestones added and deleted in the same session
+are not persisted. On success, redirect to the **internal event details page** (created
 + last-modified timestamps, status, edit/delete).
 
 **Editing.** A **draft** offers Delete, **Update** (title-only mandatory), and
