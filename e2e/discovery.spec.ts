@@ -25,6 +25,28 @@ test.describe("Public discovery", () => {
     await expect(page.getByRole("button", { name: /All filters/ })).toBeVisible();
   });
 
+  test("wide list cards reflow coach + attendee ratings onto one row", async ({ page }) => {
+    // Map visible: the results column is ~800px and featured cards
+    // stack the two pools. Map hidden: cards span ~1230px and the
+    // pools must share a row instead of stretching (Round-2 #13).
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/events");
+    const featured = page
+      .locator("article.tg-event-card")
+      .filter({ has: page.getByText("Coach", { exact: true }) })
+      .first();
+    const coach = featured.getByText("Coach", { exact: true });
+    const attendee = featured.getByText("Attendee", { exact: true });
+    const rowGap = async () => {
+      const a = await coach.boundingBox();
+      const b = await attendee.boundingBox();
+      return a && b ? Math.abs(a.y - b.y) : Number.NaN;
+    };
+    await expect.poll(rowGap).toBeGreaterThan(10); // stacked beside the map
+    await page.getByRole("button", { name: /Hide map/ }).click();
+    await expect.poll(rowGap).toBeLessThan(8); // one row when wide
+  });
+
   test("broken logo images unmount to their fallback, never the broken glyph", async ({ page }) => {
     // Baseline: seeded events carry unsplash logo URLs that render.
     await page.goto("/events");

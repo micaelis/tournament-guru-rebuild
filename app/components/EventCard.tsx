@@ -614,7 +614,11 @@ export function EventCard({
               className={
                 "mt-auto pt-3 " +
                 (isFeatured
-                  ? "flex flex-col items-stretch gap-1.5"
+                  ? // Stacked pools stretch into ~900px strips once the map
+                    // collapses and the list card spans the full column —
+                    // above 56rem of card width the two pools share a row
+                    // (Coach still leads, on the left).
+                    "flex flex-col items-stretch gap-1.5 @4xl:flex-row @4xl:items-center @4xl:gap-2"
                   : "flex flex-wrap items-center gap-2")
               }
             >

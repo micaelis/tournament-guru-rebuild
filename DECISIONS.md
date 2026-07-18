@@ -1226,3 +1226,22 @@ identically.
 **Tripwire:** e2e loads /events, confirms unsplash logos render, then
 aborts all unsplash requests and asserts every such <img> unmounts.
 Verified by mutation: no-op'ing SafeImg's onError fails it.
+
+### R2.13 · Wide list cards reflow the rating pools; the reposition is Danny's call
+
+**What:** featured cards' Coach/Attendee pools switch from a stacked
+`items-stretch` column to a single row via a container query
+(`@4xl:` = card ≥ 56rem — map-hidden list cards only; map-visible
+~800px cards and grid cards stay stacked). Coach still leads.
+
+**Why:** Round-2 #13 — with the map hidden the stacked pools
+stretched into ~900px strips. Reflow uses the width instead of
+capping it, and a container query keys off actual card width, not
+viewport. NOT BUILT (explicitly Danny's decision, do not build
+speculatively): the deeper reposition — Claim CTA under the logo,
+host/location moved under the title (the truncation the reporter also
+saw lives there).
+
+**Tripwire:** e2e at 1440px asserts the pools are stacked with the
+map visible and share a row after "Hide map". Verified by mutation:
+removing the @4xl classes fails it.
