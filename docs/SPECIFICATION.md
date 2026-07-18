@@ -419,6 +419,30 @@ Featured Events · About Us · Contact.
 - **Distance is pre-applied** from the user's saved location + distance
   preference, added to the modal, and **quickly resettable** (it occupies the
   subheader slot where "Format" used to be).
+
+#### Distance filter — origin and semantics
+
+- **Tiers**: No limit / within 150 / 300 / 450 miles — the same ladder as
+  onboarding Screen 3, measured great-circle (Haversine) from an origin.
+- **Origin, in order of precedence**:
+  1. An explicit `dist`/`lat`/`lng` in the URL always wins, including the
+     `dist=any` marker the reset chip writes (that marker is what stops the
+     server re-applying the saved preference on the next navigation).
+  2. **Signed in with a geocoded saved location** → the profile location and
+     saved `distance_pref` are pre-applied. Needs real coordinates: a
+     hand-typed, never-geocoded location stores text only and is skipped.
+  3. **Anon, or no saved location** → the filter modal's own location input
+     (the Places autocomplete, which degrades to plain text without a Google
+     key). Picking a place turns the filter on at 150 mi if no tier is set.
+- **No origin set**: the tier buttons stay pickable and the modal shows
+  "Pick a location above to apply the distance filter." The filter is inert
+  until all three of miles/lat/lng are present — a tier alone never filters.
+  (Tiers stay enabled deliberately, so a user can choose the radius before
+  the location; disabling them would force one order.)
+- **Intersection**: distance ANDs with every other filter — it narrows the
+  faceted result set and can never widen it.
+- **Events without coordinates** are excluded while distance is active, and
+  listed normally when it is off. They are also simply absent from the map.
 - **States facet** uses short codes (e.g. MO for Missouri); all US states.
 - **Layout**: results on the left, **sticky map on the right** loading events.
   Hero with text + the 3 chip metrics.

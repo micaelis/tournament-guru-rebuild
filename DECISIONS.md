@@ -1465,3 +1465,46 @@ lesson as S9.4: a write-error tripwire must pin WHICH write failed.
 pattern but have no dedicated tripwire — their fixtures (owner-reply
 threads, a CSV + Resend dispatch) cost more than the guard is worth
 right now. Flagged here rather than left implied.
+
+### RG10.1 · Search distance filter — supersedes S5.2
+
+**Supersedes `S5.2 · Map + distance-from-me deferred`.** Both halves of
+that deferral have landed: the Leaflet/OSM map, and now the distance
+filter, which is verified rather than merely present.
+
+**What was actually left.** The filter was already built end to end
+(tier ladder in `lib/geo.ts`, bbox + Haversine in `searchEvents`, the
+URL round-trip in `taxonomy.ts`, the origin input + prompt in
+`FilterDrawer`, profile pre-apply in the events page). It had **no
+tests and no spec for its origin rules** — so this entry closes the
+verification gap, not a build gap.
+
+**Origin precedence** (now written down in SPECIFICATION §5.2): an
+explicit URL `dist`/`lat`/`lng` wins (including the `dist=any` reset
+marker); else a signed-in user's geocoded profile location + saved
+`distance_pref`; else the modal's Places input for anon / no saved
+location. A text-only profile location is skipped — coordinates in the
+DB always came from a picked suggestion.
+
+**Two deliberate calls.** (1) The tier buttons stay ENABLED with no
+origin, showing "Pick a location above" instead — disabling them would
+force the user to choose location before radius. The filter is inert
+until miles + lat + lng are all present. (2) Events without coordinates
+are excluded from an active distance filter (the `gte/lte` prefilter
+drops NULLs) but list normally when it is off.
+
+**Not pinned, on purpose:** an event sitting EXACTLY on a threshold.
+The inclusive/exclusive margin there is ~1e-13 miles — below the float
+noise of a lat/lng round-trip through PostgREST — so such a fixture
+flips at random. `<=` vs `<` at an irrational boundary is not a
+distinction a user can observe; the 149/151 straddle is what matters
+and is pinned.
+
+**Verification:** `tests/probes/search-distance.test.ts`, mutation-
+verified three ways — a wrong Earth radius (6 failures), distance
+replacing rather than intersecting the facet sets (4), and a too-narrow
+bounding box (4).
+
+**Still open (not distance):** `searchEvents`' bbox prefilter has no
+explicit limit, so it rides PostgREST's default 1000-row cap. Harmless
+at current volume; revisit before the event count approaches it.
