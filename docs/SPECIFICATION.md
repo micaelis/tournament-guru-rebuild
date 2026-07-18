@@ -859,7 +859,7 @@ first name, last name).
 ## 8. Admin dashboard
 
 Sidebar: Events · Reviews · Search Events · Users · Banned Words · Flagged ·
-Claim Requests · Promo Codes · Account · Log Out. Admin Events, Reviews, and
+Claim Requests · Promo Codes · Support Messages · Account · Log Out. Admin Events, Reviews, and
 Promo Codes are covered in §6 (with their admin-only differences); this section
 covers the admin-specific pages. Admins reach their dashboard through the shared
 auth screen via role-based redirect.
@@ -931,6 +931,14 @@ Each card is expandable to show phone, links, message, and decline reason.
 
 See §6.3 for the admin tabs, sub-tabs, status labels, send/reject flows, and the
 Coaches-with-promo table.
+
+### 8.8 Support Messages (admin)
+
+Read-only listing of messages submitted through the dashboard support form
+(`/dashboard/support`). Columns: **Sender** (name + email), **Message** (truncated
+with expand/collapse for long messages), **Type / Role** (user type + role title
+pill), **Date** (creation date). Sorted newest-first. Accessible only to admins
+(RLS: `p_support_admin`).
 
 ---
 
