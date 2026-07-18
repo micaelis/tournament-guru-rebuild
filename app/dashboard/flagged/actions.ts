@@ -44,43 +44,22 @@ export async function dismissFlags(
 }
 
 /**
- * Delete the flagged content (review or comment) plus its flags. For
- * reviews we also delete their comments (spec: "delete the review's
- * comments, all the flagged content entries linked to this review
- * and their comments"). For comments we just delete the row.
+ * Delete the flagged content (review or comment). Spec: "delete the
+ * review's comments, all the flagged content entries linked to this
+ * review and their comments" — the comments go via FK cascade, and
+ * every flagged_content / content_hidden row goes via the AFTER DELETE
+ * triggers on reviews and comments (20260718000009). The old app-side
+ * cleanup here covered only this one path and missed child replies;
+ * the triggers cover every delete path at once.
  */
 export async function deleteFlaggedContent(
   contentType: "review" | "comment",
   contentId: string,
 ): Promise<FlaggedState> {
   const { supabase } = await requireAdmin();
-  // Clear the flags first so the trigger cascade doesn't drop them
-  // before we're done reading.
-  await supabase
-    .from("flagged_content")
-    .delete()
-    .eq("content_type", contentType)
-    .eq("content_id", contentId);
-
-  if (contentType === "review") {
-    // Delete flagged_content for this review's comments (polymorphic, no FK cascade).
-    const { data: comments } = await supabase
-      .from("comments")
-      .select("id")
-      .eq("review_id", contentId);
-    if (comments?.length) {
-      await supabase
-        .from("flagged_content")
-        .delete()
-        .eq("content_type", "comment")
-        .in("content_id", comments.map((c) => c.id));
-    }
-    const { error } = await supabase.from("reviews").delete().eq("id", contentId);
-    if (error) return { error: error.message };
-  } else {
-    const { error } = await supabase.from("comments").delete().eq("id", contentId);
-    if (error) return { error: error.message };
-  }
+  const table = contentType === "review" ? "reviews" : "comments";
+  const { error } = await supabase.from(table).delete().eq("id", contentId);
+  if (error) return { error: error.message };
   revalidatePath("/dashboard/flagged");
   return {};
 }

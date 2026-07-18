@@ -199,6 +199,13 @@ guru_review/published/promo_id). `user_email`-equivalent PII never exposed to an
 ### content_hidden  (user × content) — user_id, content_type (review|comment), content_id; per-user permanent hide after flagging
 ### flagged_content  — content_type, content_id, flagged_by → profiles, reason (flag_reason), additional_info text (required if reason=other). Grouped by content for admin Flagged page (Dismiss / Delete).
 
+Both moderation tables are **polymorphic** (content_type + content_id), so no FK/cascade
+is possible. Cleanup is enforced at the DB: `purge_moderation_rows()` (SECURITY DEFINER,
+EXECUTE revoked) runs via AFTER DELETE triggers on `reviews` and `comments`
+(migration `20260718000009`), so every delete path — direct, admin, or FK-cascaded
+(review → comments, comment → child replies) — purges both tables. App code does no
+per-path cleanup. Probe: `tests/probes/flag-orphans.test.ts` (S8.10).
+
 ---
 
 ## 6. Promo system

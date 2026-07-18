@@ -184,8 +184,10 @@ describe("C2 · destructive definer guards", () => {
  * API. Catches blanket GRANT ALL ON ALL FUNCTIONS regressions.
  */
 describe("C2 · RG1 function EXECUTE revocations (full list)", () => {
-  // All 17 functions revoked by 000011 (15) + 000013 (2).
+  // All functions revoked by 000011 (15) + 000013 (2), plus the
+  // moderation-cleanup trigger from 20260718000009.
   const REVOKED_FUNCTIONS = [
+    "purge_moderation_rows",
     "handle_new_user",
     "touch_updated_at",
     "trg_reviews_write",

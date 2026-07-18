@@ -599,8 +599,14 @@ awaiting approval; nothing below Critical has been changed.
 
 Next by leverage, unchanged from the plan above: **H-1**
 (generated Supabase types; the schema-drift probe covers the symptom, not the
-untyped boundary), **H-4** (5 of 6 flag-orphan delete paths), and **H-9**
+untyped boundary — deferred to a focused session) and **H-9**
 (4 forms that don't reset, one holding a plaintext password).
+
+**H-4 is fixed** (DECISIONS S8.10): AFTER DELETE triggers on `reviews` and
+`comments` (`20260718000009`) purge both polymorphic moderation tables on every
+delete path, cascades included; the app-side per-path cleanup was removed.
+Probe: `tests/probes/flag-orphans.test.ts` (mutation-verified: dropping the
+triggers fails 3/3).
 
 **H-0 is fixed** (DECISIONS S8.8): all queries in `lib/events/search.ts` route
 through a checked `unwrap()` (`lib/supabase/unwrap.ts`), filter input is

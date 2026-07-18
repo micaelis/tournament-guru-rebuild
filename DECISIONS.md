@@ -918,3 +918,30 @@ proxy mechanism as the H-0 probe, pinning all three contracts (throw /
 designed-degrade-with-marker / logged-degrade) on representative
 functions. Verified by mutation: reverting the four probed modules
 fails 8 of 10 cases.
+
+### S8.10 · Moderation-row cleanup moved to the DB (orphaned flags, H-4)
+
+**What:** `flagged_content` and `content_hidden` are now purged by
+AFTER DELETE triggers on `reviews` and `comments`
+(`purge_moderation_rows()`, migration `20260718000009`). The app-side
+cleanup in `deleteFlaggedContent` — the only path that had any — was
+removed as redundant; `deleteReview`, `deleteComment`, owner-reply
+replacement, and every future delete path are covered automatically.
+
+**Why:** both tables are polymorphic (content_type + content_id), so no
+FK cascade can exist and cleanup was app code's job — 6 delete paths, 1
+partially covered. An orphaned flag row is worse than dead weight: the
+moderation queue lists it, joins it against content that no longer
+exists, and renders nothing — an entry no admin can see or dismiss.
+Patching call sites is how it got to 1-of-6; row-level triggers cover
+cascaded deletes (review → comments, comment → child replies) that app
+code structurally cannot see. SECURITY DEFINER because the deleting
+user (a reviewer removing their own review) is not allowed to delete
+other users' flag rows; EXECUTE revoked per the RG1 trigger-function
+convention and added to the c2 revocation guard.
+
+**Tripwire:** `tests/probes/flag-orphans.test.ts` — drives deletes
+through the real roles (the reviewer's own client) and asserts zero
+moderation rows survive, including a whole-table orphan sweep. Verified
+by mutation: dropping the two triggers fails all 3 cases; a from-zero
+`supabase db reset` rebuilds green.
