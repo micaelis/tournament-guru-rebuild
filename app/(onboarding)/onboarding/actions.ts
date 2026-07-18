@@ -198,8 +198,14 @@ export async function saveStep3(
     .eq("id", user.id);
   if (profileError) return { error: profileError.message };
 
-  // Replace-all semantics for the team slots the user filled.
-  await supabase.from("user_teams").delete().eq("profile_id", user.id);
+  // Replace-all semantics for the team slots the user filled. A failed
+  // delete must surface: swallowing it either strands stale teams (all
+  // slots cleared) or turns the re-insert into a unique-slot violation.
+  const { error: teamsDeleteError } = await supabase
+    .from("user_teams")
+    .delete()
+    .eq("profile_id", user.id);
+  if (teamsDeleteError) return { error: teamsDeleteError.message };
   if (teams.length) {
     const { error: teamsError } = await supabase.from("user_teams").insert(teams);
     if (teamsError) return { error: teamsError.message };

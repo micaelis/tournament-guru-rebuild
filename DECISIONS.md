@@ -1006,3 +1006,33 @@ presence is exactly the drift the shared primitive exists to prevent.
 event whose director has an org logo and asserts the host avatar image
 is `object-cover` inside a `rounded-full` shell. Verified by mutation:
 restoring the old wrapper fails it.
+
+### R2.5 · user_teams "permission denied" — probe locks the grant contract; step-3 delete checked
+
+**What:** Round-2 #5 ("permission denied for table user_teams" on ED
+onboarding step 3) root-caused to the postgres-default-privileges grant
+gap already fixed by migration 20260718000005 — the live demo hit it
+during the window when its DB stopped at 20260718000003. No new
+migration needed: fresh-DB grants verified correct locally, and anon
+probes against the hosted demo confirm the grant is present there now
+(INSERT fails on RLS, not privilege). Added
+`tests/probes/user-teams-grants.test.ts` (own insert/read/delete
+allowed; cross-profile insert/read/delete denied) and surfaced the
+previously swallowed `user_teams` delete error in `saveStep3`.
+
+**Why:** the probe suite had no coverage on user_teams at all, so this
+grant class could regress silently — onboarding step 3 was the only
+detector, and only when a user actually filled team slots: the
+replace-all delete's error was discarded, which is exactly why
+attendees who skipped teams never saw the break while EDs filling
+teams did.
+
+**Tripwire:** verified by mutation both ways — `revoke insert on
+user_teams from authenticated` fails 3 of 4 cases; loosening
+`p_user_teams_self` to `using (true) with check (true)` fails 2 of 4.
+Restored state green.
+
+**Demo follow-up (out of scope here):** seeded @example.test accounts
+500 on sign-in against the hosted demo (GoTrue chokes on SQL-seeded
+auth.users rows missing the non-null token columns); bogus creds get a
+clean 400, so auth itself is healthy. Needs a seed.sql fix + re-seed.
