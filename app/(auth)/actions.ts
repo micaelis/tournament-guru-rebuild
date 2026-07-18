@@ -111,10 +111,10 @@ export async function signupAction(
 
   // Local dev has email confirmation off (see supabase/config.toml), so
   // signUp returns a session and the client can go straight to onboarding.
-  // Prod has confirmations on — the user sees a "check your email"
-  // message instead.
+  // Prod has confirmations on — the user moves to the standalone
+  // verify-your-email screen (no email in the URL by policy).
   if (data.session) redirect("/onboarding");
-  return { info: "Check your email to confirm your account." };
+  redirect("/signup/verify-email");
 }
 
 /** password reset: generic anti-enumeration message. Rate-limited at

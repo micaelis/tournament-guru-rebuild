@@ -77,6 +77,18 @@ test.describe("Auth shell — navigation", () => {
 });
 
 test.describe("Signup", () => {
+  test("verify-email screen renders standalone with next steps", async ({ page }) => {
+    // The prod signup path (confirmations on) redirects here — a full
+    // screen, not a banner above the emptied form (Round-2 #3).
+    await page.goto("/signup/verify-email");
+    await expect(
+      page.getByRole("heading", { name: "Check your email" }),
+    ).toBeVisible();
+    await expect(page.getByText("Your account was created")).toBeVisible();
+    await expect(page.getByRole("link", { name: "Go to sign in" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "sign up again" })).toBeVisible();
+  });
+
   test("default entry shows the mandatory attendee role dropdown, no type picker", async ({
     page,
   }) => {

@@ -38,7 +38,10 @@ reference for building/verifying the UI.
 - "Skip registration" CTA → Search Events page.
 - Deep-link: arriving from "Claim/List your event free" → **Event Director type pre-selected**;
   if a signed-in user clicked it → log them out first, then signup with ED pre-selected.
-- On success → onboarding.
+- On success: with email confirmations ON (prod) → redirect to the standalone
+  `/signup/verify-email` screen (mail icon, 3-step "what happens next", Go-to-sign-in CTA;
+  no email address in the URL). Local dev (confirmations off) → straight to onboarding.
+  Failed submits keep typed values on the form; the old above-the-form success banner is gone.
 - Email/password only — no social sign-in button.
 
 ## 3. Password Reset

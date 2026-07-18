@@ -1149,3 +1149,23 @@ Spinner primitive that was never built.
 **Tripwire:** e2e holds /api/events/search for 1.2s via route
 interception and asserts the pill is visible mid-flight and hidden
 after resolve.
+
+### R2.3 · Signup success is a redirect to /signup/verify-email, not a banner
+
+**What:** `signupAction`'s confirmations-on branch redirects to a new
+standalone screen (AuthShell + mail icon + 3-step next-steps + sign-in
+CTA) instead of returning `{ info }`; the in-form green SuccessBanner
+and the reset-on-success key-remount are removed as dead code. The
+session branch (local dev) still goes straight to /onboarding, and
+failed submits still preserve typed values.
+
+**Why:** Round-2 #3 — after "Account created" the user sat on the
+emptied signup form, which read as "did that work?". A dedicated
+screen makes the state unambiguous. No email address rides the URL
+(privacy rule: nothing personal in query strings), so the copy is
+generic. Reset-on-success is now trivially true: the form unmounts.
+
+**Tripwire:** probe `signup-verify-redirect` drives the real action
+(mocked auth client): no-session → NEXT_REDIRECT /signup/verify-email,
+session → /onboarding, invalid input → field errors with no redirect;
+reverting to the banner return fails it. e2e renders the screen.
