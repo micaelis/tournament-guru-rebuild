@@ -57,6 +57,7 @@ idling and the pane stays blank. Verify via typecheck + build + `npm test` + `np
 | `reviews` | Review display + submission flow. |
 | `promo` | Promo landing + claim. |
 | `mutations` | Profile edit, admin banned-word add, reaching the Add Event form. |
+| `account-partial-save` | Admin saves their name with location/gender/org fields unrendered; those columns survive. Inverse case: a rendered-but-emptied field still clears (S8.7). |
 | `favorites` | Favoriting an event (add/remove). |
 | `a11y` | Accessibility checks (labeled controls, keyboard reachability). |
 

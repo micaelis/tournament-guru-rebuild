@@ -842,6 +842,13 @@ Each public event-page visit registers the event; the list is **capped at 50**
 Promo Codes. **Admin tabs**: Profile, Security only (admin profile = photo,
 first name, last name).
 
+> **Saves are partial.** Because the three roles render different field
+> sets inside one form, `updateProfile` writes only the columns whose
+> inputs were actually submitted — an unrendered field is left untouched
+> rather than nulled. A rendered-but-emptied field still clears. Same
+> rule for notification prefs, keyed off each row's `section:` marker
+> (see S8.7).
+
 - **Attendee Profile** shows: photo, name, city, state code, **DOB** (with a
   subtext noting *it is not displayed anywhere*), gender, role type, and org name
   (Club Affiliation); a team-info placeholder when none; and three counts

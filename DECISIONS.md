@@ -798,3 +798,39 @@ is tracked in TURBOCHECK.md (M-3).
 type the clients. Strictly better and still worth doing, but it is a
 repo-wide change; the probe delivers the same regression coverage for
 this class today without touching 155 call sites.
+
+### S8.7 · Account profile saves are partial, not whole-row
+
+**What:** `updateProfile` and `updateNotificationPrefs` now write only
+the columns whose inputs were actually submitted, instead of writing
+every column on every save.
+
+**Why:** the profile form renders different field sets per role — the
+location autocomplete, gender radios and organization field are wrapped
+in `{!isAdmin && …}`, and the business-contact block in `{isEd && …}`,
+all inside one `<form>`. The action read every field unconditionally, so
+an unrendered input arrived as `""`, became `null` via `|| null`, and
+overwrote real data. `parseGeoFields` compounded it by returning all-null
+when its hidden inputs were absent. An admin correcting a typo in their
+last name silently nulled `location_formatted`, all seven `location_*`
+columns, `user_gender` and `organization_title` — and the action returned
+*"Profile updated."*
+
+Presence in the FormData is the signal: a rendered-but-emptied field is
+still present, so deliberate clears keep working. Notification prefs
+need a different signal, because an unchecked box is absent exactly like
+an unrendered one — each `NotifRow` already emitted a
+`section:<name>` hidden marker (previously unread), so that now gates
+which pairs are written.
+
+**Tripwire:** `e2e/account-partial-save.spec.ts` drives the real form and
+the real Server Action as an admin, then reads the row back with the
+service role. It asserts the location input is genuinely absent first, so
+the test can't pass for the wrong reason, and a second case asserts a
+deliberately-emptied field still clears. Verified non-vacuous by
+mutation: restoring the unconditional write fails with
+`Expected "Kansas City, MO" / Received null`.
+
+**Alternative:** render the hidden fields as disabled inputs carrying
+current values. Rejected — it ships every user's stored location and
+gender to the client on a page that deliberately hides them.

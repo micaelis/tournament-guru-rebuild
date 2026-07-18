@@ -58,22 +58,35 @@ export async function updateProfile(
   }
   if (Object.keys(fieldErrors).length) return { fieldErrors };
 
+  // Partial update: the form renders different field sets per role
+  // (location/gender/org are hidden for admins, the business block only
+  // for EDs). Writing every column unconditionally turned an absent
+  // input into "" -> null and silently wiped real data on save, so only
+  // columns whose input was actually submitted are written.
+  const patch: Record<string, unknown> = { first_name, last_name };
+  const setIfSubmitted = (field: string, value: unknown) => {
+    if (formData.has(field)) patch[field] = value;
+  };
+
+  setIfSubmitted("organization_title", organization_title);
+  setIfSubmitted("org_description", org_description);
+  setIfSubmitted("org_logo_url", org_logo_url);
+  setIfSubmitted("profile_photo_url", profile_photo_url);
+  setIfSubmitted("location_formatted", location_formatted);
+  setIfSubmitted("user_gender", user_gender);
+  setIfSubmitted("business_phone", business_phone);
+  setIfSubmitted("business_email", business_email);
+  setIfSubmitted("business_website", business_website);
+
+  // The geo columns travel as hidden inputs inside LocationAutocomplete,
+  // so they are present exactly when that component rendered.
+  if (formData.has("location_lat")) {
+    Object.assign(patch, parseGeoFields(formData));
+  }
+
   const { error } = await supabase
     .from("profiles")
-    .update({
-      first_name,
-      last_name,
-      organization_title,
-      org_description,
-      org_logo_url,
-      profile_photo_url,
-      location_formatted,
-      ...parseGeoFields(formData),
-      user_gender,
-      business_phone,
-      business_email,
-      business_website,
-    })
+    .update(patch)
     .eq("id", user.id);
   if (error) return { error: error.message };
   revalidatePath("/dashboard/account");
@@ -261,9 +274,19 @@ export async function updateNotificationPrefs(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+  // Same partial-update rule as updateProfile: the ED-only rows aren't
+  // rendered for attendees, and an unchecked box is absent from the
+  // FormData just like an unrendered one — so presence of the row's
+  // `section:<name>` marker is what says "this pair was on screen".
+  // Each row names its inputs `inapp_<section>` / `email_<section>`.
   const patch: Record<string, boolean> = {};
   for (const field of NOTIF_FIELDS) {
+    const section = field.replace(/^(email|inapp)_/, "");
+    if (!formData.has(`section:${section}`)) continue;
     patch[field] = formData.get(field) === "on";
+  }
+  if (Object.keys(patch).length === 0) {
+    return { info: "Notification preferences updated." };
   }
   const { error } = await supabase.from("profiles").update(patch).eq("id", user.id);
   if (error) return { error: error.message };

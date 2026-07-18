@@ -105,6 +105,29 @@ export async function createAdmin(): Promise<SeededUser> {
   });
 }
 
+/** Set arbitrary profile columns (service role) for fixture setup. */
+export async function setProfileFields(
+  id: string,
+  fields: Record<string, unknown>,
+): Promise<void> {
+  const { error } = await service().from("profiles").update(fields).eq("id", id);
+  if (error) throw new Error(`setProfileFields: ${error.message}`);
+}
+
+/** Read back specific profile columns (service role) for assertions. */
+export async function getProfileFields(
+  id: string,
+  columns: string,
+): Promise<Record<string, unknown>> {
+  const { data, error } = await service()
+    .from("profiles")
+    .select(columns)
+    .eq("id", id)
+    .single();
+  if (error) throw new Error(`getProfileFields: ${error.message}`);
+  return data as unknown as Record<string, unknown>;
+}
+
 /** Best-effort teardown — removes the auth user (cascades the profile). */
 export async function deleteUser(id: string): Promise<void> {
   await service().auth.admin.deleteUser(id).catch(() => undefined);
