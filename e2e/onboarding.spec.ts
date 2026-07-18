@@ -3,6 +3,7 @@ import {
   createAttendee,
   createEventDirector,
   deleteUser,
+  getUserTeams,
   type SeededUser,
 } from "./helpers/db";
 import { signIn } from "./helpers/auth";
@@ -120,10 +121,20 @@ test.describe("Onboarding — event director", () => {
       await completeStep1(page, { org: "Gateway Cup Org" });
       await completeStep2(page, "1985-03-20");
 
-      // Step 3 — EDs get "Continue" (not "Finish") → step 4.
+      // Step 3 — elevated team UI: Team 1 expanded with a numbered
+      // header; Teams 2-3 behind "+ Add Team N" disclosures (R2 #6).
       await expect(
         page.getByRole("heading", { name: "Preferred Event Criteria" }),
       ).toBeVisible();
+      await expect(page.getByText("Team 1", { exact: true })).toBeVisible();
+      await expect(page.getByText("Add Team 3")).toBeVisible();
+      // Fill Team 1, expand Team 2 and fill it — exercising the real
+      // user_teams write path on submit.
+      await page.locator('label:has(input[name="team_1_gender"][value="boys"])').click();
+      await page.locator('select[name="team_1_age"]').selectOption("U12");
+      await page.getByText("Add Team 2").click();
+      await expect(page.getByText("Team 2", { exact: true })).toBeVisible();
+      await page.locator('label:has(input[name="team_2_gender"][value="girls"])').click();
       await page.getByRole("button", { name: "Continue" }).click();
 
       // Step 4 — Your Organization; description is required.
@@ -136,6 +147,14 @@ test.describe("Onboarding — event director", () => {
       await page.getByRole("button", { name: "Finish onboarding" }).click();
 
       await expect(page).toHaveURL(/\/onboarding\/success/);
+
+      // The filled team slots landed in user_teams (replace-all write).
+      const teams = await getUserTeams(user.id);
+      expect(teams).toEqual([
+        { slot: 1, team_gender: "boys", age: "U12" },
+        { slot: 2, team_gender: "girls", age: null },
+      ]);
+
       await page.getByRole("link", { name: "Go to Dashboard" }).click();
       await expect(page).toHaveURL(/\/dashboard\/events/);
     } finally {

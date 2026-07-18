@@ -475,14 +475,56 @@ function TeamSlot({
   values: Record<string, string>;
   teamCount: number;
 }) {
-  return (
-    <div className="rounded-2xl border border-slate-200/80 bg-white/60 p-5 backdrop-blur-sm">
+  const hasValues = Boolean(
+    values[`team_${slot}_gender`] ||
+      values[`team_${slot}_age`] ||
+      values[`team_${slot}_level`],
+  );
+
+  const card = (
+    <div className="rounded-2xl border border-slate-200/80 bg-white/70 p-5 shadow-[0_10px_26px_-18px_rgba(15,23,42,.25)] backdrop-blur-sm">
       {teamCount > 1 && (
-        <p className="mb-4 text-[11px] font-bold uppercase tracking-widest text-slate-400">
-          Team {slot}
-        </p>
+        <div className="mb-4 flex items-center gap-2.5">
+          <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-slate-900 font-[var(--font-heading)] text-[12px] font-extrabold text-white">
+            {slot}
+          </span>
+          <span className="font-[var(--font-heading)] text-[15px] font-extrabold text-slate-900">
+            Team {slot}
+          </span>
+        </div>
       )}
-      <div className="space-y-4">
+      <TeamSlotFields slot={slot} values={values} />
+    </div>
+  );
+
+  // Progressive disclosure: only Team 1 starts expanded; extra slots
+  // render as an "+ Add" affordance. The <details> keeps its inputs in
+  // the DOM (empty values post harmlessly), and a failed submit with
+  // preserved values re-opens the slot.
+  if (slot === 1 || teamCount === 1) return card;
+  return (
+    <details className="group" open={hasValues}>
+      <summary className="flex cursor-pointer select-none items-center gap-2.5 rounded-2xl border border-dashed border-slate-300 bg-white/50 px-5 py-3.5 text-sm font-semibold text-slate-600 transition-colors hover:border-slate-400 hover:text-slate-800 group-open:hidden [&::-webkit-details-marker]:hidden">
+        <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-slate-300 text-[14px] font-bold text-slate-500">
+          +
+        </span>
+        Add Team {slot}
+        <span className="font-normal text-slate-400">· optional</span>
+      </summary>
+      {card}
+    </details>
+  );
+}
+
+function TeamSlotFields({
+  slot,
+  values,
+}: {
+  slot: number;
+  values: Record<string, string>;
+}) {
+  return (
+    <div className="space-y-4">
         {/* Gender — chips */}
         <fieldset>
           <legend className="mb-2 text-xs font-semibold text-slate-700">
@@ -537,7 +579,6 @@ function TeamSlot({
             ))}
           </div>
         </fieldset>
-      </div>
     </div>
   );
 }

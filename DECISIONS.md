@@ -1185,3 +1185,21 @@ useful upgrades are a reply-time expectation and somewhere to go next
 
 **Tripwire:** contact e2e asserts the reply-time chip + Browse-events
 CTA on the success state; screenshot-verified at card level.
+
+### R2.6 · Step-3 team slots: numbered card + progressive disclosure
+
+**What:** Team 1 renders as a card with a numbered-badge header;
+Teams 2–3 sit behind native `<details>` "+ Add Team N · optional"
+affordances that auto-open when a failed submit preserved their
+values. Fields split into TeamSlotFields; the form contract
+(team_N_gender/age/level radios + selects, uncontrolled) is unchanged
+— collapsed slots simply post empty values.
+
+**Why:** Round-2 #6 — three identical always-expanded cards read as a
+wall of controls on an all-optional step. Native <details> keeps the
+disclosure dependency-free and the inputs in the DOM, so no client
+state or serialization changes.
+
+**Tripwire:** ED onboarding e2e asserts Team 1 + "Add Team 3" visible,
+expands Team 2, fills both, and verifies the exact user_teams rows
+land via the service role. Screenshot-verified.

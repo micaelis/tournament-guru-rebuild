@@ -128,6 +128,19 @@ export async function getProfileFields(
   return data as unknown as Record<string, unknown>;
 }
 
+/** Read a user's saved onboarding teams (service role) for assertions. */
+export async function getUserTeams(
+  profileId: string,
+): Promise<{ slot: number; team_gender: string | null; age: string | null }[]> {
+  const { data, error } = await service()
+    .from("user_teams")
+    .select("slot, team_gender, age")
+    .eq("profile_id", profileId)
+    .order("slot");
+  if (error) throw new Error(`getUserTeams: ${error.message}`);
+  return data ?? [];
+}
+
 /** Best-effort teardown — removes the auth user (cascades the profile). */
 export async function deleteUser(id: string): Promise<void> {
   await service().auth.admin.deleteUser(id).catch(() => undefined);
