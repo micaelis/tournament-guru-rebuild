@@ -28,5 +28,6 @@ export function useSubmittedValues(initial: Record<string, string> = {}) {
     }
     setSnap({ submitted: true, values: next });
   };
-  return { values: snap.values, submitted: snap.submitted, capture };
+  const reset = () => setSnap({ submitted: false, values: initial });
+  return { values: snap.values, submitted: snap.submitted, capture, reset };
 }
