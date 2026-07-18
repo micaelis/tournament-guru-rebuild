@@ -47,7 +47,6 @@ test.describe("Public discovery", () => {
       "/help",
       "/host",
       "/guides",
-      "/press",
       "/travel",
       "/privacy",
       "/terms",

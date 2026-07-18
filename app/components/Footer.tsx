@@ -8,7 +8,6 @@ const COLS = [
     links: [
       { label: "Find events", href: "/events" },
       { label: "Host an event", href: "/host" },
-      { label: "For coaches", href: "/coaches" },
       { label: "Reviews", href: "/reviews" },
     ],
   },
@@ -16,8 +15,6 @@ const COLS = [
     title: "Company",
     links: [
       { label: "About us", href: "/about" },
-      { label: "Careers", href: "/careers" },
-      { label: "Press", href: "/press" },
       { label: "Contact", href: "/contact" },
     ],
   },
@@ -27,7 +24,6 @@ const COLS = [
       { label: "Help center", href: "/help" },
       { label: "Travel & hotels", href: "/travel" },
       { label: "Guides", href: "/guides" },
-      { label: "FAQ", href: "/faq" },
     ],
   },
 ];
