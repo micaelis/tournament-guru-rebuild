@@ -31,14 +31,22 @@ function ConfirmDialogInner({
   const ref = useRef<HTMLDivElement | null>(null);
   const [pending, setPending] = useState(false);
 
+  // onClose rides a ref so the mount effect never re-runs on a parent
+  // re-render — re-running it would steal focus back to the dialog
+  // shell mid-interaction (same class as the FilterDrawer ✕ bug).
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") onCloseRef.current();
     };
     document.addEventListener("keydown", onKey);
     ref.current?.focus();
     return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, []);
 
   const handleConfirm = async () => {
     setPending(true);

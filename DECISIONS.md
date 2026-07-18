@@ -1056,3 +1056,21 @@ intersection nobody asked for and still hides coed events.
 boys/girls/coed events and pins all three directions + a no-filter
 control. Verified by mutation: reverting to the literal `IN` fails 3
 of 4 cases.
+
+### R2.9 · Modal focus-on-open effects must not depend on callback identity
+
+**What:** FilterDrawer's open-effect (Escape listener + body-scroll
+lock + initial ✕ focus) now depends only on `open`; `onClose` rides a
+ref. Same treatment for ConfirmDialog's mount effect.
+
+**Why:** Round-2 #9 — typing in the drawer's distance box patched the
+filter state upstream, the parent re-render handed FilterDrawer a
+fresh inline `onClose`, and the effect re-ran `closeRef.current?.focus()`
+— stealing focus to the ✕ after every keystroke. Not a remount: the
+input's state survived; only focus moved. Any modal whose
+focus-on-open effect lists a callback prop in its deps has this class
+of bug (EventSearchOverlay already did it right with `[open]`).
+
+**Tripwire:** e2e "filter drawer distance box keeps focus across
+keystrokes" types 6 chars and asserts focus + full value. Verified by
+mutation: restoring `[open, onClose]` deps fails it.

@@ -25,6 +25,19 @@ test.describe("Public discovery", () => {
     await expect(page.getByRole("button", { name: /All filters/ })).toBeVisible();
   });
 
+  test("filter drawer distance box keeps focus across keystrokes", async ({ page }) => {
+    // Each keystroke patches the filter state upstream; the drawer's
+    // focus-on-open effect must not re-run on that re-render and steal
+    // focus to the ✕ button (Round-2 #9).
+    await page.goto("/events");
+    await page.getByRole("button", { name: /All filters/ }).click();
+    const box = page.getByRole("combobox", { name: "Your location" });
+    await box.click();
+    await box.pressSequentially("Kansas", { delay: 40 });
+    await expect(box).toBeFocused();
+    await expect(box).toHaveValue("Kansas");
+  });
+
   test("event detail renders for a seeded event", async ({ page }) => {
     const ev = await firstViewableEvent();
     const resp = await page.goto(`/events/${ev.id}`);

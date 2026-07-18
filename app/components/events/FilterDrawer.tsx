@@ -43,10 +43,19 @@ export function FilterDrawer({
 }) {
   const closeRef = useRef<HTMLButtonElement>(null);
 
+  // Read onClose through a ref so the open-effect depends ONLY on `open`.
+  // With onClose in the deps, a parent re-render (every keystroke in the
+  // distance box patches the filters) re-ran the effect and its
+  // `closeRef.current?.focus()` stole focus to the ✕ button mid-typing.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") onCloseRef.current();
     };
     document.addEventListener("keydown", onKey);
     const prev = document.body.style.overflow;
@@ -56,7 +65,7 @@ export function FilterDrawer({
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = prev;
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
 
