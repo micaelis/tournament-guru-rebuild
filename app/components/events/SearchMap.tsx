@@ -184,8 +184,8 @@ export default function SearchMap({
         aria-hidden="true"
       />
 
-      {/* Empty-coords state — the list still works; the map fills in later. */}
-      {pinned.length === 0 && (
+      {/* Empty-coords state — only when results exist but none have coordinates. */}
+      {events.length > 0 && pinned.length === 0 && (
         <div className="absolute inset-0 z-[460] flex items-center justify-center p-6">
           <div
             className="max-w-[280px] rounded-2xl border bg-white/95 p-5 text-center backdrop-blur"
