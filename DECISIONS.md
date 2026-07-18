@@ -1169,3 +1169,19 @@ generic. Reset-on-success is now trivially true: the form unmounts.
 (mocked auth client): no-session → NEXT_REDIRECT /signup/verify-email,
 session → /onboarding, invalid input → field errors with no redirect;
 reverting to the banner return fails it. e2e renders the screen.
+
+### R2.2 · Contact success card: expectation + next actions, heading rides the form
+
+**What:** richer "Message sent!" state (halo badge with send accent,
+"typically reply within 1–2 business days" chip, Browse-events primary
+CTA + Back-to-home ghost). The card's "Send us a message" heading +
+subtitle moved from the page into ContactForm so they swap out with
+the form — the old layout kept "Fill out the form…" above the success
+card.
+
+**Why:** Round-2 #2 asked for a more engaging confirmation; the
+useful upgrades are a reply-time expectation and somewhere to go next
+(the product's core action), not decoration.
+
+**Tripwire:** contact e2e asserts the reply-time chip + Browse-events
+CTA on the success state; screenshot-verified at card level.

@@ -119,6 +119,11 @@ test.describe("Public discovery", () => {
     const heading = page.getByRole("heading", { name: "Message sent!" });
     await expect(heading).toBeVisible();
     await expect(heading).toBeInViewport();
+    // Engaged success state (Round-2 #2): reply-time expectation + next steps.
+    await expect(page.getByText(/typically reply within/)).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: "Browse events while you wait" }),
+    ).toBeVisible();
   });
 
   test("directors index renders", async ({ page }) => {

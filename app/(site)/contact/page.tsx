@@ -166,17 +166,8 @@ export default function ContactPage() {
                 padding: "36px 32px",
               }}
             >
-              <h2
-                className="font-heading text-dark"
-                style={{ margin: 0, fontSize: 25, fontWeight: 800, letterSpacing: "-0.025em" }}
-              >
-                Send us a message
-              </h2>
-              <p
-                style={{ marginTop: 6, marginBottom: 24, fontSize: 14, lineHeight: 1.55, color: "var(--color-text-secondary)" }}
-              >
-                Fill out the form and we&apos;ll be in touch soon.
-              </p>
+              {/* Heading + subtitle live inside ContactForm so they swap
+                  out together with the form on success. */}
               <ContactForm source="general" />
             </div>
           </div>
