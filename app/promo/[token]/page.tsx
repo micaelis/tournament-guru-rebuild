@@ -81,7 +81,19 @@ export default async function PromoLandingPage({
     redirect(`/onboarding?next=${encodeURIComponent(next)}`);
   }
 
-  const { data: claim } = await supabase.rpc("claim_promo", { p_token: token });
+  const { data: claim, error: claimError } = await supabase.rpc("claim_promo", {
+    p_token: token,
+  });
+  // The user-facing copy stays deliberately identical for every failure
+  // (anti-enumeration — see the header note), but a genuine claim
+  // outage must not be invisible to us: log it, then fall through to
+  // the same placeholder an invalid token gets.
+  if (claimError) {
+    console.error(
+      `claim_promo: [${claimError.code || "unknown"}] ${claimError.message}`,
+    );
+    return placeholder();
+  }
   const claimRow = pickFirst<{ promo_id: string; event_id: string }>(claim);
   if (!claimRow) return placeholder();
   redirect(

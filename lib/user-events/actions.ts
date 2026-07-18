@@ -14,12 +14,16 @@ export async function toggleFavorite(
   } = await supabase.auth.getUser();
   if (!user) return { error: "Sign in to favorite events." };
 
-  const { data: existing } = await supabase
+  const { data: existing, error: lookupError } = await supabase
     .from("favorites")
     .select("user_id")
     .eq("user_id", user.id)
     .eq("event_id", eventId)
     .maybeSingle();
+  // A dropped error makes an already-favorited event look unfavorited,
+  // so the toggle takes the INSERT branch and returns a primary-key
+  // violation instead of un-favoriting.
+  if (lookupError) return { error: lookupError.message };
 
   if (existing) {
     const { error } = await supabase
@@ -53,7 +57,11 @@ export async function recordRecentView(eventId: string): Promise<void> {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return;
-  await supabase
+  // Designed degrade, not a dropped error: view history is incidental
+  // to rendering the event, so a failure must never break the page —
+  // but it is logged, so history silently ceasing to record can't pass
+  // unnoticed (same contract as `unwrapRowsLogged` on the read side).
+  const { error } = await supabase
     .from("recently_viewed")
     .upsert(
       {
@@ -63,4 +71,9 @@ export async function recordRecentView(eventId: string): Promise<void> {
       },
       { onConflict: "user_id,event_id" },
     );
+  if (error) {
+    console.error(
+      `recordRecentView: [${error.code || "unknown"}] ${error.message}`,
+    );
+  }
 }

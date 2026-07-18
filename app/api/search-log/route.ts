@@ -28,7 +28,19 @@ export async function POST(request: Request) {
       return new Response(null, { status: 204 });
     }
     const supabase = createAnonServerClient();
-    await supabase.from("search_queries").insert({ term: term.trim().slice(0, 120) });
+    const { error } = await supabase
+      .from("search_queries")
+      .insert({ term: term.trim().slice(0, 120) });
+    // Analytics is deliberately fire-and-forget for the caller — a
+    // failed log must not break search — but the response stops
+    // claiming `ok` for a row that never landed, and the failure is
+    // logged so the log silently going dead can't pass unnoticed.
+    if (error) {
+      console.error(
+        `search-log insert: [${error.code || "unknown"}] ${error.message}`,
+      );
+      return new Response(null, { status: 204 });
+    }
     return NextResponse.json({ ok: true });
   } catch {
     return new Response(null, { status: 204 });

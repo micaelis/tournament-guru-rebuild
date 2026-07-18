@@ -80,12 +80,16 @@ export async function sendPromoEmails(input: {
   // applied to a review." The `apply_promo_to_review` RPC handles the
   // void-on-apply case; for Resend we don't touch already-applied
   // rows.
-  const { data: existing } = await supabase
+  const { data: existing, error: priorError } = await supabase
     .from("promo_codes")
     .select("id, email, status")
     .in("email", chosen)
     .eq("event_id", csv.event_id)
     .neq("status", "applied");
+  // A dropped error is indistinguishable from "no prior promos", so
+  // nothing gets voided and the insert below either trips the unique
+  // partial index or leaves the coach holding two live promos.
+  if (priorError) return { error: priorError.message };
   const priorByEmail = new Map<string, { id: string; status: string }[]>();
   for (const row of (existing ?? []) as {
     id: string;
@@ -104,10 +108,11 @@ export async function sendPromoEmails(input: {
     .filter((r) => r.status !== "void")
     .map((r) => r.id);
   if (toVoid.length) {
-    await supabase
+    const { error: voidError } = await supabase
       .from("promo_codes")
       .update({ status: "void" })
       .in("id", toVoid);
+    if (voidError) return { error: voidError.message };
   }
 
   // Status starts at 'staged' via the column default; the trigger
@@ -147,16 +152,27 @@ export async function sendPromoEmails(input: {
     })),
   );
 
-  await supabase
+  // The emails are already out, so this cannot return a bare error —
+  // that would read as "nothing happened" and invite a re-send, which
+  // voids and re-issues every code. Report the partial outcome instead.
+  const { error: approveError } = await supabase
     .from("submitted_csvs")
     .update({ status: "approved" })
     .eq("id", csv.id);
+  if (approveError) {
+    console.error(
+      `sendPromoEmails approve csv ${csv.id}: [${approveError.code || "unknown"}] ${approveError.message}`,
+    );
+  }
 
   revalidatePath("/dashboard/promo-codes");
 
   const failedNote =
     sendResult.failed > 0 ? ` · ${sendResult.failed} failures logged.` : "";
+  const approveNote = approveError
+    ? " ⚠ Emails sent, but this CSV could not be marked approved — do NOT re-send; mark it manually."
+    : "";
   return {
-    info: `Queued ${sendResult.sent} email${sendResult.sent === 1 ? "" : "s"}.${failedNote}`,
+    info: `Queued ${sendResult.sent} email${sendResult.sent === 1 ? "" : "s"}.${failedNote}${approveNote}`,
   };
 }

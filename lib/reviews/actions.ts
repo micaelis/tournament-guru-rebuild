@@ -119,17 +119,20 @@ export async function saveReview(
   // Look for an existing review for this (user, event). One-per-event
   // is a unique index; upsert by explicit id keeps the update path
   // deterministic.
-  const targetId =
-    reviewId ||
-    ((
-      await supabase
-        .from("reviews")
-        .select("id")
-        .eq("event_id", eventId)
-        .eq("author_id", user.id)
-        .maybeSingle<{ id: string }>()
-    ).data?.id ??
-      "");
+  let targetId = reviewId;
+  if (!targetId) {
+    const existingReview = await supabase
+      .from("reviews")
+      .select("id")
+      .eq("event_id", eventId)
+      .eq("author_id", user.id)
+      .maybeSingle<{ id: string }>();
+    // A dropped error here reads as "no review yet" and routes an EDIT
+    // down the INSERT branch, where it dies on the one-per-event unique
+    // index with a raw DB message.
+    if (existingReview.error) return { error: existingReview.error.message };
+    targetId = existingReview.data?.id ?? "";
+  }
 
   const row: Record<string, unknown> = {
     event_id: eventId,
@@ -173,11 +176,14 @@ export async function saveReview(
   // rows so a user can't sneak edits in months later.
   if (event.end_date && !isReviewStillEditable(event.end_date)) {
     // Draft rows are always editable regardless of the window.
-    const { data: existing } = await supabase
+    const { data: existing, error: statusError } = await supabase
       .from("reviews")
       .select("status")
       .eq("id", targetId)
       .maybeSingle<{ status: "draft" | "published" }>();
+    // Fail closed: a dropped error would skip the lock entirely and let
+    // the update below write through the closed edit window.
+    if (statusError) return { error: statusError.message };
     if (existing?.status === "published") {
       return {
         error:
@@ -320,11 +326,14 @@ export async function flagContent(input: {
   });
   if (error) return { error: error.message };
 
-  await supabase.from("content_hidden").upsert({
+  // The flag landed; if the hide-for-me row does not, the content the
+  // user just reported keeps reappearing in their own feed.
+  const { error: hideError } = await supabase.from("content_hidden").upsert({
     user_id: user.id,
     content_type: input.contentType,
     content_id: input.contentId,
   });
+  if (hideError) return { error: hideError.message };
 
   revalidatePath("/dashboard/reviews");
   return {};
@@ -417,12 +426,15 @@ export async function saveComment(
     // Enforce "one pinned reply" — if a prior owner reply exists,
     // delete it first, per spec ("Allow the ED to delete their reply
     // and add a new one").
-    await supabase
+    const { error: priorReplyError } = await supabase
       .from("comments")
       .delete()
       .eq("review_id", reviewId)
       .eq("author_id", user.id)
       .eq("is_owner_reply", true);
+    // Unchecked, a failure here leaves the old reply in place and the
+    // insert below creates a second one, breaking one-pinned-reply.
+    if (priorReplyError) return { error: priorReplyError.message };
   }
 
   if (commentId) {

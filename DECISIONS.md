@@ -1427,3 +1427,41 @@ and the ALREADY-checked insert reports that error — so the test passes
 against unchecked-delete code and proves nothing. Caught by mutation:
 the first version of that test survived its own mutation. Clear-all
 leaves the delete as the only write.
+
+### S9.5 · Dropped-WRITE sweep — the sibling sites
+
+**What:** the rest of the class cc catalogued, closed against the two
+contracts S9.3 set. REJECT (the caller must know): `flagContent`'s
+`content_hidden` upsert; `saveComment`'s prior-owner-reply delete;
+`saveReview`'s existing-review lookup and its published-status read;
+`toggleFavorite`'s favorited lookup; `sendPromoEmails`' prior-promo
+lookup and its void-prior update. LOGGED DEGRADE (must not break the
+surface, must not be silent): `recordRecentView`, `/api/search-log`,
+and `claim_promo` on the promo landing.
+
+**Why the split:** rejecting is right when the user can act on the
+failure. It is wrong where the write is incidental to a page render
+(view history) or where the response is deliberately uniform for
+anti-enumeration (promo claim) — there, a throw would break a working
+page or leak token validity. Those log instead, per `unwrapRowsLogged`.
+
+**Two sites got bespoke handling.** `sendPromoEmails`' "mark CSV
+approved" runs AFTER the emails are dispatched, so a bare error would
+read as "nothing happened" and invite a re-send — which voids and
+re-issues every code. It logs and appends an explicit
+do-NOT-re-send warning to the returned info instead. `/api/search-log`
+stays fire-and-forget for the caller but stops answering `ok: true`
+for a row that never landed (204 + log).
+
+**Testing note:** two of these tripwires initially passed under
+mutation because a LATER write failed anyway and produced a truthy
+error — `toggleFavorite` (stray INSERT hits the primary key) and
+`saveReview` (the update fails on its own). Both now assert the
+specific broken relation, not merely that some error came back. Same
+lesson as S9.4: a write-error tripwire must pin WHICH write failed.
+
+**Coverage note:** `saveComment`'s owner-reply delete and the
+`sendPromoEmails` sites are one-line instances of the same checked
+pattern but have no dedicated tripwire — their fixtures (owner-reply
+threads, a CSV + Resend dispatch) cost more than the guard is worth
+right now. Flagged here rather than left implied.

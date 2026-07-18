@@ -19,11 +19,12 @@
  */
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { randomUUID } from "node:crypto";
 import { createUser, purge, seedTournamentAndEvent, service } from "../harness";
 
 const ctl = vi.hoisted(() => ({
   breakTable: null as string | null,
-  breakVerb: null as "insert" | "update" | "delete" | null,
+  breakVerb: null as "insert" | "update" | "upsert" | "delete" | "select" | null,
   client: null as SupabaseClient | null,
 }));
 
@@ -74,6 +75,8 @@ vi.mock("@/lib/supabase/server", () => {
 import { saveEvent, duplicateEvent } from "@/app/dashboard/events/event-actions";
 import { upsertFaq } from "@/app/dashboard/faqs/actions";
 import { updateTeams } from "@/app/dashboard/account/actions";
+import { flagContent, saveReview } from "@/lib/reviews/actions";
+import { toggleFavorite, recordRecentView } from "@/lib/user-events/actions";
 
 let edId = "";
 let eventId = "";
@@ -340,5 +343,147 @@ describe("write-error-surfacing · updateTeams distance_pref", () => {
     const result = await updateTeams({}, clearAll);
     expect(result.error).toBeTruthy();
     expect(result.info).toBeUndefined();
+  });
+});
+
+/**
+ * The swept sibling sites. Same class, same contract — a failed write
+ * (or a failed read that decides what gets written) reaches the caller
+ * instead of passing for success.
+ */
+describe("write-error-surfacing · swept sibling write sites", () => {
+  let coachId = "";
+  let coachEventId = "";
+  let coachTournamentId = "";
+  let restore: SupabaseClient | null = null;
+  // flagContent writes moderation rows for synthetic content ids; they
+  // are orphans by `flag-orphans`'s definition, so this probe has to
+  // remove exactly what it created.
+  const flaggedIds: string[] = [];
+
+  beforeAll(async () => {
+    const ed = await createUser({
+      metadata: { user_type: "event_director" },
+      completeOnboarding: true,
+      role: "event_director",
+    });
+    const seeded = await seedTournamentAndEvent(ed.client);
+    coachEventId = seeded.eventId;
+    coachTournamentId = seeded.tournamentId;
+    await purge([ed.id]);
+
+    const coach = await createUser({
+      metadata: { user_type: "attendee", role_title: "coach" },
+      completeOnboarding: true,
+      role: "coach",
+    });
+    coachId = coach.id;
+    restore = ctl.client;
+    ctl.client = coach.client;
+  });
+
+  afterAll(async () => {
+    ctl.client = restore;
+    const svc = service();
+    if (flaggedIds.length) {
+      await svc.from("flagged_content").delete().in("content_id", flaggedIds);
+      await svc.from("content_hidden").delete().in("content_id", flaggedIds);
+    }
+    await svc.from("events").delete().eq("tournament_id", coachTournamentId);
+    await svc.from("tournaments").delete().eq("id", coachTournamentId);
+    await purge([coachId]);
+  });
+
+  it("toggleFavorite: a failed lookup surfaces instead of taking the wrong branch", async () => {
+    expect((await toggleFavorite(coachEventId)).favorite).toBe(true);
+
+    // Unchecked, the failed read reads as "not favorited", so the
+    // toggle re-INSERTs and dies on the primary key instead of
+    // un-favoriting.
+    ctl.breakTable = "favorites";
+    ctl.breakVerb = "select";
+    const result = await toggleFavorite(coachEventId);
+    // Must be the LOOKUP failure, not the duplicate-key error the
+    // wrong branch would raise — asserting only `error` is truthy
+    // passes against unchecked code, since the stray INSERT fails too.
+    expect(result.error).toMatch(/favorites_we_missing/);
+    expect(result.favorite).toBeUndefined();
+  });
+
+  it("flagContent: a failed content_hidden write surfaces, not a clean flag", async () => {
+    const firstId = randomUUID();
+    const secondId = randomUUID();
+    flaggedIds.push(firstId, secondId);
+    const input = {
+      contentType: "review" as const,
+      contentId: firstId,
+      reason: "profanity" as const,
+      additionalInfo: "",
+    };
+    expect((await flagContent(input)).error).toBeUndefined();
+
+    ctl.breakTable = "content_hidden";
+    ctl.breakVerb = "upsert";
+    const result = await flagContent({ ...input, contentId: secondId });
+    expect(result.error).toBeTruthy();
+  });
+
+  it("recordRecentView: a failed write is a DESIGNED degrade — never throws, always logs", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      ctl.breakTable = "recently_viewed";
+      ctl.breakVerb = "upsert";
+      // Must not reject: view history is incidental to rendering the
+      // event page. But it must not be silent either.
+      await expect(recordRecentView(coachEventId)).resolves.toBeUndefined();
+      expect(spy).toHaveBeenCalledWith(
+        expect.stringContaining("recordRecentView"),
+      );
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("saveReview: a failed status read fails CLOSED on the 30-day edit lock", async () => {
+    // The seeded event ended ~58 days ago, so the edit window is shut
+    // and the lock depends entirely on reading the review's status.
+    const svc = service();
+    const { data: review } = await svc
+      .from("reviews")
+      .insert({
+        event_id: coachEventId,
+        author_id: coachId,
+        status: "published",
+        rating_fields: 4,
+        rating_facilities: 4,
+        rating_management: 4,
+        rating_competition: 4,
+        rating_diversity: 4,
+        rating_cost_value: 4,
+        review_title: "Probe review",
+        review_body: "Body for the write-error lock probe.",
+        would_return: true,
+        reviewer_user_type: "attendee",
+        reviewer_role: "coach",
+      })
+      .select("id")
+      .single<{ id: string }>();
+
+    const fd = new FormData();
+    fd.set("intent", "draft");
+    fd.set("event_id", coachEventId);
+    fd.set("review_id", review!.id);
+
+    ctl.breakTable = "reviews";
+    ctl.breakVerb = "select";
+    const result = await saveReview({}, fd);
+    // Unchecked, the read returns null, the published lock is skipped
+    // and the update writes straight through the closed window. Match
+    // the READ failure specifically — a bare truthy check passes
+    // against unchecked code whenever the update happens to fail too.
+    expect(result.error).toMatch(/reviews_we_missing/);
+    expect(result.savedId).toBeUndefined();
+
+    await svc.from("reviews").delete().eq("id", review!.id);
   });
 });
