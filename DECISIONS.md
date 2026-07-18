@@ -1245,3 +1245,53 @@ saw lives there).
 **Tripwire:** e2e at 1440px asserts the pools are stacked with the
 map visible and share a row after "Hide map". Verified by mutation:
 removing the @4xl classes fails it.
+
+### SEED.1 · Demo seed: GoTrue-complete auth rows + true re-run idempotency
+
+**What:** the `auth.users` insert in `supabase/seed.sql` now sets the
+eight GoTrue token columns (`confirmation_token`, `recovery_token`,
+`email_change`, `email_change_token_new`, `email_change_token_current`,
+`phone_change`, `phone_change_token`, `reauthentication_token`) to `''`
+and pairs every user with an `auth.identities` row (email provider,
+`identity_data` carrying sub + email, derived from the users insert so
+ids can't drift); the cleanup preamble deletes the fixed-UUID demo rows
+in dependency order before `auth.users`; the final sync recomputes all
+three platform counters instead of one. The fixed UUIDs stay — the rest
+of the seed references them as owner/author ids, which is why the rows
+are raw-inserted rather than created via the Auth admin API (it cannot
+set a chosen id).
+
+**Why:** GoTrue scans those columns as non-null Go strings — rows
+inserted with their `NULL` column defaults make every
+`signInWithPassword` for that account return a 500
+`AuthRetryableFetchError`, which is exactly what the hosted demo did
+for all `@example.test` accounts (verified 2026-07-18; bogus
+credentials still returned a clean 400, so GoTrue itself was healthy).
+Reproduced locally from a clean reset on the old seed: HTTP 500
+`unexpected_failure` "Database error querying schema", with the GoTrue
+log naming the mechanism — `sql: Scan error on column
+"confirmation_token": converting NULL to string is unsupported`. The
+test suite never caught it because every test creates users through
+the Auth admin API (which fills in GoTrue's internals), never through
+seed.sql.
+Separately, the old preamble's single `delete from auth.users` never
+actually made re-runs safe: reviews and tournaments survive account
+deletion (author/owner FKs are `on delete set null`), so their fixed
+UUIDs collided on re-insert — and the delete itself died mid-cascade,
+because `trg_helpful_count`'s UPDATE on reviews trips the
+`reviews_promo_fk` re-check at the point where the promo row is already
+deleted but its SET NULL action hasn't run. Deleting reviews first,
+then tournaments, then users sidesteps both. The S8.1 counters only
+ever increment (deliberately durable), so a delete + recreate cycle
+must recompute them from live rows.
+
+**Tripwire:** probe `tests/probes/seed-accounts.test.ts` signs in as
+one seeded attendee, ED, and admin via the password grant and asserts a
+session + an `email` identity — the only suite coverage of
+seed.sql-created accounts. Verified by mutation: nulling
+`confirmation_token` on one account fails exactly that account's test.
+Also verified manually: `supabase db reset` followed by two consecutive
+`psql -f supabase/seed.sql` runs into the live DB — 0 errors, row
+counts stable at exactly one seed's worth (10 users / 5 tournaments /
+9 events / 6 reviews), 10 identities, counters exact, all 10 accounts
+sign in with HTTP 200.

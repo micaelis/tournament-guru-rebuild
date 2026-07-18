@@ -50,6 +50,7 @@ idling and the pane stays blank. Verify via typecheck + build + `npm test` + `np
 | `platform-counters` | Counter invariants (published-reviews total increments, never decrements on delete). |
 | `reauth-delete` | Account deletion / anonymize-and-scrub behavior. |
 | `review-eligibility` | Attendee CAN write reviews; ED/admin/blocked CANNOT (RLS). Guru/verified blocked on non-paid events; succeeds on paid. |
+| `seed-accounts` | The `supabase/seed.sql` demo accounts (attendee / ED / admin) sign in via the password grant with a session + an `email` identity. Guards the seed's raw `auth.users` insert — the only accounts NOT created through the Auth admin API, so no other test exercises them (SEED.1). |
 
 ## Layer 2 — E2E journeys (`e2e/`)
 
