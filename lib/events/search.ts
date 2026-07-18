@@ -214,7 +214,8 @@ export async function searchEvents(
   query = query.order("created_at", { ascending: false });
 
   const from = (page - 1) * pageSize;
-  const { data, count } = await query.range(from, from + pageSize - 1);
+  const { data, count, error } = await query.range(from, from + pageSize - 1);
+  if (error) throw new Error(`searchEvents query failed: ${error.message}`);
   const rows = (data ?? []) as RawSearchRow[];
   if (rows.length === 0) return { data: [], total: count ?? 0 };
 
