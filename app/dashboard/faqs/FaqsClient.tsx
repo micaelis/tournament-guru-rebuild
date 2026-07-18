@@ -13,33 +13,56 @@ import { useSubmittedValues } from "@/app/components/ui/useSubmittedValues";
 import {
   deleteFaq,
   upsertFaq,
+  type AudienceInput,
   type FaqState,
 } from "./actions";
+
+export type FaqAudienceRow = {
+  user_type: string;
+  role_title: string | null;
+};
 
 export type FaqRow = {
   id: string;
   title: string;
-  body: string;
-  audience: "attendee" | "event_director" | "both";
+  content: string;
+  status: "draft" | "published";
+  is_visible: boolean;
   sort_order: number;
   created_at: string;
+  faq_audiences: FaqAudienceRow[];
 };
 
 const INITIAL: FaqState = {};
+
+const ATTENDEE_ROLES = [
+  { value: "coach", label: "Coach" },
+  { value: "team_manager", label: "Team Manager" },
+  { value: "parent_spectator", label: "Parent/Spectator" },
+];
+
+const ED_ROLES = [
+  { value: "event_director", label: "Event Director" },
+  { value: "event_admin", label: "Event Admin" },
+  { value: "club_director", label: "Club Director" },
+];
+
+function audienceLabel(audiences: FaqAudienceRow[]): string {
+  const types = new Set(audiences.map((a) => a.user_type));
+  const parts: string[] = [];
+  if (types.has("attendee")) parts.push("Attendee");
+  if (types.has("event_director")) parts.push("ED");
+  return parts.join(", ") || "None";
+}
 
 export function FaqsClient({ rows }: { rows: FaqRow[] }) {
   const [state, formAction] = useActionState(upsertFaq, INITIAL);
   const [editing, setEditing] = useState<FaqRow | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<FaqRow | null>(null);
-  // Bumped on each successful save so the keyed form remounts blank.
   const [formEpoch, setFormEpoch] = useState(0);
   const router = useRouter();
   const { push } = useToast();
 
-  // Leave edit mode only once the save succeeds — clearing at dispatch
-  // time would remount the keyed form and wipe the typed values when
-  // validation fails. React 19 "react to a prop/state change during
-  // render" idiom (see Header.tsx) instead of a setState-in-effect.
   const [lastState, setLastState] = useState(state);
   if (state !== lastState) {
     setLastState(state);
@@ -76,12 +99,23 @@ export function FaqsClient({ rows }: { rows: FaqRow[] }) {
                   {r.title}
                 </span>
                 <span className="flex items-center gap-2">
+                  <span
+                    className="rounded-full border px-2 py-0.5 text-[11px] font-semibold"
+                    style={{
+                      background: r.status === "published" ? "#ecfdf5" : "#f8fafc",
+                      borderColor: r.status === "published" ? "#a7f3d0" : "#e2e8f0",
+                      color: r.status === "published" ? "#065f46" : "#64748b",
+                    }}
+                  >
+                    {r.status === "published" ? "Published" : "Draft"}
+                  </span>
+                  {!r.is_visible && (
+                    <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
+                      Hidden
+                    </span>
+                  )}
                   <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-semibold text-slate-700">
-                    {r.audience === "both"
-                      ? "Everyone"
-                      : r.audience === "attendee"
-                        ? "Attendees"
-                        : "Event Directors"}
+                    {audienceLabel(r.faq_audiences)}
                   </span>
                   <span className="text-xs text-slate-500">#{r.sort_order}</span>
                   <Button
@@ -107,7 +141,7 @@ export function FaqsClient({ rows }: { rows: FaqRow[] }) {
                 </span>
               </summary>
               <p className="mt-3 whitespace-pre-line text-sm text-slate-700">
-                {r.body}
+                {r.content}
               </p>
             </details>
           ))
@@ -133,11 +167,6 @@ export function FaqsClient({ rows }: { rows: FaqRow[] }) {
   );
 }
 
-/**
- * The upsert form, remounted via `key` whenever the target FAQ changes.
- * useSubmittedValues lives here (not in FaqsClient) so a snapshot taken
- * while editing one FAQ can never leak onto another after a remount.
- */
 function FaqForm({
   state,
   formAction,
@@ -152,20 +181,85 @@ function FaqForm({
   onCancel: () => void;
 }) {
   const { values, capture } = useSubmittedValues();
-  const { shownError: bodyError, revalidate: revalidateBody } =
-    useLiveValidation(state.fieldErrors?.body, (v) =>
-      v.trim() ? null : "Body required.",
+  const { shownError: contentError, revalidate: revalidateContent } =
+    useLiveValidation(state.fieldErrors?.content, (v) =>
+      v.trim() ? null : "Content required.",
     );
-  const { shownError: audienceError, revalidate: revalidateAudience } =
-    useLiveValidation(state.fieldErrors?.audience, (v) =>
-      ["attendee", "event_director", "both"].includes(v)
-        ? null
-        : "Invalid audience.",
-    );
+
+  const editingTypes = new Set(
+    (editing?.faq_audiences ?? []).map((a) => a.user_type),
+  );
+  const [attendeeChecked, setAttendeeChecked] = useState(
+    editing ? editingTypes.has("attendee") : true,
+  );
+  const [edChecked, setEdChecked] = useState(
+    editing ? editingTypes.has("event_director") : true,
+  );
+
+  const hasAttRoles = (editing?.faq_audiences ?? []).some(
+    (a) => a.user_type === "attendee" && a.role_title,
+  );
+  const hasEdRoles = (editing?.faq_audiences ?? []).some(
+    (a) => a.user_type === "event_director" && a.role_title,
+  );
+  const [attRoles, setAttRoles] = useState<Set<string>>(
+    hasAttRoles
+      ? new Set(
+          (editing?.faq_audiences ?? [])
+            .filter((a) => a.user_type === "attendee" && a.role_title)
+            .map((a) => a.role_title!),
+        )
+      : new Set<string>(),
+  );
+  const [edRoles, setEdRoles] = useState<Set<string>>(
+    hasEdRoles
+      ? new Set(
+          (editing?.faq_audiences ?? [])
+            .filter((a) => a.user_type === "event_director" && a.role_title)
+            .map((a) => a.role_title!),
+        )
+      : new Set<string>(),
+  );
+
+  function buildAudiences(): AudienceInput[] {
+    const result: AudienceInput[] = [];
+    if (attendeeChecked) {
+      if (attRoles.size > 0) {
+        attRoles.forEach((r) =>
+          result.push({ user_type: "attendee", role_title: r }),
+        );
+      } else {
+        result.push({ user_type: "attendee", role_title: null });
+      }
+    }
+    if (edChecked) {
+      if (edRoles.size > 0) {
+        edRoles.forEach((r) =>
+          result.push({ user_type: "event_director", role_title: r }),
+        );
+      } else {
+        result.push({ user_type: "event_director", role_title: null });
+      }
+    }
+    return result;
+  }
+
+  function toggleRole(
+    set: Set<string>,
+    setter: (s: Set<string>) => void,
+    role: string,
+  ) {
+    const next = new Set(set);
+    if (next.has(role)) next.delete(role);
+    else next.add(role);
+    setter(next);
+  }
 
   return (
     <form
       action={(fd) => {
+        const audiences = buildAudiences();
+        fd.set("audiences", JSON.stringify(audiences));
         capture(fd);
         formAction(fd);
       }}
@@ -186,40 +280,124 @@ function FaqForm({
       />
       <label className="block">
         <span className="mb-1.5 block text-[13px] font-semibold text-slate-800">
-          Body
+          Content
         </span>
         <textarea
-          name="body"
+          name="content"
           rows={5}
           required
-          defaultValue={values.body ?? editing?.body ?? ""}
-          onInput={(e) => revalidateBody(e.currentTarget)}
+          defaultValue={values.content ?? editing?.content ?? ""}
+          onInput={(e) => revalidateContent(e.currentTarget)}
           className="tg-control resize-none"
         />
-        {bodyError && (
-          <p className="mt-1 text-xs font-medium text-red-600">{bodyError}</p>
+        {contentError && (
+          <p className="mt-1 text-xs font-medium text-red-600">{contentError}</p>
         )}
       </label>
-      <label className="block">
-        <span className="mb-1.5 block text-[13px] font-semibold text-slate-800">
+
+      {/* Audience targeting */}
+      <fieldset className="space-y-2">
+        <legend className="mb-1.5 text-[13px] font-semibold text-slate-800">
           Audience
-        </span>
-        <select
-          name="audience"
-          defaultValue={values.audience ?? editing?.audience ?? "both"}
-          onChange={(e) => revalidateAudience(e.currentTarget)}
-          className="tg-control tg-select"
-        >
-          <option value="both">Everyone</option>
-          <option value="attendee">Attendees only</option>
-          <option value="event_director">Event Directors only</option>
-        </select>
-        {audienceError && (
-          <p className="mt-1 text-xs font-medium text-red-600">
-            {audienceError}
+        </legend>
+        {state.fieldErrors?.audiences && (
+          <p className="text-xs font-medium text-red-600">
+            {state.fieldErrors.audiences}
           </p>
         )}
-      </label>
+        <label className="flex items-center gap-2 text-sm text-slate-800">
+          <input
+            type="checkbox"
+            checked={attendeeChecked}
+            onChange={() => {
+              setAttendeeChecked(!attendeeChecked);
+              if (attendeeChecked) setAttRoles(new Set());
+            }}
+          />
+          Attendee
+        </label>
+        {attendeeChecked && (
+          <div className="ml-6 flex flex-wrap gap-1.5">
+            {ATTENDEE_ROLES.map((r) => (
+              <button
+                key={r.value}
+                type="button"
+                onClick={() => toggleRole(attRoles, setAttRoles, r.value)}
+                className="rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-colors"
+                style={{
+                  background: attRoles.has(r.value) ? "#dbeafe" : "#f8fafc",
+                  borderColor: attRoles.has(r.value) ? "#93c5fd" : "#e2e8f0",
+                  color: attRoles.has(r.value) ? "#1e40af" : "#64748b",
+                }}
+              >
+                {r.label}
+              </button>
+            ))}
+            <span className="self-center text-[10px] text-slate-400">
+              {attRoles.size === 0 ? "(all roles)" : ""}
+            </span>
+          </div>
+        )}
+        <label className="flex items-center gap-2 text-sm text-slate-800">
+          <input
+            type="checkbox"
+            checked={edChecked}
+            onChange={() => {
+              setEdChecked(!edChecked);
+              if (edChecked) setEdRoles(new Set());
+            }}
+          />
+          Event Director
+        </label>
+        {edChecked && (
+          <div className="ml-6 flex flex-wrap gap-1.5">
+            {ED_ROLES.map((r) => (
+              <button
+                key={r.value}
+                type="button"
+                onClick={() => toggleRole(edRoles, setEdRoles, r.value)}
+                className="rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-colors"
+                style={{
+                  background: edRoles.has(r.value) ? "#dbeafe" : "#f8fafc",
+                  borderColor: edRoles.has(r.value) ? "#93c5fd" : "#e2e8f0",
+                  color: edRoles.has(r.value) ? "#1e40af" : "#64748b",
+                }}
+              >
+                {r.label}
+              </button>
+            ))}
+            <span className="self-center text-[10px] text-slate-400">
+              {edRoles.size === 0 ? "(all roles)" : ""}
+            </span>
+          </div>
+        )}
+      </fieldset>
+
+      {/* Status + visibility */}
+      <div className="flex flex-wrap gap-4">
+        <label className="block">
+          <span className="mb-1.5 block text-[13px] font-semibold text-slate-800">
+            Status
+          </span>
+          <select
+            name="status"
+            defaultValue={values.status ?? editing?.status ?? "draft"}
+            className="tg-control tg-select"
+          >
+            <option value="draft">Draft</option>
+            <option value="published">Published</option>
+          </select>
+        </label>
+        <label className="flex items-center gap-2 self-end pb-2 text-sm text-slate-800">
+          <input
+            type="checkbox"
+            name="is_visible"
+            defaultChecked={editing?.is_visible ?? true}
+          />
+          Visible to audience
+        </label>
+      </div>
+
       <label className="block">
         <span className="mb-1.5 block text-[13px] font-semibold text-slate-800">
           Sort order

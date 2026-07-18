@@ -702,3 +702,21 @@ private while giving EDs a way to surface a business inbox.
 **Alternative:** Store contact info per-event (on `events` table). Rejected
 because it duplicates across every event and the spec ties it to the
 host identity, not the event.
+
+### S8.4 · FAQ system — audience-targeted with two-gate visibility
+
+**What:** Upgraded the `faqs` table from a simple enum audience column to
+a child table (`faq_audiences`) supporting per-type + per-role targeting.
+Added `status` (draft/published) and `is_visible` columns as independent
+gates: an entry must be both published AND visible to appear outside the
+admin page. Admin CRUD at `/dashboard/faqs`; viewer at `/dashboard/faq`
+(attendee + ED, filtered by type/role); public `/faq` shows all
+published+visible entries.
+
+**Why:** The scope calls for role-level granularity (Coach vs Team Manager
+vs Parent) and a separate visibility toggle independent of draft status.
+The old `faq_audience` enum couldn't represent per-role targeting.
+
+**Alternative:** Keep the enum and add role filtering as a separate
+column. Rejected because it couples audience cardinality to the enum
+definition and can't represent "attendee:coach + event_director:all".

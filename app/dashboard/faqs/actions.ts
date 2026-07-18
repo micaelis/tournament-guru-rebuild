@@ -9,6 +9,11 @@ export type FaqState = {
   fieldErrors?: Record<string, string>;
 };
 
+export type AudienceInput = {
+  user_type: string;
+  role_title: string | null;
+};
+
 async function requireAdmin() {
   const supabase = await createServerAuthClient();
   const {
@@ -26,40 +31,77 @@ async function requireAdmin() {
   return { supabase, user };
 }
 
+function parseJson<T>(val: FormDataEntryValue | null): T | null {
+  if (typeof val !== "string" || !val) return null;
+  try {
+    return JSON.parse(val) as T;
+  } catch {
+    return null;
+  }
+}
+
 export async function upsertFaq(
   _prev: FaqState,
   formData: FormData,
 ): Promise<FaqState> {
   const id = String(formData.get("id") ?? "").trim();
   const title = String(formData.get("title") ?? "").trim();
-  const body = String(formData.get("body") ?? "").trim();
-  const audience = String(formData.get("audience") ?? "both") as
-    | "attendee"
-    | "event_director"
-    | "both";
+  const content = String(formData.get("content") ?? "").trim();
+  const status = String(formData.get("status") ?? "draft") as "draft" | "published";
+  const is_visible = formData.get("is_visible") === "on" || formData.get("is_visible") === "true";
   const sort_order = Number(formData.get("sort_order") ?? 0);
+  const audiences = parseJson<AudienceInput[]>(formData.get("audiences")) ?? [];
 
   const fieldErrors: Record<string, string> = {};
   if (!title) fieldErrors.title = "Title required.";
-  if (!body) fieldErrors.body = "Body required.";
-  if (!["attendee", "event_director", "both"].includes(audience)) {
-    fieldErrors.audience = "Invalid audience.";
-  }
+  if (!content) fieldErrors.content = "Content required.";
+  if (!["draft", "published"].includes(status)) fieldErrors.status = "Invalid status.";
+  if (audiences.length === 0) fieldErrors.audiences = "Select at least one audience.";
   if (Object.keys(fieldErrors).length) return { fieldErrors };
 
   const { supabase, user } = await requireAdmin();
+
   if (id) {
     const { error } = await supabase
       .from("faqs")
-      .update({ title, body, audience, sort_order })
+      .update({ title, content, status, is_visible, sort_order })
       .eq("id", id);
     if (error) return { error: error.message };
+
+    await supabase.from("faq_audiences").delete().eq("faq_id", id);
   } else {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("faqs")
-      .insert({ title, body, audience, sort_order, created_by: user.id });
-    if (error) return { error: error.message };
+      .insert({ title, content, status, is_visible, sort_order, created_by: user.id })
+      .select("id")
+      .single();
+    if (error || !data) return { error: error?.message ?? "Insert failed." };
+    const newId = (data as { id: string }).id;
+
+    if (audiences.length) {
+      await supabase.from("faq_audiences").insert(
+        audiences.map((a) => ({
+          faq_id: newId,
+          user_type: a.user_type,
+          role_title: a.role_title || null,
+        })),
+      );
+    }
+
+    revalidatePath("/dashboard/faqs");
+    return {};
   }
+
+  if (audiences.length) {
+    await supabase.from("faq_audiences").insert(
+      audiences.map((a) => ({
+        faq_id: id,
+        user_type: a.user_type,
+        role_title: a.role_title || null,
+      })),
+    );
+  }
+
   revalidatePath("/dashboard/faqs");
   return {};
 }

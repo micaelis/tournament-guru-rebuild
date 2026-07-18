@@ -572,22 +572,36 @@ insert into demo_reviews (reviewer_name, reviewer_role, event_title, review_titl
    4.67, 2);
 
 -- ── FAQs ─────────────────────────────────────────────────────────────
-insert into faqs (title, body, audience, sort_order) values
-  ('How do I get my event listed?',
+insert into faqs (id, title, content, status, is_visible, sort_order) values
+  ('a0000000-0000-0000-0000-0000000fa001',
+   'How do I get my event listed?',
    'Sign up as an Event Director + hit "Add New Tournament" on your dashboard. Free listings need only a title + dates; adding logos, sponsors, and premium features is optional.',
-   'event_director', 0),
-  ('What''s the difference between free and premium?',
+   'published', true, 0),
+  ('a0000000-0000-0000-0000-0000000fa002',
+   'What''s the difference between free and premium?',
    'Premium unlocks video, up to 13 images, sponsor logos, teams-attended URLs, and a Key Dates section. Payments aren''t wired yet — the platform team upgrades events on request during launch.',
-   'event_director', 1),
-  ('Why can''t I edit my review anymore?',
+   'published', true, 1),
+  ('a0000000-0000-0000-0000-0000000fa003',
+   'Why can''t I edit my review anymore?',
    'Published reviews lock 30 days after the event''s end date. Draft reviews can be edited at any time.',
-   'attendee', 0),
-  ('How do verified (GURU) reviews work?',
+   'published', true, 0),
+  ('a0000000-0000-0000-0000-0000000fa004',
+   'How do verified (GURU) reviews work?',
    'An Event Director uploads a coach-email CSV → admin approves → each coach gets a personalized promo link. Publishing a review through that link stamps the "GURU REVIEW" badge.',
-   'both', 0),
-  ('Is my email visible to other users?',
+   'published', true, 0),
+  ('a0000000-0000-0000-0000-0000000fa005',
+   'Is my email visible to other users?',
    'No. Emails are private + never rendered on any public surface. Only your first name + organization / club appear on your reviews and profile.',
-   'both', 1);
+   'published', true, 1);
+
+insert into faq_audiences (faq_id, user_type, role_title) values
+  ('a0000000-0000-0000-0000-0000000fa001', 'event_director', null),
+  ('a0000000-0000-0000-0000-0000000fa002', 'event_director', null),
+  ('a0000000-0000-0000-0000-0000000fa003', 'attendee', null),
+  ('a0000000-0000-0000-0000-0000000fa004', 'attendee', null),
+  ('a0000000-0000-0000-0000-0000000fa004', 'event_director', null),
+  ('a0000000-0000-0000-0000-0000000fa005', 'attendee', null),
+  ('a0000000-0000-0000-0000-0000000fa005', 'event_director', null);
 
 -- ── Flagged content (admin Flagged page) ─────────────────────────────
 -- One flag on a review (profanity), two on a comment (grouping proof),

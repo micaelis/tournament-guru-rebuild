@@ -1136,10 +1136,11 @@ without rework:
   deferred (full address shown, Facilities section hidden).
 - **Real background queue.** Bulk promo sends are queued/batched; a production-grade
   job runner is the target (the queue is stubbed now).
-- **Hidden ED items**: Transactions, Add-on Pricing, Notifications, and **FAQ**
-  are hidden this sprint. The `faqs` table (audience = attendee /
-  event_director / both — **no admin-facing FAQ**) exists; audience-scoped display
-  is deferred.
+- **Hidden ED items**: Transactions, Add-on Pricing, and Notifications
+  are hidden this sprint. **FAQ** is now live: admin CRUD at
+  `/dashboard/faqs` (status, visibility toggle, type→role audience chips);
+  attendee + ED dashboards at `/dashboard/faq` (audience-filtered, searchable);
+  public `/faq` shows all published+visible entries.
 - **Recurring tournaments.** The `recurring` toggle is a stored no-op —
   informational only; the feature was never finalized with the client.
 - **Backlog items**: an ED email when the admin approves/rejects a submitted CSV;
@@ -1173,7 +1174,7 @@ without rework:
 | `claim_status` | `pending`, `approved`, `declined` |
 | `flag_content_type` | `review`, `comment` |
 | `flag_reason` | `profanity`, `illicit`, `solicitation`, `other` |
-| `faq_audience` | `attendee`, `event_director`, `both` |
+| ~~`faq_audience`~~ | removed — replaced by `faq_audiences` child table |
 
 ### 11.2 User-facing status labels
 

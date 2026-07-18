@@ -32,7 +32,7 @@ csv_status         : pending | approved | rejected
 claim_status       : pending | approved | declined
 flag_content_type  : review | comment
 flag_reason        : profanity | illicit | solicitation | other
-faq_audience       : attendee | event_director | both
+(faq_audience enum was removed — audience is now in faq_audiences child table)
 ```
 
 ---
@@ -247,7 +247,8 @@ promo_id → promo_codes, step text (landed|step1|step2|step3|applied), occurred
 - **us_states**: code char(2) pk, name. (seed KS not KA)
 - **regions**: numeral (I–IV), label — reference for search expansion.
 - **banned_words**: word citext unique, created_by → profiles. Admin CRUD; server-side enforced, word-boundary match.
-- **faqs**: title, body, audience (faq_audience), sort_order, created_by. Per-user-type visibility (ED FAQ deferred display sprint 1 but table exists).
+- **faqs**: title, content, status (draft/published), is_visible, sort_order, created_by. Two-gate display: must be published AND visible. Audience via `faq_audiences` child table.
+- **faq_audiences**: faq_id → faqs, user_type, role_title nullable. `null` role = whole type. Unique per (faq, type, role).
 - **search_queries**: term text, created_at. Write-only (insert policy, NO select policy); rate-limited 1000/min; `get_popular_searches` uses mode().
 - **support_messages**: user_id, name, email, message (capped ~2000). Insert fires SendGrid via server action (support email). Light rate limit.
 - **contact_requests**: public contact form (name, email, message, source); rate-limited 60/min.
