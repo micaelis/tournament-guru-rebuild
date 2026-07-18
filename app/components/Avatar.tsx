@@ -1,3 +1,5 @@
+import { safeImageSrc } from "@/lib/url";
+
 const PALETTE = [
   "#0f766e",
   "#1d4ed8",
@@ -8,7 +10,33 @@ const PALETTE = [
   "#15803d",
 ];
 
-export function Avatar({ name, size = 36 }: { name: string; size?: number }) {
+export function Avatar({
+  name,
+  size = 36,
+  src,
+}: {
+  name: string;
+  size?: number;
+  src?: string | null;
+}) {
+  if (src) {
+    return (
+      <span
+        className="inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full"
+        style={{ width: size, height: size }}
+        aria-hidden="true"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={safeImageSrc(src) ?? undefined}
+          alt=""
+          loading="lazy"
+          className="h-full w-full object-cover"
+        />
+      </span>
+    );
+  }
+
   const initials = (name || "?")
     .split(/\s+/)
     .filter(Boolean)

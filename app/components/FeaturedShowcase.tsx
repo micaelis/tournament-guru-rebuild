@@ -604,35 +604,16 @@ function OrgLogo({
   size?: number;
 }) {
   const ring = "0 2px 7px rgba(15,23,42,.16), 0 0 0 1px rgba(15,23,42,.06)";
-  if (logo) {
-    return (
-      <span
-        className="inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full"
-        style={{
-          width: size,
-          height: size,
-          background: "#fff",
-          border: "2px solid #fff",
-          boxShadow: ring,
-        }}
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={safeImageSrc(logo) ?? undefined}
-          alt=""
-          loading="lazy"
-          className="h-full w-full object-contain"
-          style={{ padding: 2 }}
-        />
-      </span>
-    );
-  }
   return (
     <span
       className="inline-flex shrink-0 items-center justify-center rounded-full"
       style={{ border: "2px solid #fff", boxShadow: ring }}
     >
-      <Avatar name={name || "?"} size={size} />
+      <Avatar
+        name={name || "?"}
+        size={size}
+        src={logo ? safeImageSrc(logo) : null}
+      />
     </span>
   );
 }

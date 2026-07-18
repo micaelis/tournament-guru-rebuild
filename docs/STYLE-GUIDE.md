@@ -99,8 +99,11 @@ Build screens from these; don't hand-roll equivalents.
   do not use `react-simple-star-rating`.
 - **MetricStrip** — the horizontal metric row (Overall / Coach / Attendee + the 6 categories);
   Coach value in red, Attendee in amber.
-- **Avatar** — circular initials with a deterministic color from a fixed palette; neutral
-  placeholder icon when no photo.
+- **Avatar** — circular element with a deterministic color from a fixed palette. Accepts an
+  optional `src` prop: when provided, renders an `<img>` with `object-fit: cover` filling the
+  circle (no padding, no `object-contain`); when absent, renders initials. All circle
+  avatars/logos (org logos, profile photos, reviewer avatars) must go through Avatar so the
+  fill rule applies uniformly.
 - **Table** — dashboard list rows; use a shared grid template with a fixed-width actions column
   so columns align across rows (never `auto`-width action cells).
 - **EmptyState** — the shared "no results / nothing yet" placeholder; reuse everywhere with
