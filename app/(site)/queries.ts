@@ -1,7 +1,13 @@
 import "server-only";
 import { createAnonServerClient } from "@/lib/supabase/server";
+import { unwrapRowsLogged } from "@/lib/supabase/unwrap";
 import { legacyStatus } from "@/lib/events/status";
 import type { EventRow } from "@/app/components/types";
+
+// Landing-page chrome degrades by design (see fetchPlatformStats'
+// zeros fallback): a failed strip renders empty rather than 500ing the
+// marketing page, but the failure is always logged via
+// unwrapRowsLogged — degradation must never be silent.
 
 export type PlatformStats = {
   reviews: number;
@@ -33,11 +39,13 @@ export type PopularSearch = { term: string; hits: number };
  */
 export async function fetchPopularSearches(): Promise<PopularSearch[]> {
   const supabase = createAnonServerClient();
-  const { data } = await supabase.rpc("get_popular_searches", {
-    p_limit: 6,
-    p_days: 90,
-  });
-  const rows = (data ?? []) as PopularSearch[];
+  const rows = unwrapRowsLogged<PopularSearch>(
+    await supabase.rpc("get_popular_searches", {
+      p_limit: 6,
+      p_days: 90,
+    }),
+    "fetchPopularSearches",
+  );
   const defaults: PopularSearch[] = [
     { term: "Youth Soccer", hits: 0 },
     { term: "U12 Girls", hits: 0 },
@@ -76,17 +84,19 @@ export async function fetchFeaturedEvents(): Promise<FeaturedEventRow[]> {
   const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
     .toISOString()
     .slice(0, 10);
-  const { data } = await supabase
-    .from("events")
-    .select(
-      "id, title, logo_url, host_club, location_formatted, start_date, end_date, is_premium, is_general_ad, general_rating, review_count, would_return_pct",
-    )
-    .eq("lifecycle", "active")
-    .or("is_premium.eq.true,is_general_ad.eq.true")
-    .gte("start_date", cutoff)
-    .order("start_date", { ascending: true })
-    .limit(6);
-  return (data ?? []) as unknown as FeaturedEventRow[];
+  return unwrapRowsLogged<FeaturedEventRow>(
+    await supabase
+      .from("events")
+      .select(
+        "id, title, logo_url, host_club, location_formatted, start_date, end_date, is_premium, is_general_ad, general_rating, review_count, would_return_pct",
+      )
+      .eq("lifecycle", "active")
+      .or("is_premium.eq.true,is_general_ad.eq.true")
+      .gte("start_date", cutoff)
+      .order("start_date", { ascending: true })
+      .limit(6),
+    "fetchFeaturedEvents",
+  );
 }
 
 /**
@@ -104,17 +114,6 @@ export async function fetchFeaturedEventRows(): Promise<EventRow[]> {
   const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
     .toISOString()
     .slice(0, 10);
-  const { data } = await supabase
-    .from("events")
-    .select(
-      "id, owner_id, title, description, host_club, logo_url, location_formatted, location_state_abbr, start_date, end_date, lifecycle, is_premium, is_general_ad, region, teams_attended_prev_year, would_return_pct, general_rating, coach_rating, attendee_rating, review_count, created_at, event_age_groups(age, team_gender)",
-    )
-    .eq("lifecycle", "active")
-    .or("is_premium.eq.true,is_general_ad.eq.true")
-    .gte("start_date", cutoff)
-    .order("start_date", { ascending: true })
-    .limit(4);
-
   type Row = {
     id: string;
     owner_id: string | null;
@@ -139,7 +138,19 @@ export async function fetchFeaturedEventRows(): Promise<EventRow[]> {
     created_at: string;
     event_age_groups: { age: string | null; team_gender: string | null }[] | null;
   };
-  const rows = (data ?? []) as Row[];
+  const rows = unwrapRowsLogged<Row>(
+    await supabase
+      .from("events")
+      .select(
+        "id, owner_id, title, description, host_club, logo_url, location_formatted, location_state_abbr, start_date, end_date, lifecycle, is_premium, is_general_ad, region, teams_attended_prev_year, would_return_pct, general_rating, coach_rating, attendee_rating, review_count, created_at, event_age_groups(age, team_gender)",
+      )
+      .eq("lifecycle", "active")
+      .or("is_premium.eq.true,is_general_ad.eq.true")
+      .gte("start_date", cutoff)
+      .order("start_date", { ascending: true })
+      .limit(4),
+    "fetchFeaturedEventRows",
+  );
   if (rows.length === 0) return [];
 
   const ids = rows.map((r) => r.id);
@@ -147,28 +158,38 @@ export async function fetchFeaturedEventRows(): Promise<EventRow[]> {
     new Set(rows.map((r) => r.owner_id).filter(Boolean)),
   ) as string[];
 
-  const [{ data: owners }, { data: reviewRows }] = await Promise.all([
+  type OwnerRow = {
+    id: string;
+    org_logo_url: string | null;
+    profile_photo_url: string | null;
+  };
+  const [owners, reviewRows] = await Promise.all([
     ownerIds.length
       ? supabase
           .from("public_event_owners")
           .select("id, org_logo_url, profile_photo_url")
           .in("id", ownerIds)
-      : Promise.resolve({ data: [] as { id: string; org_logo_url: string | null; profile_photo_url: string | null }[] }),
+          .then((r) => unwrapRowsLogged<OwnerRow>(r, "fetchFeaturedEventRows owners"))
+      : Promise.resolve([] as OwnerRow[]),
     supabase
       .from("reviews")
       .select("event_id, reviewer_role")
       .eq("status", "published")
-      .in("event_id", ids),
+      .in("event_id", ids)
+      .then((r) =>
+        unwrapRowsLogged<{ event_id: string; reviewer_role: string | null }>(
+          r,
+          "fetchFeaturedEventRows reviews",
+        ),
+      ),
   ]);
 
   const logoByOwner = new Map(
-    ((owners ?? []) as { id: string; org_logo_url: string | null; profile_photo_url: string | null }[]).map(
-      (o) => [o.id, o.org_logo_url ?? o.profile_photo_url ?? null] as const,
-    ),
+    owners.map((o) => [o.id, o.org_logo_url ?? o.profile_photo_url ?? null] as const),
   );
   const coachCount = new Map<string, number>();
   const attendeeCount = new Map<string, number>();
-  for (const rv of (reviewRows ?? []) as { event_id: string; reviewer_role: string | null }[]) {
+  for (const rv of reviewRows) {
     const bucket = rv.reviewer_role === "coach" ? coachCount : attendeeCount;
     bucket.set(rv.event_id, (bucket.get(rv.event_id) ?? 0) + 1);
   }
@@ -225,12 +246,14 @@ export type DemoReviewRow = {
  * real reviews on the marketing surface). */
 export async function fetchDemoReviews(): Promise<DemoReviewRow[]> {
   const supabase = createAnonServerClient();
-  const { data } = await supabase
-    .from("demo_reviews")
-    .select(
-      "id, reviewer_name, reviewer_role, event_title, review_title, review_body, overall",
-    )
-    .order("sort_order", { ascending: true })
-    .limit(6);
-  return (data ?? []) as unknown as DemoReviewRow[];
+  return unwrapRowsLogged<DemoReviewRow>(
+    await supabase
+      .from("demo_reviews")
+      .select(
+        "id, reviewer_name, reviewer_role, event_title, review_title, review_body, overall",
+      )
+      .order("sort_order", { ascending: true })
+      .limit(6),
+    "fetchDemoReviews",
+  );
 }

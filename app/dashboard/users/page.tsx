@@ -1,6 +1,7 @@
 import { requireSessionAndProfile } from "@/lib/supabase/session";
 import { redirect } from "next/navigation";
 import { createServerAuthClient } from "@/lib/supabase/server";
+import { unwrapRows } from "@/lib/supabase/unwrap";
 import { UsersTable, type UserRow } from "./UsersTable";
 
 type SearchParams = { [key: string]: string | string[] | undefined };
@@ -40,22 +41,26 @@ export default async function AdminUsersPage({
     );
   }
 
-  const { data: users } = await query.order("created_at", {
-    ascending: false,
-  });
-  const rows = (users ?? []) as UserRow[];
+  // unwrap: a failed query must not render as "no users".
+  const rows = unwrapRows<UserRow>(
+    await query.order("created_at", { ascending: false }),
+    "AdminUsersPage profiles",
+  );
 
   // Extra counts for the columns the spec calls out.
   const ids = rows.map((r) => r.id);
   const counts = new Map<string, { reviews: number; events: number; premium: number }>();
   if (ids.length) {
     if (tab === "attendees") {
-      const { data: reviewCounts } = await supabase
-        .from("reviews")
-        .select("author_id")
-        .in("author_id", ids)
-        .eq("status", "published");
-      for (const r of (reviewCounts ?? []) as { author_id: string }[]) {
+      const reviewCounts = unwrapRows<{ author_id: string }>(
+        await supabase
+          .from("reviews")
+          .select("author_id")
+          .in("author_id", ids)
+          .eq("status", "published"),
+        "AdminUsersPage review counts",
+      );
+      for (const r of reviewCounts) {
         const bucket = counts.get(r.author_id) ?? {
           reviews: 0,
           events: 0,
@@ -65,14 +70,17 @@ export default async function AdminUsersPage({
         counts.set(r.author_id, bucket);
       }
     } else {
-      const { data: eventCounts } = await supabase
-        .from("events")
-        .select("owner_id, is_premium")
-        .in("owner_id", ids);
-      for (const e of (eventCounts ?? []) as {
+      const eventCounts = unwrapRows<{
         owner_id: string;
         is_premium: boolean;
-      }[]) {
+      }>(
+        await supabase
+          .from("events")
+          .select("owner_id, is_premium")
+          .in("owner_id", ids),
+        "AdminUsersPage event counts",
+      );
+      for (const e of eventCounts) {
         const bucket = counts.get(e.owner_id) ?? {
           reviews: 0,
           events: 0,

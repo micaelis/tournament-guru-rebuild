@@ -607,3 +607,14 @@ through a checked `unwrap()` (`lib/supabase/unwrap.ts`), filter input is
 allow-listed so URL values can't manufacture a query error, and
 `tests/probes/h0-search-error-surfacing.test.ts` pins both halves
 (mutation-verified: the pre-fix file fails 10 of 15 cases).
+
+**The H-1 error-swallowing half is fixed** (DECISIONS S8.9): every fail-open
+read site routes through `unwrap`/`unwrapRows`/`unwrapRowsLogged`, and the
+**M-21 discriminator is wired** — `getEventDirectors` now returns
+`source: "unavailable"` on failure, making the About grid's degraded branch
+reachable. Probe: `tests/probes/error-surfacing.test.ts` (mutation-verified,
+8/10 fail pre-fix). Still open from H-1: the untyped DB boundary itself
+(generated Supabase types — deferred to a focused session) and the ~35
+fail-closed guard reads (correct as written). The fail-open middleware
+blocked-check and the dropped-WRITE-error sites (saveEvent children,
+faq_audiences) are catalogued in S8.9 as follow-ups needing a decision.

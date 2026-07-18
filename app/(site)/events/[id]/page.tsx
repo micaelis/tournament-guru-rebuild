@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createAnonServerClient, createServerAuthClient } from "@/lib/supabase/server";
+import { unwrap } from "@/lib/supabase/unwrap";
 import { legacyStatus } from "@/lib/events/status";
 import {
   getUserHelpfulSet,
@@ -71,12 +72,17 @@ type RawEvent = {
 
 async function loadEvent(id: string): Promise<RawEvent | null> {
   const supabase = createAnonServerClient();
-  const { data } = await supabase
-    .from("events")
-    .select(EVENT_SELECT)
-    .eq("id", id)
-    .neq("lifecycle", "draft")
-    .maybeSingle();
+  // unwrap: a query failure must throw — otherwise it would notFound()
+  // a live event. Null data (event truly absent/draft) still 404s.
+  const { data } = unwrap(
+    await supabase
+      .from("events")
+      .select(EVENT_SELECT)
+      .eq("id", id)
+      .neq("lifecycle", "draft")
+      .maybeSingle(),
+    "loadEvent",
+  );
   return (data as RawEvent | null) ?? null;
 }
 

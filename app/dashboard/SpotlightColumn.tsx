@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Route } from "next";
 import { createServerAuthClient } from "@/lib/supabase/server";
+import { unwrapRowsLogged } from "@/lib/supabase/unwrap";
 import { safeImageSrc } from "@/lib/url";
 import { FavoriteButton } from "@/app/components/reviews/FavoriteButton";
 
@@ -21,30 +22,35 @@ async function fetchSpotlightEvents(
   const cutoff = new Date(Date.now() - 25 * 86_400_000)
     .toISOString()
     .slice(0, 10);
-  const { data } = await supabase
-    .from("events")
-    .select(
-      "id, title, logo_url, start_date, end_date, location_city, location_state_abbr",
-    )
-    .eq("is_general_ad", true)
-    .not("lifecycle", "in", "(draft,canceled)")
-    .gte("end_date", cutoff)
-    .order("start_date", { ascending: true })
-    .limit(10);
-
-  const events = (data ?? []) as SpotlightEvent[];
+  // Ads chrome: degrade (logged) rather than take the dashboard down.
+  const events = unwrapRowsLogged<SpotlightEvent>(
+    await supabase
+      .from("events")
+      .select(
+        "id, title, logo_url, start_date, end_date, location_city, location_state_abbr",
+      )
+      .eq("is_general_ad", true)
+      .not("lifecycle", "in", "(draft,canceled)")
+      .gte("end_date", cutoff)
+      .order("start_date", { ascending: true })
+      .limit(10),
+    "fetchSpotlightEvents events",
+  );
 
   let favoritedIds = new Set<string>();
   if (userId && events.length > 0) {
-    const { data: favs } = await supabase
-      .from("favorites")
-      .select("event_id")
-      .eq("user_id", userId)
-      .in(
-        "event_id",
-        events.map((e) => e.id),
-      );
-    favoritedIds = new Set((favs ?? []).map((f) => f.event_id as string));
+    const favs = unwrapRowsLogged<{ event_id: string }>(
+      await supabase
+        .from("favorites")
+        .select("event_id")
+        .eq("user_id", userId)
+        .in(
+          "event_id",
+          events.map((e) => e.id),
+        ),
+      "fetchSpotlightEvents favorites",
+    );
+    favoritedIds = new Set(favs.map((f) => f.event_id));
   }
 
   return { events, favoritedIds };

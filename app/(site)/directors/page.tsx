@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Route } from "next";
 import { createAnonServerClient } from "@/lib/supabase/server";
+import { unwrapRows } from "@/lib/supabase/unwrap";
 import { safeImageSrc } from "@/lib/url";
 
 /**
@@ -9,17 +10,22 @@ import { safeImageSrc } from "@/lib/url";
  */
 export default async function DirectorsPage() {
   const supabase = createAnonServerClient();
-  const { data } = await supabase
-    .from("public_directors")
-    .select("id, first_name, last_name, organization_title, org_logo_url, profile_photo_url");
-  const directors = (data ?? []) as {
+  // unwrap: a failed query must not render as "No directors listed yet".
+  const directors = unwrapRows<{
     id: string;
     first_name: string | null;
     last_name: string | null;
     organization_title: string | null;
     org_logo_url: string | null;
     profile_photo_url: string | null;
-  }[];
+  }>(
+    await supabase
+      .from("public_directors")
+      .select(
+        "id, first_name, last_name, organization_title, org_logo_url, profile_photo_url",
+      ),
+    "DirectorsPage directors",
+  );
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-16">

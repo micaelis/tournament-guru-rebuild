@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Route } from "next";
 import { redirect, notFound } from "next/navigation";
 import { createServerAuthClient } from "@/lib/supabase/server";
+import { unwrap } from "@/lib/supabase/unwrap";
 import { fetchBannedWords } from "@/lib/reviews/banned-words";
 import { getMyReviewForEvent } from "@/lib/reviews/queries";
 import { ReviewWriteForm } from "./ReviewWriteForm";
@@ -57,7 +58,9 @@ export default async function ReviewWritePage({
       .from("events")
       .select("id, title, host_club, start_date, end_date, logo_url")
       .eq("id", id)
-      .maybeSingle(),
+      .maybeSingle()
+      // unwrap: a query failure must throw, not 404 a live event.
+      .then((r) => unwrap(r, "ReviewWritePage event")),
     getMyReviewForEvent(user.id, id),
     fetchBannedWords(),
   ]);

@@ -1,5 +1,6 @@
 import "server-only";
 import { createServerAuthClient } from "@/lib/supabase/server";
+import { unwrapRows } from "@/lib/supabase/unwrap";
 
 /**
  * Review + comment reads for the public event page, dashboard tables,
@@ -196,12 +197,15 @@ export async function getUserHelpfulSet(
 ): Promise<Set<string>> {
   if (reviewIds.length === 0) return new Set();
   const supabase = await createServerAuthClient();
-  const { data } = await supabase
-    .from("review_helpful")
-    .select("review_id")
-    .eq("user_id", userId)
-    .in("review_id", reviewIds);
-  return new Set(((data ?? []) as { review_id: string }[]).map((r) => r.review_id));
+  const rows = unwrapRows<{ review_id: string }>(
+    await supabase
+      .from("review_helpful")
+      .select("review_id")
+      .eq("user_id", userId)
+      .in("review_id", reviewIds),
+    "getUserHelpfulSet",
+  );
+  return new Set(rows.map((r) => r.review_id));
 }
 
 /**
@@ -215,10 +219,18 @@ async function attachPublicAuthors(
   if (rows.length === 0) return rows as unknown as ReviewCardRow[];
   const supabase = await createServerAuthClient();
   const ids = rows.map((r) => r.id);
-  const { data } = await supabase
-    .from("review_author_public")
-    .select("review_id, first_name, organization_title, profile_photo_url")
-    .in("review_id", ids);
+  const authorRows = unwrapRows<{
+    review_id: string;
+    first_name: string | null;
+    organization_title: string | null;
+    profile_photo_url: string | null;
+  }>(
+    await supabase
+      .from("review_author_public")
+      .select("review_id, first_name, organization_title, profile_photo_url")
+      .in("review_id", ids),
+    "attachPublicAuthors",
+  );
   const map = new Map<
     string,
     {
@@ -227,12 +239,7 @@ async function attachPublicAuthors(
       profile_photo_url: string | null;
     }
   >();
-  for (const row of (data ?? []) as {
-    review_id: string;
-    first_name: string | null;
-    organization_title: string | null;
-    profile_photo_url: string | null;
-  }[]) {
+  for (const row of authorRows) {
     map.set(row.review_id, {
       first_name: row.first_name,
       organization_title: row.organization_title,
@@ -261,12 +268,22 @@ async function attachPublicCommentAuthors(
   if (rows.length === 0) return rows as unknown as CommentRow[];
   const supabase = await createServerAuthClient();
   const ids = rows.map((r) => r.id);
-  const { data } = await supabase
-    .from("public_comment_authors")
-    .select(
-      "comment_id, first_name, organization_title, org_logo_url, profile_photo_url, user_type",
-    )
-    .in("comment_id", ids);
+  const authorRows = unwrapRows<{
+    comment_id: string;
+    first_name: string | null;
+    organization_title: string | null;
+    org_logo_url: string | null;
+    profile_photo_url: string | null;
+    user_type: string | null;
+  }>(
+    await supabase
+      .from("public_comment_authors")
+      .select(
+        "comment_id, first_name, organization_title, org_logo_url, profile_photo_url, user_type",
+      )
+      .in("comment_id", ids),
+    "attachPublicCommentAuthors",
+  );
   const map = new Map<
     string,
     {
@@ -277,14 +294,7 @@ async function attachPublicCommentAuthors(
       user_type: string | null;
     }
   >();
-  for (const row of (data ?? []) as {
-    comment_id: string;
-    first_name: string | null;
-    organization_title: string | null;
-    org_logo_url: string | null;
-    profile_photo_url: string | null;
-    user_type: string | null;
-  }[]) {
+  for (const row of authorRows) {
     map.set(row.comment_id, {
       first_name: row.first_name,
       organization_title: row.organization_title,
@@ -329,16 +339,11 @@ async function attachPromoCodes<
     return rows.map((r) => ({ ...r, promo_pretty_code: null }));
   }
   const supabase = await createServerAuthClient();
-  const { data } = await supabase
-    .from("promo_codes")
-    .select("id, pretty_code")
-    .in("id", promoIds);
-  const map = new Map(
-    ((data ?? []) as { id: string; pretty_code: string }[]).map((r) => [
-      r.id,
-      r.pretty_code,
-    ]),
+  const promoRows = unwrapRows<{ id: string; pretty_code: string }>(
+    await supabase.from("promo_codes").select("id, pretty_code").in("id", promoIds),
+    "attachPromoCodes",
   );
+  const map = new Map(promoRows.map((r) => [r.id, r.pretty_code]));
   return rows.map((r) => ({
     ...r,
     promo_pretty_code: r.promo_id ? map.get(r.promo_id) ?? null : null,

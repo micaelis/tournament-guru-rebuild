@@ -30,3 +30,23 @@ export function unwrapRows<T>(
 ): T[] {
   return unwrap(result, context).data ?? [];
 }
+
+/**
+ * Log-and-degrade variant for surfaces with a DESIGNED fallback —
+ * marketing chrome (landing strips, popular-search chips) where an
+ * empty render is an accepted degradation and a throw would take the
+ * whole page down. The failure is still logged loudly so it can never
+ * pass as "nothing to show". Content pages use `unwrapRows` (throw).
+ */
+export function unwrapRowsLogged<T>(
+  result: { data: T[] | null; error: PostgrestError | null },
+  context: string,
+): T[] {
+  if (result.error) {
+    console.error(
+      `${context}: [${result.error.code || "unknown"}] ${result.error.message}`,
+    );
+    return [];
+  }
+  return result.data ?? [];
+}

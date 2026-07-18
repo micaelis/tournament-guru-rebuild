@@ -34,6 +34,7 @@ idling and the pane stays blank. Verify via typecheck + build + `npm test` + `np
 | `c1-signup-privilege-escalation` | Anon can't self-signup as admin; `handle_new_user` coerces `user_type` to a safe value. |
 | `schema-drift` | Replays every `.from().select()` in `app/`+`lib/` against the live DB with `limit(0)`; fails on 42703/42P01 so a renamed or dropped column can't ship behind a swallowed error (S8.6). |
 | `h0-search-error-surfacing` | A facet sub-query failure inside `searchEvents` rejects instead of collapsing into a successful "0 events" result; invalid filter input (unknown enum values, malformed dates, hostile `q`) is dropped/tolerated rather than becoming a query error (S8.8). Runs the real `searchEvents` via the `@/` + `server-only` vitest aliases. |
+| `error-surfacing` | The sibling class (S8.9): content reads (director profile/events/reviews, ED review scoping, banned-words list) REJECT on a query failure instead of rendering a plausible empty state; `getEventDirectors` returns the designed `source:"unavailable"` marker; landing chrome degrades but always logs. Real PostgREST errors via a table-rewriting proxy. |
 | `c2-definer-guards` | Destructive / definer RPCs reject non-owner, non-admin callers; trigger-only helpers aren't callable via PostgREST. |
 | `c3-apply-promo` | `apply_promo_to_review` validates the full chain (attacker case, wrong-email case, legit path). |
 | `c4-promo-flow` | Flagship flow: CSV → promo issued → anon lands → coach signs up (matching email) → claim → publish review → guru badge set. |

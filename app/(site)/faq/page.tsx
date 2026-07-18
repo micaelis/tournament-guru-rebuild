@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { createAnonServerClient } from "@/lib/supabase/server";
+import { unwrapRows } from "@/lib/supabase/unwrap";
 
 export const metadata: Metadata = {
   title: "Frequently Asked Questions · Tournament Guru",
@@ -9,14 +10,16 @@ type FaqEntry = { id: string; title: string; content: string };
 
 export default async function FaqPage() {
   const supabase = createAnonServerClient();
-  const { data } = await supabase
-    .from("faqs")
-    .select("id, title, content")
-    .eq("status", "published")
-    .eq("is_visible", true)
-    .order("sort_order", { ascending: true });
-
-  const rows = (data ?? []) as unknown as FaqEntry[];
+  // unwrap: a failed query must not render as "No FAQs published yet".
+  const rows = unwrapRows<FaqEntry>(
+    await supabase
+      .from("faqs")
+      .select("id, title, content")
+      .eq("status", "published")
+      .eq("is_visible", true)
+      .order("sort_order", { ascending: true }),
+    "FaqPage faqs",
+  );
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-16">

@@ -1,5 +1,6 @@
 import "server-only";
 import { createServerAuthClient } from "@/lib/supabase/server";
+import { unwrapRows } from "@/lib/supabase/unwrap";
 
 /**
  * Fetch the full banned-words list. The admin CRUDs this in
@@ -9,11 +10,17 @@ import { createServerAuthClient } from "@/lib/supabase/server";
  * The list is small (dozens to low hundreds) and cache-friendly, so
  * we fetch it every call — no in-memory cache yet. Add one when the
  * list grows past ~500 entries or we see this on a hot path.
+ *
+ * unwrap: a query failure must throw — an empty list silently disables
+ * the moderation filter for every submit until someone notices.
  */
 export async function fetchBannedWords(): Promise<string[]> {
   const supabase = await createServerAuthClient();
-  const { data } = await supabase.from("banned_words").select("word");
-  return ((data ?? []) as { word: string }[]).map((r) => r.word);
+  const rows = unwrapRows<{ word: string }>(
+    await supabase.from("banned_words").select("word"),
+    "fetchBannedWords",
+  );
+  return rows.map((r) => r.word);
 }
 
 /**

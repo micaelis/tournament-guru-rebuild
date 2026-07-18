@@ -1,6 +1,7 @@
 import { requireSessionAndProfile } from "@/lib/supabase/session";
 import { redirect } from "next/navigation";
 import { createServerAuthClient } from "@/lib/supabase/server";
+import { unwrapRows } from "@/lib/supabase/unwrap";
 import { BannedWordsClient } from "./BannedWordsClient";
 
 type BannedRow = { id: string; word: string; created_at: string };
@@ -16,10 +17,14 @@ export default async function BannedWordsPage() {
   if (profile.user_type !== "admin") redirect("/dashboard/events");
 
   const supabase = await createServerAuthClient();
-  const { data } = await supabase
-    .from("banned_words")
-    .select("id, word, created_at")
-    .order("word", { ascending: true });
+  // unwrap: a failed query must not render as an empty banned-word list.
+  const rows = unwrapRows<BannedRow>(
+    await supabase
+      .from("banned_words")
+      .select("id, word, created_at")
+      .order("word", { ascending: true }),
+    "BannedWordsPage words",
+  );
 
   return (
     <div className="space-y-6">
@@ -32,7 +37,7 @@ export default async function BannedWordsPage() {
           the API layer. Word-boundary matching is case-insensitive.
         </p>
       </div>
-      <BannedWordsClient rows={(data ?? []) as BannedRow[]} />
+      <BannedWordsClient rows={rows} />
     </div>
   );
 }

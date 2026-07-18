@@ -1,5 +1,6 @@
 import "server-only";
 import { createServerAuthClient } from "@/lib/supabase/server";
+import { unwrapRows } from "@/lib/supabase/unwrap";
 
 export type SubmittedCsvRow = {
   id: string;
@@ -97,11 +98,11 @@ export async function listPromoCodes({
   let scoped = base;
   if (scope === "own_ed" && edId) {
     // Filter through the joined submitted_csv relationship.
-    const { data: myCsvs } = await supabase
-      .from("submitted_csvs")
-      .select("id")
-      .eq("ed_id", edId);
-    const ids = ((myCsvs ?? []) as { id: string }[]).map((r) => r.id);
+    const myCsvs = unwrapRows<{ id: string }>(
+      await supabase.from("submitted_csvs").select("id").eq("ed_id", edId),
+      "listPromoCoaches csvs",
+    );
+    const ids = myCsvs.map((r) => r.id);
     if (ids.length === 0) return [];
     scoped = base.in("submitted_csv_id", ids);
   } else if (scope === "mine" && userId) {

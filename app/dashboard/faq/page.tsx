@@ -1,5 +1,6 @@
 import { requireSessionAndProfile } from "@/lib/supabase/session";
 import { createServerAuthClient } from "@/lib/supabase/server";
+import { unwrapRows } from "@/lib/supabase/unwrap";
 import { FaqViewer } from "./FaqViewer";
 
 export type FaqViewRow = {
@@ -12,19 +13,24 @@ export default async function DashboardFaqPage() {
   const { profile } = await requireSessionAndProfile();
   const supabase = await createServerAuthClient();
 
-  const { data } = await supabase
-    .from("faqs")
-    .select("id, title, content, faq_audiences!inner(user_type, role_title)")
-    .eq("status", "published")
-    .eq("is_visible", true)
-    .order("sort_order", { ascending: true });
-
-  const filtered = ((data ?? []) as unknown as {
+  // unwrap: a failed query must not render as an empty FAQ list — that
+  // exact masquerade shipped the broken Support page (C-2).
+  const data = unwrapRows<{
     id: string;
     title: string;
     content: string;
     faq_audiences: { user_type: string; role_title: string | null }[];
-  }[]).filter((faq) =>
+  }>(
+    await supabase
+      .from("faqs")
+      .select("id, title, content, faq_audiences!inner(user_type, role_title)")
+      .eq("status", "published")
+      .eq("is_visible", true)
+      .order("sort_order", { ascending: true }),
+    "DashboardFaqPage faqs",
+  );
+
+  const filtered = data.filter((faq) =>
     faq.faq_audiences.some(
       (a) =>
         a.user_type === profile.user_type &&

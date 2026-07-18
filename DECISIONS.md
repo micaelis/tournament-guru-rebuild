@@ -873,3 +873,48 @@ nonexistent one, so each failure is a genuine PostgREST error that hits
 ONLY the targeted sub-query while the main query stays healthy — exactly
 the case that used to slip through. Verified by mutation: reverting
 `search.ts` to the pre-fix version fails 10 of 15 cases.
+
+### S8.9 · The error-surfacing class: every fail-open read routed through unwrap
+
+**What:** all 21 live "class A" query sites — public/user-facing reads
+whose failure rendered as a plausible empty state or 404 — now route
+through `unwrap()`/`unwrapRows()`: the director pages
+(`lib/directors/queries.ts`, all 11 sites), the public event page
+(`loadEvent`), the review-write picker, both FAQ viewers and the FAQ
+admin list, the public directors index, favorites, activity, the
+moderation queue, admin users, support messages, banned words, the ED
+review scoping read (the H-0 ZERO_UUID shape again), the account page
+self-reads, and `getEventForEdit`'s seven child reads (whose failure
+would load an empty form section that the replace-all save then
+persists as a deletion). `lib/reviews/queries.ts`' identity/promo
+enrichment helpers and `fetchBannedWords` throw too — a failed
+banned-words read had silently disabled the moderation filter.
+
+Two designed degraded states are kept but made LOUD via
+`unwrapRowsLogged`: landing chrome (`fetchPopularSearches`,
+`fetchFeaturedEventRows`, `fetchFeaturedEvents`, `fetchDemoReviews`,
+the dashboard Spotlight column) renders empty on failure but always
+logs. `getEventDirectors` now returns `source: "unavailable"` on a
+query failure — reaching the About grid's "temporarily unavailable"
+branch that was designed in `app/components/types.ts` and never
+connected (TURBOCHECK M-21) — instead of the lying "no directors yet".
+
+**Deliberately left (with reasons):**
+- ~35 authz/guard reads that fail CLOSED (error → deny/redirect) —
+  correct as written; surfacing would trade a safe denial for a 500.
+- The middleware blocked-user check (`lib/supabase/proxy.ts`) and the
+  login blocked-check fail OPEN on a query error. Making them
+  fail-closed could sign users out on transient errors on every
+  request — an availability trade-off that needs a product decision.
+- Server Actions whose WRITE errors are dropped (saveEvent child
+  deletes/inserts, faq_audiences writes, updateTeams distance_pref) —
+  a different class (dropped write errors), tracked for a future item.
+- `fetchFeaturedEvents` / `fetchDemoReviews` appear to have no
+  importers (landing uses `fetchFeaturedEventRows` + static demo
+  data) — dead-export cleanup left for a consolidation pass.
+
+**Tripwire:** `tests/probes/error-surfacing.test.ts` — same real-error
+proxy mechanism as the H-0 probe, pinning all three contracts (throw /
+designed-degrade-with-marker / logged-degrade) on representative
+functions. Verified by mutation: reverting the four probed modules
+fails 8 of 10 cases.

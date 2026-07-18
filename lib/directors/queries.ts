@@ -1,5 +1,6 @@
 import "server-only";
 import { createAnonServerClient } from "@/lib/supabase/server";
+import { unwrap, unwrapRows } from "@/lib/supabase/unwrap";
 import { deriveEventStatus } from "@/app/dashboard/events/event-shared";
 import { legacyStatus } from "@/lib/events/status";
 import type {
@@ -23,13 +24,18 @@ export async function getDirectorProfile(
   id: string,
 ): Promise<DirectorProfile | null> {
   const supabase = createAnonServerClient();
-  const { data: d } = await supabase
-    .from("public_directors")
-    .select(
-      "id, first_name, last_name, organization_title, org_logo_url, org_description, profile_photo_url, business_phone, business_email, business_website",
-    )
-    .eq("id", id)
-    .maybeSingle();
+  // unwrap: a query failure here must throw, not 404 a live director
+  // (which also silently drops the host ContactPanel from event pages).
+  const { data: d } = unwrap(
+    await supabase
+      .from("public_directors")
+      .select(
+        "id, first_name, last_name, organization_title, org_logo_url, org_description, profile_photo_url, business_phone, business_email, business_website",
+      )
+      .eq("id", id)
+      .maybeSingle(),
+    "getDirectorProfile director",
+  );
   if (!d) return null;
   const dir = d as {
     id: string;
@@ -44,17 +50,19 @@ export async function getDirectorProfile(
     business_website: string | null;
   };
 
-  const { data: evs } = await supabase
-    .from("events")
-    .select("id, lifecycle, start_date, end_date")
-    .eq("owner_id", id)
-    .neq("lifecycle", "draft");
-  const events = (evs ?? []) as {
+  const events = unwrapRows<{
     id: string;
     lifecycle: "draft" | "active" | "canceled";
     start_date: string | null;
     end_date: string | null;
-  }[];
+  }>(
+    await supabase
+      .from("events")
+      .select("id, lifecycle, start_date, end_date")
+      .eq("owner_id", id)
+      .neq("lifecycle", "draft"),
+    "getDirectorProfile events",
+  );
 
   let coachSum = 0,
     coachRated = 0,
@@ -64,19 +72,22 @@ export async function getDirectorProfile(
     attN = 0,
     guru = false;
   if (events.length) {
-    const { data: rvs } = await supabase
-      .from("reviews")
-      .select("overall, reviewer_role, guru_review")
-      .eq("status", "published")
-      .in(
-        "event_id",
-        events.map((e) => e.id),
-      );
-    for (const r of (rvs ?? []) as {
+    const rvs = unwrapRows<{
       overall: number | null;
       reviewer_role: string | null;
       guru_review: boolean;
-    }[]) {
+    }>(
+      await supabase
+        .from("reviews")
+        .select("overall, reviewer_role, guru_review")
+        .eq("status", "published")
+        .in(
+          "event_id",
+          events.map((e) => e.id),
+        ),
+      "getDirectorProfile reviews",
+    );
+    for (const r of rvs) {
       if (r.guru_review) guru = true;
       const o = Number(r.overall ?? 0);
       if (r.reviewer_role === "coach") {
@@ -142,15 +153,36 @@ export async function getEventDirectors({
   page?: number;
   pageSize?: number;
 }): Promise<EventDirectorsPage> {
+  // A query failure returns `source: "unavailable"` instead of throwing:
+  // the About grid renders a designed "temporarily unavailable" state on
+  // that marker, which beats an error boundary on a marketing page. The
+  // error still reaches the server log. Empty data with source "rpc"
+  // remains the true "no directors yet" state — failure and emptiness
+  // must never look alike.
+  try {
+    return await fetchEventDirectors(page, pageSize);
+  } catch (err) {
+    console.error("getEventDirectors:", err);
+    return { data: [], total: 0, source: "unavailable" };
+  }
+}
+
+async function fetchEventDirectors(
+  page: number,
+  pageSize: number,
+): Promise<EventDirectorsPage> {
   const supabase = createAnonServerClient();
   const from = (page - 1) * pageSize;
-  const { data: dirs, count } = await supabase
-    .from("public_directors")
-    .select("id, first_name, last_name, organization_title, org_logo_url, profile_photo_url", {
-      count: "exact",
-    })
-    .order("organization_title", { ascending: true, nullsFirst: false })
-    .range(from, from + pageSize - 1);
+  const { data: dirs, count } = unwrap(
+    await supabase
+      .from("public_directors")
+      .select("id, first_name, last_name, organization_title, org_logo_url, profile_photo_url", {
+        count: "exact",
+      })
+      .order("organization_title", { ascending: true, nullsFirst: false })
+      .range(from, from + pageSize - 1),
+    "getEventDirectors directors",
+  );
 
   const rows = (dirs ?? []) as {
     id: string;
@@ -164,12 +196,14 @@ export async function getEventDirectors({
   if (rows.length === 0) return { data: [], total, source: "rpc" };
 
   const dirIds = rows.map((r) => r.id);
-  const { data: evs } = await supabase
-    .from("events")
-    .select("id, owner_id")
-    .in("owner_id", dirIds)
-    .neq("lifecycle", "draft");
-  const events = (evs ?? []) as { id: string; owner_id: string | null }[];
+  const events = unwrapRows<{ id: string; owner_id: string | null }>(
+    await supabase
+      .from("events")
+      .select("id, owner_id")
+      .in("owner_id", dirIds)
+      .neq("lifecycle", "draft"),
+    "getEventDirectors events",
+  );
 
   const eventCountByDir = new Map<string, number>();
   const eventToDir = new Map<string, string>();
@@ -183,15 +217,18 @@ export async function getEventDirectors({
   const ratingSumByDir = new Map<string, number>();
   const ratedCountByDir = new Map<string, number>();
   if (events.length) {
-    const { data: rvs } = await supabase
-      .from("reviews")
-      .select("event_id, overall")
-      .eq("status", "published")
-      .in(
-        "event_id",
-        events.map((e) => e.id),
-      );
-    for (const rv of (rvs ?? []) as { event_id: string; overall: number | null }[]) {
+    const rvs = unwrapRows<{ event_id: string; overall: number | null }>(
+      await supabase
+        .from("reviews")
+        .select("event_id, overall")
+        .eq("status", "published")
+        .in(
+          "event_id",
+          events.map((e) => e.id),
+        ),
+      "getEventDirectors reviews",
+    );
+    for (const rv of rvs) {
       const dir = eventToDir.get(rv.event_id);
       if (!dir) continue;
       reviewCountByDir.set(dir, (reviewCountByDir.get(dir) ?? 0) + 1);
@@ -229,16 +266,18 @@ export async function getDirectorEventRows(
   opts: { excludeEventId?: string; limit?: number } = {},
 ): Promise<EventRow[]> {
   const supabase = createAnonServerClient();
-  const { data: owner } = await supabase
-    .from("public_directors")
-    .select("org_logo_url, profile_photo_url")
-    .eq("id", id)
-    .maybeSingle();
-  const hostLogo =
-    (owner as { org_logo_url: string | null; profile_photo_url: string | null } | null)
-      ?.org_logo_url ??
-    (owner as { profile_photo_url: string | null } | null)?.profile_photo_url ??
-    null;
+  const { data: owner } = unwrap(
+    await supabase
+      .from("public_directors")
+      .select("org_logo_url, profile_photo_url")
+      .eq("id", id)
+      .maybeSingle<{
+        org_logo_url: string | null;
+        profile_photo_url: string | null;
+      }>(),
+    "getDirectorEventRows owner",
+  );
+  const hostLogo = owner?.org_logo_url ?? owner?.profile_photo_url ?? null;
 
   let query = supabase
     .from("events")
@@ -252,8 +291,8 @@ export async function getDirectorEventRows(
   if (opts.excludeEventId) query = query.neq("id", opts.excludeEventId);
   if (opts.limit) query = query.limit(opts.limit);
 
-  const { data } = await query;
-  return mapEventRows((data ?? []) as RawEventRow[], hostLogo);
+  const data = unwrapRows<RawEventRow>(await query, "getDirectorEventRows events");
+  return mapEventRows(data, hostLogo);
 }
 
 /** Published reviews across a director's events, for the ED reviews tab. */
@@ -262,27 +301,16 @@ export async function getDirectorReviewRows(
   limit = 30,
 ): Promise<DirectorReviewRow[]> {
   const supabase = createAnonServerClient();
-  const { data: evs } = await supabase
-    .from("events")
-    .select("id, title")
-    .eq("owner_id", id)
-    .neq("lifecycle", "draft");
-  const events = (evs ?? []) as { id: string; title: string }[];
+  const events = unwrapRows<{ id: string; title: string }>(
+    await supabase
+      .from("events")
+      .select("id, title")
+      .eq("owner_id", id)
+      .neq("lifecycle", "draft"),
+    "getDirectorReviewRows events",
+  );
   if (!events.length) return [];
   const titleById = new Map(events.map((e) => [e.id, e.title] as const));
-
-  const { data } = await supabase
-    .from("reviews")
-    .select(
-      "id, review_title, review_body, overall, reviewer_role, guru_review, created_at, event_id, anonymized",
-    )
-    .eq("status", "published")
-    .in(
-      "event_id",
-      events.map((e) => e.id),
-    )
-    .order("created_at", { ascending: false })
-    .limit(limit);
 
   type Raw = {
     id: string;
@@ -295,21 +323,43 @@ export async function getDirectorReviewRows(
     event_id: string | null;
     anonymized: boolean;
   };
-  const rows = (data ?? []) as Raw[];
+  const rows = unwrapRows<Raw>(
+    await supabase
+      .from("reviews")
+      .select(
+        "id, review_title, review_body, overall, reviewer_role, guru_review, created_at, event_id, anonymized",
+      )
+      .eq("status", "published")
+      .in(
+        "event_id",
+        events.map((e) => e.id),
+      )
+      .order("created_at", { ascending: false })
+      .limit(limit),
+    "getDirectorReviewRows reviews",
+  );
 
   // Reviewer display identity comes through the public projection view
   // (first name + org only — never last name / email / dob).
-  const { data: authors } = rows.length
-    ? await supabase
-        .from("review_author_public")
-        .select("review_id, first_name, organization_title")
-        .in(
-          "review_id",
-          rows.map((r) => r.id),
-        )
-    : { data: [] as { review_id: string; first_name: string | null; organization_title: string | null }[] };
+  type AuthorRow = {
+    review_id: string;
+    first_name: string | null;
+    organization_title: string | null;
+  };
+  const authors = rows.length
+    ? unwrapRows<AuthorRow>(
+        await supabase
+          .from("review_author_public")
+          .select("review_id, first_name, organization_title")
+          .in(
+            "review_id",
+            rows.map((r) => r.id),
+          ),
+        "getDirectorReviewRows authors",
+      )
+    : [];
   const nameByReview = new Map(
-    ((authors ?? []) as { review_id: string; first_name: string | null; organization_title: string | null }[]).map(
+    authors.map(
       (a) => [a.review_id, a.first_name ?? a.organization_title ?? null] as const,
     ),
   );

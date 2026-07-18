@@ -1,6 +1,7 @@
 import { requireSessionAndProfile } from "@/lib/supabase/session";
 import { redirect } from "next/navigation";
 import { createServerAuthClient } from "@/lib/supabase/server";
+import { unwrapRows } from "@/lib/supabase/unwrap";
 import { SupportMessagesTable, type SupportMessageRow } from "./SupportMessagesTable";
 
 export default async function SupportMessagesPage() {
@@ -8,14 +9,18 @@ export default async function SupportMessagesPage() {
   if (profile.user_type !== "admin") redirect("/dashboard/events");
 
   const supabase = await createServerAuthClient();
-  const { data } = await supabase
-    .from("support_messages")
-    .select(
-      "id, name, email, message, created_at, sender:profiles!support_messages_user_id_fkey(user_type, role_title)",
-    )
-    .order("created_at", { ascending: false });
+  // unwrap: a failed query must not render as "no support messages".
+  const data = unwrapRows(
+    await supabase
+      .from("support_messages")
+      .select(
+        "id, name, email, message, created_at, sender:profiles!support_messages_user_id_fkey(user_type, role_title)",
+      )
+      .order("created_at", { ascending: false }),
+    "SupportMessagesPage messages",
+  );
 
-  const rows: SupportMessageRow[] = ((data ?? []) as unknown as Array<{
+  const rows: SupportMessageRow[] = (data as unknown as Array<{
     id: string;
     name: string;
     email: string;

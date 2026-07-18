@@ -1,5 +1,6 @@
 import "server-only";
 import { createServerAuthClient } from "@/lib/supabase/server";
+import { unwrapRows } from "@/lib/supabase/unwrap";
 import type { ReviewCardRow } from "@/lib/reviews/queries";
 
 /**
@@ -27,14 +28,14 @@ export async function listDashboardReviews({
 > {
   const supabase = await createServerAuthClient();
 
+  // unwrap: the H-0 shape — an error here would collapse into an empty
+  // id set → ZERO_UUID filter → the ED "has no reviews".
   const eventFilterIds: string[] | null =
     scope === "own"
-      ? ((
-          await supabase
-            .from("events")
-            .select("id")
-            .eq("owner_id", userId)
-        ).data ?? []).map((r: { id: string }) => r.id)
+      ? unwrapRows<{ id: string }>(
+          await supabase.from("events").select("id").eq("owner_id", userId),
+          "listDashboardReviews owned events",
+        ).map((r) => r.id)
       : null;
 
   const base = supabase
@@ -62,11 +63,11 @@ export async function listDashboardReviews({
   );
   const promoMap = new Map<string, string>();
   if (promoIds.length) {
-    const { data: promos } = await supabase
-      .from("promo_codes")
-      .select("id, pretty_code")
-      .in("id", promoIds);
-    for (const p of (promos ?? []) as { id: string; pretty_code: string }[]) {
+    const promos = unwrapRows<{ id: string; pretty_code: string }>(
+      await supabase.from("promo_codes").select("id, pretty_code").in("id", promoIds),
+      "dashboard reviews promo codes",
+    );
+    for (const p of promos) {
       promoMap.set(p.id, p.pretty_code);
     }
   }

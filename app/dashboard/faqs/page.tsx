@@ -1,16 +1,23 @@
 import { requireSessionAndProfile } from "@/lib/supabase/session";
 import { redirect } from "next/navigation";
 import { createServerAuthClient } from "@/lib/supabase/server";
+import { unwrapRows } from "@/lib/supabase/unwrap";
 import { FaqsClient, type FaqRow } from "./FaqsClient";
 
 export default async function FaqsAdminPage() {
   const { profile } = await requireSessionAndProfile();
   if (profile.user_type !== "admin") redirect("/dashboard/events");
   const supabase = await createServerAuthClient();
-  const { data } = await supabase
-    .from("faqs")
-    .select("id, title, content, status, is_visible, sort_order, created_at, faq_audiences(user_type, role_title)")
-    .order("sort_order", { ascending: true });
+  // unwrap: a failed query must not render as an empty FAQ admin list.
+  const data = unwrapRows(
+    await supabase
+      .from("faqs")
+      .select(
+        "id, title, content, status, is_visible, sort_order, created_at, faq_audiences(user_type, role_title)",
+      )
+      .order("sort_order", { ascending: true }),
+    "FaqsAdminPage faqs",
+  );
   return (
     <div className="space-y-6">
       <div>
@@ -22,7 +29,7 @@ export default async function FaqsAdminPage() {
           appear on attendee and ED dashboards.
         </p>
       </div>
-      <FaqsClient rows={(data ?? []) as unknown as FaqRow[]} />
+      <FaqsClient rows={data as unknown as FaqRow[]} />
     </div>
   );
 }

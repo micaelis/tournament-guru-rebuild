@@ -1,6 +1,7 @@
 import { requireSessionAndProfile } from "@/lib/supabase/session";
 import { redirect } from "next/navigation";
 import { createServerAuthClient } from "@/lib/supabase/server";
+import { unwrapRows } from "@/lib/supabase/unwrap";
 import { FlaggedContent, type FlaggedGroup } from "./FlaggedContent";
 
 type SearchParams = { [key: string]: string | string[] | undefined };
@@ -23,14 +24,17 @@ export default async function FlaggedContentPage({
     | "comments";
 
   const supabase = await createServerAuthClient();
-  const { data: flags } = await supabase
-    .from("flagged_content")
-    .select(
-      "id, content_type, content_id, reason, additional_info, created_at, flagged_by, flagger:profiles!flagged_content_flagged_by_fkey(first_name, last_name, profile_photo_url)",
-    )
-    .eq("content_type", tab === "reviews" ? "review" : "comment")
-    .order("created_at", { ascending: false });
-  const flagRows = (flags ?? []) as unknown as Array<{
+  // unwrap: a failed query must not render as an empty moderation queue.
+  const flagRows = unwrapRows(
+    await supabase
+      .from("flagged_content")
+      .select(
+        "id, content_type, content_id, reason, additional_info, created_at, flagged_by, flagger:profiles!flagged_content_flagged_by_fkey(first_name, last_name, profile_photo_url)",
+      )
+      .eq("content_type", tab === "reviews" ? "review" : "comment")
+      .order("created_at", { ascending: false }),
+    "FlaggedContentPage flags",
+  ) as unknown as Array<{
     id: string;
     content_type: "review" | "comment";
     content_id: string;
@@ -55,13 +59,16 @@ export default async function FlaggedContentPage({
   const contents: FlaggedGroup[] = [];
 
   if (tab === "reviews" && contentIds.length) {
-    const { data: reviews } = await supabase
-      .from("reviews")
-      .select(
-        "id, event_id, author_id, review_title, review_body, published_at, created_at, event:events!reviews_event_id_fkey(id, title, logo_url), author:profiles!reviews_author_id_fkey(first_name, last_name, profile_photo_url)",
-      )
-      .in("id", contentIds);
-    for (const r of (reviews ?? []) as unknown as Array<{
+    const reviews = unwrapRows(
+      await supabase
+        .from("reviews")
+        .select(
+          "id, event_id, author_id, review_title, review_body, published_at, created_at, event:events!reviews_event_id_fkey(id, title, logo_url), author:profiles!reviews_author_id_fkey(first_name, last_name, profile_photo_url)",
+        )
+        .in("id", contentIds),
+      "FlaggedContentPage reviews",
+    );
+    for (const r of reviews as unknown as Array<{
       id: string;
       event_id: string | null;
       author_id: string | null;
@@ -90,13 +97,16 @@ export default async function FlaggedContentPage({
       });
     }
   } else if (contentIds.length) {
-    const { data: comments } = await supabase
-      .from("comments")
-      .select(
-        "id, review_id, author_id, body, created_at, author:profiles!comments_author_id_fkey(first_name, last_name, profile_photo_url), review:reviews!comments_review_id_fkey(id, review_title, event_id, event:events!reviews_event_id_fkey(id, title))",
-      )
-      .in("id", contentIds);
-    for (const c of (comments ?? []) as unknown as Array<{
+    const comments = unwrapRows(
+      await supabase
+        .from("comments")
+        .select(
+          "id, review_id, author_id, body, created_at, author:profiles!comments_author_id_fkey(first_name, last_name, profile_photo_url), review:reviews!comments_review_id_fkey(id, review_title, event_id, event:events!reviews_event_id_fkey(id, title))",
+        )
+        .in("id", contentIds),
+      "FlaggedContentPage comments",
+    );
+    for (const c of comments as unknown as Array<{
       id: string;
       review_id: string;
       author_id: string | null;

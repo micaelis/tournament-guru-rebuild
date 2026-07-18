@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Route } from "next";
 import { requireSessionAndProfile } from "@/lib/supabase/session";
 import { createServerAuthClient } from "@/lib/supabase/server";
+import { unwrapRows } from "@/lib/supabase/unwrap";
 import {
   Button,
   Card,
@@ -18,14 +19,17 @@ import { FavoriteButton } from "@/app/components/reviews/FavoriteButton";
 export default async function FavoritesPage() {
   const { user } = await requireSessionAndProfile();
   const supabase = await createServerAuthClient();
-  const { data } = await supabase
-    .from("favorites")
-    .select(
-      "event_id, created_at, event:events!favorites_event_id_fkey(id, title, host_club, location_formatted, start_date, end_date, logo_url, general_rating, review_count)",
-    )
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false });
-  const rows = (data ?? []) as unknown as {
+  // unwrap: a failed query must not render as "no favorites yet".
+  const rows = unwrapRows(
+    await supabase
+      .from("favorites")
+      .select(
+        "event_id, created_at, event:events!favorites_event_id_fkey(id, title, host_club, location_formatted, start_date, end_date, logo_url, general_rating, review_count)",
+      )
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false }),
+    "FavoritesPage favorites",
+  ) as unknown as {
     event_id: string;
     created_at: string;
     event: {

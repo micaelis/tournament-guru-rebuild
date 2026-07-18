@@ -1,5 +1,6 @@
 import "server-only";
 import { createServerAuthClient } from "@/lib/supabase/server";
+import { unwrapRows } from "@/lib/supabase/unwrap";
 import type { EventListRow } from "./event-shared";
 export { deriveEventStatus, type EventListRow } from "./event-shared";
 
@@ -128,21 +129,27 @@ export async function getEventForEdit(eventId: string): Promise<{
   if (eventRes.error) throw new Error(eventRes.error.message);
   if (!eventRes.data) return null;
 
+  // unwrap the child reads too: a failed child query would load the
+  // edit form with an empty section, and the replace-all save would
+  // then persist that emptiness as a deletion.
   return {
     event: eventRes.data as unknown as EventBaseRow,
-    ageGroups: (ageGroupsRes.data ?? []) as unknown as AgeGroupRow[],
-    sponsors: (sponsorsRes.data ?? []) as unknown as SponsorRow[],
-    images: (imagesRes.data ?? []) as unknown as EventImageRow[],
-    milestones: (milestonesRes.data ?? []) as unknown as MilestoneRow[],
-    competitionLevels: (
-      (levelsRes.data ?? []) as { level: string }[]
+    ageGroups: unwrapRows(ageGroupsRes, "getEventForEdit ageGroups") as unknown as AgeGroupRow[],
+    sponsors: unwrapRows(sponsorsRes, "getEventForEdit sponsors") as unknown as SponsorRow[],
+    images: unwrapRows(imagesRes, "getEventForEdit images") as unknown as EventImageRow[],
+    milestones: unwrapRows(milestonesRes, "getEventForEdit milestones") as unknown as MilestoneRow[],
+    competitionLevels: unwrapRows<{ level: string }>(
+      levelsRes,
+      "getEventForEdit levels",
     ).map((r) => r.level),
-    surfaces: ((surfacesRes.data ?? []) as { surface: string }[]).map(
-      (r) => r.surface,
-    ),
-    features: ((featuresRes.data ?? []) as { feature: string }[]).map(
-      (r) => r.feature,
-    ),
+    surfaces: unwrapRows<{ surface: string }>(
+      surfacesRes,
+      "getEventForEdit surfaces",
+    ).map((r) => r.surface),
+    features: unwrapRows<{ feature: string }>(
+      featuresRes,
+      "getEventForEdit features",
+    ).map((r) => r.feature),
   };
 }
 

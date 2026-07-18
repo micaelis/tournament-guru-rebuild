@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Route } from "next";
 import { requireSessionAndProfile } from "@/lib/supabase/session";
 import { createServerAuthClient } from "@/lib/supabase/server";
+import { unwrapRows } from "@/lib/supabase/unwrap";
 import {
   Button,
   Card,
@@ -16,15 +17,18 @@ import { safeImageSrc } from "@/lib/url";
 export default async function ActivityPage() {
   const { user } = await requireSessionAndProfile();
   const supabase = await createServerAuthClient();
-  const { data } = await supabase
-    .from("recently_viewed")
-    .select(
-      "event_id, viewed_at, event:events!recently_viewed_event_id_fkey(id, title, host_club, location_formatted, start_date, end_date, logo_url)",
-    )
-    .eq("user_id", user.id)
-    .order("viewed_at", { ascending: false })
-    .limit(50);
-  const rows = (data ?? []) as unknown as {
+  // unwrap: a failed query must not render as "no recent activity".
+  const rows = unwrapRows(
+    await supabase
+      .from("recently_viewed")
+      .select(
+        "event_id, viewed_at, event:events!recently_viewed_event_id_fkey(id, title, host_club, location_formatted, start_date, end_date, logo_url)",
+      )
+      .eq("user_id", user.id)
+      .order("viewed_at", { ascending: false })
+      .limit(50),
+    "ActivityPage recently viewed",
+  ) as unknown as {
     event_id: string;
     viewed_at: string;
     event: {
