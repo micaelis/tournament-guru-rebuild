@@ -1317,3 +1317,27 @@ no handling — a loaded img simply stays.
 page, expect zero unsplash imgs) now exercises exactly this race.
 Verified by mutation: removing the ref check (keeping onError) fails
 it; restored, 14/14 discovery + 63 e2e + 285 vitest green.
+
+### S9.1 · Demo schema drift closed at the pipeline (auto-migrate workflow)
+
+**What:** `.github/workflows/demo-migrate.yml` — a `workflow_run`
+listener that fires when the CI workflow completes successfully for a
+push to `rebuild`, checks out the exact CI-validated commit, and runs
+`supabase db push --db-url "$SUPABASE_DEMO_DB_URL"` (CLI pinned 2.98.2,
+same as ci.yml). Concurrency-serialized; read-only GITHUB_TOKEN; the
+target lives ONLY in the repo secret, never in the file.
+
+**Why:** Vercel deploys code, not DB — the hosted demo drifted behind
+supabase/migrations/ twice, producing demo-only bugs (empty search;
+the R2.5 "permission denied for table user_teams" window). Gating on
+CI's conclusion means a red build can never migrate the demo, and
+`db push` applying only pending migrations makes re-runs no-ops.
+Deliberately NOT included: seeding — `--include-seed` would drop and
+replace demo data, so reseeds stay manual (DEPLOYMENT §10). Chose
+`--db-url` over link+access-token: one secret, no `supabase link`
+(which this repo bans as a foot-gun), no third-party auth surface.
+
+**Verification:** YAML parse + scripted assertions on the gate
+(conclusion/event/head_branch), the pinned CLI, the single supabase
+command line (no seed flag, secret only via env). First live run needs
+the secret set — Danny verifies run #1 in Actions.

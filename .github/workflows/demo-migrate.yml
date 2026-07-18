@@ -1,0 +1,74 @@
+name: Demo DB migrate
+
+# Keeps the hosted DEMO Supabase project's schema in sync with the code, so
+# the demo can never drift behind supabase/migrations/ again (drift caused
+# two demo-only bugs: empty search results and an onboarding "permission
+# denied for table user_teams" from a lagging grants migration).
+#
+# TARGET: the DEMO project ONLY. The connection string comes exclusively
+# from the SUPABASE_DEMO_DB_URL repo secret — no project ref is ever
+# hardcoded here, so this workflow physically cannot point at staging or
+# prod unless the secret itself does.
+#
+# Scope: applies pending migrations only (`supabase db push`). It NEVER
+# reseeds — seeding drops and replaces demo data, so a reseed stays a
+# deliberate manual step (see DEPLOYMENT.md).
+#
+# Gate: runs only after the CI workflow completes SUCCESSFULLY for a push
+# to `rebuild`. A red build never migrates the demo.
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+
+permissions:
+  contents: read
+
+# Serialize runs: two overlapping pushes must apply in order, not race.
+# No cancel-in-progress — each run only applies still-pending migrations,
+# so letting a queued run proceed is harmless and keeps ordering simple.
+concurrency:
+  group: demo-migrate
+  cancel-in-progress: false
+
+jobs:
+  migrate-demo:
+    runs-on: ubuntu-latest
+    # Only when CI succeeded, and only for a push to rebuild (workflow_run
+    # also fires for PR-triggered CI runs; `event == 'push'` filters those
+    # out and `head_branch` pins the branch).
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'rebuild'
+    steps:
+      # Check out the exact commit CI validated — not the branch tip, which
+      # may have moved since.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          # Same pin as ci.yml — keep the two in lockstep.
+          version: 2.98.2
+
+      - name: Apply pending migrations to the DEMO project
+        env:
+          SUPABASE_DEMO_DB_URL: ${{ secrets.SUPABASE_DEMO_DB_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SUPABASE_DEMO_DB_URL}" ]; then
+            echo "::error::SUPABASE_DEMO_DB_URL secret is not set (repo Settings → Secrets and variables → Actions)."
+            exit 1
+          fi
+          # `db push` compares supabase/migrations/ against the target's
+          # supabase_migrations.schema_migrations table and applies only
+          # what's pending — idempotent, safe to re-run. No --include-seed:
+          # this workflow must never touch demo data, only schema.
+          supabase db push --db-url "${SUPABASE_DEMO_DB_URL}"
+
+      - name: Summary
+        run: echo "Demo schema is in sync with $(ls supabase/migrations | tail -1)" >> "$GITHUB_STEP_SUMMARY"

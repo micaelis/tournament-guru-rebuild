@@ -266,6 +266,33 @@ every push. Merging into `main` is gated on green CI. If a probe goes
 red, the failing shape is on the security floor by construction — fix
 before merging.
 
+### Demo DB auto-migration
+
+`.github/workflows/demo-migrate.yml` keeps the hosted **demo** project's
+schema in sync with the code. Vercel deploys code only, so the demo DB
+used to drift behind `supabase/migrations/` — that drift caused two
+demo-only bugs (empty search, onboarding "permission denied for table
+user_teams").
+
+- **When it runs:** only after the `CI` workflow completes
+  **successfully** for a push to `rebuild` (a red build never migrates),
+  serialized so overlapping pushes apply in order.
+- **What it does:** `supabase db push --db-url …` against the demo —
+  applies pending migrations only, so it's idempotent and safe to
+  re-run. It checks out the exact commit CI validated.
+- **What it does NOT do:** reseed. Seeding drops and replaces demo data,
+  so reseeding stays a deliberate manual step (`psql -f supabase/seed.sql`
+  or the SQL editor) whenever `seed.sql` changes.
+- **Secret to set** (repo Settings → Secrets and variables → Actions →
+  New repository secret): `SUPABASE_DEMO_DB_URL` — the demo project's
+  **direct / session-mode** Postgres connection string (Dashboard →
+  Connect; URL-encode the password if it has special characters). This
+  is the only place the target is defined — the workflow hardcodes no
+  project ref, so pointing it elsewhere requires changing the secret.
+- The listening workflow must live on the repo's default branch
+  (`rebuild`) for `workflow_run` to fire — it does; the first push after
+  adding it arms the pipeline.
+
 ### Backups
 
 Supabase's daily backups cover the DB. For a rebuild-safe cutover,
