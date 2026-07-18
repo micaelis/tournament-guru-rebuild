@@ -1341,3 +1341,33 @@ replace demo data, so reseeds stay manual (DEPLOYMENT §10). Chose
 (conclusion/event/head_branch), the pinned CLI, the single supabase
 command line (no seed flag, secret only via env). First live run needs
 the secret set — Danny verifies run #1 in Actions.
+
+### S9.2 · Event base row writes with INSERT/UPDATE, never `upsert`
+
+**What:** `saveEvent` no longer writes the base event row with a single
+`upsert`. It branches: `.insert(row)` for a new event, and
+`.update(row).eq("id", eventId)` for an existing one. The `id` never
+travels in the payload.
+
+**Why:** PostgREST compiles `upsert` to `INSERT … ON CONFLICT (id) DO
+UPDATE SET <every payload key> = excluded.<key>`, and the edit path put
+`id` in the payload so it landed in the SET list. `id` is deliberately
+absent from the events UPDATE column grant (000002 / 000005) — allowing
+a client to repoint a row's primary key is not an edit — so Postgres
+denied the whole statement: "permission denied for table events". Every
+event EDIT and every publish-an-existing-draft failed; only creation
+worked, because a new event carries no `id` and therefore no SET entry
+for it. The fix keeps the grant tight and changes the caller instead.
+
+**Alternative rejected:** granting `update(id)` on events. That would
+let any owner rewrite a row's primary key — a far worse trade than
+splitting one call into two.
+
+**Verification:** `tests/probes/event-edit-grants.test.ts` drives the
+real action as a real ED (update-intent save persists; publish flips
+lifecycle to active; a direct `update({id})` is still denied).
+Mutation-verified: restoring the `upsert` fails 2/3 with exactly
+"permission denied for table events".
+
+**How it hid:** no e2e covered the ED edit/publish path — only creation.
+Coverage gap recorded in docs/TESTING.md.

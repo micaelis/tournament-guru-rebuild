@@ -50,6 +50,7 @@ idling and the pane stays blank. Verify via typecheck + build + `npm test` + `np
 | `platform-counters` | Counter invariants (published-reviews total increments, never decrements on delete). |
 | `reauth-delete` | Account deletion / anonymize-and-scrub behavior. |
 | `review-eligibility` | Attendee CAN write reviews; ED/admin/blocked CANNOT (RLS). Guru/verified blocked on non-paid events; succeeds on paid. |
+| `event-edit-grants` | An ED can actually SAVE an existing event: the update-intent path persists, publish flips a draft to `active`, and `id` stays unwritable. Guards the `upsert` → INSERT/UPDATE split (S9.2) — `upsert` put `id` in PostgREST's `ON CONFLICT DO UPDATE SET` list, which the events UPDATE grant denies, so every edit and every publish-a-draft failed. **This path had no e2e coverage**, which is why it shipped broken. |
 | `seed-accounts` | The `supabase/seed.sql` demo accounts (attendee / ED / admin) sign in via the password grant with a session + an `email` identity. Guards the seed's raw `auth.users` insert — the only accounts NOT created through the Auth admin API, so no other test exercises them (SEED.1). |
 
 ## Layer 2 — E2E journeys (`e2e/`)

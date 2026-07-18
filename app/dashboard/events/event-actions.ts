@@ -48,7 +48,8 @@ export type MilestoneInput = {
  * title (spec: "only the event title is mandatory"); publish enforces
  * every mandatory field + end_date >= start_date.
  *
- * The action is a single mutation: it upserts the base event, then
+ * The action is a single mutation: it writes the base event (INSERT for
+ * new, UPDATE for existing — see S9.2 for why not `upsert`), then
  * replaces every child collection (age groups / sponsors / competition
  * levels / surfaces / features / images). Replace-all lets the form
  * treat child rows as pure state — the client sends the whole set every
@@ -247,8 +248,7 @@ export async function saveEvent(
       ? { owner_id: null, created_by: user.id, claimed: false }
       : { owner_id: user.id, created_by: user.id, claimed: true };
 
-  const upsertRow = {
-    ...(isNew ? {} : { id: eventId }),
+  const row = {
     tournament_id:
       base.tournament_id ?? (await getExistingTournamentId(eventId, supabase)),
     logo_url: base.logo_url,
@@ -279,11 +279,20 @@ export async function saveEvent(
     ...(intent === "update" ? {} : { lifecycle }),
   };
 
-  const eventInsert = await supabase
-    .from("events")
-    .upsert(upsertRow)
-    .select("id")
-    .single();
+  // INSERT for new, UPDATE for existing — deliberately not `upsert`.
+  // PostgREST compiles upsert to ON CONFLICT DO UPDATE with every
+  // payload key in the SET list, `id` included, and `id` carries no
+  // UPDATE grant (it must not: repointing a row's id is not an edit).
+  // Postgres then denies the whole statement, so every edit and every
+  // publish-a-draft failed with "permission denied for table events".
+  const eventInsert = isNew
+    ? await supabase.from("events").insert(row).select("id").single()
+    : await supabase
+        .from("events")
+        .update(row)
+        .eq("id", eventId)
+        .select("id")
+        .single();
   if (eventInsert.error) return { error: eventInsert.error.message };
   const savedId = eventInsert.data.id as string;
 
