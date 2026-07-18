@@ -1,4 +1,5 @@
 import { safeImageSrc } from "@/lib/url";
+import { SafeImg } from "@/app/components/ui/SafeImg";
 
 const PALETTE = [
   "#0f766e",
@@ -19,24 +20,6 @@ export function Avatar({
   size?: number;
   src?: string | null;
 }) {
-  if (src) {
-    return (
-      <span
-        className="inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full"
-        style={{ width: size, height: size }}
-        aria-hidden="true"
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={safeImageSrc(src) ?? undefined}
-          alt=""
-          loading="lazy"
-          className="h-full w-full object-cover"
-        />
-      </span>
-    );
-  }
-
   const initials = (name || "?")
     .split(/\s+/)
     .filter(Boolean)
@@ -48,7 +31,7 @@ export function Avatar({
   const hash = [...(name || "")].reduce((a, c) => a + c.charCodeAt(0), 0);
   const bg = PALETTE[hash % PALETTE.length];
 
-  return (
+  const initialsBadge = (
     <span
       className="inline-flex shrink-0 items-center justify-center rounded-full font-bold text-white"
       style={{
@@ -60,6 +43,26 @@ export function Avatar({
       aria-hidden="true"
     >
       {initials}
+    </span>
+  );
+
+  const safe = safeImageSrc(src);
+  if (!safe) return initialsBadge;
+  return (
+    <span
+      className="inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full"
+      style={{ width: size, height: size }}
+      aria-hidden="true"
+    >
+      {/* A broken photo URL falls back to the same initials badge a
+          missing one gets. */}
+      <SafeImg
+        src={safe}
+        alt=""
+        loading="lazy"
+        className="h-full w-full object-cover"
+        fallback={initialsBadge}
+      />
     </span>
   );
 }

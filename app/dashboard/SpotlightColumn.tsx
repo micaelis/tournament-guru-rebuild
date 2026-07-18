@@ -3,6 +3,7 @@ import type { Route } from "next";
 import { createServerAuthClient } from "@/lib/supabase/server";
 import { unwrapRowsLogged } from "@/lib/supabase/unwrap";
 import { safeImageSrc } from "@/lib/url";
+import { SafeImg } from "@/app/components/ui/SafeImg";
 import { FavoriteButton } from "@/app/components/reviews/FavoriteButton";
 
 type SpotlightEvent = {
@@ -121,7 +122,7 @@ export async function SpotlightColumn({ userId }: { userId?: string | null }) {
               <Link href={`/events/${ev.id}` as Route} className="block">
                 {ev.logo_url && (
                   <div className="relative h-[100px] w-full overflow-hidden bg-slate-100">
-                    <img
+                    <SafeImg
                       src={safeImageSrc(ev.logo_url) ?? undefined}
                       alt=""
                       className="h-full w-full object-cover transition-transform group-hover:scale-105"

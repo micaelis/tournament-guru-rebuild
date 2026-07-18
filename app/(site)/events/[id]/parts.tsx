@@ -23,6 +23,7 @@ import type {
   DirectorProfile,
 } from "@/app/components/types";
 import { safeExternalUrl, safeImageSrc } from "@/lib/url";
+import { SafeImg } from "@/app/components/ui/SafeImg";
 
 /* ───────────────────────────────────────────────────────────────────
    Top-level layout
@@ -384,12 +385,12 @@ function GalleryTile({
       }}
       aria-label={alt}
     >
-      {/* Use raw <img> — photos come from an unknown remote host set
-          per-event; next/image would need the host allow-listed.
-          safeImageSrc drops non-http(s) URLs so a hostile director
-          can't ship a javascript:/data: as a photo. */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
+      {/* SafeImg (raw <img> under the hood) — photos come from an
+          unknown remote host set per-event; next/image would need the
+          host allow-listed. safeImageSrc drops non-http(s) URLs so a
+          hostile director can't ship a javascript:/data: as a photo;
+          a dead URL leaves the neutral tile instead of a broken glyph. */}
+      <SafeImg
         src={safeImageSrc(src) ?? undefined}
         alt={alt}
         loading="lazy"
@@ -455,8 +456,7 @@ function PlaceholderGallery({
       </span>
       {safeImageSrc(logo) ? (
         <div className="absolute inset-0 flex items-center justify-center">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <SafeImg
             src={safeImageSrc(logo)!}
             alt={`${title} logo`}
             className="max-h-[220px] max-w-[60%] object-contain"
@@ -592,8 +592,7 @@ function GalleryModal({
                 aspectRatio: i === 0 ? "16 / 9" : "4 / 3",
               }}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <SafeImg
                 src={safeImageSrc(src) ?? undefined}
                 alt={`${title} photo ${i + 1}`}
                 loading={i === 0 ? "eager" : "lazy"}
@@ -1816,8 +1815,7 @@ function SponsorRowUI({ sponsor }: { sponsor: SponsorRow }) {
         }}
       >
         {safeImageSrc(sponsor.logo) ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <SafeImg
             src={safeImageSrc(sponsor.logo)!}
             alt=""
             className="h-full w-full object-contain p-1"

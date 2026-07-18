@@ -18,6 +18,7 @@ import { useRouter } from "next/navigation";
 import type { Route } from "next";
 import type { EventRow } from "@/app/components/types";
 import { safeImageSrc } from "@/lib/url";
+import { SafeImg } from "@/app/components/ui/SafeImg";
 
 type Mode = "review" | "browse";
 
@@ -138,38 +139,36 @@ function LogoThumb({ logo, title }: { logo: string | null; title: string }) {
         border: "1px solid var(--color-border)",
       }}
     >
-      {logo ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={safeImageSrc(logo) ?? undefined}
-          alt={`${title} logo`}
-          loading="lazy"
-          style={{
-            position: "absolute",
-            inset: 0,
-            margin: "auto",
-            maxWidth: "80%",
-            maxHeight: "80%",
-            width: "auto",
-            height: "auto",
-            objectFit: "contain",
-          }}
-        />
-      ) : (
-        <span
-          className="font-heading absolute inset-0 flex items-center justify-center font-extrabold"
-          style={{
-            fontSize: 18,
-            background:
-              "linear-gradient(135deg, var(--color-accent), var(--color-accent-dark))",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            backgroundClip: "text",
-          }}
-        >
-          TG
-        </span>
-      )}
+      <SafeImg
+        src={safeImageSrc(logo) ?? undefined}
+        alt={`${title} logo`}
+        loading="lazy"
+        style={{
+          position: "absolute",
+          inset: 0,
+          margin: "auto",
+          maxWidth: "80%",
+          maxHeight: "80%",
+          width: "auto",
+          height: "auto",
+          objectFit: "contain",
+        }}
+        fallback={
+          <span
+            className="font-heading absolute inset-0 flex items-center justify-center font-extrabold"
+            style={{
+              fontSize: 18,
+              background:
+                "linear-gradient(135deg, var(--color-accent), var(--color-accent-dark))",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+            }}
+          >
+            TG
+          </span>
+        }
+      />
     </div>
   );
 }

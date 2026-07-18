@@ -9,6 +9,7 @@ import {
   EmptyState,
 } from "@/app/components/ui";
 import { safeImageSrc } from "@/lib/url";
+import { SafeImg } from "@/app/components/ui/SafeImg";
 
 /**
  * Attendee recent activity — the 50 most-recently-viewed events
@@ -109,14 +110,16 @@ function Logo({
   const safe = safeImageSrc(url);
   return (
     <span className="grid h-11 w-11 flex-none place-items-center overflow-hidden rounded-xl bg-slate-100">
-      {safe ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={safe} alt="" className="h-full w-full object-cover" />
-      ) : (
-        <span className="text-sm font-extrabold text-slate-500">
-          {title[0]?.toUpperCase() ?? "T"}
-        </span>
-      )}
+      <SafeImg
+        src={safe ?? undefined}
+        alt=""
+        className="h-full w-full object-cover"
+        fallback={
+          <span className="text-sm font-extrabold text-slate-500">
+            {title[0]?.toUpperCase() ?? "T"}
+          </span>
+        }
+      />
     </span>
   );
 }

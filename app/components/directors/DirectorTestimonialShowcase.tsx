@@ -1,5 +1,6 @@
 import type { EventDirectorTestimonial } from "@/lib/data/event-director-testimonials";
 import { safeImageSrc } from "@/lib/url";
+import { SafeImg } from "@/app/components/ui/SafeImg";
 
 /* A responsive, editorial testimonial grid for the /host page. The first
    entry gets a lead ("hero") card treatment; the rest fall into a compact
@@ -45,12 +46,18 @@ function LeadTestimonial({
     >
       {/* Photo */}
       <div className="relative min-h-[180px] md:min-h-full">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <SafeImg
           src={safeImageSrc(t.photo) ?? undefined}
           alt=""
           loading="lazy"
           className="absolute inset-0 h-full w-full object-cover"
+          fallback={
+            <span
+              aria-hidden="true"
+              className="absolute inset-0"
+              style={{ background: "linear-gradient(135deg, #e2e8f0, #cbd5e1)" }}
+            />
+          }
         />
         <div
           aria-hidden="true"
@@ -133,12 +140,18 @@ function TestimonialCard({
       style={{ borderColor: "var(--color-border)", padding: 0, margin: 0 }}
     >
       <div className="relative" style={{ paddingTop: "56%" }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <SafeImg
           src={safeImageSrc(t.photo) ?? undefined}
           alt=""
           loading="lazy"
           className="absolute inset-0 h-full w-full object-cover"
+          fallback={
+            <span
+              aria-hidden="true"
+              className="absolute inset-0"
+              style={{ background: "linear-gradient(135deg, #e2e8f0, #cbd5e1)" }}
+            />
+          }
         />
       </div>
       <div className="flex flex-1 flex-col" style={{ padding: "14px 16px 16px" }}>

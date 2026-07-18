@@ -1203,3 +1203,26 @@ state or serialization changes.
 **Tripwire:** ED onboarding e2e asserts Team 1 + "Add Team 3" visible,
 expands Team 2, fills both, and verifies the exact user_teams rows
 land via the service role. Screenshot-verified.
+
+### R2.11 · Broken remote images unmount to fallbacks (SafeImg)
+
+**What:** new `SafeImg` primitive (ui/SafeImg.tsx): an `<img>` that
+swaps to a caller-supplied fallback on load error, keyed by src so a
+changed URL retries. Adopted at every DB/remote-URL image site — both
+Avatars (→ initials), EventCard + card-bits + EventSearchOverlay +
+event-page hero/photos/sponsors, SpotlightColumn, activity/favorites
+thumbs, director pages, testimonials. DirectorPortrait already had its
+own onError and stays. EventCard's logo also moves OFF next/image:
+logos live on arbitrary per-event hosts and the optimizer only accepts
+allow-listed hostnames (same reasoning parts.tsx already documented),
+so next/image there was a latent crash for real ED-supplied URLs.
+
+**Why:** Round-2 #11 — seeded and future dead URLs (two seed unsplash
+photos 404 today) painted the browser's broken-image glyph over
+otherwise-designed fallbacks. The fix is one mechanism at the leaf,
+not per-site patches; "no image" and "broken image" now render
+identically.
+
+**Tripwire:** e2e loads /events, confirms unsplash logos render, then
+aborts all unsplash requests and asserts every such <img> unmounts.
+Verified by mutation: no-op'ing SafeImg's onError fails it.

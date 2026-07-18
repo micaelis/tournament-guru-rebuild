@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { safeImageSrc } from "@/lib/url";
+import { SafeImg } from "@/app/components/ui/SafeImg";
 import {
   getDirectorProfile,
   getDirectorEventRows,
@@ -187,27 +188,25 @@ function OrgLogoLarge({
         border: "1px solid #eef2f7",
       }}
     >
-      {safeImageSrc(logo) ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={safeImageSrc(logo)!}
-          alt=""
-          className="h-full w-full object-contain p-3"
-          loading="eager"
-        />
-      ) : (
-        <span
-          className="font-heading"
-          style={{
-            fontSize: 34,
-            fontWeight: 800,
-            letterSpacing: "-0.02em",
-            color: "var(--color-text-faint)",
-          }}
-        >
-          {initials}
-        </span>
-      )}
+      <SafeImg
+        src={safeImageSrc(logo) ?? undefined}
+        alt=""
+        className="h-full w-full object-contain p-3"
+        loading="eager"
+        fallback={
+          <span
+            className="font-heading"
+            style={{
+              fontSize: 34,
+              fontWeight: 800,
+              letterSpacing: "-0.02em",
+              color: "var(--color-text-faint)",
+            }}
+          >
+            {initials}
+          </span>
+        }
+      />
     </div>
   );
 }

@@ -1,6 +1,6 @@
-import Image from "next/image";
 import Link from "next/link";
 import { Avatar } from "./Avatar";
+import { SafeImg } from "@/app/components/ui/SafeImg";
 import { ClaimEventCta } from "@/app/(site)/events/[id]/ClaimEventCta";
 import { FavoriteButton } from "@/app/components/reviews/FavoriteButton";
 import type { EventRow } from "@/app/components/types";
@@ -438,28 +438,30 @@ export function EventCard({
               </span>
             </span>
 
-            {event.logo ? (
-              <Image
-                src={event.logo}
-                alt={`${event.title} logo`}
-                fill
-                sizes="168px"
-                className="object-contain p-3"
-              />
-            ) : (
-              <div className="relative flex h-full items-center justify-center">
-                <span
-                  className="font-heading text-2xl font-extrabold"
-                  style={{
-                    color: "var(--color-text-faint)",
-                    position: "relative",
-                    zIndex: 1,
-                  }}
-                >
-                  TG
-                </span>
-              </div>
-            )}
+            {/* Plain SafeImg, not next/image: logos live on arbitrary
+                per-event hosts (the optimizer only accepts allow-listed
+                ones), and a dead URL must fall back to the TG mark, not
+                the broken-image glyph. */}
+            <SafeImg
+              src={safeImageSrc(event.logo) ?? undefined}
+              alt={`${event.title} logo`}
+              loading="lazy"
+              className="absolute inset-0 h-full w-full object-contain p-3"
+              fallback={
+                <div className="relative flex h-full items-center justify-center">
+                  <span
+                    className="font-heading text-2xl font-extrabold"
+                    style={{
+                      color: "var(--color-text-faint)",
+                      position: "relative",
+                      zIndex: 1,
+                    }}
+                  >
+                    TG
+                  </span>
+                </div>
+              }
+            />
 
             {concluded && (
               // Concluded: a subtle white wash only. The lifecycle chip

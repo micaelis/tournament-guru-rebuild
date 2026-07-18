@@ -3,6 +3,7 @@ import type { Route } from "next";
 import { createAnonServerClient } from "@/lib/supabase/server";
 import { unwrapRows } from "@/lib/supabase/unwrap";
 import { safeImageSrc } from "@/lib/url";
+import { SafeImg } from "@/app/components/ui/SafeImg";
 
 /**
  * Public directors directory. Reads from the `public_directors` view
@@ -53,18 +54,16 @@ export default async function DirectorsPage() {
                 href={`/directors/${d.id}` as Route}
                 className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-5 transition hover:border-slate-400"
               >
-                {logo ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={logo}
-                    alt=""
-                    className="h-12 w-12 flex-none rounded-full object-cover"
-                  />
-                ) : (
-                  <span className="grid h-12 w-12 flex-none place-items-center rounded-full bg-slate-100 text-sm font-bold text-slate-500">
-                    {name[0]?.toUpperCase()}
-                  </span>
-                )}
+                <SafeImg
+                  src={logo ?? undefined}
+                  alt=""
+                  className="h-12 w-12 flex-none rounded-full object-cover"
+                  fallback={
+                    <span className="grid h-12 w-12 flex-none place-items-center rounded-full bg-slate-100 text-sm font-bold text-slate-500">
+                      {name[0]?.toUpperCase()}
+                    </span>
+                  }
+                />
                 <div className="min-w-0">
                   <p className="truncate text-[15px] font-bold text-slate-900">
                     {name}

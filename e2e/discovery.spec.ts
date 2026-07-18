@@ -25,6 +25,23 @@ test.describe("Public discovery", () => {
     await expect(page.getByRole("button", { name: /All filters/ })).toBeVisible();
   });
 
+  test("broken logo images unmount to their fallback, never the broken glyph", async ({ page }) => {
+    // Baseline: seeded events carry unsplash logo URLs that render.
+    await page.goto("/events");
+    await expect
+      .poll(async () => page.locator('img[src*="unsplash"]').count())
+      .toBeGreaterThan(0);
+
+    // Kill every logo fetch — SafeImg must swap each failed <img> out
+    // for its fallback so no broken-image glyph can appear (Round-2 #11).
+    await page.route("**images.unsplash.com**", (route) => route.abort());
+    await page.reload();
+    await expect(page.getByPlaceholder(/Search tournaments/)).toBeVisible();
+    await expect
+      .poll(async () => page.locator('img[src*="unsplash"]').count())
+      .toBe(0);
+  });
+
   test("filter drawer lists States directly below Gender", async ({ page }) => {
     await page.goto("/events");
     await page.getByRole("button", { name: /All filters/ }).click();

@@ -101,9 +101,15 @@ Build screens from these; don't hand-roll equivalents.
   Coach value in red, Attendee in amber.
 - **Avatar** — circular element with a deterministic color from a fixed palette. Accepts an
   optional `src` prop: when provided, renders an `<img>` with `object-fit: cover` filling the
-  circle (no padding, no `object-contain`); when absent, renders initials. All circle
-  avatars/logos (org logos, profile photos, reviewer avatars) must go through Avatar so the
-  fill rule applies uniformly.
+  circle (no padding, no `object-contain`); when absent — or when the URL fails to load —
+  renders initials. All circle avatars/logos (org logos, profile photos, reviewer avatars)
+  must go through Avatar so the fill rule applies uniformly.
+- **SafeImg** — `<img>` wrapper that swaps to a caller-supplied `fallback` (default: nothing)
+  when the source is missing or fails to load. EVERY non-circular image whose URL comes from
+  the DB or a remote host renders through it (event logos, photos, sponsor logos, portraits)
+  so a dead URL never paints the browser's broken-image glyph. Callers still scheme-check via
+  `safeImageSrc`. Don't use next/image for per-event remote hosts — the optimizer only accepts
+  allow-listed hostnames.
 - **Table** — dashboard list rows; use a shared grid template with a fixed-width actions column
   so columns align across rows (never `auto`-width action cells).
 - **EmptyState** — the shared "no results / nothing yet" placeholder; reuse everywhere with
