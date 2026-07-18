@@ -262,35 +262,16 @@ function OrgAvatar({
   size?: number;
 }) {
   const ring = "0 2px 6px rgba(15,23,42,.16), 0 0 0 1px rgba(15,23,42,.06)";
-  if (logo) {
-    return (
-      <span
-        className="inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full"
-        style={{
-          width: size,
-          height: size,
-          background: "#fff",
-          border: "2px solid #fff",
-          boxShadow: ring,
-        }}
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={safeImageSrc(logo) ?? undefined}
-          alt=""
-          loading="lazy"
-          className="h-full w-full object-contain"
-          style={{ padding: 2 }}
-        />
-      </span>
-    );
-  }
   return (
     <span
       className="inline-flex shrink-0 items-center justify-center rounded-full"
       style={{ border: "2px solid #fff", boxShadow: ring }}
     >
-      <Avatar name={name || "?"} size={size} />
+      <Avatar
+        name={name || "?"}
+        size={size}
+        src={logo ? safeImageSrc(logo) : null}
+      />
     </span>
   );
 }
@@ -385,18 +366,11 @@ export function EventCard({
 
   return (
     <article
-      className={`group relative overflow-hidden rounded-2xl border bg-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg ${
-        // Concluded dim is *skipped* on featured cards — Franco's premium
-        // slots need to stay high-contrast even when the event is in the
-        // past (paying advertisers get the same visual weight regardless
-        // of lifecycle). Non-featured concluded cards still fade back
-        // via .tg-card-concluded so they visibly deprioritize.
+      className={`tg-event-card group relative overflow-hidden rounded-2xl border bg-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg ${
         concluded && !isFeatured ? "tg-card-concluded" : ""
       }`}
       style={{
-        // Bumped featured border + shadow opacities so the premium card
-        // reads with sharper contrast against the surrounding aurora and
-        // against non-featured neighbours — was .20/.35, now .32/.55.
+        containerType: "inline-size",
         borderColor: isFeatured ? "rgba(220,38,38,.32)" : "var(--color-border)",
         boxShadow: isFeatured
           ? "0 14px 32px -18px rgba(220,38,38,.55), 0 2px 6px rgba(220,38,38,.10), 0 1px 2px rgba(15,23,42,.06)"
@@ -430,13 +404,9 @@ export function EventCard({
           />
         )}
       </div>
-      <div className="flex items-stretch" style={{ padding: 8, gap: 4 }}>
-        {/* ── LEFT COLUMN — logo panel with the host row stacked underneath.
-             Franco's ask (again): the org logo + name should sit under the
-             event logo, not next to the title, so the content column can
-             stay focused on title/pills/excerpt/ratings. Host row is a
-             real Link to /directors/{owner_id}. */}
-        <div className="flex shrink-0 flex-col" style={{ width: 168, gap: 8 }}>
+      <div className="tg-card-body flex items-stretch" style={{ padding: 8, gap: 4 }}>
+        {/* ── LEFT COLUMN — logo panel + host row. */}
+        <div className="tg-card-left flex shrink-0 flex-col" style={{ width: 168, gap: 8 }}>
         <div
           className="relative overflow-hidden rounded-xl"
           style={{
@@ -623,12 +593,11 @@ export function EventCard({
 
             {excerpt && (
               <p
-                className="mt-2.5"
+                className="mt-3.5 mb-0"
                 style={{
                   fontSize: 12.5,
                   lineHeight: 1.5,
                   color: "var(--color-text-secondary)",
-                  margin: 0,
                   display: "-webkit-box",
                   WebkitLineClamp: 2,
                   WebkitBoxOrient: "vertical",
@@ -730,6 +699,16 @@ export function EventCard({
         .tg-card-concluded { opacity: .68; }
         .tg-card-concluded:hover,
         .tg-card-concluded:focus-within { opacity: 1; }
+        /* Compact stacked layout when the card's container is narrow */
+        @container (max-width: 420px) {
+          .tg-card-body {
+            flex-direction: column !important;
+          }
+          .tg-card-left {
+            width: 100% !important;
+            flex-shrink: 1;
+          }
+        }
       `}</style>
     </article>
   );
@@ -878,50 +857,53 @@ function AudienceRating({
         {theme.label}
       </span>
 
-      {/* Score + count as one unified string at consistent sizes.
-          Populated: "4.02/5 · 79 reviews" — score anchor slightly
-          bolder, "/5" faint, count fully readable (not a 12px orphan).
-          Empty: "—/5 · No reviews yet" — SAME shape as populated so
-          the two audience chips always mirror each other's footprint,
-          regardless of whether either has data. Fixes the earlier
-          asymmetry where Coach read "Not yet reviewed" (5 words) while
-          Attendee showed a huge 18 px "5" next to a tiny "· 1". */}
-      <span className="inline-flex items-baseline whitespace-nowrap">
-        <b
-          className="font-heading"
-          style={{
-            fontSize: 14,
-            fontWeight: 800,
-            letterSpacing: "-0.015em",
-            color: has ? "var(--color-dark)" : "var(--color-text-faint)",
-            lineHeight: 1,
-          }}
-        >
-          {has ? fmtScore(score) : "—"}
-        </b>
-        <span
-          style={{
-            fontSize: 12.5,
-            fontWeight: 700,
-            color: "var(--color-text-faint)",
-            marginLeft: 2,
-          }}
-        >
-          /5
+      {/* Score + review count, or "No reviews yet" when empty. */}
+      {has ? (
+        <span className="inline-flex items-baseline whitespace-nowrap">
+          <b
+            className="font-heading"
+            style={{
+              fontSize: 14,
+              fontWeight: 800,
+              letterSpacing: "-0.015em",
+              color: "var(--color-dark)",
+              lineHeight: 1,
+            }}
+          >
+            {fmtScore(score)}
+          </b>
+          <span
+            style={{
+              fontSize: 12.5,
+              fontWeight: 700,
+              color: "var(--color-text-faint)",
+              marginLeft: 2,
+            }}
+          >
+            /5
+          </span>
+          <span
+            style={{
+              fontSize: 12,
+              fontWeight: 500,
+              color: "var(--color-text-muted)",
+              marginLeft: 6,
+            }}
+          >
+            · {count} review{count === 1 ? "" : "s"}
+          </span>
         </span>
+      ) : (
         <span
           style={{
             fontSize: 12,
             fontWeight: 500,
             color: "var(--color-text-muted)",
-            marginLeft: 6,
           }}
         >
-          {has
-            ? `· ${count} review${count === 1 ? "" : "s"}`
-            : "· No reviews yet"}
+          No reviews yet
         </span>
-      </span>
+      )}
     </span>
   );
 }
