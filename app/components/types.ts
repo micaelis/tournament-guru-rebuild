@@ -110,6 +110,9 @@ export type DirectorProfile = {
   coach_reviews: number;
   attendee_rating: number;
   attendee_reviews: number;
+  business_phone: string | null;
+  business_email: string | null;
+  business_website: string | null;
 };
 
 /** Parent tournament summary (event detail fallback header). */

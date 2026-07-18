@@ -2155,6 +2155,50 @@ function ContactPanel({
         </>
       )}
 
+      {director &&
+        (director.business_phone ||
+          director.business_email ||
+          director.business_website) && (
+          <>
+            <Divider />
+            <div className="space-y-1.5">
+              {director.business_phone && (
+                <a
+                  href={`tel:${director.business_phone}`}
+                  className="flex items-center gap-2 text-[13px] no-underline transition-colors hover:opacity-80"
+                  style={{ color: "var(--color-text-secondary)" }}
+                >
+                  <PhoneIcon />
+                  {director.business_phone}
+                </a>
+              )}
+              {director.business_email && (
+                <a
+                  href={`mailto:${director.business_email}`}
+                  className="flex items-center gap-2 text-[13px] no-underline transition-colors hover:opacity-80"
+                  style={{ color: "var(--color-text-secondary)" }}
+                >
+                  <MailIcon />
+                  {director.business_email}
+                </a>
+              )}
+              {director.business_website &&
+                safeExternalUrl(director.business_website) && (
+                  <a
+                    href={safeExternalUrl(director.business_website)!}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-[13px] no-underline transition-colors hover:opacity-80"
+                    style={{ color: "var(--color-text-secondary)" }}
+                  >
+                    <ExternalIcon />
+                    {director.business_website.replace(/^https?:\/\//, "")}
+                  </a>
+                )}
+            </div>
+          </>
+        )}
+
     </div>
   );
 }
@@ -2747,6 +2791,13 @@ function MailIcon() {
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <rect x="3" y="5" width="18" height="14" rx="2" />
       <path d="M3 7l9 6 9-6" />
+    </svg>
+  );
+}
+function PhoneIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.79 19.79 0 012.12 4.18 2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z" />
     </svg>
   );
 }

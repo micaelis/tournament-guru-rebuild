@@ -685,3 +685,20 @@ client during onboarding).
 
 **Alternative:** run migrations as `supabase_admin`. Not possible with the
 local CLI's `db reset` command.
+
+### S8.3 · Business contact fields for EDs
+
+**What:** Added `business_phone`, `business_email`, `business_website`
+columns to `profiles`. Exposed through the `public_directors` definer
+view (security_invoker = false) so the auth email is never leaked. The
+event detail ContactPanel renders them when populated; EDs set them in
+Account → Profile.
+
+**Why:** The spec calls for phone/email/website in the host sidebar, but
+the only email on the profile was the auth email, which is PII. A
+separate set of designated public-contact fields keeps the auth email
+private while giving EDs a way to surface a business inbox.
+
+**Alternative:** Store contact info per-event (on `events` table). Rejected
+because it duplicates across every event and the spec ties it to the
+host identity, not the event.

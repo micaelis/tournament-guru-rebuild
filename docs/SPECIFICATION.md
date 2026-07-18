@@ -446,10 +446,11 @@ logged in, favouriting prompts account creation first.
   featured events only** — **"x% would attend"** drawn from the coach/manager
   `would_return` question.
 - **Sticky Host Information sidebar**: ED photo, name (clickable → public ED
-  page), total received reviews, average score, total published events, phone,
-  email, org description, website URL, registration URL, and **Other Events by
-  this host** (3–4 max). The host card pulls the owner ED's profile org
-  (logo/title); the event card itself always shows `host_club`.
+  page), total received reviews, average score, total published events, **business
+  phone/email/website** (from `profiles.business_*` via the `public_directors`
+  definer view — never the auth email), org description, registration URL, and
+  **Other Events by this host** (3–4 max). The host card pulls the owner ED's
+  profile org (logo/title); the event card itself always shows `host_club`.
 - **Left content**: age groups, gender, **surface**, level, teams, description,
   age groups and pricing; **Key Dates & Deadlines** (featured only — see below);
   additional features (what's included).

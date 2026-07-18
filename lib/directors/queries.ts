@@ -26,7 +26,7 @@ export async function getDirectorProfile(
   const { data: d } = await supabase
     .from("public_directors")
     .select(
-      "id, first_name, last_name, organization_title, org_logo_url, org_description, profile_photo_url",
+      "id, first_name, last_name, organization_title, org_logo_url, org_description, profile_photo_url, business_phone, business_email, business_website",
     )
     .eq("id", id)
     .maybeSingle();
@@ -39,6 +39,9 @@ export async function getDirectorProfile(
     org_logo_url: string | null;
     org_description: string | null;
     profile_photo_url: string | null;
+    business_phone: string | null;
+    business_email: string | null;
+    business_website: string | null;
   };
 
   const { data: evs } = await supabase
@@ -120,6 +123,9 @@ export async function getDirectorProfile(
     coach_reviews: coachN,
     attendee_rating: attRated ? attSum / attRated : 0,
     attendee_reviews: attN,
+    business_phone: dir.business_phone,
+    business_email: dir.business_email,
+    business_website: dir.business_website,
   };
 }
 

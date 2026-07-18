@@ -58,6 +58,7 @@ faq_audience       : attendee | event_director | both
 | onboarding_completed | bool not null default false | drives auth redirects |
 | email_review_replies, inapp_review_replies, email_review_likes, inapp_review_likes, email_comment_replies, inapp_comment_replies | bool | attendee notif prefs, **default false** |
 | email_event_reviews, inapp_event_reviews, email_favorited_events, inapp_favorited_events | bool | ED notif prefs, **default false** |
+| business_phone, business_email, business_website | text null | ED public contact info; exposed via `public_directors` view. **Never** the auth email. |
 
 Notes: spelling is **organization** everywhere (not organisation). `user_email` lives in
 auth.users; where a public surface needs it, it does NOT get exposed (PII rule).

@@ -40,6 +40,9 @@ export type AccountProfile = {
   org_description: string | null;
   org_logo_url: string | null;
   profile_photo_url: string | null;
+  business_phone: string | null;
+  business_email: string | null;
+  business_website: string | null;
   location_formatted: string | null;
   location_lat: number | null;
   location_lng: number | null;
@@ -271,6 +274,26 @@ function ProfileTab({
             name="org_logo_url"
             type="url"
             defaultValue={values.org_logo_url ?? profile.org_logo_url ?? ""}
+          />
+          <Field
+            label="Business phone"
+            name="business_phone"
+            type="tel"
+            defaultValue={values.business_phone ?? profile.business_phone ?? ""}
+            hint="Shown publicly on your event pages."
+          />
+          <Field
+            label="Business email"
+            name="business_email"
+            type="email"
+            defaultValue={values.business_email ?? profile.business_email ?? ""}
+            hint="Public contact email — not your login email."
+          />
+          <Field
+            label="Business website"
+            name="business_website"
+            type="url"
+            defaultValue={values.business_website ?? profile.business_website ?? ""}
           />
         </>
       )}

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createServerAuthClient } from "@/lib/supabase/server";
 import { DISTANCE_PREFS, USER_GENDERS } from "@/lib/enums";
-import { safeImageSrc } from "@/lib/url";
+import { safeExternalUrl, safeImageSrc } from "@/lib/url";
 import { parseGeoFields } from "@/lib/geo";
 
 export type AccountState = {
@@ -42,6 +42,11 @@ export async function updateProfile(
     String(formData.get("location_formatted") ?? "").trim() || null;
   const user_gender = String(formData.get("user_gender") ?? "").trim() || null;
 
+  const business_phone = String(formData.get("business_phone") ?? "").trim() || null;
+  const business_email = String(formData.get("business_email") ?? "").trim() || null;
+  const business_website =
+    safeExternalUrl(String(formData.get("business_website") ?? "")) ?? null;
+
   const fieldErrors: Record<string, string> = {};
   if (!first_name) fieldErrors.first_name = "First name is required.";
   if (!last_name) fieldErrors.last_name = "Last name is required.";
@@ -65,6 +70,9 @@ export async function updateProfile(
       location_formatted,
       ...parseGeoFields(formData),
       user_gender,
+      business_phone,
+      business_email,
+      business_website,
     })
     .eq("id", user.id);
   if (error) return { error: error.message };
