@@ -2502,13 +2502,14 @@ alter default privileges for role postgres in schema public
   grant all on tables to anon, authenticated, service_role;
 alter default privileges for role postgres in schema public
   grant all on sequences to anon, authenticated, service_role;
-alter default privileges for role postgres in schema public
-  grant all on functions to anon, authenticated, service_role;
 
--- Retroactively fix all existing tables/sequences/functions.
+-- Retroactively fix all existing tables/sequences.
+-- Functions are NOT granted here — they default to EXECUTE for PUBLIC
+-- on creation and were never part of the missing-grant problem. Granting
+-- them would re-enable the ~17 functions that RG1 (000011 + 000013)
+-- deliberately revoked.
 grant all on all tables in schema public to anon, authenticated, service_role;
 grant all on all sequences in schema public to anon, authenticated, service_role;
-grant all on all functions in schema public to anon, authenticated, service_role;
 
 -- ── Re-apply column-level restrictions ──────────────────────────────
 -- The broad GRANT ALL above restored table-level INSERT/UPDATE on
@@ -2565,13 +2566,6 @@ grant  update (
   updated_at
 ) on events to authenticated;
 
--- Sensitive functions stay revoked from public callers.
-revoke execute on function rate_limit_touch(text,int) from public, anon, authenticated;
-revoke execute on function recalc_event_ratings(uuid) from public, anon, authenticated;
-revoke execute on function recalc_tournament_ratings(uuid) from public, anon, authenticated;
-revoke execute on function trg_bump_tournament_counter() from public, anon, authenticated;
-revoke execute on function admin_set_premium(uuid, boolean) from public, anon;
-revoke execute on function admin_set_general_ad(uuid, boolean) from public, anon;
 
 -- ── 20260718000006_business_contact_fields.sql ──────────────────────────────────────────
 -- Add public business-contact fields to profiles (ED only in practice).

@@ -10,6 +10,8 @@
  *   - `anonymize_account` same
  *   - `recalc_event_ratings` / `recalc_tournament_ratings` EXECUTE
  *     revoked from authenticated (returns 42501 / not accessible)
+ *   - All 17 RG1-revoked functions (000011 + 000013) are NOT callable
+ *     by authenticated — regression guard against blanket function grants
  */
 import { afterAll, describe, expect, it } from "vitest";
 import { createUser, purge, seedTournamentAndEvent, service } from "../harness";
@@ -174,4 +176,59 @@ describe("C2 · destructive definer guards", () => {
       /permission denied|not allowed|does not exist/i.test(error!.message);
     expect(looksLikePermission).toBe(true);
   });
+});
+
+/**
+ * RG1 regression guard — every function that 000011 + 000013 revoked
+ * EXECUTE on must stay non-callable by authenticated users through the
+ * API. Catches blanket GRANT ALL ON ALL FUNCTIONS regressions.
+ */
+describe("C2 · RG1 function EXECUTE revocations (full list)", () => {
+  // All 17 functions revoked by 000011 (15) + 000013 (2).
+  const REVOKED_FUNCTIONS = [
+    "handle_new_user",
+    "touch_updated_at",
+    "trg_reviews_write",
+    "trg_reviews_recalc",
+    "trg_helpful_count",
+    "trg_event_search",
+    "trg_search_queries_rate_limit",
+    "trg_contact_requests_rate_limit",
+    "stamp_premium_at",
+    "trg_lock_profile_role",
+    "trim_recently_viewed",
+    "recalc_event_ratings",
+    "recalc_tournament_ratings",
+    "rate_limit_prune",
+    "review_overall",
+    "trg_bump_tournament_counter",
+    "trg_bump_event_counter",
+  ];
+
+  it.each(REVOKED_FUNCTIONS)(
+    "%s is NOT callable by authenticated",
+    async (fnName) => {
+      const caller = await createUser({
+        metadata: { user_type: "attendee", role_title: "coach" },
+        completeOnboarding: true,
+        role: "coach",
+      });
+      users.push(caller.id);
+
+      const { error } = await caller.client.rpc(fnName as never, {});
+      expect(
+        error,
+        `${fnName} should not be callable`,
+      ).not.toBeNull();
+      const denied =
+        error!.code === "42501" ||
+        /permission denied|not allowed|does not exist|could not find/i.test(
+          error!.message,
+        );
+      expect(
+        denied,
+        `${fnName}: unexpected error ${error!.code} — ${error!.message}`,
+      ).toBe(true);
+    },
+  );
 });
