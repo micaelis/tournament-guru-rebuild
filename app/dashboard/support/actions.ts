@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import { createServerAuthClient } from "@/lib/supabase/server";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
 import { validateEmail } from "@/lib/validation";
-import { sendPromoEmail } from "@/lib/promo/email";
+import { sendSupportEmail } from "@/lib/email/support";
 
 export type SupportState = {
   error?: string;
@@ -59,12 +59,11 @@ export async function submitSupportMessage(
   });
   if (dbError) return { error: dbError.message };
 
-  const send = await sendPromoEmail({
+  const send = await sendSupportEmail({
     to: SUPPORT_RECIPIENT,
-    templateData: {
-      event_title: `Support · ${name}`,
-      link_url: `mailto:${email}?subject=Re:%20Tournament%20Guru%20support`,
-    },
+    senderName: name,
+    senderEmail: email,
+    message,
   });
   if (!send.ok) {
     return {
