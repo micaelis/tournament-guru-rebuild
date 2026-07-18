@@ -5,7 +5,13 @@
  * table for these fields return nothing (RLS-protected).
  */
 import { afterAll, describe, expect, it } from "vitest";
-import { anon, createUser, purge, seedTournamentAndEvent } from "../harness";
+import {
+  anon,
+  createUser,
+  purge,
+  seedTournamentAndEvent,
+  service,
+} from "../harness";
 
 const users: string[] = [];
 afterAll(() => purge(users));
@@ -98,5 +104,111 @@ describe("H1 · public identity views", () => {
       .eq("id", ed.id)
       .maybeSingle();
     expect(lastErr).not.toBeNull();
+  });
+});
+
+/**
+ * H1 write-denial — the public projection views must be READ-ONLY.
+ *
+ * They carry no RLS and run as their owner (`security_invoker = false`,
+ * owner `postgres` has BYPASSRLS), so a table-level write grant on one
+ * is a straight RLS bypass into the base table. 20260718000005's
+ * `grant all on all tables` handed exactly that to anon and
+ * authenticated until 20260718000008 revoked it.
+ *
+ * Add any new `public.*` view to PUBLIC_VIEWS below — 000005's
+ * `alter default privileges ... on tables` still grants write to views
+ * created after it, so a new view starts out writable.
+ *
+ * `key` must be a real column on the view and `first_name` must be in
+ * its projection — otherwise PostgREST rejects with 42703 (undefined
+ * column) before it ever evaluates privileges, and the assertion would
+ * pass for the wrong reason.
+ */
+const PUBLIC_VIEWS = [
+  { view: "public_directors", key: "id" },
+  { view: "public_event_owners", key: "id" },
+  { view: "public_comment_authors", key: "author_id" },
+  { view: "review_author_public", key: "review_id" },
+] as const;
+
+const ANY_UUID = "aaaaaaaa-0000-0000-0000-000000000002";
+
+/**
+ * A write must be refused for a *real* reason:
+ *   42501 — permission denied (the write grant is revoked)
+ *   55000 — view is not auto-updatable (multi-table join)
+ * 42703 (undefined column) would mean the probe never reached the
+ * privilege check, so it is asserted against explicitly.
+ */
+function expectDenied(
+  error: { code: string; message: string } | null,
+  view: string,
+  verb: string,
+) {
+  expect(error, `${view} accepted an ${verb}`).not.toBeNull();
+  expect(
+    error!.code,
+    `${view}: ${verb} rejected on a bad column, not on privileges — ` +
+      `this assertion proves nothing (${error!.message})`,
+  ).not.toBe("42703");
+  expect(
+    ["42501", "55000"],
+    `${view}: unexpected ${verb} failure ${error!.code} — ${error!.message}`,
+  ).toContain(error!.code);
+}
+
+describe("H1 · public views are read-only", () => {
+  it.each(PUBLIC_VIEWS)("anon cannot UPDATE $view", async ({ view, key }) => {
+    const { error } = await anon()
+      .from(view)
+      .update({ first_name: "ANON-WRITE-PROBE" })
+      .eq(key, ANY_UUID);
+    expectDenied(error, view, "anon UPDATE");
+  });
+
+  it.each(PUBLIC_VIEWS)("anon cannot DELETE from $view", async ({ view, key }) => {
+    const { error } = await anon().from(view).delete().eq(key, ANY_UUID);
+    expectDenied(error, view, "anon DELETE");
+  });
+
+  it.each(PUBLIC_VIEWS)("anon cannot INSERT into $view", async ({ view }) => {
+    const { error } = await anon()
+      .from(view)
+      .insert({ first_name: "ANON-WRITE-PROBE" });
+    expectDenied(error, view, "anon INSERT");
+  });
+
+  it.each(PUBLIC_VIEWS)(
+    "an authenticated non-owner cannot UPDATE $view",
+    async ({ view, key }) => {
+      const attacker = await createUser({
+        metadata: { user_type: "attendee", role_title: "coach" },
+        completeOnboarding: true,
+        role: "coach",
+      });
+      users.push(attacker.id);
+      const { error } = await attacker.client
+        .from(view)
+        .update({ first_name: "AUTHED-WRITE-PROBE" })
+        .eq(key, ANY_UUID);
+      expectDenied(error, view, "authenticated UPDATE");
+    },
+  );
+
+  it("anon can still SELECT through the views (read path intact)", async () => {
+    const { error } = await anon()
+      .from("public_directors")
+      .select("id, first_name")
+      .limit(1);
+    expect(error).toBeNull();
+  });
+
+  it("no probe write reached the profiles base table", async () => {
+    const { data } = await service()
+      .from("profiles")
+      .select("id")
+      .in("first_name", ["ANON-WRITE-PROBE", "AUTHED-WRITE-PROBE"]);
+    expect(data ?? []).toEqual([]);
   });
 });

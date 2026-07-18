@@ -35,7 +35,7 @@ idling and the pane stays blank. Verify via typecheck + build + `npm test` + `np
 | `c2-definer-guards` | Destructive / definer RPCs reject non-owner, non-admin callers; trigger-only helpers aren't callable via PostgREST. |
 | `c3-apply-promo` | `apply_promo_to_review` validates the full chain (attacker case, wrong-email case, legit path). |
 | `c4-promo-flow` | Flagship flow: CSV → promo issued → anon lands → coach signs up (matching email) → claim → publish review → guru badge set. |
-| `h1-public-views` | Public reviewer/host identity reads go through DEFINER views; no PII (last_name, email, DOB) leaks on a direct table read. |
+| `h1-public-views` | Public reviewer/host identity reads go through DEFINER views; no PII (last_name, email, DOB) leaks on a direct table read. Also asserts the views are **read-only**: anon and authenticated-non-owner cannot INSERT/UPDATE/DELETE through any of the four `public_*` views, and no write reaches `profiles` (S8.5). |
 | `h2-onboarding-step3` | `preferences_completed` drives the wizard; an ED skipping the optional step advances cleanly. |
 | `event-tier-escalation` | ED cannot self-upgrade `is_premium` / `is_general_ad` (column grant + RPC guard); admin CAN via `admin_set_premium` / `admin_set_general_ad`. |
 | `rls-writes` | Write authorization across roles (who may insert/update/delete which rows). |

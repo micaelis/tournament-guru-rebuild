@@ -60,6 +60,15 @@ flag_reason        : profanity | illicit | solicitation | other
 | email_event_reviews, inapp_event_reviews, email_favorited_events, inapp_favorited_events | bool | ED notif prefs, **default false** |
 | business_phone, business_email, business_website | text null | ED public contact info; exposed via `public_directors` view. **Never** the auth email. |
 
+> **Public projection views are read-only.** `public_directors`,
+> `public_event_owners`, `public_comment_authors`, and
+> `review_author_public` carry no RLS and run as their owner
+> (`security_invoker = false`), so a write grant on one bypasses RLS into
+> the base table. `anon`/`authenticated` hold SELECT only — enforced by
+> migration 20260718000008 and guarded by `h1-public-views` (see S8.5).
+> A newly added view starts out writable via 000005's default
+> privileges; add it to that probe's `PUBLIC_VIEWS` list.
+
 Notes: spelling is **organization** everywhere (not organisation). `user_email` lives in
 auth.users; where a public surface needs it, it does NOT get exposed (PII rule).
 

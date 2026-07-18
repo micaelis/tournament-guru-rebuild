@@ -720,3 +720,45 @@ The old `faq_audience` enum couldn't represent per-role targeting.
 **Alternative:** Keep the enum and add role filtering as a separate
 column. Rejected because it couples audience cardinality to the enum
 definition and can't represent "attendee:coach + event_director:all".
+
+### S8.5 · Public projection views are read-only at the grant layer
+
+**What:** migration 20260718000008 revokes INSERT/UPDATE/DELETE (plus
+TRUNCATE/REFERENCES/TRIGGER) on every view in `public` from `anon` and
+`authenticated`, leaving SELECT. Supersedes the grant description in
+[S8.2](#s82--default-table-grants-fix-for-supabase-db-reset).
+
+**Why:** 20260718000005's `grant all on all tables in schema public`
+also hit views — in Postgres `ALL TABLES` includes them. The `public_*`
+views carry no RLS of their own and are declared `security_invoker =
+false` with `postgres` as owner (which has BYPASSRLS), so a write
+through an auto-updatable view executes as the owner and skips RLS on
+the base table. Table-level grants are therefore the *only* access
+control on them. `public_directors` and `public_event_owners` are
+single-table selects and thus auto-updatable, so `anon` could UPDATE or
+DELETE rows in `profiles` holding nothing but the public anon key —
+verified end-to-end against the REST API (`PATCH → HTTP 204`, write
+landed in the base table; `DELETE` orphaned the director's events).
+The baseline granted SELECT only (20260716000001 l.1011); 000005
+silently widened it.
+
+The revoke loops over all views rather than enumerating, so the two
+currently non-auto-updatable views are covered if their definitions are
+ever simplified to a single table.
+
+**Tripwire:** `tests/probes/h1-public-views.test.ts` gained an `it.each`
+write-denial matrix (anon + authenticated-non-owner × UPDATE/DELETE/
+INSERT × all four views) plus a base-table assertion. Verified
+non-vacuous by mutation: re-granting write makes 8 of those tests fail.
+The helper rejects a 42703 (undefined column) result explicitly, because
+that would mean the probe never reached the privilege check — the same
+false-green shape found in the c2 probe during the turbo-check.
+
+**Known gap:** 000005's `alter default privileges ... on tables` still
+grants write on views created *after* it, so a new view starts out
+writable. The probe's `PUBLIC_VIEWS` list must be extended when a view
+is added; that list is the guard.
+
+**Alternative:** set `security_invoker = true` on the views. Rejected —
+these views exist precisely to expose a narrow public projection of
+RLS-protected rows to anon, which invoker semantics would break.
