@@ -32,10 +32,13 @@
    (light aurora, dark manifesto band, red hero) without shouting.
    Text form controls are exempt because they manage their own focus
    treatment via container `focus-within` styles. */
+/* No border-radius here: outlines follow the element's own radius
+   natively, and `border-radius: inherit` overwrote the element's
+   radius with its parent's while focused (squared the sort <select>
+   and any rounded control inside a square wrapper). */
 *:focus-visible {
   outline: 2px solid color-mix(in srgb, var(--color-dark) 40%, transparent);
   outline-offset: 2px;
-  border-radius: inherit;
 }
 input:focus-visible,
 textarea:focus-visible,

@@ -1090,3 +1090,21 @@ card owns the scroll because only it knows it replaced the form.
 **Tripwire:** e2e "contact submit keeps the confirmation in view"
 (768×540, pre-scrolled to bottom) asserts the heading is in the
 viewport. Verified by mutation: emptying the effect fails it.
+
+### R2.12 · Global focus ring must not carry `border-radius: inherit`
+
+**What:** dropped `border-radius: inherit` from the `*:focus-visible`
+rule in globals.css; the outline follows the element's own radius
+natively.
+
+**Why:** Round-2 #12 — `inherit` replaced the FOCUSED element's radius
+with its parent's. The sort-by `<select>` (rounded-[10px] inside a
+plain label) went square while focused and snapped back on blur;
+Chromium marks a clicked <select> :focus-visible, so mouse users saw
+it too. Every rounded control inside a square wrapper had the same
+latent glitch on keyboard focus. The line predates evergreen outline
+radius-following and served no purpose current browsers need.
+
+**Tripwire:** e2e "sort-by select keeps its border-radius while
+focused" asserts computed border-radius 10px before and during focus.
+Verified by mutation: re-adding the line fails it.

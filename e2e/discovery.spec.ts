@@ -61,6 +61,20 @@ test.describe("Public discovery", () => {
     await expect(img.locator("xpath=..")).toHaveClass(/rounded-full/);
   });
 
+  test("sort-by select keeps its border-radius while focused", async ({ page }) => {
+    // The global *:focus-visible rule must not overwrite an element's
+    // own radius (border-radius: inherit squared the select against
+    // its label wrapper while focused — Round-2 #12).
+    await page.goto("/events");
+    const select = page.locator("select").first();
+    const radius = () =>
+      select.evaluate((el) => getComputedStyle(el).borderRadius);
+    expect(await radius()).toBe("10px");
+    await select.focus();
+    await page.keyboard.press("ArrowDown"); // ensure :focus-visible heuristics engage
+    expect(await radius()).toBe("10px");
+  });
+
   test("contact submit keeps the confirmation in view", async ({ page }) => {
     // Submitting swaps the tall form for a short success card; the
     // viewport must land on the confirmation, not stay parked at the
