@@ -122,11 +122,10 @@ export function FilterDrawer({
 
         <div className="flex-1 overflow-y-auto px-[22px] pb-[22px] pt-1.5">
           {/* Group ORDER: quick top-level toggles first (Dates + Registration
-              open-only), then the demographic filters, ending with States
-              because its 50-item checklist takes the most vertical space
-              and reads well as the "final" group. This avoids landing on a
-              tiny Registration toggle at the bottom of the scroll with
-              acres of blank space below it. */}
+              open-only), then the demographic filters with States directly
+              below Gender (Round-2 #8 — geography belongs with the
+              who-is-this-for cluster, not exiled to the bottom), ending with
+              Level + Surface. */}
           <Group label="Dates" hilite={focus === "dates"}>
             <div className="flex gap-2">
               <DateField label="From" value={filters.dateStart} onChange={(v) => onChange({ dateStart: v })} />
@@ -241,6 +240,21 @@ export function FilterDrawer({
             </Group>
           )}
 
+          {options.states.length > 0 && (
+            <Group
+              label="States"
+              hilite={focus === "states"}
+              subtitle="Multi-select"
+            >
+              <StatesChecklist
+                options={options.states}
+                selected={filters.states}
+                onToggle={(v) => toggle("states", v)}
+                onSelectAll={() => onChange({ states: [] })}
+              />
+            </Group>
+          )}
+
           {options.levels.length > 0 && (
             <Group label="Level of competition" hilite={focus === "levels"} subtitle="Highest = ECNL / MLS Next caliber">
               <div className="grid gap-2">
@@ -263,21 +277,6 @@ export function FilterDrawer({
                 label={surfaceLabel}
                 selected={filters.surfaces}
                 onToggle={(v) => toggle("surfaces", v)}
-              />
-            </Group>
-          )}
-
-          {options.states.length > 0 && (
-            <Group
-              label="States"
-              hilite={focus === "states"}
-              subtitle="Multi-select"
-            >
-              <StatesChecklist
-                options={options.states}
-                selected={filters.states}
-                onToggle={(v) => toggle("states", v)}
-                onSelectAll={() => onChange({ states: [] })}
               />
             </Group>
           )}

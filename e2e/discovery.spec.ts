@@ -25,6 +25,18 @@ test.describe("Public discovery", () => {
     await expect(page.getByRole("button", { name: /All filters/ })).toBeVisible();
   });
 
+  test("filter drawer lists States directly below Gender", async ({ page }) => {
+    await page.goto("/events");
+    await page.getByRole("button", { name: /All filters/ }).click();
+    const labels = await page
+      .getByRole("dialog", { name: "Filter tournaments" })
+      .locator("div.text-\\[14px\\].font-bold")
+      .allInnerTexts();
+    const gender = labels.indexOf("Gender");
+    expect(gender).toBeGreaterThan(-1);
+    expect(labels[gender + 1]).toBe("States");
+  });
+
   test("filter drawer distance box keeps focus across keystrokes", async ({ page }) => {
     // Each keystroke patches the filter state upstream; the drawer's
     // focus-on-open effect must not re-run on that re-render and steal
