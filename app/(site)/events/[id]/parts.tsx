@@ -1955,10 +1955,10 @@ function ContactPanel({
     >
       {/* Host identity */}
       <div className="flex items-center gap-3">
-        <HostAvatar
-          logo={director?.org_logo ?? null}
-          picture={director?.profile_picture ?? null}
+        <Avatar
           name={hostName}
+          size={48}
+          src={director?.org_logo ?? director?.profile_picture ?? null}
         />
         <div className="min-w-0">
           <div
@@ -2322,33 +2322,6 @@ function PanelRating({
       </div>
     </div>
   );
-}
-
-function HostAvatar({
-  logo,
-  picture,
-  name,
-}: {
-  logo: string | null;
-  picture: string | null;
-  name: string;
-}) {
-  const src = logo ?? picture;
-  if (src) {
-    return (
-      <span
-        className="inline-flex h-[48px] w-[48px] shrink-0 items-center justify-center overflow-hidden rounded-xl"
-        style={{
-          background: "#fff",
-          border: "1px solid var(--color-border-light)",
-        }}
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={safeImageSrc(src) ?? undefined} alt="" className="h-full w-full object-contain p-1.5" />
-      </span>
-    );
-  }
-  return <Avatar name={name} size={48} />;
 }
 
 function ShareCard({ title }: { title: string }) {

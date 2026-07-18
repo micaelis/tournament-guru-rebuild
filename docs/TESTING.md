@@ -57,7 +57,7 @@ idling and the pane stays blank. Verify via typecheck + build + `npm test` + `np
 |---|---|
 | `auth` | Login, signup (type→role), password reset, variant screens. |
 | `onboarding` | The 3-step (attendee) / 4-step (ED) wizard + guards. |
-| `discovery` | Public browsing: landing, search, event detail, director pages. |
+| `discovery` | Public browsing: landing, search, event detail, director pages. Includes the host-avatar shape/fit assertion (Avatar primitive, S8.13). |
 | `dashboard` | Role-based dashboard shells render (incl. the ED/Admin owned-tournament render guard). |
 | `reviews` | Review display + submission flow. |
 | `promo` | Promo landing + claim. |

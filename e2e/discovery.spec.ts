@@ -32,6 +32,22 @@ test.describe("Public discovery", () => {
     await expect(page.getByText(ev.title).first()).toBeVisible();
   });
 
+  test("host avatar renders through the shared Avatar primitive", async ({ page }) => {
+    // Seeded event owned by a director WITH an org logo. The host
+    // identity avatar must inherit the primitive's shape and fit —
+    // circular with object-cover — not the old logo-only rounded-xl /
+    // object-contain square that flipped shape on data presence.
+    await page.goto("/events/22222222-0000-0000-0000-000000000001");
+    const hostCard = page
+      .locator("div", { has: page.getByText("Hosted by", { exact: true }) })
+      .filter({ has: page.locator("img") })
+      .last();
+    const img = hostCard.locator("img").first();
+    await expect(img).toHaveClass(/object-cover/);
+    await expect(img).not.toHaveClass(/object-contain/);
+    await expect(img.locator("xpath=..")).toHaveClass(/rounded-full/);
+  });
+
   test("directors index renders", async ({ page }) => {
     await page.goto("/directors");
     await expect(

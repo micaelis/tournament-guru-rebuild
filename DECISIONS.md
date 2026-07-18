@@ -988,3 +988,21 @@ route handler: empty term and malformed JSON resolve to bodyless 204s
 (previously: rejected), a valid term persists, and the 31st burst
 request from one IP gets a 429 with Retry-After. Verified by mutation:
 the pre-fix route fails 3 of 4 cases.
+
+### S8.13 · HostAvatar folded into the shared Avatar primitive (M-17)
+
+**What:** the event page's host identity avatar now renders through
+`app/components/Avatar` (`src` prop) instead of a private `HostAvatar`
+wrapper; the wrapper is deleted.
+
+**Why:** the wrapper flipped container shape on data presence — a
+rounded-xl `object-contain` square when a logo existed, the circular
+`Avatar` fallback when it didn't — bypassing the primitive's `src`
+path, which already handles images with the design system's
+`rounded-full` + `object-cover` rules. Shape depending on data
+presence is exactly the drift the shared primitive exists to prevent.
+
+**Tripwire:** an e2e case in `e2e/discovery.spec.ts` loads a seeded
+event whose director has an org logo and asserts the host avatar image
+is `object-cover` inside a `rounded-full` shell. Verified by mutation:
+restoring the old wrapper fails it.

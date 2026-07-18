@@ -622,6 +622,12 @@ app-layer `rateLimit()` the two-layer rule requires. Probe:
 `tests/probes/h5-search-log.test.ts` (mutation-verified: pre-fix route fails
 3/4).
 
+**M-17 is fixed** (DECISIONS S8.13): `HostAvatar` is deleted; the host
+identity avatar renders through the shared `Avatar` primitive's `src` path
+(circular, `object-cover`) with an e2e shape/fit assertion in
+`discovery.spec.ts` (mutation-verified). M-18's two-Avatar-components split
+remains open for the consolidation pass.
+
 **H-0 is fixed** (DECISIONS S8.8): all queries in `lib/events/search.ts` route
 through a checked `unwrap()` (`lib/supabase/unwrap.ts`), filter input is
 allow-listed so URL values can't manufacture a query error, and
