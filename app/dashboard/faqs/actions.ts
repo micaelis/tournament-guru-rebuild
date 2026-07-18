@@ -61,6 +61,7 @@ export async function upsertFaq(
 
   const { supabase, user } = await requireAdmin();
 
+  let faqId = id;
   if (id) {
     const { error } = await supabase
       .from("faqs")
@@ -68,7 +69,14 @@ export async function upsertFaq(
       .eq("id", id);
     if (error) return { error: error.message };
 
-    await supabase.from("faq_audiences").delete().eq("faq_id", id);
+    // Replace-all targeting: a dropped delete leaves the old audiences
+    // in place and the insert below stacks duplicates on top of them,
+    // so the FAQ keeps showing to audiences the admin just removed.
+    const { error: clearError } = await supabase
+      .from("faq_audiences")
+      .delete()
+      .eq("faq_id", id);
+    if (clearError) return { error: clearError.message };
   } else {
     const { data, error } = await supabase
       .from("faqs")
@@ -76,31 +84,19 @@ export async function upsertFaq(
       .select("id")
       .single();
     if (error || !data) return { error: error?.message ?? "Insert failed." };
-    const newId = (data as { id: string }).id;
-
-    if (audiences.length) {
-      await supabase.from("faq_audiences").insert(
-        audiences.map((a) => ({
-          faq_id: newId,
-          user_type: a.user_type,
-          role_title: a.role_title || null,
-        })),
-      );
-    }
-
-    revalidatePath("/dashboard/faqs");
-    return {};
+    faqId = (data as { id: string }).id;
   }
 
-  if (audiences.length) {
-    await supabase.from("faq_audiences").insert(
-      audiences.map((a) => ({
-        faq_id: id,
-        user_type: a.user_type,
-        role_title: a.role_title || null,
-      })),
-    );
-  }
+  // Validation above guarantees at least one audience, so a dropped
+  // error here would report a saved FAQ that is visible to nobody.
+  const { error: audienceError } = await supabase.from("faq_audiences").insert(
+    audiences.map((a) => ({
+      faq_id: faqId,
+      user_type: a.user_type,
+      role_title: a.role_title || null,
+    })),
+  );
+  if (audienceError) return { error: audienceError.message };
 
   revalidatePath("/dashboard/faqs");
   return {};

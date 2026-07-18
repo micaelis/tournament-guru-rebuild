@@ -23,7 +23,7 @@ import { createUser, purge, seedTournamentAndEvent, service } from "../harness";
 
 const ctl = vi.hoisted(() => ({
   breakTable: null as string | null,
-  breakVerb: null as "insert" | "delete" | null,
+  breakVerb: null as "insert" | "update" | "delete" | null,
   client: null as SupabaseClient | null,
 }));
 
@@ -72,6 +72,8 @@ vi.mock("@/lib/supabase/server", () => {
 });
 
 import { saveEvent, duplicateEvent } from "@/app/dashboard/events/event-actions";
+import { upsertFaq } from "@/app/dashboard/faqs/actions";
+import { updateTeams } from "@/app/dashboard/account/actions";
 
 let edId = "";
 let eventId = "";
@@ -188,5 +190,155 @@ describe("write-error-surfacing · duplicateEvent child collections", () => {
     ctl.breakVerb = "insert";
     const result = await duplicateEvent(eventId);
     expect(result?.error).toBeTruthy();
+  });
+});
+
+describe("write-error-surfacing · faq_audiences replace-all", () => {
+  let adminId = "";
+  let restore: SupabaseClient | null = null;
+
+  beforeAll(async () => {
+    const admin = await createUser({
+      becomeAdmin: true,
+      completeOnboarding: true,
+      role: "admin",
+    });
+    adminId = admin.id;
+    restore = ctl.client;
+    ctl.client = admin.client;
+  });
+
+  afterAll(async () => {
+    ctl.client = restore;
+    await service().from("faqs").delete().eq("created_by", adminId);
+    await purge([adminId]);
+  });
+
+  function faqForm(id?: string): FormData {
+    const fd = new FormData();
+    if (id) fd.set("id", id);
+    fd.set("title", "Probe FAQ");
+    fd.set("content", "Probe body.");
+    fd.set("status", "draft");
+    fd.set("sort_order", "0");
+    fd.set(
+      "audiences",
+      JSON.stringify([{ user_type: "attendee", role_title: null }]),
+    );
+    return fd;
+  }
+
+  it("sanity: a healthy create writes the FAQ and its audience row", async () => {
+    const result = await upsertFaq({}, faqForm());
+    expect(result.error).toBeUndefined();
+
+    const svc = service();
+    const { data: faqs } = await svc
+      .from("faqs")
+      .select("id")
+      .eq("created_by", adminId);
+    expect(faqs).toHaveLength(1);
+    const { data: auds } = await svc
+      .from("faq_audiences")
+      .select("user_type")
+      .eq("faq_id", faqs![0].id);
+    expect(auds).toHaveLength(1);
+  });
+
+  it("a failed audience INSERT surfaces — the FAQ would be visible to nobody", async () => {
+    ctl.breakTable = "faq_audiences";
+    ctl.breakVerb = "insert";
+    const result = await upsertFaq({}, faqForm());
+    expect(result.error).toBeTruthy();
+  });
+
+  it("a failed audience DELETE surfaces on edit — stale targeting would survive", async () => {
+    const { data: faqs } = await service()
+      .from("faqs")
+      .select("id")
+      .eq("created_by", adminId)
+      .limit(1);
+    ctl.breakTable = "faq_audiences";
+    ctl.breakVerb = "delete";
+    const result = await upsertFaq({}, faqForm(faqs![0].id));
+    expect(result.error).toBeTruthy();
+  });
+});
+
+describe("write-error-surfacing · updateTeams distance_pref", () => {
+  let attendeeId = "";
+  let restore: SupabaseClient | null = null;
+
+  beforeAll(async () => {
+    const attendee = await createUser({
+      completeOnboarding: true,
+      role: "coach",
+    });
+    attendeeId = attendee.id;
+    restore = ctl.client;
+    ctl.client = attendee.client;
+  });
+
+  afterAll(async () => {
+    ctl.client = restore;
+    await purge([attendeeId]);
+  });
+
+  function teamsForm(): FormData {
+    const fd = new FormData();
+    fd.set("distance_pref", "miles_300");
+    fd.set("team_1_gender", "boys");
+    fd.set("team_1_age", "U12");
+    fd.set("team_1_level", "middle");
+    return fd;
+  }
+
+  it("sanity: a healthy save persists distance_pref AND the team row", async () => {
+    const result = await updateTeams({}, teamsForm());
+    expect(result.error).toBeUndefined();
+
+    const svc = service();
+    const { data: profile } = await svc
+      .from("profiles")
+      .select("distance_pref")
+      .eq("id", attendeeId)
+      .single<{ distance_pref: string }>();
+    expect(profile!.distance_pref).toBe("miles_300");
+    const { data: teams } = await svc
+      .from("user_teams")
+      .select("slot")
+      .eq("profile_id", attendeeId);
+    expect(teams).toHaveLength(1);
+  });
+
+  it("a failed distance_pref write surfaces instead of reporting 'Team info updated.'", async () => {
+    ctl.breakTable = "profiles";
+    ctl.breakVerb = "update";
+    const result = await updateTeams({}, teamsForm());
+    expect(result.error).toBeTruthy();
+    expect(result.info).toBeUndefined();
+  });
+
+  // Deliberately the CLEAR-ALL case (no team fields submitted, so no
+  // insert follows). With a slot still filled, the re-insert collides
+  // with the surviving row on the unique-slot index and the already
+  // checked insert reports that error — which would let this pass
+  // against unchecked-delete code. Clear-all leaves the delete as the
+  // only write, so nothing else can raise the error for it.
+  it("a failed slot DELETE surfaces on clear-all instead of stranding the old teams", async () => {
+    await updateTeams({}, teamsForm());
+    expect(
+      (await service().from("user_teams").select("slot").eq("profile_id", attendeeId))
+        .data,
+    ).toHaveLength(1);
+
+    const clearAll = new FormData();
+    clearAll.set("distance_pref", "miles_300");
+
+    ctl.breakTable = "user_teams";
+    ctl.breakVerb = "delete";
+    const result = await updateTeams({}, clearAll);
+    expect(result.error).toBeTruthy();
+    expect(result.info).toBeUndefined();
   });
 });

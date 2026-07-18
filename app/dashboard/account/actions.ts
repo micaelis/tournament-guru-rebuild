@@ -243,11 +243,21 @@ export async function updateTeams(
     }
   }
 
-  await supabase
+  const { error: prefError } = await supabase
     .from("profiles")
     .update({ distance_pref })
     .eq("id", user.id);
-  await supabase.from("user_teams").delete().eq("profile_id", user.id);
+  if (prefError) return { error: prefError.message };
+
+  // Replace-all slots — the delete has to be checked or a clear-all
+  // reports success while the old teams survive (and the insert below
+  // then collides with them on the unique-slot index).
+  const { error: clearError } = await supabase
+    .from("user_teams")
+    .delete()
+    .eq("profile_id", user.id);
+  if (clearError) return { error: clearError.message };
+
   if (rows.length) {
     const { error } = await supabase.from("user_teams").insert(rows);
     if (error) return { error: error.message };

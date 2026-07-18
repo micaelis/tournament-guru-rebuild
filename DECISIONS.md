@@ -1405,3 +1405,25 @@ insert batch are pinned separately (breaking the table outright always
 trips the delete first and leaves the insert batch untested).
 Mutation-verified in three passes — unchecked deletes, unchecked
 inserts, unchecked duplicate — each failing exactly its own tripwires.
+
+### S9.4 · faq_audiences + updateTeams replace-all errors surfaced
+
+**What:** the two remaining paths the S9.3 class named. `upsertFaq`
+checks its `faq_audiences` delete + insert (and the duplicated
+create/edit insert branches collapse into one, since validation already
+guarantees a non-empty audience list). `updateTeams` checks the
+`distance_pref` profile update and the `user_teams` clear.
+
+**Why:** an FAQ that saved with its audience insert dropped is visible
+to nobody; a dropped `faq_audiences` delete on edit keeps showing the
+FAQ to audiences the admin just removed, because the insert stacks on
+top of the survivors. `updateTeams` reported "Team info updated." with
+the distance preference never written.
+
+**Testing note (matters for anyone extending this):** the `user_teams`
+delete tripwire has to use the CLEAR-ALL case. With a slot still filled,
+the re-insert collides with the surviving row on the unique-slot index
+and the ALREADY-checked insert reports that error — so the test passes
+against unchecked-delete code and proves nothing. Caught by mutation:
+the first version of that test survived its own mutation. Clear-all
+leaves the delete as the only write.
