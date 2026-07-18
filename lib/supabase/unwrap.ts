@@ -32,6 +32,33 @@ export function unwrapRows<T>(
 }
 
 /**
+ * First failure across a batch of writes, as a message the calling
+ * Server Action can hand back in its state — the write-side sibling of
+ * `unwrap`. Actions report failures through their return value rather
+ * than throwing, so this yields a string instead of rejecting.
+ *
+ * Replace-all child collections fan out through `Promise.all`, whose
+ * resolved value is an array of results nobody reads. Dropping those
+ * errors is worse than dropping a read's: the delete half of a
+ * replace-all can succeed while the insert half fails, so the rows are
+ * gone AND the action reports success. Route write batches through here.
+ */
+export function firstWriteError(
+  results: readonly { error: PostgrestError | null }[],
+  context: string,
+): string | null {
+  for (const result of results) {
+    if (result.error) {
+      console.error(
+        `${context}: [${result.error.code || "unknown"}] ${result.error.message}`,
+      );
+      return result.error.message;
+    }
+  }
+  return null;
+}
+
+/**
  * Log-and-degrade variant for surfaces with a DESIGNED fallback —
  * marketing chrome (landing strips, popular-search chips) where an
  * empty render is an accepted degradation and a throw would take the

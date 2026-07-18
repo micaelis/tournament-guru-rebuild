@@ -2,7 +2,9 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import type { PostgrestError } from "@supabase/supabase-js";
 import { createServerAuthClient } from "@/lib/supabase/server";
+import { firstWriteError } from "@/lib/supabase/unwrap";
 import { parseGeoFields } from "@/lib/geo";
 import { safeExternalUrl, safeImageSrc } from "@/lib/url";
 import {
@@ -23,6 +25,9 @@ export type EventFormState = {
   fieldErrors?: Record<string, string>;
   createdId?: string;
 };
+
+/** Shape the child-collection batches resolve to, for `firstWriteError`. */
+type WriteResult = { error: PostgrestError | null };
 
 export type AgeGroupInput = {
   team_gender: string;
@@ -212,11 +217,14 @@ export async function saveEvent(
   // or fall back to the non-premium cap for new events.
   let currentPremium = false;
   if (!isNew) {
-    const { data: existing } = await supabase
+    const { data: existing, error: premiumError } = await supabase
       .from("events")
       .select("is_premium")
       .eq("id", eventId)
       .maybeSingle<{ is_premium: boolean }>();
+    // A failed read is not "not premium" — degrading silently rejects
+    // images a premium ED is entitled to.
+    if (premiumError) return { error: premiumError.message };
     currentPremium = existing?.is_premium ?? false;
   }
   const imageCap = currentPremium ? PREMIUM_IMAGE_LIMIT : FREE_IMAGE_LIMIT;
@@ -237,20 +245,35 @@ export async function saveEvent(
   // (spec: "the option to edit the tournament/add an event is possible
   // for the admin only if the tournament/event was added by the admin
   // and has not yet been claimed by an ED").
-  const { data: callerProfile } = await supabase
+  const { data: callerProfile, error: callerError } = await supabase
     .from("profiles")
     .select("user_type")
     .eq("id", user.id)
     .maybeSingle<{ user_type: "attendee" | "event_director" | "admin" }>();
+  // Falling through to the non-admin branch on a failed read would stamp
+  // an admin's id as owner_id, making the event permanently unclaimable.
+  if (callerError) return { error: callerError.message };
 
   const newRowOwnership =
     callerProfile?.user_type === "admin"
       ? { owner_id: null, created_by: user.id, claimed: false }
       : { owner_id: user.id, created_by: user.id, claimed: true };
 
+  // Resolved before the row is assembled so a failed lookup can't read
+  // as "no tournament" and silently drop the linkage.
+  let existingTournamentId: string | undefined;
+  if (base.tournament_id === undefined && eventId) {
+    const { data: owner, error: ownerError } = await supabase
+      .from("events")
+      .select("tournament_id")
+      .eq("id", eventId)
+      .maybeSingle<{ tournament_id: string }>();
+    if (ownerError) return { error: ownerError.message };
+    existingTournamentId = owner?.tournament_id;
+  }
+
   const row = {
-    tournament_id:
-      base.tournament_id ?? (await getExistingTournamentId(eventId, supabase)),
+    tournament_id: base.tournament_id ?? existingTournamentId,
     logo_url: base.logo_url,
     title: base.title,
     website_url: base.website_url,
@@ -296,8 +319,10 @@ export async function saveEvent(
   if (eventInsert.error) return { error: eventInsert.error.message };
   const savedId = eventInsert.data.id as string;
 
-  // Replace-all children.
-  await Promise.all([
+  // Replace-all children. A failure here has to reach the ED: the
+  // delete half can land while the insert half fails, which drops the
+  // collection entirely — reporting success would lose it silently.
+  const childDeletes = await Promise.all([
     supabase.from("event_age_groups").delete().eq("event_id", savedId),
     supabase.from("sponsors").delete().eq("event_id", savedId),
     supabase.from("event_competition_levels").delete().eq("event_id", savedId),
@@ -306,8 +331,10 @@ export async function saveEvent(
     supabase.from("event_images").delete().eq("event_id", savedId),
     supabase.from("event_milestones").delete().eq("event_id", savedId),
   ]);
+  const deleteError = firstWriteError(childDeletes, "saveEvent child deletes");
+  if (deleteError) return { error: deleteError };
 
-  const childInserts: Array<PromiseLike<{ error: unknown }>> = [];
+  const childInserts: Array<PromiseLike<WriteResult>> = [];
   if (ageGroups.length) {
     childInserts.push(
       supabase.from("event_age_groups").insert(
@@ -369,7 +396,11 @@ export async function saveEvent(
     );
   }
 
-  await Promise.all(childInserts);
+  const insertError = firstWriteError(
+    await Promise.all(childInserts),
+    "saveEvent child inserts",
+  );
+  if (insertError) return { error: insertError };
 
   revalidatePath("/dashboard/events");
   revalidatePath(`/dashboard/events/${savedId}`);
@@ -399,19 +430,6 @@ function parseJson<T>(v: FormDataEntryValue | null): T | null {
   } catch {
     return null;
   }
-}
-
-async function getExistingTournamentId(
-  eventId: string,
-  supabase: Awaited<ReturnType<typeof createServerAuthClient>>,
-): Promise<string | undefined> {
-  if (!eventId) return undefined;
-  const { data } = await supabase
-    .from("events")
-    .select("tournament_id")
-    .eq("id", eventId)
-    .maybeSingle<{ tournament_id: string }>();
-  return data?.tournament_id;
 }
 
 /**
@@ -555,17 +573,22 @@ export async function duplicateEvent(
   if (insertError) return { error: insertError.message };
   const newId = created.id as string;
 
-  // Copy the child collections that spec allows.
+  // Copy the child collections that spec allows. A failed read here is
+  // indistinguishable from an empty collection, so it would hand back a
+  // duplicate quietly missing whole sections of the original.
+  const childReads = await Promise.all([
+    supabase.from("event_age_groups").select("team_gender, age, price, field_size").eq("event_id", eventId),
+    supabase.from("sponsors").select("name, link, logo_url").eq("event_id", eventId),
+    supabase.from("event_competition_levels").select("level").eq("event_id", eventId),
+    supabase.from("event_surfaces").select("surface").eq("event_id", eventId),
+    supabase.from("event_images").select("url, sort_order").eq("event_id", eventId).order("sort_order"),
+  ]);
+  const readError = firstWriteError(childReads, "duplicateEvent child reads");
+  if (readError) return { error: readError };
   const [ageGroupsRes, sponsorsRes, levelsRes, surfacesRes, imagesRes] =
-    await Promise.all([
-      supabase.from("event_age_groups").select("team_gender, age, price, field_size").eq("event_id", eventId),
-      supabase.from("sponsors").select("name, link, logo_url").eq("event_id", eventId),
-      supabase.from("event_competition_levels").select("level").eq("event_id", eventId),
-      supabase.from("event_surfaces").select("surface").eq("event_id", eventId),
-      supabase.from("event_images").select("url, sort_order").eq("event_id", eventId).order("sort_order"),
-    ]);
+    childReads;
 
-  const inserts: Array<PromiseLike<{ error: unknown }>> = [];
+  const inserts: Array<PromiseLike<WriteResult>> = [];
   const ageGroups = (ageGroupsRes.data ?? []) as {
     team_gender: string;
     age: string;
@@ -629,7 +652,12 @@ export async function duplicateEvent(
     );
   }
 
-  await Promise.all(inserts);
+  const copyError = firstWriteError(
+    await Promise.all(inserts),
+    "duplicateEvent child inserts",
+  );
+  if (copyError) return { error: copyError };
+
   revalidatePath("/dashboard/events");
   redirect(`/dashboard/events/${newId}/edit`);
 }

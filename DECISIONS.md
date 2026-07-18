@@ -1371,3 +1371,37 @@ Mutation-verified: restoring the `upsert` fails 2/3 with exactly
 
 **How it hid:** no e2e covered the ED edit/publish path — only creation.
 Coverage gap recorded in docs/TESTING.md.
+
+### S9.3 · Dropped WRITE errors — failures must reach the caller
+
+**What:** `firstWriteError(results, context)` in `lib/supabase/unwrap.ts`
+— the write-side sibling of `unwrap`. It returns the first failure in a
+batch as a message (Server Actions report through their return value,
+so it yields a string rather than throwing) and logs it. Applied to
+`saveEvent`'s replace-all child deletes + inserts and `duplicateEvent`'s
+child reads + inserts; the read-drives-write sites in the same paths
+(caller role, `is_premium` cap, existing `tournament_id`) now return
+their error instead of degrading to a default.
+
+**Why:** these batches fanned out through `Promise.all` and nobody read
+the resolved array, so a failed write reported success. It is worse than
+the read-side class (S8.9): replace-all deletes then inserts, so the
+delete half can land while the insert half fails — the collection is
+gone AND the ED is told the event saved. The read-drives-write sites are
+the same failure wearing a different hat: a failed role read made an
+admin look like an ED and stamped `owner_id`, making the event
+permanently unclaimable.
+
+**Known limitation (accepted, not fixed here):** the replace-all is
+still not atomic. Surfacing the error tells the ED to re-enter the
+collection; it does not roll the delete back. Making it transactional
+needs a SECURITY DEFINER RPC that takes the whole event graph — a real
+rework, deliberately out of scope for an error-handling pass. Revisit
+if partial saves show up in practice.
+
+**Verification:** `tests/probes/write-error-surfacing.test.ts` breaks
+ONE table for ONE verb through a proxy, so the delete batch and the
+insert batch are pinned separately (breaking the table outright always
+trips the delete first and leaves the insert batch untested).
+Mutation-verified in three passes — unchecked deletes, unchecked
+inserts, unchecked duplicate — each failing exactly its own tripwires.
