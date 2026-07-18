@@ -58,5 +58,28 @@ never touches real data.
 
 ## Re-seeding
 
-The seed is idempotent — `delete from auth.users where email like '%@example.test'` at the top
-lets `supabase db reset` and `psql -f supabase/seed.sql` both work against the same database.
+The seed is idempotent against a live database. A cleanup preamble deletes the
+fixed-UUID demo rows in dependency order — reviews and tournaments before
+`auth.users`, because their author/owner FKs are `on delete set null` and the
+rows would otherwise survive and collide on re-insert — and the platform
+counters are recomputed at the end (their triggers only ever increment).
+
+- **Local:** `supabase db reset`, or
+  `psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -f supabase/seed.sql`
+  into the running stack.
+- **Hosted demo project:** paste `supabase/seed.sql` into the Supabase
+  Dashboard SQL editor (or `psql "$DB_URL" -f supabase/seed.sql` with the
+  project's direct connection string). The seed is plain SQL, not a
+  migration — never `supabase link` / `db push` for this.
+
+The `auth.users` insert sets GoTrue's eight token columns
+(`confirmation_token`, `recovery_token`, `email_change`,
+`email_change_token_new`, `email_change_token_current`, `phone_change`,
+`phone_change_token`, `reauthentication_token`) to `''` explicitly — GoTrue
+scans them as non-null strings, so rows inserted with their `NULL` defaults
+make every sign-in for that account fail with a 500
+`AuthRetryableFetchError` — and pairs every user with an `auth.identities`
+row, as the Auth admin API would. A database seeded with the pre-fix seed is
+repaired by simply re-running the seed. The
+`tests/probes/seed-accounts.test.ts` probe guards this contract (see SEED.1
+in DECISIONS.md).

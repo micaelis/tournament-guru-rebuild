@@ -15,66 +15,109 @@
 -- ─────────────────────────────────────────────────────────────────────
 
 -- Safe against re-run inside `supabase db reset` (reset drops + recreates)
--- and safe against `psql -f seed.sql` into a running DB later.
-delete from auth.users where email like '%@example.test';
+-- and safe against `psql -f seed.sql` into a running DB later. Order
+-- matters: reviews and tournaments survive account deletion (author/owner
+-- FKs are `on delete set null`), so the fixed-UUID rows must be deleted
+-- explicitly BEFORE auth.users — and reviews before the tournaments
+-- cascade reaches promo_codes, or trg_helpful_count's mid-cascade UPDATE
+-- trips the reviews_promo_fk re-check while the promo row is half-gone.
+delete from reviews          where id::text like '33333333-%'; -- + comments, helpful marks, flags
+delete from tournaments      where id::text like '11111111-%'; -- + events, event children, claims, CSVs, promos
+delete from auth.users       where email like '%@example.test'; -- + profiles, teams, favorites, recently viewed
+delete from support_messages where email like '%@example.test';
+delete from demo_reviews     where reviewer_name in ('Katie R.', 'Miguel D.', 'Priya K.');
+delete from faqs             where id::text like 'a0000000-%';  -- + faq_audiences
+delete from banned_words     where word in ('cuss', 'idiot');
+delete from search_queries   where term in
+  ('U12 girls Texas', 'Kansas City soccer', 'U16 boys Arizona',
+   'Great Lakes Cup', 'U10 tournament', 'scouted tournaments');
 
 -- ── Users ─────────────────────────────────────────────────────────────
 -- Metadata drives handle_new_user's user_type/role_title choice.
+-- The eight token columns must be '' (not their NULL default): GoTrue
+-- scans them as non-null Go strings, and a NULL makes every sign-in for
+-- that row fail with a 500 AuthRetryableFetchError.
 insert into auth.users (
   id, email, encrypted_password, email_confirmed_at,
   aud, role, instance_id, raw_user_meta_data,
-  raw_app_meta_data, created_at, updated_at
+  raw_app_meta_data, created_at, updated_at,
+  confirmation_token, recovery_token, email_change,
+  email_change_token_new, email_change_token_current,
+  phone_change, phone_change_token, reauthentication_token
 ) values
   ('aaaaaaaa-0000-0000-0000-000000000001', 'admin@example.test',
    crypt('demo-pass-123', gen_salt('bf')), now(),
    'authenticated','authenticated','00000000-0000-0000-0000-000000000000',
    '{"user_type":"attendee","role_title":"coach","first_name":"Ada"}'::jsonb,
-   '{"provider":"email","providers":["email"]}'::jsonb, now(), now()),
+   '{"provider":"email","providers":["email"]}'::jsonb, now(), now(),
+   '', '', '', '', '', '', '', ''),
   ('aaaaaaaa-0000-0000-0000-000000000002', 'dir-amber@example.test',
    crypt('demo-pass-123', gen_salt('bf')), now(),
    'authenticated','authenticated','00000000-0000-0000-0000-000000000000',
    '{"user_type":"event_director","role_title":"event_director","first_name":"Amber"}'::jsonb,
-   '{"provider":"email","providers":["email"]}'::jsonb, now(), now()),
+   '{"provider":"email","providers":["email"]}'::jsonb, now(), now(),
+   '', '', '', '', '', '', '', ''),
   ('aaaaaaaa-0000-0000-0000-000000000003', 'dir-marcus@example.test',
    crypt('demo-pass-123', gen_salt('bf')), now(),
    'authenticated','authenticated','00000000-0000-0000-0000-000000000000',
    '{"user_type":"event_director","role_title":"club_director","first_name":"Marcus"}'::jsonb,
-   '{"provider":"email","providers":["email"]}'::jsonb, now(), now()),
+   '{"provider":"email","providers":["email"]}'::jsonb, now(), now(),
+   '', '', '', '', '', '', '', ''),
   ('aaaaaaaa-0000-0000-0000-000000000004', 'dir-elena@example.test',
    crypt('demo-pass-123', gen_salt('bf')), now(),
    'authenticated','authenticated','00000000-0000-0000-0000-000000000000',
    '{"user_type":"event_director","role_title":"event_admin","first_name":"Elena"}'::jsonb,
-   '{"provider":"email","providers":["email"]}'::jsonb, now(), now()),
+   '{"provider":"email","providers":["email"]}'::jsonb, now(), now(),
+   '', '', '', '', '', '', '', ''),
   ('bbbbbbbb-0000-0000-0000-000000000001', 'coach-ashley@example.test',
    crypt('demo-pass-123', gen_salt('bf')), now(),
    'authenticated','authenticated','00000000-0000-0000-0000-000000000000',
    '{"user_type":"attendee","role_title":"coach","first_name":"Ashley"}'::jsonb,
-   '{"provider":"email","providers":["email"]}'::jsonb, now(), now()),
+   '{"provider":"email","providers":["email"]}'::jsonb, now(), now(),
+   '', '', '', '', '', '', '', ''),
   ('bbbbbbbb-0000-0000-0000-000000000002', 'coach-carlos@example.test',
    crypt('demo-pass-123', gen_salt('bf')), now(),
    'authenticated','authenticated','00000000-0000-0000-0000-000000000000',
    '{"user_type":"attendee","role_title":"coach","first_name":"Carlos"}'::jsonb,
-   '{"provider":"email","providers":["email"]}'::jsonb, now(), now()),
+   '{"provider":"email","providers":["email"]}'::jsonb, now(), now(),
+   '', '', '', '', '', '', '', ''),
   ('bbbbbbbb-0000-0000-0000-000000000003', 'mgr-priya@example.test',
    crypt('demo-pass-123', gen_salt('bf')), now(),
    'authenticated','authenticated','00000000-0000-0000-0000-000000000000',
    '{"user_type":"attendee","role_title":"team_manager","first_name":"Priya"}'::jsonb,
-   '{"provider":"email","providers":["email"]}'::jsonb, now(), now()),
+   '{"provider":"email","providers":["email"]}'::jsonb, now(), now(),
+   '', '', '', '', '', '', '', ''),
   ('bbbbbbbb-0000-0000-0000-000000000004', 'parent-sam@example.test',
    crypt('demo-pass-123', gen_salt('bf')), now(),
    'authenticated','authenticated','00000000-0000-0000-0000-000000000000',
    '{"user_type":"attendee","role_title":"parent_spectator","first_name":"Sam"}'::jsonb,
-   '{"provider":"email","providers":["email"]}'::jsonb, now(), now()),
+   '{"provider":"email","providers":["email"]}'::jsonb, now(), now(),
+   '', '', '', '', '', '', '', ''),
   ('bbbbbbbb-0000-0000-0000-000000000005', 'coach-dev@example.test',
    crypt('demo-pass-123', gen_salt('bf')), now(),
    'authenticated','authenticated','00000000-0000-0000-0000-000000000000',
    '{"user_type":"attendee","role_title":"coach","first_name":"Dev"}'::jsonb,
-   '{"provider":"email","providers":["email"]}'::jsonb, now(), now()),
+   '{"provider":"email","providers":["email"]}'::jsonb, now(), now(),
+   '', '', '', '', '', '', '', ''),
   ('bbbbbbbb-0000-0000-0000-000000000006', 'coach-rian@example.test',
    crypt('demo-pass-123', gen_salt('bf')), now(),
    'authenticated','authenticated','00000000-0000-0000-0000-000000000000',
    '{"user_type":"attendee","role_title":"coach","first_name":"Rian"}'::jsonb,
-   '{"provider":"email","providers":["email"]}'::jsonb, now(), now());
+   '{"provider":"email","providers":["email"]}'::jsonb, now(), now(),
+   '', '', '', '', '', '', '', '');
+
+-- GoTrue pairs every user with an identities row (email provider:
+-- provider_id = user id, identity_data carries sub + email). Derived
+-- from the rows above so ids/emails can't drift; the user_id FK
+-- cascades on the cleanup delete, so re-runs stay safe.
+insert into auth.identities
+  (provider_id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
+select id::text, id,
+       jsonb_build_object('sub', id::text, 'email', email,
+                          'email_verified', true, 'phone_verified', false),
+       'email', now(), now(), now()
+  from auth.users
+ where email like '%@example.test';
 
 -- handle_new_user created bare profile rows. Now flesh them out —
 -- admin needs its user_type flipped by service role (locked from
@@ -644,9 +687,15 @@ from (values
   ('scouted tournaments')
 ) as t(term), generate_series(0, 2) as i;
 
--- Sync the published-reviews counter so the landing stats band reads
--- the accurate historical figure. Tournament + event counters auto-
--- incremented via the S8.1 triggers on each seeded insert.
+-- Sync the landing stats band counters. The S8.1 triggers only ever
+-- increment, so a re-run (delete + recreate above) would inflate them —
+-- recompute all three from the live rows instead.
 update platform_counters
    set value = (select count(*) from reviews where status='published')
  where key = 'published_reviews_total';
+update platform_counters
+   set value = (select count(*) from tournaments)
+ where key = 'listed_tournaments_total';
+update platform_counters
+   set value = (select count(*) from events)
+ where key = 'listed_events_total';
