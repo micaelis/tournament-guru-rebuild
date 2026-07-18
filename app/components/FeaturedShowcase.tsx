@@ -12,24 +12,6 @@ function toNum(v: number | null | undefined): number {
   return Number.isFinite(n) ? n : 0;
 }
 
-/* TEMP / PREVIEW ONLY ─────────────────────────────────────────
-   Real data currently has zero coach reviews, so the ratings row only ever
-   shows the single Attendee block. Flip this on to synthesize a plausible
-   Coach Rating (derived deterministically from the attendee score) purely so
-   the two-column layout can be reviewed. Set to false — or delete this block
-   and `simulatedCoach` — to return to real data only. */
-const SIMULATE_COACH_RATINGS = true;
-
-function simulatedCoach(
-  attendee: number,
-  attendeeReviews: number | null
-): { score: number; reviews: number } {
-  return {
-    score: Math.max(3.6, Math.round((attendee - 0.28) * 100) / 100),
-    reviews: Math.max(2, Math.round((attendeeReviews ?? 0) * 0.42)),
-  };
-}
-
 /* Short, whole-word excerpt for the card body. Returns null for missing or
    trivially short descriptions so the card doesn't render a dangling line. */
 function shortExcerpt(desc: string | null, max = 104): string | null {
@@ -184,24 +166,12 @@ function FeaturedCard({ event }: { event: EventRow }) {
         {/* Footer — rating breakdown. The whole card is the link, so no
             separate CTA is needed. */}
         <div className="mt-auto pt-4">
-          {(() => {
-            const attendee = toNum(event.attendee_rating);
-            let coach = toNum(event.coach_rating);
-            let coachReviews = event.coach_reviews ?? null;
-            if (SIMULATE_COACH_RATINGS && coach <= 0 && attendee > 0) {
-              const sim = simulatedCoach(attendee, event.attendee_reviews ?? null);
-              coach = sim.score;
-              coachReviews = sim.reviews;
-            }
-            return (
-              <RatingBreakdown
-                attendee={attendee}
-                coach={coach}
-                attendeeReviews={event.attendee_reviews ?? null}
-                coachReviews={coachReviews}
-              />
-            );
-          })()}
+          <RatingBreakdown
+            attendee={toNum(event.attendee_rating)}
+            coach={toNum(event.coach_rating)}
+            attendeeReviews={event.attendee_reviews ?? null}
+            coachReviews={event.coach_reviews ?? null}
+          />
           {event.would_return_pct != null && event.would_return_pct > 0 && (
             <div
               className="mt-3 inline-flex items-center gap-1.5 rounded-full"
