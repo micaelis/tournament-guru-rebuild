@@ -63,6 +63,18 @@ export async function deleteFlaggedContent(
     .eq("content_id", contentId);
 
   if (contentType === "review") {
+    // Delete flagged_content for this review's comments (polymorphic, no FK cascade).
+    const { data: comments } = await supabase
+      .from("comments")
+      .select("id")
+      .eq("review_id", contentId);
+    if (comments?.length) {
+      await supabase
+        .from("flagged_content")
+        .delete()
+        .eq("content_type", "comment")
+        .in("content_id", comments.map((c) => c.id));
+    }
     const { error } = await supabase.from("reviews").delete().eq("id", contentId);
     if (error) return { error: error.message };
   } else {
