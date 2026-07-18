@@ -1,15 +1,14 @@
-"use client";
-
-import { useState } from "react";
 import { safeImageSrc } from "@/lib/url";
+import { SafeImg } from "./SafeImg";
 import { cn } from "./cn";
 
 /**
  * User / organization avatar. Falls back to a neutral placeholder with
  * initials when no photo is set (spec: "display a nice neutral
  * placeholder icon for missing photos") — and when the photo URL fails
- * to load, so a dead host never paints the broken-image glyph. Size is
- * a fixed CSS size so the placeholder ring stays circular.
+ * to load (SafeImg handles both post-hydration errors and fetches that
+ * died before hydration). Size is a fixed CSS size so the placeholder
+ * ring stays circular.
  */
 export function Avatar({
   src,
@@ -24,10 +23,8 @@ export function Avatar({
   dark?: boolean;
   className?: string;
 }) {
-  const [brokenSrc, setBrokenSrc] = useState<string | null>(null);
   const safe = safeImageSrc(src);
   const initials = getInitials(name);
-  const showImage = Boolean(safe) && brokenSrc !== safe;
   return (
     <span
       className={cn(
@@ -40,19 +37,14 @@ export function Avatar({
       style={{ width: size, height: size }}
       aria-label={name ?? "User avatar"}
     >
-      {showImage ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={safe!}
-          alt={name ?? "User avatar"}
-          width={size}
-          height={size}
-          onError={() => setBrokenSrc(safe)}
-          className="h-full w-full object-cover"
-        />
-      ) : (
-        <span>{initials || "?"}</span>
-      )}
+      <SafeImg
+        src={safe ?? undefined}
+        alt={name ?? "User avatar"}
+        width={size}
+        height={size}
+        className="h-full w-full object-cover"
+        fallback={<span>{initials || "?"}</span>}
+      />
     </span>
   );
 }

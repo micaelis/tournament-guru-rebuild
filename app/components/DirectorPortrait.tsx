@@ -1,13 +1,12 @@
-"use client";
-
-import { useState } from "react";
 import { safeImageSrc } from "@/lib/url";
+import { SafeImg } from "@/app/components/ui/SafeImg";
 
 /**
- * Portrait for a director card. Renders the profile picture with a graceful
- * onError fallback to a designed initials avatar on a brand-tinted radial
- * gradient — never a broken image or an empty grey box. Fully occupies its
- * parent, which owns the aspect ratio.
+ * Portrait for a director card. Renders the profile picture through
+ * SafeImg with a designed initials avatar on a brand-tinted gradient as
+ * the fallback — never a broken image or an empty grey box, including
+ * fetches that fail before hydration. Fully occupies its parent, which
+ * owns the aspect ratio.
  */
 export function DirectorPortrait({
   src,
@@ -16,65 +15,59 @@ export function DirectorPortrait({
   src?: string | null;
   name: string;
 }) {
-  const [failed, setFailed] = useState(false);
   const safeSrc = safeImageSrc(src);
-  const showImage = !!safeSrc && !failed;
-
   const initials = getInitials(name);
   const gradient = pickGradient(name);
 
   return (
     <div className="relative h-full w-full overflow-hidden">
-      {showImage ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={safeSrc!}
-          alt={`Portrait of ${name}`}
-          loading="lazy"
-          decoding="async"
-          onError={() => setFailed(true)}
-          className="h-full w-full object-cover"
-          style={{
-            transition: "transform .5s ease",
-          }}
-        />
-      ) : (
-        <div
-          aria-hidden="true"
-          className="flex h-full w-full items-center justify-center"
-          style={{
-            backgroundImage: gradient,
-            backgroundColor: "var(--color-dark-mid)",
-          }}
-        >
-          {/* Faint monogram watermark for texture */}
-          <span
-            className="pointer-events-none absolute font-heading select-none"
+      <SafeImg
+        src={safeSrc ?? undefined}
+        alt={`Portrait of ${name}`}
+        loading="lazy"
+        decoding="async"
+        className="h-full w-full object-cover"
+        style={{
+          transition: "transform .5s ease",
+        }}
+        fallback={
+          <div
+            aria-hidden="true"
+            className="flex h-full w-full items-center justify-center"
             style={{
-              fontSize: "clamp(96px, 18vw, 180px)",
-              fontWeight: 900,
-              color: "rgba(255,255,255,.06)",
-              letterSpacing: "-0.05em",
-              lineHeight: 1,
-              transform: "translate(6%, 4%)",
+              backgroundImage: gradient,
+              backgroundColor: "var(--color-dark-mid)",
             }}
           >
-            {initials}
-          </span>
-          <span
-            className="relative font-heading"
-            style={{
-              color: "#fff",
-              fontSize: "clamp(30px, 5.4vw, 44px)",
-              fontWeight: 800,
-              letterSpacing: "-0.03em",
-              textShadow: "0 2px 20px rgba(0,0,0,.25)",
-            }}
-          >
-            {initials}
-          </span>
-        </div>
-      )}
+            {/* Faint monogram watermark for texture */}
+            <span
+              className="pointer-events-none absolute font-heading select-none"
+              style={{
+                fontSize: "clamp(96px, 18vw, 180px)",
+                fontWeight: 900,
+                color: "rgba(255,255,255,.06)",
+                letterSpacing: "-0.05em",
+                lineHeight: 1,
+                transform: "translate(6%, 4%)",
+              }}
+            >
+              {initials}
+            </span>
+            <span
+              className="relative font-heading"
+              style={{
+                color: "#fff",
+                fontSize: "clamp(30px, 5.4vw, 44px)",
+                fontWeight: 800,
+                letterSpacing: "-0.03em",
+                textShadow: "0 2px 20px rgba(0,0,0,.25)",
+              }}
+            >
+              {initials}
+            </span>
+          </div>
+        }
+      />
     </div>
   );
 }

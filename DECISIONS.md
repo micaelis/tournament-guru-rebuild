@@ -1295,3 +1295,25 @@ Also verified manually: `supabase db reset` followed by two consecutive
 counts stable at exactly one seed's worth (10 users / 5 tournaments /
 9 events / 6 reviews), 10 identities, counters exact, all 10 accounts
 sign in with HTTP 200.
+
+### R2.11b · SafeImg catches image failures that beat hydration
+
+**What:** SafeImg's `<img>` gets a mount callback-ref that flips to the
+fallback when the element is already dead (`complete === true` with
+`naturalWidth === 0`), alongside the existing onError. ui/Avatar and
+DirectorPortrait drop their private onError/state and render through
+SafeImg, so the class has exactly one implementation.
+
+**Why:** the "broken logo" e2e failed with 6 unsplash imgs surviving.
+DOM inspection showed all 6 WERE SafeImg-rendered with dead fetches —
+and re-assigning src post-hydration made all 6 unmount, proving the
+handlers were attached but the original error events fired BEFORE
+hydration on the server-rendered page and never re-fired. Real product
+gap, not a test artifact: any URL that 404s faster than hydration left
+a permanent broken glyph. onLoad's mirror (already-loaded images) needs
+no handling — a loaded img simply stays.
+
+**Tripwire:** the existing e2e (abort unsplash before goto, scroll the
+page, expect zero unsplash imgs) now exercises exactly this race.
+Verified by mutation: removing the ref check (keeping onError) fails
+it; restored, 14/14 discovery + 63 e2e + 285 vitest green.

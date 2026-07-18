@@ -43,24 +43,35 @@ test.describe("Public discovery", () => {
       return a && b ? Math.abs(a.y - b.y) : Number.NaN;
     };
     await expect.poll(rowGap).toBeGreaterThan(10); // stacked beside the map
-    await page.getByRole("button", { name: /Hide map/ }).click();
+    // Two "Hide map" controls exist (text toggle in the controls bar + icon
+    // button on the map overlay); target the text toggle unambiguously.
+    await page.locator("button").filter({ hasText: "Hide map" }).click();
     await expect.poll(rowGap).toBeLessThan(8); // one row when wide
   });
 
   test("broken logo images unmount to their fallback, never the broken glyph", async ({ page }) => {
-    // Baseline: seeded events carry unsplash logo URLs that render.
+    // Kill every logo fetch up front so SafeImg's onError must swap each failed
+    // <img> for its fallback — the browser's broken-image glyph must never
+    // paint (Round-2 #11).
+    await page.route("**images.unsplash.com/**", (route) => route.abort());
     await page.goto("/events");
-    await expect
-      .poll(async () => page.locator('img[src*="unsplash"]').count())
-      .toBeGreaterThan(0);
-
-    // Kill every logo fetch — SafeImg must swap each failed <img> out
-    // for its fallback so no broken-image glyph can appear (Round-2 #11).
-    await page.route("**images.unsplash.com**", (route) => route.abort());
-    await page.reload();
     await expect(page.getByPlaceholder(/Search tournaments/)).toBeVisible();
+
+    // Card logos are lazy-loaded, so an off-screen <img> never fetches and thus
+    // never errors (correct behavior). Walk the page so every logo attempts its
+    // now-aborted fetch and SafeImg drops it — otherwise the count is viewport-
+    // and timing-dependent (flaky in CI).
+    await page.evaluate(async () => {
+      const step = 500;
+      for (let y = 0; y <= document.body.scrollHeight; y += step) {
+        window.scrollTo(0, y);
+        await new Promise((r) => setTimeout(r, 60));
+      }
+      window.scrollTo(0, 0);
+    });
+
     await expect
-      .poll(async () => page.locator('img[src*="unsplash"]').count())
+      .poll(async () => page.locator('img[src*="unsplash"]').count(), { timeout: 15000 })
       .toBe(0);
   });
 

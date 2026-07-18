@@ -27,6 +27,18 @@ export function SafeImg({
   if (!src || brokenSrc === src) return <>{fallback}</>;
   return (
     // eslint-disable-next-line @next/next/no-img-element
-    <img {...props} src={src} alt={alt} onError={() => setBrokenSrc(src)} />
+    <img
+      {...props}
+      // SSR race: on a server-rendered page the browser can finish (and
+      // fail) the fetch BEFORE hydration attaches onError — the error
+      // event never re-fires, so the mount ref inspects the dead state
+      // directly (complete with zero naturalWidth = failed load).
+      ref={(el) => {
+        if (el && el.complete && el.naturalWidth === 0) setBrokenSrc(src);
+      }}
+      src={src}
+      alt={alt}
+      onError={() => setBrokenSrc(src)}
+    />
   );
 }
