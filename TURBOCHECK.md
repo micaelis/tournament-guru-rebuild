@@ -608,6 +608,13 @@ delete path, cascades included; the app-side per-path cleanup was removed.
 Probe: `tests/probes/flag-orphans.test.ts` (mutation-verified: dropping the
 triggers fails 3/3).
 
+**H-8 is fixed** (DECISIONS S8.11): `updatePassword` enforces the full
+`validatePassword` policy server-side and `business_email` goes through
+`validateEmail`. Probe: `tests/probes/h8-password-validation.test.ts`
+(mutation-verified: reverting the action fails 3/5). The broader "8 actions
+with incomplete revalidation" note (e.g. `updateTeams` enum checks) remains
+open.
+
 **H-0 is fixed** (DECISIONS S8.8): all queries in `lib/events/search.ts` route
 through a checked `unwrap()` (`lib/supabase/unwrap.ts`), filter input is
 allow-listed so URL values can't manufacture a query error, and

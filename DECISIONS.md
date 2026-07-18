@@ -945,3 +945,25 @@ through the real roles (the reviewer's own client) and asserts zero
 moderation rows survive, including a whole-table orphan sweep. Verified
 by mutation: dropping the two triggers fails all 3 cases; a from-zero
 `supabase db reset` rebuilds green.
+
+### S8.11 · Account actions revalidate like the rest of the app (H-8)
+
+**What:** `updatePassword` now enforces the full `validatePassword`
+policy (8 chars + uppercase + digit) server-side instead of only
+`length >= 8`, and `updateProfile` runs `business_email` through
+`validateEmail` before storing it.
+
+**Why:** the client showed the strict rule while the server accepted
+weaker input — "the server is authoritative" is this project's stated
+convention, and signup + reset both already enforce the same policy, so
+a crafted request to the account action was the one door where a
+non-conforming password could enter. `business_email` is the same
+asymmetry one field over: rendered publicly on event pages, stored with
+no validation at all.
+
+**Tripwire:** `tests/probes/h8-password-validation.test.ts` drives the
+real Server Actions against real local auth: a weak password returns a
+field error AND provably never lands (sign-in with it still fails; the
+original still works); a malformed business_email returns a field error
+and writes nothing. Verified by mutation: reverting the action file
+fails 3 of 5 cases.

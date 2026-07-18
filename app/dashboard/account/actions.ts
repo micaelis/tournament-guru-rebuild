@@ -6,6 +6,7 @@ import { createServerAuthClient } from "@/lib/supabase/server";
 import { DISTANCE_PREFS, USER_GENDERS } from "@/lib/enums";
 import { safeExternalUrl, safeImageSrc } from "@/lib/url";
 import { parseGeoFields } from "@/lib/geo";
+import { validateEmail, validatePassword } from "@/lib/validation";
 
 export type AccountState = {
   error?: string;
@@ -55,6 +56,10 @@ export async function updateProfile(
     !USER_GENDERS.some((g) => g.value === user_gender)
   ) {
     fieldErrors.user_gender = "Invalid gender.";
+  }
+  if (business_email) {
+    const emailError = validateEmail(business_email);
+    if (emailError) fieldErrors.business_email = emailError;
   }
   if (Object.keys(fieldErrors).length) return { fieldErrors };
 
@@ -114,12 +119,11 @@ export async function updatePassword(
 ): Promise<AccountState> {
   const supabase = await createServerAuthClient();
   const password = String(formData.get("password") ?? "");
-  if (password.length < 8) {
-    return {
-      fieldErrors: {
-        password: "Password needs at least 8 characters.",
-      },
-    };
+  // Same rule as signup/reset — the server is authoritative, so the
+  // full validatePassword policy applies here too, not just length.
+  const passwordError = validatePassword(password);
+  if (passwordError) {
+    return { fieldErrors: { password: passwordError } };
   }
   const { error } = await supabase.auth.updateUser({ password });
   if (error) return { error: error.message };
