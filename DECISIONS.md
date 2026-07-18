@@ -967,3 +967,24 @@ field error AND provably never lands (sign-in with it still fails; the
 original still works); a malformed business_email returns a field error
 and writes nothing. Verified by mutation: reverting the action file
 fails 3 of 5 cases.
+
+### S8.12 · /api/search-log: handled 204s + the missing app-layer rate limit (H-5)
+
+**What:** the route's empty/malformed-input responses are now a bare
+`new Response(null, { status: 204 })`, and the endpoint is wrapped in
+`rateLimit()` (30/min per client key) ahead of body parsing.
+
+**Why:** `NextResponse.json({...}, { status: 204 })` throws — 204 is a
+null-body status — and the catch block re-executed the same illegal
+construction, so every empty or malformed POST became an uncaught 500.
+No user impact (the caller fire-and-forgets), but it polluted logs with
+fake 500s that mask real errors. Separately, this was the only
+unauthenticated write endpoint with no `rateLimit()` call, violating
+the stated two-layer rule (the DB trigger caps the table at 1000/min
+globally; the app layer caps per-IP bursts).
+
+**Tripwire:** `tests/probes/h5-search-log.test.ts` invokes the real
+route handler: empty term and malformed JSON resolve to bodyless 204s
+(previously: rejected), a valid term persists, and the 31st burst
+request from one IP gets a 429 with Retry-After. Verified by mutation:
+the pre-fix route fails 3 of 4 cases.

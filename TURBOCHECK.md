@@ -615,6 +615,13 @@ triggers fails 3/3).
 with incomplete revalidation" note (e.g. `updateTeams` enum checks) remains
 open.
 
+**H-5 is fixed** (DECISIONS S8.12): `/api/search-log` returns bare
+`Response(null, {status: 204})` on empty/malformed input (the
+NextResponse-204 throw + rethrowing catch is gone) and now carries the
+app-layer `rateLimit()` the two-layer rule requires. Probe:
+`tests/probes/h5-search-log.test.ts` (mutation-verified: pre-fix route fails
+3/4).
+
 **H-0 is fixed** (DECISIONS S8.8): all queries in `lib/events/search.ts` route
 through a checked `unwrap()` (`lib/supabase/unwrap.ts`), filter input is
 allow-listed so URL values can't manufacture a query error, and
