@@ -1074,3 +1074,19 @@ of bug (EventSearchOverlay already did it right with `[open]`).
 **Tripwire:** e2e "filter drawer distance box keeps focus across
 keystrokes" types 6 chars and asserts focus + full value. Verified by
 mutation: restoring `[open, onClose]` deps fails it.
+
+### R2.1 · Contact success card scrolls itself into view
+
+**What:** ContactForm's SuccessCard runs a mount effect —
+`scrollIntoView({ block: "center" })`.
+
+**Why:** Round-2 #1 — submitting swaps the ~1.4k-px form for a short
+card; on stacked (sub-lg) layouts the browser clamps the stranded
+scroll offset to the new page bottom, so the user lands on the footer
+with the confirmation ~100px above the fold (measured 768×540:
+heading at −99px, scrollY pinned to exactly docHeight−viewport). The
+card owns the scroll because only it knows it replaced the form.
+
+**Tripwire:** e2e "contact submit keeps the confirmation in view"
+(768×540, pre-scrolled to bottom) asserts the heading is in the
+viewport. Verified by mutation: emptying the effect fails it.

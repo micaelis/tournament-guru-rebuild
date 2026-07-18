@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { submitContactRequest } from "./contact-action";
 import {
@@ -131,8 +131,17 @@ export function ContactForm({ source }: { source: ContactSource }) {
 }
 
 function SuccessCard() {
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Submitting swaps the tall form for this short card; without an
+  // explicit scroll the viewport stays parked where the submit button
+  // was and the confirmation renders off-screen.
+  useEffect(() => {
+    ref.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, []);
+
   return (
-    <div className="tg-step-in" style={{ textAlign: "center", padding: "20px 8px" }} role="status">
+    <div ref={ref} className="tg-step-in" style={{ textAlign: "center", padding: "20px 8px" }} role="status">
       <span
         className="inline-flex items-center justify-center rounded-full"
         style={{

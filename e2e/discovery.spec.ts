@@ -61,6 +61,27 @@ test.describe("Public discovery", () => {
     await expect(img.locator("xpath=..")).toHaveClass(/rounded-full/);
   });
 
+  test("contact submit keeps the confirmation in view", async ({ page }) => {
+    // Submitting swaps the tall form for a short success card; the
+    // viewport must land on the confirmation, not stay parked at the
+    // bottom where the submit button was (Round-2 #1).
+    // Sub-lg width stacks the pitch above the form, putting the form
+    // deep in the page — the geometry where the post-submit swap
+    // strands the viewport on the footer.
+    await page.setViewportSize({ width: 768, height: 540 });
+    await page.goto("/contact");
+    await page.getByLabel(/Full Name/).fill("Probe Person");
+    await page.getByLabel(/Email Address/).fill("probe@example.test");
+    await page.getByLabel(/Additional Notes/).fill("Round-2 scroll check");
+    // Reproduce the reporter's position: scrolled to the page bottom,
+    // where the submit button lives on a short viewport.
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await page.getByRole("button", { name: "Send Message" }).click();
+    const heading = page.getByRole("heading", { name: "Message sent!" });
+    await expect(heading).toBeVisible();
+    await expect(heading).toBeInViewport();
+  });
+
   test("directors index renders", async ({ page }) => {
     await page.goto("/directors");
     await expect(
