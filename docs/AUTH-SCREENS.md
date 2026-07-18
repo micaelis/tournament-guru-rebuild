@@ -90,8 +90,8 @@ Same left/right chrome as the auth screens.
   adjustable here, **locked after completion**), Organization Title* (required for all except
   Parent/Spectator).
 - **Screen 2:** Location* (Google Places autocomplete, **mandatory**), Gender* (Female/Male as
-  selectable blocks, **mandatory**), Date of Birth* (calendar with easy year change;
-  **under-18 blocked**).
+  selectable blocks, **mandatory**), Date of Birth* (masked mm/dd/yyyy text input — US format
+  regardless of browser locale; posts ISO via a hidden field; **under-18 blocked**).
 - **Screen 3 — Preferred Event Criteria (all optional):** Distance (No limit / <150 / <300 /
   <450 mi); Team info (Parent/Spectator = 1 team, others = up to 3; each: gender Boys/Girls/Both,
   age U4–U20 dropdown, competitive level Highest→Lowest).

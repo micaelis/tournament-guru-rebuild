@@ -16,6 +16,7 @@ import {
 } from "./taxonomy";
 import type { FilterGroupKey } from "./SearchFilterBar";
 import { LocationAutocomplete } from "@/app/components/LocationAutocomplete";
+import { USDateText } from "@/app/components/ui/USDateInput";
 import { DISTANCE_OPTIONS } from "@/lib/geo";
 
 type Patch = Partial<Filters>;
@@ -419,10 +420,12 @@ function DateField({ label, value, onChange }: { label: string; value: string; o
       <div className="text-[10.5px] font-semibold uppercase" style={{ color: "var(--color-text-faint)", letterSpacing: ".06em" }}>
         {label}
       </div>
-      <input
-        type="date"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
+      {/* Masked mm/dd/yyyy — a native date input shows the BROWSER
+          locale's placeholder (dd/mm/yyyy abroad). */}
+      <USDateText
+        iso={value}
+        onIsoChange={onChange}
+        aria-label={`${label} date`}
         className="w-full border-0 bg-transparent py-0.5 text-[14px] outline-none"
         style={{ color: "var(--color-dark)" }}
       />

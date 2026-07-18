@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { Route } from "next";
 import { useActionState } from "react";
 import { Alert, Field, SubmitButton } from "../../(auth)/parts";
+import { USDateField } from "@/app/components/ui/USDateInput";
 import { LocationAutocomplete } from "@/app/components/LocationAutocomplete";
 import { useLiveValidation } from "@/app/components/ui/useLiveValidation";
 import { useSubmittedValues } from "@/app/components/ui/useSubmittedValues";
@@ -351,14 +352,12 @@ function Step2Form({ profile, back }: { profile: Profile; back?: number }) {
           </p>
         )}
       </fieldset>
-      <Field
+      <USDateField
         label="Date of birth"
         name="dob"
-        type="date"
-        placeholder="MM/DD/YYYY"
-        defaultValue={values.dob ?? profile.dob ?? ""}
+        defaultIso={values.dob ?? profile.dob ?? ""}
         required
-        hint="MM/DD/YYYY — you must be at least 18."
+        hint="mm/dd/yyyy — you must be at least 18."
         validate={(v) =>
           v && isAdultDob(v) ? null : "You must be at least 18."
         }

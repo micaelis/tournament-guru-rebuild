@@ -109,6 +109,11 @@ Build screens from these; don't hand-roll equivalents.
 - **EmptyState** — the shared "no results / nothing yet" placeholder; reuse everywhere with
   adjusted copy + CTA (e.g. "Find Events").
 - **ConfirmDialog** — destructive/confirm popups (delete tournament, unfollow, decline claim).
+- **USDateText / USDateField** — masked `mm/dd/yyyy` date input (native `type="date"`
+  localizes its placeholder to the browser, not the app). Visible text is always US format;
+  forms/callers receive ISO `yyyy-mm-dd` (hidden input or `onIsoChange`). `USDateField` is the
+  labelled Field-wrapped variant (onboarding DOB); `USDateText` is bare (filter drawer dates).
+  User-facing date ENTRY goes through these; dashboard ED tooling may still use native pickers.
 - **Toast** — transient confirmations ("Link copied", "Downloaded", "Saved").
 - **Spinner** — inline/section loading.
 

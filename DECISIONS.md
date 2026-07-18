@@ -1108,3 +1108,26 @@ radius-following and served no purpose current browsers need.
 **Tripwire:** e2e "sort-by select keeps its border-radius while
 focused" asserts computed border-radius 10px before and during focus.
 Verified by mutation: re-adding the line fails it.
+
+### R2.4 · Date entry is a masked mm/dd/yyyy input, not native `type="date"`
+
+**What:** new `USDateText` / `USDateField` primitives
+(app/components/ui/USDateInput.tsx): visible text always mm/dd/yyyy,
+progressive slash mask, forms/callers receive ISO (hidden input or
+`onIsoChange`, "" until the date is complete AND real). Swapped in on
+the onboarding DOB and both filter-drawer date boxes.
+
+**Why:** Round-2 #4 — native date inputs render their placeholder in
+the BROWSER's locale (a UK browser shows dd/mm/yyyy whatever the page
+does); there is no attribute to force US format, so a masked text
+input is the only reliable fix. Trade-off, accepted: those fields lose
+the native calendar popup — fine for a DOB (typing beats scrolling
+back decades) and for filter dates (presets cover the picker cases).
+ED dashboard forms (EventForm dates) intentionally keep native pickers
+— internal tooling, calendar genuinely useful there.
+
+**Tripwire:** unit tests pin the mask + both conversions (leap day,
+Feb 30, month 13); onboarding e2e types US format through the real
+wizard (advance + under-18 block) and asserts the mm/dd/yyyy
+placeholder; drawer e2e asserts mask formatting + preset adoption
+through the controlled ISO prop.

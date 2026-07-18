@@ -25,11 +25,19 @@ async function completeStep1(page: Page, opts: { org: string }) {
   await page.getByRole("button", { name: "Continue" }).click();
 }
 
+/** DOB is a masked mm/dd/yyyy text input; the helper takes ISO and types US format. */
+function usDate(iso: string): string {
+  const [y, m, d] = iso.split("-");
+  return `${m}/${d}/${y}`;
+}
+
 async function completeStep2(page: Page, dob: string) {
   await expect(page.getByRole("heading", { name: "About You" })).toBeVisible();
   await page.getByLabel("Location").fill("St. Louis, MO");
   await page.getByRole("radio", { name: "Female" }).check({ force: true });
-  await page.getByLabel("Date of birth").fill(dob);
+  const dobBox = page.getByLabel("Date of birth");
+  await expect(dobBox).toHaveAttribute("placeholder", "mm/dd/yyyy");
+  await dobBox.fill(usDate(dob));
   await page.getByRole("button", { name: "Continue" }).click();
 }
 
@@ -72,7 +80,7 @@ test.describe("Onboarding — attendee", () => {
       await page
         .getByRole("radio", { name: "Male", exact: true })
         .check({ force: true });
-      await page.getByLabel("Date of birth").fill("2015-01-01");
+      await page.getByLabel("Date of birth").fill(usDate("2015-01-01"));
       await page.getByRole("button", { name: "Continue" }).click();
 
       await expect(

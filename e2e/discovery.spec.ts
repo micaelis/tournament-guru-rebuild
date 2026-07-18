@@ -61,6 +61,18 @@ test.describe("Public discovery", () => {
     await expect(img.locator("xpath=..")).toHaveClass(/rounded-full/);
   });
 
+  test("filter drawer dates are masked mm/dd/yyyy (US, locale-independent)", async ({ page }) => {
+    await page.goto("/events");
+    await page.getByRole("button", { name: /All filters/ }).click();
+    const from = page.getByLabel("From date");
+    await expect(from).toHaveAttribute("placeholder", "mm/dd/yyyy");
+    await from.pressSequentially("07041990");
+    await expect(from).toHaveValue("07/04/1990");
+    // A preset overwrites the box through the controlled ISO prop.
+    await page.getByRole("button", { name: "This summer" }).click();
+    await expect(from).toHaveValue(/06\/01\/\d{4}/);
+  });
+
   test("sort-by select keeps its border-radius while focused", async ({ page }) => {
     // The global *:focus-visible rule must not overwrite an element's
     // own radius (border-radius: inherit squared the select against
