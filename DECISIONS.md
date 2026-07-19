@@ -1905,3 +1905,31 @@ their table row and sees both pool columns with the seeded review
 counted in the Attendee pool (also the render proof: star rows, x.00/5,
 counts). Failed reads surface as the popup's error state instead of
 rendering empty pools (S8.9 class).
+
+### S10.12 · Promo eligibility pre-flight via ids-free definer RPC (supersedes S3.2)
+S3.2 shipped `validateEmails` as an everyone-eligible pass-through
+because the check needs `auth.users.email`, unreadable to the app's
+clients, and plumbing the service role into the app was rejected.
+Migration 20260719000009 adds `promo_email_eligibility(text[])`:
+SECURITY DEFINER, host-gated (`is_event_host() is not true` + null-uid
+raise, pinned search_path, EXECUTE revoked from public/anon), returning
+(email, status) pairs ONLY — the email column echoes the caller's own
+input, so no account data crosses the boundary beyond the §6.3 verdict
+itself. Verdicts, in input order (unnest WITH ORDINALITY): no account →
+eligible; non-blocked coach attendee → eligible; blocked coach →
+blocked; anything else (ED, admin, non-coach role, auth user without a
+profile row) → wrong-user-type. Matching is case-insensitive on a
+trimmed input.
+
+`validateEmails` now calls the RPC and FAILS CLOSED: an errored check
+returns `{ error }`, the Send Emails popup shows the failure and keeps
+the send button disabled — it never degrades into "everyone eligible".
+The popup's auto-exclude + not-re-addable handling already existed and
+needed no change.
+
+**Verification:** `tests/probes/promo-eligibility.test.ts` — authz
+(anon + coach rejected, ED + admin allowed), the full §6.3 matrix in
+input order, the (email, status)-only shape, and case-insensitive
+echo. Mutation-verified both ways: dropping the host gate fails the
+attendee tripwire; collapsing the wrong-user-type arm to 'eligible'
+fails the matrix tripwire.

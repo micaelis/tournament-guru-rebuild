@@ -13,17 +13,28 @@ export type PreflightRow = {
 };
 
 /**
- * Pre-flight eligibility. We can't resolve email → profile without
- * auth.users.email (RLS blocks anon reads of that column). Until the
- * follow-up wires a service-role check (see DECISIONS §S3.2), every
- * uploaded email is treated as eligible. The email dispatch itself
- * re-runs the check against blocked flags at the promo insert layer
- * so a blocked user can't slip through.
+ * Pre-flight eligibility via the `promo_email_eligibility` SECURITY
+ * DEFINER RPC (S10.12): emails on file as a non-coach account come
+ * back `wrong-user-type`, blocked coaches come back `blocked`, and the
+ * popup auto-excludes both. The RPC returns (email, status) pairs
+ * ONLY — no other account data crosses the boundary. Fails CLOSED: an
+ * errored check returns `{ error }` rather than degrading into
+ * "everyone eligible".
  */
 export async function validateEmails(
   emails: string[],
-): Promise<PreflightRow[]> {
-  return emails.map((email) => ({ email, status: "eligible" as const }));
+): Promise<PreflightRow[] | { error: string }> {
+  const supabase = await createServerAuthClient();
+  const { data, error } = await supabase.rpc("promo_email_eligibility", {
+    p_emails: emails,
+  });
+  if (error) {
+    console.error(
+      `validateEmails: [${error.code || "unknown"}] ${error.message}`,
+    );
+    return { error: error.message };
+  }
+  return (data ?? []) as PreflightRow[];
 }
 
 /**

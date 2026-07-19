@@ -28,6 +28,7 @@ export function SendEmailsDialog({
   onSuccess: () => void;
 }) {
   const [preflight, setPreflight] = useState<Preflight[] | null>(null);
+  const [preflightError, setPreflightError] = useState<string | null>(null);
   const [excluded, setExcluded] = useState<Set<string>>(new Set());
   const [sending, setSending] = useState(false);
   const { push } = useToast();
@@ -37,6 +38,12 @@ export function SendEmailsDialog({
     (async () => {
       const rows = await validateEmails(row.raw_emails);
       if (cancelled) return;
+      // Fail closed: no eligibility verdicts means no send button —
+      // never fall back to treating every address as eligible.
+      if (!Array.isArray(rows)) {
+        setPreflightError(rows.error);
+        return;
+      }
       setPreflight(rows);
       // Pre-exclude wrong-user-type + blocked — the spec says the
       // warning row can't be re-added by the admin.
@@ -142,7 +149,9 @@ export function SendEmailsDialog({
           })}
           {preflight === null && (
             <li className="p-4 text-center text-sm text-slate-500">
-              Running eligibility checks…
+              {preflightError
+                ? `Eligibility check failed: ${preflightError}`
+                : "Running eligibility checks…"}
             </li>
           )}
         </ul>

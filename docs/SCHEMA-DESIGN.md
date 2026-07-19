@@ -298,6 +298,11 @@ New/adjusted:
   - anonymize_account (attendee) → destroy user_id/email/name/handle/avatar on their reviews+comments, keep content + user_type/role, set anonymized=true, display "Former member".
   - ED account delete → anonymize their comments; delete owned events (→ detach their reviews); claimed events revert owner to admin.
 - **promo apply** (atomic RPC): on publish-with-promo → set guru_review, promo→applied+ts, sibling promos→void, recalc. One-review-per-event resolution (create / upgrade draft / upgrade non-verified / block-if-verified).
+- **promo_email_eligibility(text[])** (S10.12): host-gated definer bridge for the promo CSV
+  pre-flight — classifies each input email per spec §6.3 (eligible / blocked /
+  wrong-user-type) against `auth.users` + `profiles`, returning (email, status) pairs only,
+  in input order. Null-uid raise + `is_event_host()` + pinned search_path; EXECUTE revoked
+  from public/anon.
 - **admin_search_users_by_email(term)** (S10.10): admin-only definer bridge for the Users
   search — resolves an email substring against `auth.users` and returns matching ids ONLY
   (never addresses), capped at 100. Null-uid raise + `is not true` admin predicate +
