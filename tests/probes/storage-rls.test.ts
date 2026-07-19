@@ -256,6 +256,87 @@ describe("storage · owner-scoped writes (no cross-path writes)", () => {
   });
 });
 
+describe("storage · cross-owner UPDATE + signed-URL symmetry", () => {
+  // The write-deny suite above proves INSERT and DELETE; these pin the
+  // remaining verbs. Overwrites route through the UPDATE policy (an
+  // upsert onto an existing object is an UPDATE, per the masking lesson
+  // above), and createSignedUrl requires SELECT on the object — so a
+  // non-owner minting a signed URL for another's CSV would leak the
+  // private bucket through the one sanctioned retrieval path.
+  //
+  // Layering note (mutation-verified): the cross-owner update denial
+  // holds even with the RLS UPDATE policy widened to any-authenticated —
+  // the storage service's own object-owner check independently blocks
+  // overwrites (unlike deletes, where the RLS policy is the SOLE guard).
+  // The signed-URL denial is pure RLS: widening p_storage_csv_read to
+  // any-authenticated flips the non-owner test red.
+
+  it("a non-owner CANNOT overwrite another owner's public-bucket object", async () => {
+    const name = `${ed.id}/${fresh("png")}`;
+    const seed = await ed.client.storage
+      .from("event-images")
+      .upload(name, PNG_1PX, { upsert: false, contentType: "image/png" });
+    expect(seed.error).toBeNull();
+
+    const defaced = Buffer.concat([PNG_1PX, Buffer.from("defaced")]);
+    const { error } = await otherEd.client.storage
+      .from("event-images")
+      .upload(name, defaced, { upsert: true, contentType: "image/png" });
+    expect(error).not.toBeNull();
+
+    // The object survives byte-identical, whichever layer denied.
+    const { data } = await service().storage.from("event-images").download(name);
+    expect(Buffer.from(await data!.arrayBuffer()).equals(PNG_1PX)).toBe(true);
+  });
+
+  it("a non-owner CANNOT update() another owner's private CSV", async () => {
+    const name = `${ed.id}/${fresh("csv")}`;
+    const seed = await ed.client.storage
+      .from("promo-csv")
+      .upload(name, csvBody(), { upsert: false });
+    expect(seed.error).toBeNull();
+
+    const { error } = await otherEd.client.storage
+      .from("promo-csv")
+      .update(name, new Blob(["email\nattacker@example.com\n"], { type: "text/csv" }));
+    expect(error).not.toBeNull();
+
+    const { data } = await service().storage.from("promo-csv").download(name);
+    expect(await data!.text()).toContain("coach@example.com");
+    expect(await data!.text()).not.toContain("attacker@example.com");
+  });
+
+  it("the owner CAN overwrite their own object (UPDATE stays open to the owner)", async () => {
+    const name = `${ed.id}/${fresh("csv")}`;
+    await ed.client.storage.from("promo-csv").upload(name, csvBody(), { upsert: false });
+    const { error } = await ed.client.storage
+      .from("promo-csv")
+      .update(name, new Blob(["email\nsecond@example.com\n"], { type: "text/csv" }));
+    expect(error).toBeNull();
+    const { data } = await service().storage.from("promo-csv").download(name);
+    expect(await data!.text()).toContain("second@example.com");
+  });
+
+  it("a non-owner CANNOT mint a signed URL for another ED's CSV", async () => {
+    const name = `${ed.id}/${fresh("csv")}`;
+    await ed.client.storage.from("promo-csv").upload(name, csvBody(), { upsert: false });
+
+    const { data, error } = await otherEd.client.storage
+      .from("promo-csv")
+      .createSignedUrl(name, 60);
+    expect(error).not.toBeNull();
+    expect(data).toBeNull();
+  });
+
+  it("anon CANNOT mint a signed URL for a CSV", async () => {
+    const { data, error } = await anon()
+      .storage.from("promo-csv")
+      .createSignedUrl(`${ed.id}/probe.csv`, 60);
+    expect(error).not.toBeNull();
+    expect(data).toBeNull();
+  });
+});
+
 describe("storage · server-side type + size limits", () => {
   it("rejects a non-image upload to event-images (mime allow-list)", async () => {
     const { error } = await ed.client.storage

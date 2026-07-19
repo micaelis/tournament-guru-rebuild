@@ -1804,3 +1804,21 @@ sendPromoEmails→approved) untouched.
 self-approve touches 0 rows and status stays `pending`; admin reject
 succeeds. Mutation-verified: reintroducing the owner arm fails the
 self-approve tripwire; restoring the migration greens it.
+
+### S10.8 · Storage symmetry probes — overwrite + signed-URL verbs pinned
+Storage-audit follow-up to S10.4; probes only, no policy change. The
+S10.4 suite proved INSERT/DELETE/read isolation; the UPDATE verb and the
+signed-URL mint path were asserted only from the allow side. New probes
+in `tests/probes/storage-rls.test.ts`: a cross-owner overwrite
+(`upsert:true` onto an existing object) and a cross-owner `update()` are
+denied with the object surviving byte-identical; the owner still can
+overwrite their own; a non-owner ED and anon cannot `createSignedUrl`
+another's private CSV.
+
+Finding worth keeping: the two denials live at DIFFERENT layers.
+Widening the RLS UPDATE policy to any-authenticated does NOT open the
+overwrite hole — the storage service's own object-owner check blocks it
+independently (the inverse of deletes, where RLS is the sole guard,
+S10.4). The signed-URL denial is pure RLS: widening
+`p_storage_csv_read` to any-authenticated flips the non-owner mint
+probe red. Mutation-verified both ways; policies restored intact.
