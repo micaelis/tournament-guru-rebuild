@@ -312,6 +312,12 @@ New/adjusted:
   20260719000001). `is_admin()` implies `is_event_host()`, so admins keep writing the
   unclaimed rows they don't own (S1.1). Event child tables inherit this via their parent
   event's owner check.
+- **Parent-row authorization** on `events`: writing an event also requires write access to
+  its parent tournament (`t.owner_id = auth.uid() or is_admin()`). `tournament_id` is
+  caller-supplied, so checking only the event's own `owner_id` let one ED graft or reparent
+  an event onto another ED's tournament — which pollutes that tournament's rollup ratings,
+  since `recalc_tournament_ratings` aggregates through `events.tournament_id` (S10.2,
+  migration 20260719000002).
 - **Column-grant allow-lists** as the privilege-escalation cap (Postgres checks column
   privileges before RLS): `revoke update/insert` then `grant (safe cols)` — omits
   user_type, role, blocked, guru_review, published, counters on profiles/reviews; omits

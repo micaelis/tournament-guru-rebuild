@@ -1553,3 +1553,39 @@ incidental deny.
 **Alternative considered:** enforcing the role check only in the server
 actions. Rejected on the project's own rule — RLS is the security
 boundary; a check that a direct PostgREST call bypasses is not a gate.
+
+### S10.2 · Event writes are authorized against the parent tournament
+
+`p_events_write` validated the event row's own `owner_id` but never
+asked whether the caller may write the tournament the event hangs off.
+Both `owner_id` and `tournament_id` are caller-supplied, so ED-B could
+INSERT an event with `owner_id` = self and `tournament_id` = ED-A's
+tournament, and the policy was satisfied — the row is "yours", so it
+passed. Reparenting an existing own-event onto ED-A's tournament worked
+the same way.
+
+**Why it matters beyond tidiness.** `recalc_tournament_ratings`
+aggregates every published review reachable via `events e where
+e.tournament_id = <tournament>`. A grafted event therefore rolls its
+reviews into the victim tournament's `general_rating`, `coach_rating`,
+`attendee_rating`, and every category average. An ED could attach a
+poorly-reviewed event to a competitor's tournament and drag their
+aggregate down, and the victim can see the row (tournaments are
+public-read) but cannot edit or remove it, because they don't own it.
+
+**Fix** (migration `20260719000002`): `p_events_write` additionally
+requires `exists (select 1 from tournaments t where t.id =
+events.tournament_id and (t.owner_id = auth.uid() or is_admin()))` in
+both USING and WITH CHECK. `tournament_id` is NOT NULL, so the EXISTS is
+unconditional without stranding parentless rows.
+
+Resulting matrix: ED → own tournament ✓; ED → another ED's ✗; admin →
+anywhere ✓ (incl. editing an event on a claimed ED tournament, per the
+S1.1 addendum); ED → unclaimed admin-created ✗ — claim it first, which
+matches S1.1 and the parked claim-ownership model. Ownership transfer is
+unaffected: `approve_claim_request` is SECURITY DEFINER and bypasses RLS.
+
+**Verification:** `tests/probes/event-parent-tournament-gate.test.ts`,
+6 tests, mutation-verified — dropping the parent EXISTS fails the 3
+attack-path tripwires (insert, reparent, rating pollution) while the 3
+ED/admin positive cases stay green.
