@@ -1822,3 +1822,42 @@ independently (the inverse of deletes, where RLS is the sole guard,
 S10.4). The signed-URL denial is pure RLS: widening
 `p_storage_csv_read` to any-authenticated flips the non-owner mint
 probe red. Mutation-verified both ways; policies restored intact.
+
+### S10.9 · Atomic saveEvent — save_event_graph RPC (supersedes S9.3's known limitation)
+S9.3 accepted that the replace-all was not atomic: a failed child insert
+surfaced, but the delete had already landed, so the ED's collection was
+gone and had to be re-entered. Migration 20260719000007 adds
+`save_event_graph(p_event jsonb)` — SECURITY DEFINER, one transaction
+for the base row + all seven child replace-alls; any raise rolls back
+everything, deletes included. `saveEvent` validates as before and calls
+the RPC; `duplicateEvent` reuses it with a fresh id; the in-action
+replace-all is deleted (no dual path).
+
+Entry guards per the scope doc (all the hard-won patterns): null-uid
+raise + `is not true` predicates (S10.3), authz MIRRORS `p_events_write`
+— `is_event_host()`, owner-or-admin on the existing row, parent-
+tournament access on both the current parent (USING half) and the final
+parent (WITH CHECK half) — `set search_path = public, pg_temp`, EXECUTE
+revoked from public/anon. New-row ownership is computed from the
+caller's role inside the RPC (admin → unclaimed claimable row per S1.1),
+never from the payload — a caller-supplied owner_id would reopen S10.1.
+The UPDATE arm's SET list excludes `id` (S9.2) and the ownership + tier
+columns (the RPC bypasses the S6.2 column grants, so it must never
+touch is_premium/is_general_ad/premium_at/aggregates).
+
+Known behavior delta, deliberate: an admin DUPLICATING a claimed event
+now yields an unclaimed claimable copy (previously the copy landed owned
+by that ED). Role-computed ownership matches S1.1's admin-creates-
+claimable model; the old path is unreachable in the UI (Duplicate sits
+behind `canManage`).
+
+**Verification:** `tests/probes/save-event-graph.test.ts` — authz matrix
+below the action + the late-child-failure atomicity probe (poisoned
+milestones roll back base row and every earlier collection).
+Mutation-verified 4 ways: role guard, owner guard (isolated via a
+grafted cross-owner seed), parent gate, and an exception-swallowing
+milestones insert each flip exactly their own tripwire.
+`write-error-surfacing` adapted: the proxy breaks the RPC call itself
+and asserts error + data-survives; `event-edit-grants` (publish flips
+lifecycle through the RPC now) and the tournament-crud matrix stayed
+green untouched.

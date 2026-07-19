@@ -298,6 +298,13 @@ New/adjusted:
   - anonymize_account (attendee) → destroy user_id/email/name/handle/avatar on their reviews+comments, keep content + user_type/role, set anonymized=true, display "Former member".
   - ED account delete → anonymize their comments; delete owned events (→ detach their reviews); claimed events revert owner to admin.
 - **promo apply** (atomic RPC): on publish-with-promo → set guru_review, promo→applied+ts, sibling promos→void, recalc. One-review-per-event resolution (create / upgrade draft / upgrade non-verified / block-if-verified).
+- **save_event_graph** (atomic RPC, S10.9): the whole event graph — base row + replace-all
+  of every child collection — in one transaction; a late child failure rolls everything
+  back. Entry guards mirror `p_events_write` (null-uid raise, `is_event_host()`,
+  owner-or-admin, parent-tournament access on current AND final parent); new-row ownership
+  is computed from the caller's role (admin → unclaimed/claimable per S1.1), never taken
+  from the payload; the UPDATE arm never writes `id` (S9.2) or ownership/tier columns.
+  EXECUTE revoked from public/anon. `saveEvent` and `duplicateEvent` both route through it.
 
 ---
 

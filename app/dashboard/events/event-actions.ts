@@ -2,7 +2,6 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import type { PostgrestError } from "@supabase/supabase-js";
 import { createServerAuthClient } from "@/lib/supabase/server";
 import { firstWriteError } from "@/lib/supabase/unwrap";
 import { parseGeoFields } from "@/lib/geo";
@@ -25,9 +24,6 @@ export type EventFormState = {
   fieldErrors?: Record<string, string>;
   createdId?: string;
 };
-
-/** Shape the child-collection batches resolve to, for `firstWriteError`. */
-type WriteResult = { error: PostgrestError | null };
 
 export type AgeGroupInput = {
   team_gender: string;
@@ -53,12 +49,14 @@ export type MilestoneInput = {
  * title (spec: "only the event title is mandatory"); publish enforces
  * every mandatory field + end_date >= start_date.
  *
- * The action is a single mutation: it writes the base event (INSERT for
- * new, UPDATE for existing — see S9.2 for why not `upsert`), then
- * replaces every child collection (age groups / sponsors / competition
- * levels / surfaces / features / images). Replace-all lets the form
- * treat child rows as pure state — the client sends the whole set every
- * time and the server never has to reconcile per-row diffs.
+ * The action validates, then hands the whole graph to the
+ * `save_event_graph` SECURITY DEFINER RPC, which writes the base event
+ * and replaces every child collection (age groups / sponsors /
+ * competition levels / surfaces / features / images / milestones) in ONE
+ * transaction — a late child failure rolls everything back, so the ED's
+ * existing data survives (S9.3 rework). Replace-all lets the form treat
+ * child rows as pure state — the client sends the whole set every time
+ * and the server never has to reconcile per-row diffs.
  */
 export async function saveEvent(
   _prev: EventFormState,
@@ -237,170 +235,66 @@ export async function saveEvent(
 
   if (Object.keys(fieldErrors).length) return { fieldErrors };
 
-  const lifecycle: "draft" | "active" =
-    intent === "publish" ? "active" : "draft";
+  // null = keep the current lifecycle (the "update" intent).
+  const lifecycle: "draft" | "active" | null =
+    intent === "update" ? null : intent === "publish" ? "active" : "draft";
 
-  // Look up caller role once — admins that create events do so on
-  // behalf of an ED and leave owner_id null so the event is claimable
-  // (spec: "the option to edit the tournament/add an event is possible
-  // for the admin only if the tournament/event was added by the admin
-  // and has not yet been claimed by an ED").
-  const { data: callerProfile, error: callerError } = await supabase
-    .from("profiles")
-    .select("user_type")
-    .eq("id", user.id)
-    .maybeSingle<{ user_type: "attendee" | "event_director" | "admin" }>();
-  // Falling through to the non-admin branch on a failed read would stamp
-  // an admin's id as owner_id, making the event permanently unclaimable.
-  if (callerError) return { error: callerError.message };
-
-  const newRowOwnership =
-    callerProfile?.user_type === "admin"
-      ? { owner_id: null, created_by: user.id, claimed: false }
-      : { owner_id: user.id, created_by: user.id, claimed: true };
-
-  // Resolved before the row is assembled so a failed lookup can't read
-  // as "no tournament" and silently drop the linkage.
-  let existingTournamentId: string | undefined;
-  if (base.tournament_id === undefined && eventId) {
-    const { data: owner, error: ownerError } = await supabase
-      .from("events")
-      .select("tournament_id")
-      .eq("id", eventId)
-      .maybeSingle<{ tournament_id: string }>();
-    if (ownerError) return { error: ownerError.message };
-    existingTournamentId = owner?.tournament_id;
-  }
-
-  const row = {
-    tournament_id: base.tournament_id ?? existingTournamentId,
-    logo_url: base.logo_url,
-    title: base.title,
-    website_url: base.website_url,
-    host_club: base.host_club,
-    start_date: base.start_date,
-    end_date: base.end_date,
-    registration_deadline: base.registration_deadline,
-    description: base.description,
-    location_formatted: base.location_formatted,
-    location_state_abbr: base.location_state_abbr,
-    location_lat: base.location_lat,
-    location_lng: base.location_lng,
-    location_place_id: base.location_place_id,
-    location_city: base.location_city,
-    location_state_full: base.location_state_full,
-    location_zip: base.location_zip,
-    num_teams_this_year: base.num_teams_this_year,
-    region: base.region,
-    season_id: base.season_id,
-    video_url: base.video_url,
-    teams_this_year_url: base.teams_this_year_url,
-    teams_prev_year_url: base.teams_prev_year_url,
-    registration_url: base.registration_url,
-    teams_attended_prev_year: base.teams_attended_prev_year,
-    ...(isNew ? newRowOwnership : {}),
-    ...(intent === "update" ? {} : { lifecycle }),
-  };
-
-  // INSERT for new, UPDATE for existing — deliberately not `upsert`.
-  // PostgREST compiles upsert to ON CONFLICT DO UPDATE with every
-  // payload key in the SET list, `id` included, and `id` carries no
-  // UPDATE grant (it must not: repointing a row's id is not an edit).
-  // Postgres then denies the whole statement, so every edit and every
-  // publish-a-draft failed with "permission denied for table events".
-  const eventInsert = isNew
-    ? await supabase.from("events").insert(row).select("id").single()
-    : await supabase
-        .from("events")
-        .update(row)
-        .eq("id", eventId)
-        .select("id")
-        .single();
-  if (eventInsert.error) return { error: eventInsert.error.message };
-  const savedId = eventInsert.data.id as string;
-
-  // Replace-all children. A failure here has to reach the ED: the
-  // delete half can land while the insert half fails, which drops the
-  // collection entirely — reporting success would lose it silently.
-  const childDeletes = await Promise.all([
-    supabase.from("event_age_groups").delete().eq("event_id", savedId),
-    supabase.from("sponsors").delete().eq("event_id", savedId),
-    supabase.from("event_competition_levels").delete().eq("event_id", savedId),
-    supabase.from("event_surfaces").delete().eq("event_id", savedId),
-    supabase.from("event_features").delete().eq("event_id", savedId),
-    supabase.from("event_images").delete().eq("event_id", savedId),
-    supabase.from("event_milestones").delete().eq("event_id", savedId),
-  ]);
-  const deleteError = firstWriteError(childDeletes, "saveEvent child deletes");
-  if (deleteError) return { error: deleteError };
-
-  const childInserts: Array<PromiseLike<WriteResult>> = [];
-  if (ageGroups.length) {
-    childInserts.push(
-      supabase.from("event_age_groups").insert(
-        ageGroups.map((g) => ({ ...g, event_id: savedId })),
-      ),
-    );
-  }
-  if (sponsors.length) {
-    childInserts.push(
-      supabase.from("sponsors").insert(
-        sponsors.map((s) => ({ ...s, event_id: savedId })),
-      ),
-    );
-  }
-  if (levels.length) {
-    childInserts.push(
-      supabase
-        .from("event_competition_levels")
-        .insert(levels.map((level) => ({ event_id: savedId, level }))),
-    );
-  }
-  if (surfaces.length) {
-    childInserts.push(
-      supabase
-        .from("event_surfaces")
-        .insert(surfaces.map((surface) => ({ event_id: savedId, surface }))),
-    );
-  }
-  if (features.length) {
-    childInserts.push(
-      supabase
-        .from("event_features")
-        .insert(features.map((feature) => ({ event_id: savedId, feature }))),
-    );
-  }
-  if (safeImages.length) {
-    childInserts.push(
-      supabase.from("event_images").insert(
-        safeImages.map((url, i) => ({
-          event_id: savedId,
-          url,
-          sort_order: i,
-        })),
-      ),
-    );
-  }
   const validMilestones = milestones.filter((m) => m.title.trim());
-  if (validMilestones.length) {
-    childInserts.push(
-      supabase.from("event_milestones").insert(
-        validMilestones.map((m, i) => ({
-          event_id: savedId,
+
+  // The save_event_graph RPC writes the base row + every child
+  // replace-all in one transaction: a late child failure rolls back the
+  // whole graph, so the ED's existing collections survive. Authz (event
+  // host + owner/admin + parent tournament, mirroring p_events_write)
+  // and new-row ownership (admin → unclaimed claimable row, S1.1) are
+  // computed inside the RPC — the payload carries no ownership fields,
+  // and a null tournament_id on edit means "keep the current parent".
+  const { data: saved, error: saveError } = await supabase.rpc(
+    "save_event_graph",
+    {
+      p_event: {
+        id: eventId || null,
+        tournament_id: base.tournament_id ?? null,
+        lifecycle,
+        logo_url: base.logo_url,
+        title: base.title,
+        website_url: base.website_url,
+        host_club: base.host_club,
+        start_date: base.start_date,
+        end_date: base.end_date,
+        registration_deadline: base.registration_deadline,
+        description: base.description,
+        location_formatted: base.location_formatted,
+        location_state_abbr: base.location_state_abbr,
+        location_lat: base.location_lat,
+        location_lng: base.location_lng,
+        location_place_id: base.location_place_id,
+        location_city: base.location_city,
+        location_state_full: base.location_state_full,
+        location_zip: base.location_zip,
+        num_teams_this_year: base.num_teams_this_year,
+        region: base.region,
+        season_id: base.season_id,
+        video_url: base.video_url,
+        teams_this_year_url: base.teams_this_year_url,
+        teams_prev_year_url: base.teams_prev_year_url,
+        registration_url: base.registration_url,
+        teams_attended_prev_year: base.teams_attended_prev_year,
+        age_groups: ageGroups,
+        sponsors,
+        competition_levels: levels,
+        surfaces,
+        features,
+        images: safeImages,
+        milestones: validMilestones.map((m) => ({
           title: m.title.trim(),
           milestone_date: m.milestone_date || null,
           description: m.description.trim() || null,
-          sort_order: i,
         })),
-      ),
-    );
-  }
-
-  const insertError = firstWriteError(
-    await Promise.all(childInserts),
-    "saveEvent child inserts",
+      },
+    },
   );
-  if (insertError) return { error: insertError };
+  if (saveError) return { error: saveError.message };
+  const savedId = saved as string;
 
   revalidatePath("/dashboard/events");
   revalidatePath(`/dashboard/events/${savedId}`);
@@ -544,35 +438,6 @@ export async function duplicateEvent(
 
   const src = source as unknown as Record<string, unknown>;
 
-  const insertRow = {
-    tournament_id: src.tournament_id as string,
-    owner_id: src.owner_id as string | null,
-    created_by: user.id,
-    claimed: src.owner_id !== null,
-    logo_url: src.logo_url,
-    title: `${src.title as string} (copy)`,
-    website_url: src.website_url,
-    host_club: src.host_club,
-    description: src.description,
-    location_formatted: src.location_formatted,
-    location_state_abbr: src.location_state_abbr,
-    location_city: src.location_city,
-    location_state_full: src.location_state_full,
-    location_zip: src.location_zip,
-    num_teams_this_year: src.num_teams_this_year,
-    region: src.region,
-    season_id: src.season_id,
-    lifecycle: "draft" as const,
-  };
-
-  const { data: created, error: insertError } = await supabase
-    .from("events")
-    .insert(insertRow)
-    .select("id")
-    .single();
-  if (insertError) return { error: insertError.message };
-  const newId = created.id as string;
-
   // Copy the child collections that spec allows. A failed read here is
   // indistinguishable from an empty collection, so it would hand back a
   // duplicate quietly missing whole sections of the original.
@@ -588,75 +453,45 @@ export async function duplicateEvent(
   const [ageGroupsRes, sponsorsRes, levelsRes, surfacesRes, imagesRes] =
     childReads;
 
-  const inserts: Array<PromiseLike<WriteResult>> = [];
-  const ageGroups = (ageGroupsRes.data ?? []) as {
-    team_gender: string;
-    age: string;
-    price: number;
-    field_size: string;
-  }[];
-  if (ageGroups.length) {
-    inserts.push(
-      supabase
-        .from("event_age_groups")
-        .insert(ageGroups.map((g) => ({ ...g, event_id: newId }))),
-    );
-  }
-  const sponsorsRows = (sponsorsRes.data ?? []) as {
-    name: string;
-    link: string;
-    logo_url: string;
-  }[];
-  if (sponsorsRows.length) {
-    inserts.push(
-      supabase
-        .from("sponsors")
-        .insert(sponsorsRows.map((s) => ({ ...s, event_id: newId }))),
-    );
-  }
-  const levels = ((levelsRes.data ?? []) as { level: string }[]).map(
-    (r) => r.level,
-  );
-  if (levels.length) {
-    inserts.push(
-      supabase
-        .from("event_competition_levels")
-        .insert(levels.map((level) => ({ event_id: newId, level }))),
-    );
-  }
-  const surfaces = ((surfacesRes.data ?? []) as { surface: string }[]).map(
-    (r) => r.surface,
-  );
-  if (surfaces.length) {
-    inserts.push(
-      supabase
-        .from("event_surfaces")
-        .insert(surfaces.map((surface) => ({ event_id: newId, surface }))),
-    );
-  }
-  const imagesRows = (imagesRes.data ?? []) as {
-    url: string;
-    sort_order: number;
-  }[];
-  if (imagesRows.length) {
-    inserts.push(
-      supabase
-        .from("event_images")
-        .insert(
-          imagesRows.map((img) => ({
-            event_id: newId,
-            url: img.url,
-            sort_order: img.sort_order,
-          })),
+  // Same atomic RPC as saveEvent — the copy lands whole or not at all.
+  // Ownership is computed by the RPC from the caller's role (ED → own
+  // claimed copy; admin → unclaimed claimable copy, S1.1); features and
+  // milestones are deliberately not copied, matching the previous
+  // behavior, and premium/tier flags never carry over.
+  const { data: created, error: createError } = await supabase.rpc(
+    "save_event_graph",
+    {
+      p_event: {
+        id: null,
+        tournament_id: src.tournament_id as string,
+        lifecycle: "draft",
+        logo_url: src.logo_url,
+        title: `${src.title as string} (copy)`,
+        website_url: src.website_url,
+        host_club: src.host_club,
+        description: src.description,
+        location_formatted: src.location_formatted,
+        location_state_abbr: src.location_state_abbr,
+        location_city: src.location_city,
+        location_state_full: src.location_state_full,
+        location_zip: src.location_zip,
+        num_teams_this_year: src.num_teams_this_year,
+        region: src.region,
+        season_id: src.season_id,
+        age_groups: ageGroupsRes.data ?? [],
+        sponsors: sponsorsRes.data ?? [],
+        competition_levels: ((levelsRes.data ?? []) as { level: string }[]).map(
+          (r) => r.level,
         ),
-    );
-  }
-
-  const copyError = firstWriteError(
-    await Promise.all(inserts),
-    "duplicateEvent child inserts",
+        surfaces: ((surfacesRes.data ?? []) as { surface: string }[]).map(
+          (r) => r.surface,
+        ),
+        images: ((imagesRes.data ?? []) as { url: string }[]).map((i) => i.url),
+      },
+    },
   );
-  if (copyError) return { error: copyError };
+  if (createError) return { error: createError.message };
+  const newId = created as string;
 
   revalidatePath("/dashboard/events");
   redirect(`/dashboard/events/${newId}/edit`);

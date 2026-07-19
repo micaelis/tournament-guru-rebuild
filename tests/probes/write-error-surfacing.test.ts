@@ -4,18 +4,18 @@
  * bug class is an action that fires a write, never reads the result,
  * and reports success while the rows are gone.
  *
- * `saveEvent` is the highest-value instance: it replaces every child
- * collection as delete-then-insert. Both halves fan out through
- * `Promise.all`, so an unchecked batch loses age groups / sponsors /
- * levels / surfaces / features / images / milestones on a "saved"
- * event — and the delete half landing while the insert half fails is
- * exactly how the collection disappears.
+ * `saveEvent` now writes its whole graph through the atomic
+ * `save_event_graph` RPC (S9.3 rework), so its failure mode collapsed
+ * from "which half of the replace-all died" to "the RPC call failed" —
+ * and the contract gained a half: the error must surface AND the
+ * existing data must be untouched (the rollback). The in-transaction
+ * late-child-failure proof lives in `save-event-graph.test.ts`; here
+ * the proxy breaks the RPC call itself, the transport-level failure.
  *
- * Failures are genuine PostgREST errors: the proxy re-points ONE
- * table, for ONE verb, at a nonexistent relation. Scoping to the verb
- * is what lets the delete batch and the insert batch be pinned
- * separately — breaking the table outright would always trip the
- * delete first and leave the insert batch untested.
+ * For the remaining PostgREST fan-out sites, failures are genuine
+ * PostgREST errors: the proxy re-points ONE table, for ONE verb, at a
+ * nonexistent relation, so each half of a replace-all is pinned
+ * separately.
  */
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -25,6 +25,7 @@ import { createUser, purge, seedTournamentAndEvent, service } from "../harness";
 const ctl = vi.hoisted(() => ({
   breakTable: null as string | null,
   breakVerb: null as "insert" | "update" | "upsert" | "delete" | "select" | null,
+  breakRpc: null as string | null,
   client: null as SupabaseClient | null,
 }));
 
@@ -40,6 +41,12 @@ vi.mock("@/lib/supabase/server", () => {
   const wrap = (real: SupabaseClient): SupabaseClient =>
     new Proxy(real, {
       get(target, prop, receiver) {
+        if (prop === "rpc") {
+          // Break ONE named RPC by re-pointing it at a nonexistent
+          // function — a genuine PostgREST failure, like the table case.
+          return (fn: string, args?: unknown) =>
+            target.rpc(fn === ctl.breakRpc ? `${fn}_we_missing` : fn, args as never);
+        }
         if (prop === "from") {
           return (table: string) => {
             const healthy = target.from(table);
@@ -121,6 +128,7 @@ afterAll(async () => {
 beforeEach(() => {
   ctl.breakTable = null;
   ctl.breakVerb = null;
+  ctl.breakRpc = null;
 });
 
 describe("write-error-surfacing · saveEvent child collections", () => {
@@ -142,37 +150,23 @@ describe("write-error-surfacing · saveEvent child collections", () => {
     expect(surfaces).toHaveLength(1);
   });
 
-  it("a failed child DELETE surfaces instead of reporting a clean save", async () => {
-    ctl.breakTable = "event_age_groups";
-    ctl.breakVerb = "delete";
-    const result = await saveEvent({}, saveForm());
-    expect(result.error).toBeTruthy();
-    expect(result.createdId).toBeUndefined();
-  });
+  it("a failed save_event_graph call surfaces AND leaves the data untouched", async () => {
+    // Seed a known collection through a healthy save first.
+    const healthy = await saveEvent({}, saveForm());
+    expect(healthy.error).toBeUndefined();
 
-  it("a failed child INSERT surfaces — the delete already wiped the rows", async () => {
-    ctl.breakTable = "event_age_groups";
-    ctl.breakVerb = "insert";
+    ctl.breakRpc = "save_event_graph";
     const result = await saveEvent({}, saveForm());
     expect(result.error).toBeTruthy();
     expect(result.createdId).toBeUndefined();
 
-    // The data loss the silent path used to hide: the delete landed,
-    // the insert did not, so the collection is empty. Reporting the
-    // failure is what lets the ED know to re-enter it.
+    // The atomic contract's other half: a failed save is a NO-op — the
+    // collection survives (the old replace-all left it wiped here).
     const { data: ages } = await service()
       .from("event_age_groups")
       .select("age")
       .eq("event_id", eventId);
-    expect(ages).toHaveLength(0);
-  });
-
-  it("a failed INSERT on a sibling collection surfaces too (class, not instance)", async () => {
-    ctl.breakTable = "event_surfaces";
-    ctl.breakVerb = "insert";
-    const result = await saveEvent({}, saveForm());
-    expect(result.error).toBeTruthy();
-    expect(result.createdId).toBeUndefined();
+    expect(ages).toHaveLength(1);
   });
 });
 
@@ -188,9 +182,8 @@ describe("write-error-surfacing · duplicateEvent child collections", () => {
     expect(result?.error).toBeTruthy();
   });
 
-  it("a failed child INSERT surfaces instead of redirecting to a half-copied event", async () => {
-    ctl.breakTable = "event_age_groups";
-    ctl.breakVerb = "insert";
+  it("a failed save_event_graph call surfaces instead of redirecting to a phantom copy", async () => {
+    ctl.breakRpc = "save_event_graph";
     const result = await duplicateEvent(eventId);
     expect(result?.error).toBeTruthy();
   });

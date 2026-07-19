@@ -590,7 +590,11 @@ event is assigned to the tournament under which it was initiated, dates are
 stored so search filters work, and status derives from the dates (§2.3).
 Temporary age-groups/sponsors/milestones added and deleted in the same session
 are not persisted. On success, redirect to the **internal event details page** (created
-+ last-modified timestamps, status, edit/delete).
++ last-modified timestamps, status, edit/delete). A save is **atomic**: the base
+row and every child collection (age groups, sponsors, competition levels,
+surfaces, features, images, milestones) persist through one transactional RPC
+(`save_event_graph`), so a failed save leaves the event exactly as it was — no
+half-written or half-wiped collections.
 
 **Editing.** A **draft** offers Delete, **Update** (title-only mandatory), and
 **Update & Publish** (all mandatory); drafts can be upgraded to premium without
