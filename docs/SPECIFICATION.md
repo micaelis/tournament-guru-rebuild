@@ -223,10 +223,10 @@ for case-insensitive email/banned-word matching.
   block, `num_teams_this_year`, `region`, `season_id`, `lifecycle`,
   `cancel_reason`, `is_premium`, `is_general_ad`, `premium_at`, premium media
   (`video_url` ≤ 200MB, `teams_this_year_url`, `teams_prev_year_url`,
-  `registration_url`, `teams_attended_prev_year`), `would_return_pct`,
-  denormalized aggregate ratings + six category averages, and full-text search
-  columns (`search_document`, `search_vector`) that expand coded values so
-  "NY" ↔ "New York" match.
+  `registration_url`, `teams_attended_prev_year`), `would_return_pct`, and
+  denormalized aggregate ratings + six category averages. (Search matches by
+  ILIKE over title / host club / location; the unused full-text columns were
+  dropped — S10.13.)
 - **Event child tables** (all cascade from `events`): `event_age_groups`
   (team_gender, age, price, field_size), `event_competition_levels`,
   `event_surfaces`, `event_features` (premium), `event_images` (≤3 free / ≤13

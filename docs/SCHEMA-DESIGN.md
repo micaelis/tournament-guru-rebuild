@@ -124,8 +124,9 @@ auth.users; where a public surface needs it, it does NOT get exposed (PII rule).
 | teams_attended_prev_year | int null | premium |
 | would_return_pct | numeric(5,2) null | NEW — % of verified coaches who said they'd return (from review.would_return); shown on featured cards |
 | agg ratings | general_rating, coach_rating, attendee_rating numeric(3,2); review_count int; 6 per-category avgs | denormalized; recalc trigger |
-| search_document | text | expanded coded values (state, region) for "NY"↔"New York" |
-| search_vector | tsvector | GIN full-text + GIN trgm on search_document |
+
+(The former `search_document`/`search_vector` FTS columns were dropped — no reader
+existed; search is ILIKE over title / host_club / location_formatted. S10.13.)
 
 **Event child tables** (all → events, cascade):
 - **event_age_groups**: team_gender, age (age_bracket), price int, field_size — ED-managed list.
@@ -279,10 +280,10 @@ promo_id → promo_codes, step text (landed|step1|step2|step3|applied), occurred
 ## 9. Denormalization, triggers, functions (carry-forward + new)
 
 Carry-forward from current schema (proven): `is_admin()`, `handle_new_user()`,
-`touch_updated_at()`, `stamp_premium_at()`, the search infra (`build_event_search_document`,
-`search_vector`, GIN indexes, child-table refresh), `rate_limit_touch`/`rate_limit_windows`
+`touch_updated_at()`, `stamp_premium_at()`, `rate_limit_touch`/`rate_limit_windows`
 + before-insert triggers, `get_popular_searches` (mode()), `get_platform_stats`,
-`needs_password_setup` (anon-revoked).
+`needs_password_setup` (anon-revoked). (The carried-forward FTS infra —
+`build_event_search_document`, `search_vector`, GIN indexes — was dropped unused, S10.13.)
 
 New/adjusted:
 - **recalc_ratings**: on review insert/update/delete → recompute the event's denormalized

@@ -1933,3 +1933,27 @@ input order, the (email, status)-only shape, and case-insensitive
 echo. Mutation-verified both ways: dropping the host gate fails the
 attendee tripwire; collapsing the wrong-user-type arm to 'eligible'
 fails the matrix tripwire.
+
+### S10.13 · Dead events FTS pipeline removed (TURBOCHECK H-6)
+`events.search_document` + `search_vector`, their two GIN indexes,
+`build_event_search_document()`, and trigger `t_events_search`
+recomputed on every event write — and nothing read them: repo-wide
+grep for the columns / tsquery variants / `textSearch` had zero app
+hits, and real search is ILIKE over title / host_club /
+location_formatted (`lib/events/search.ts`). Pure write amplification
++ index bloat on the hottest table. Migration 20260719000010 drops the
+whole pipeline in dependency order (trigger → functions → indexes →
+columns; `build_event_search_document` takes the `events` row type so
+it precedes the column drops). Reversible via git if real FTS is ever
+wired — chosen over "wire it up" because ILIKE already meets the spec'd
+search behavior and nothing ranked results.
+
+Cleanup ripples, same commit: `trg_event_search` left the c2 RG1
+revocation list (the function no longer exists), SPECIFICATION §3.2 and
+SCHEMA-DESIGN's events table + carry-forward inventory no longer
+describe the columns, and TURBOCHECK H-6 is marked resolved.
+
+**Verification:** schema-drift replays every app select against the
+reset DB (no site referenced the columns — the "zero readers" proof),
+and the full gate (typecheck, lint, build, 402 vitest, 72 e2e) is green
+on the dropped schema.

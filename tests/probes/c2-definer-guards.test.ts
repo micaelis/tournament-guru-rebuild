@@ -185,7 +185,8 @@ describe("C2 · destructive definer guards", () => {
  */
 describe("C2 · RG1 function EXECUTE revocations (full list)", () => {
   // All functions revoked by 000011 (15) + 000013 (2), plus the
-  // moderation-cleanup trigger from 20260718000009.
+  // moderation-cleanup trigger from 20260718000009. trg_event_search
+  // left the list when the dead FTS pipeline was dropped (S10.13).
   const REVOKED_FUNCTIONS = [
     "purge_moderation_rows",
     "handle_new_user",
@@ -193,7 +194,6 @@ describe("C2 · RG1 function EXECUTE revocations (full list)", () => {
     "trg_reviews_write",
     "trg_reviews_recalc",
     "trg_helpful_count",
-    "trg_event_search",
     "trg_search_queries_rate_limit",
     "trg_contact_requests_rate_limit",
     "stamp_premium_at",

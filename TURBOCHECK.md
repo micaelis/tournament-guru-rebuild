@@ -298,6 +298,7 @@ Root cause of C-2; the reason the green baseline proves less than it appears to.
   The other three public write paths all call it.
 
 **[H-6] A full-text-search pipeline is maintained on every write and queried by nothing.**
+*(Resolved: dropped by migration 20260719000010 — DECISIONS S10.13.)*
 
 - `events.search_document` + `search_vector`, two GIN indexes,
   `build_event_search_document()`, and trigger `t_events_search` all recompute on
