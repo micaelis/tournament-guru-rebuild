@@ -15,6 +15,9 @@
  *     duplicates, no gaps, stable totals, empty past the end.
  *  4. INTERSECTION — a second facet still narrows (never widens) the
  *     big set, and an empty intersection stays empty.
+ *  5. TIE-BREAKS — events sharing a sort key fall through to
+ *     created_at DESC then id ASC, and the app-side comparator agrees
+ *     with the SQL path's ORDER BY on the same fixture, page by page.
  */
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { randomUUID } from "node:crypto";
@@ -33,6 +36,17 @@ const PREMIUM_IDX = 5; // early insert (first chunk), late date — premium tier
 const TEAMS_BY_IDX = new Map<number, number>([
   [100, 500],
   [200, 400],
+]);
+// Distinct ratings on both sides of the 150-id chunk boundary; the top
+// rating is inserted LAST so rating-desc order must reach across
+// chunks. Everything else keeps a NULL rating (numeric(3,2), max 9.99).
+const RATING_BY_IDX = new Map<number, number>([
+  [259, 4.9],
+  [155, 4.7],
+  [30, 4.5],
+  [200, 4.1],
+  [80, 3.2],
+  [1, 2.6],
 ]);
 const U12_IDXS = [3, 130, 258]; // one per chunk region
 
@@ -53,6 +67,17 @@ const startDate = (i: number) => day(COUNT - 1 - i);
 let edId = "";
 let tournamentId = "";
 let eventIds: string[] = []; // by insertion index
+
+// Tie fixture: separate tag (NOT containing `tag`, so neither q scopes
+// into the other), all sharing ONE start_date. Three insert groups get
+// explicit, strictly increasing created_at stamps; rows WITHIN a group
+// share theirs — so date sort must fall through created_at DESC between
+// groups and id ASC inside one.
+const tieTag = `tiebatch-${randomUUID().slice(0, 8)}`;
+const TIE_GROUPS = 3;
+const TIE_PER_GROUP = 4;
+const TIE_COUNT = TIE_GROUPS * TIE_PER_GROUP;
+const tieIdsByGroup: string[][] = []; // [group][insertion order]
 
 async function search(
   filters: Record<string, unknown>,
@@ -97,6 +122,7 @@ beforeAll(async () => {
         end_date: startDate(i),
         is_premium: i === PREMIUM_IDX,
         teams_attended_prev_year: TEAMS_BY_IDX.get(i) ?? null,
+        general_rating: RATING_BY_IDX.get(i) ?? null,
       })),
     )
     .select("id");
@@ -119,6 +145,33 @@ beforeAll(async () => {
     })),
   );
   if (aErr) throw new Error(`seed age groups: ${aErr.message}`);
+
+  for (let g = 0; g < TIE_GROUPS; g++) {
+    const { data: tied, error: tieErr } = await svc
+      .from("events")
+      .insert(
+        Array.from({ length: TIE_PER_GROUP }, (_, k) => ({
+          tournament_id: tournamentId,
+          owner_id: edId,
+          created_by: edId,
+          claimed: true,
+          title: `${tieTag} ev ${g}-${k}`,
+          lifecycle: "active",
+          start_date: "2031-05-05",
+          end_date: "2031-05-05",
+          created_at: `2026-01-0${g + 1}T00:00:00Z`,
+        })),
+      )
+      .select("id");
+    if (tieErr) throw new Error(`seed tie group ${g}: ${tieErr.message}`);
+    tieIdsByGroup.push((tied ?? []).map((r) => r.id as string));
+  }
+  const { error: tieSErr } = await svc
+    .from("event_surfaces")
+    .insert(
+      tieIdsByGroup.flat().map((event_id) => ({ event_id, surface: "turf" })),
+    );
+  if (tieSErr) throw new Error(`seed tie surfaces: ${tieSErr.message}`);
 });
 
 afterAll(async () => {
@@ -136,6 +189,30 @@ function expectedDateOrder(): string[] {
     .filter(({ i }) => i !== PREMIUM_IDX)
     .sort((a, b) => startDate(a.i).localeCompare(startDate(b.i)));
   return [eventIds[PREMIUM_IDX], ...rest.map((r) => r.id)];
+}
+
+/** The one true rating-sort order: premium first (rating NULL — the
+ * tier trumps the key), the rated few descending, then the NULL-rated
+ * crowd. The crowd ties on rating AND on created_at (one bulk insert
+ * statement shares a single now()), so id ASC decides — lowercase
+ * UUIDs sort the same lexicographically as Postgres orders them. */
+function expectedRatingOrder(): string[] {
+  const rated = [...RATING_BY_IDX.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([i]) => eventIds[i]);
+  const unrated = eventIds
+    .filter((_, i) => i !== PREMIUM_IDX && !RATING_BY_IDX.has(i))
+    .sort();
+  return [eventIds[PREMIUM_IDX], ...rated, ...unrated];
+}
+
+/** The one true tie-fixture order: every start_date is equal, so
+ * created_at DESC puts the newest group first, and id ASC orders the
+ * rows inside each group (their created_at is shared). */
+function expectedTieOrder(): string[] {
+  return [...tieIdsByGroup]
+    .reverse()
+    .flatMap((group) => [...group].sort());
 }
 
 describe("search id-batching · a facet match beyond the URI limit", () => {
@@ -186,6 +263,50 @@ describe("search id-batching · a facet match beyond the URI limit", () => {
     const res = await search({ surfaces: ["turf"] }, { page: 4, pageSize: 100 });
     expect(res.data).toEqual([]);
     expect(res.total).toBe(COUNT);
+  });
+
+  it("rating sort tiles pages DESC with NULLS LAST across chunk boundaries", async () => {
+    const pages = await Promise.all(
+      [1, 2, 3].map((page) =>
+        search({ surfaces: ["turf"] }, { page, pageSize: 100, sort: "rating" }),
+      ),
+    );
+    expect(pages.map((p) => p.data.length)).toEqual([100, 100, 60]);
+    expect(pages.map((p) => p.total)).toEqual([COUNT, COUNT, COUNT]);
+    // Premium leads on tier alone (its rating is NULL), the best-rated
+    // event comes from the LAST chunk, and every NULL rating trails the
+    // rated few — the exact-order comparison pins all three at once.
+    expect(pages.flatMap((p) => p.data.map((e) => e.id))).toEqual(
+      expectedRatingOrder(),
+    );
+  });
+});
+
+describe("search id-batching · sort-key ties fall through to created_at, then id", () => {
+  it("the id-filtered path tiles tied events without duplicates or drops", async () => {
+    const pages = await Promise.all(
+      [1, 2, 3].map((page) =>
+        search({ q: tieTag, surfaces: ["turf"] }, { page, pageSize: 5 }),
+      ),
+    );
+    expect(pages.map((p) => p.data.length)).toEqual([5, 5, 2]);
+    expect(pages.map((p) => p.total)).toEqual([TIE_COUNT, TIE_COUNT, TIE_COUNT]);
+    expect(pages.flatMap((p) => p.data.map((e) => e.id))).toEqual(
+      expectedTieOrder(),
+    );
+  });
+
+  it("the app-side comparator agrees with the SQL path's total order", async () => {
+    // No facet filter → matchingIds stays null → the count+range SQL
+    // branch runs its ORDER BY over the very same fixture. Page parity
+    // here is what licenses the two paths to coexist.
+    const pages = await Promise.all(
+      [1, 2, 3].map((page) => search({ q: tieTag }, { page, pageSize: 5 })),
+    );
+    expect(pages.map((p) => p.total)).toEqual([TIE_COUNT, TIE_COUNT, TIE_COUNT]);
+    expect(pages.flatMap((p) => p.data.map((e) => e.id))).toEqual(
+      expectedTieOrder(),
+    );
   });
 });
 
