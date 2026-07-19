@@ -1726,3 +1726,27 @@ policy). A single merged public bucket (rejected: loses per-field size
 caps). Enforcing type/size only in the server action (rejected: with
 browser-direct upload the action never sees the bytes, so bucket-level
 limits are the true server-side control).
+
+### S10.5 · submitted_csvs writes gated on event host + event ownership
+Sibling of S10.1/S10.2. `p_csv_rw` was `ed_id = auth.uid() or is_admin()`
+for every verb — ownership-only, no role check, no event check. `ed_id`
+is caller-supplied and INSERT is granted to `authenticated`, so an
+attendee could POST a submitted_csvs row naming themselves and dump
+arbitrary addresses into `raw_emails` — a PII/spam injection into the
+admin review queue (they cannot issue codes — p_promo_admin_write is
+is_admin()-only — but the emails landing in the queue is the harm).
+Verified locally: an attendee INSERT succeeded. The write also never
+checked the CSV's event belonged to the caller (the S10.2 class).
+
+Migration 20260719000005 splits the single `for all` policy into
+verb-scoped policies: SELECT unchanged (`ed_id = auth.uid() or
+is_admin()`); INSERT requires `is_admin()` OR (event host AND
+ed_id = self AND owns the event); UPDATE/DELETE require `is_admin()` OR
+(event host AND ed_id = self). App paths — submitCsv (ED INSERT own
+premium event), reject/approve (admin UPDATE), cancel (ED DELETE own) —
+all still pass.
+
+**Verification:** `tests/probes/submitted-csv-host-gate.test.ts`, 4
+tests, mutation-verified — reverting to the ownership-only `p_csv_rw`
+fails the attendee-injection and cross-event tripwires while the owning
+ED's legit insert stays green.

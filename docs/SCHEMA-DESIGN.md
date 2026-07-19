@@ -311,7 +311,9 @@ New/adjusted:
   so an attendee could name themselves owner and publish into discovery (S10.1, migration
   20260719000001). `is_admin()` implies `is_event_host()`, so admins keep writing the
   unclaimed rows they don't own (S1.1). Event child tables inherit this via their parent
-  event's owner check.
+  event's owner check. `submitted_csvs` writes are gated the same way —
+  `is_event_host()` + `ed_id = self` + (INSERT) event ownership — so an attendee can't
+  inject rows/emails into the admin queue (S10.5, migration 20260719000005).
 - **Parent-row authorization** on `events`: writing an event also requires write access to
   its parent tournament (`t.owner_id = auth.uid() or is_admin()`). `tournament_id` is
   caller-supplied, so checking only the event's own `owner_id` let one ED graft or reparent
