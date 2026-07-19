@@ -298,6 +298,10 @@ New/adjusted:
   - anonymize_account (attendee) → destroy user_id/email/name/handle/avatar on their reviews+comments, keep content + user_type/role, set anonymized=true, display "Former member".
   - ED account delete → anonymize their comments; delete owned events (→ detach their reviews); claimed events revert owner to admin.
 - **promo apply** (atomic RPC): on publish-with-promo → set guru_review, promo→applied+ts, sibling promos→void, recalc. One-review-per-event resolution (create / upgrade draft / upgrade non-verified / block-if-verified).
+- **admin_search_users_by_email(term)** (S10.10): admin-only definer bridge for the Users
+  search — resolves an email substring against `auth.users` and returns matching ids ONLY
+  (never addresses), capped at 100. Null-uid raise + `is not true` admin predicate +
+  pinned search_path; EXECUTE revoked from public/anon.
 - **save_event_graph** (atomic RPC, S10.9): the whole event graph — base row + replace-all
   of every child collection — in one transaction; a late child failure rolls everything
   back. Entry guards mirror `p_events_write` (null-uid raise, `is_event_host()`,

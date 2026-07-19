@@ -939,6 +939,12 @@ on unowned events, and reviewer email appears in the CSV export (admin-only).
 
 Two tabs: **Attendees (x) | Event Directors (x)**.
 
+- **Search** (server-side, per tab): one field matching name, organization
+  title, or **email**. Email matching resolves through the admin-only
+  `admin_search_users_by_email` RPC (emails live in `auth.users`; the RPC
+  returns matching ids only, never the addresses), and the ids fold into the
+  same profiles filter as the name/organization match.
+
 - **Attendees** columns: Name (photo, name, email), Location (full saved
   address), Gender, DOB, Joined (creation date), Type (attendee role), Reviews
   Published.

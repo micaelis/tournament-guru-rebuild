@@ -1861,3 +1861,23 @@ milestones insert each flip exactly their own tripwire.
 and asserts error + data-survives; `event-edit-grants` (publish flips
 lifecycle through the RPC now) and the tournament-crud matrix stayed
 green untouched.
+
+### S10.10 · Admin Users search covers email via an ids-only definer bridge
+The admin /dashboard/users search filtered name + organization but not
+email — emails live in `auth.users`, unreadable to the app's
+authenticated client, so an admin couldn't find the account behind a
+support request quoting only an address. Rather than plumb the service
+role into the app or widen any grant, migration 20260719000008 adds
+`admin_search_users_by_email(term)`: SECURITY DEFINER, admin-only
+(null-uid raise + `is not true` predicate, pinned search_path, EXECUTE
+revoked from public/anon), returning matching user ids ONLY — never
+addresses — capped at 100 so a one-letter term can't balloon the
+PostgREST `or()` URL. The page folds the ids into the existing
+name/org `or()` filter; a failed lookup surfaces via `unwrapRows`
+instead of degrading to name-only results (S8.9 class).
+
+**Verification:** `tests/probes/admin-email-search.test.ts` (authz +
+ids-only shape + blank-term guard; mutation-verified by dropping the
+admin predicate). E2E in `dashboard.spec.ts`: an admin finds a seeded
+user by email — a term no profile column carries — and Block/Delete
+are reachable from the filtered row.

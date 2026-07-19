@@ -32,12 +32,21 @@ export default async function AdminUsersPage({
     )
     .eq("user_type", tab === "attendees" ? "attendee" : "event_director");
 
-  // Name / organization search. Strip characters that would break the
-  // PostgREST `or()` grammar before interpolating the term.
+  // Name / organization / email search. Strip characters that would
+  // break the PostgREST `or()` grammar before interpolating the term.
+  // Emails live in auth.users, which this client can't read, so the
+  // admin-only definer RPC resolves the term to matching user ids and
+  // those fold into the same or(). unwrap: a failed lookup must not
+  // silently degrade to name-only results.
   const safe = search.replace(/[,()%*\\]/g, " ").trim();
   if (safe) {
+    const emailIds = unwrapRows<string>(
+      await supabase.rpc("admin_search_users_by_email", { term: safe }),
+      "AdminUsersPage email search",
+    );
+    const emailArm = emailIds.length ? `,id.in.(${emailIds.join(",")})` : "";
     query = query.or(
-      `first_name.ilike.%${safe}%,last_name.ilike.%${safe}%,organization_title.ilike.%${safe}%`,
+      `first_name.ilike.%${safe}%,last_name.ilike.%${safe}%,organization_title.ilike.%${safe}%${emailArm}`,
     );
   }
 
@@ -130,7 +139,7 @@ export default async function AdminUsersPage({
           name="search"
           defaultValue={search}
           aria-label="Search users"
-          placeholder="Search by name or organization…"
+          placeholder="Search by name, email, or organization…"
           className="tg-control"
         />
         <button

@@ -110,4 +110,39 @@ test.describe("Dashboard — admin", () => {
       if (user) await deleteUser(user.id);
     }
   });
+
+  test("can find a user by email and reach the block/delete actions", async ({
+    page,
+  }) => {
+    let admin: SeededUser | undefined;
+    let target: SeededUser | undefined;
+    try {
+      admin = await createAdmin();
+      // A distinctive first name pins the row assertion to THIS user.
+      target = await createAttendee({
+        completeOnboarding: true,
+        firstName: "Needle",
+      });
+      await signIn(page, admin.email, admin.password);
+      await page.goto("/dashboard/users");
+
+      // Search by the seeded user's email — a term no profile column
+      // carries, so a hit proves the auth.users email bridge.
+      await page.getByLabel("Search users").fill(target.email);
+      await page.getByRole("button", { name: "Search" }).click();
+
+      const row = page.getByRole("row", { name: /Needle User/ });
+      await expect(row).toBeVisible();
+      await expect(row.getByRole("button", { name: "Block" })).toBeVisible();
+      await expect(row.getByRole("button", { name: "Delete" })).toBeVisible();
+
+      // The block flow is reachable from the filtered row: the confirm
+      // dialog opens (moderation itself is covered by the RPC probes).
+      await row.getByRole("button", { name: "Block" }).click();
+      await expect(page.getByText("Block this user?")).toBeVisible();
+    } finally {
+      if (target) await deleteUser(target.id);
+      if (admin) await deleteUser(admin.id);
+    }
+  });
 });
