@@ -1,6 +1,7 @@
 import "server-only";
 import { createServerAuthClient } from "@/lib/supabase/server";
 import { unwrapRows } from "@/lib/supabase/unwrap";
+import { fetchInChunks } from "@/lib/supabase/in-chunks";
 
 export type SubmittedCsvRow = {
   id: string;
@@ -90,27 +91,44 @@ export async function listPromoCodes({
   userId?: string;
 }): Promise<PromoCoachRow[]> {
   const supabase = await createServerAuthClient();
-  const base = supabase
-    .from("promo_codes")
-    .select(
-      "id, submitted_csv_id, event_id, email, pretty_code, url_token, user_id, status, applied_at, created_at, event:events!promo_codes_event_id_fkey(id, title, logo_url), submitted_csv:submitted_csvs!promo_codes_submitted_csv_id_fkey(id, ed_id), coach:profiles!promo_codes_user_id_fkey(first_name, last_name, profile_photo_url)",
-    );
-  let scoped = base;
+  // Builder methods mutate in place — each batch needs a fresh query.
+  const selectBase = () =>
+    supabase
+      .from("promo_codes")
+      .select(
+        "id, submitted_csv_id, event_id, email, pretty_code, url_token, user_id, status, applied_at, created_at, event:events!promo_codes_event_id_fkey(id, title, logo_url), submitted_csv:submitted_csvs!promo_codes_submitted_csv_id_fkey(id, ed_id), coach:profiles!promo_codes_user_id_fkey(first_name, last_name, profile_photo_url)",
+      );
+  let rows: PromoCoachRow[];
   if (scope === "own_ed" && edId) {
-    // Filter through the joined submitted_csv relationship.
+    // Filter through the joined submitted_csv relationship. The ED's
+    // CSV-id list is unbounded — batch the .in() and restore order.
     const myCsvs = unwrapRows<{ id: string }>(
       await supabase.from("submitted_csvs").select("id").eq("ed_id", edId),
       "listPromoCoaches csvs",
     );
     const ids = myCsvs.map((r) => r.id);
     if (ids.length === 0) return [];
-    scoped = base.in("submitted_csv_id", ids);
-  } else if (scope === "mine" && userId) {
-    scoped = base.eq("user_id", userId);
+    rows = (await fetchInChunks(ids, async (chunk) => {
+      const { data, error } = await selectBase()
+        .in("submitted_csv_id", chunk)
+        .order("created_at", { ascending: false });
+      if (error) throw new Error(error.message);
+      return (data ?? []) as unknown as PromoCoachRow[];
+    })) as PromoCoachRow[];
+    rows.sort((a, b) =>
+      a.created_at < b.created_at ? 1 : a.created_at > b.created_at ? -1 : 0,
+    );
+  } else {
+    const scoped =
+      scope === "mine" && userId
+        ? selectBase().eq("user_id", userId)
+        : selectBase();
+    const { data, error } = await scoped.order("created_at", {
+      ascending: false,
+    });
+    if (error) throw new Error(error.message);
+    rows = (data ?? []) as unknown as PromoCoachRow[];
   }
-  const { data, error } = await scoped.order("created_at", { ascending: false });
-  if (error) throw new Error(error.message);
-  const rows = (data ?? []) as unknown as PromoCoachRow[];
   return rows.filter((r) => r.status !== "void" && r.status !== "staged");
 }
 

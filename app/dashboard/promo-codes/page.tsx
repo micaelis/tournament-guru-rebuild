@@ -9,6 +9,7 @@ import { SubmitCsvForm } from "./SubmitCsvForm";
 import { AdminSubmittedCsvs } from "./AdminSubmittedCsvs";
 import { AttendeePromoList, CoachesList } from "./CoachesList";
 import { createServerAuthClient } from "@/lib/supabase/server";
+import { fetchInChunks } from "@/lib/supabase/in-chunks";
 
 type SearchParams = { [key: string]: string | string[] | undefined };
 
@@ -159,11 +160,14 @@ async function CoachesTabContent({
   const edNames = new Map<string, string>();
   if (isAdmin && edIds.length) {
     const supabase = await createServerAuthClient();
-    const { data } = await supabase
-      .from("profiles")
-      .select("id, first_name, last_name")
-      .in("id", edIds);
-    for (const p of (data ?? []) as {
+    const data = await fetchInChunks(edIds, async (chunk) => {
+      const res = await supabase
+        .from("profiles")
+        .select("id, first_name, last_name")
+        .in("id", chunk);
+      return res.data ?? [];
+    });
+    for (const p of data as {
       id: string;
       first_name: string | null;
       last_name: string | null;

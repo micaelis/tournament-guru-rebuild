@@ -139,6 +139,15 @@ Any string from the DB that ends up in `<a href>`, `<img src>`,
 images) so a hostile `javascript:` / `data:text/html;…` URL can't turn
 into stored XSS.
 
+### Unbounded id lists → `lib/supabase/in-chunks`
+
+A PostgREST `.in()` filter rides the GET query string; the HTTP client
+caps URIs at ~8 KB, so ~200 UUIDs kill the request ("URI too long").
+Any `.in()` fed by a list that is NOT bounded by a page-size constant
+must batch through `chunkIds` / `fetchInChunks` (and re-sort across
+batches when order matters). Builders mutate in place — construct a
+FRESH query per chunk (S11.6).
+
 ### Rate-limited public endpoints
 
 Two layers:

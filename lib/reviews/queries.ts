@@ -1,5 +1,6 @@
 import "server-only";
 import { createServerAuthClient } from "@/lib/supabase/server";
+import { fetchInChunks } from "@/lib/supabase/in-chunks";
 import { unwrapRows } from "@/lib/supabase/unwrap";
 
 /**
@@ -115,21 +116,31 @@ export async function listReviewsForEvents(
 ): Promise<ReviewCardRow[]> {
   if (eventIds.length === 0) return [];
   const supabase = await createServerAuthClient();
-  const { data, error } = await supabase
-    .from("reviews")
-    .select(REVIEW_BASE_COLUMNS)
-    .in("event_id", eventIds)
-    .eq("status", "published")
-    .order("published_at", { ascending: false, nullsFirst: false })
-    .limit(limit);
-  if (error) throw new Error(`listReviewsForEvents reviews: ${error.message}`);
-  return attachPublicAuthors(
-    await attachPromoCodes(
-      (data ?? []) as unknown as (Omit<ReviewCardRow, "author" | "promo_pretty_code"> & {
-        promo_id: string | null;
-      })[],
-    ),
-  );
+  // A director's event list is unbounded — batch the .in(), then merge
+  // the per-batch newest-first pages back into one and re-cut the limit.
+  type Raw = Omit<ReviewCardRow, "author" | "promo_pretty_code"> & {
+    promo_id: string | null;
+  };
+  const merged = (await fetchInChunks(eventIds, async (chunk) => {
+    const { data, error } = await supabase
+      .from("reviews")
+      .select(REVIEW_BASE_COLUMNS)
+      .in("event_id", chunk)
+      .eq("status", "published")
+      .order("published_at", { ascending: false, nullsFirst: false })
+      .limit(limit);
+    if (error) throw new Error(`listReviewsForEvents reviews: ${error.message}`);
+    return (data ?? []) as unknown as Raw[];
+  })) as Raw[];
+  merged.sort((a, b) => {
+    const av = a.published_at ?? "";
+    const bv = b.published_at ?? "";
+    if (av === bv) return 0;
+    if (av === "") return 1;
+    if (bv === "") return -1;
+    return av < bv ? 1 : -1;
+  });
+  return attachPublicAuthors(await attachPromoCodes(merged.slice(0, limit)));
 }
 
 /**

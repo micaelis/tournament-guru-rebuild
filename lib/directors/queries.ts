@@ -1,5 +1,6 @@
 import "server-only";
 import { createAnonServerClient } from "@/lib/supabase/server";
+import { fetchInChunks } from "@/lib/supabase/in-chunks";
 import { unwrap, unwrapRows } from "@/lib/supabase/unwrap";
 import { deriveEventStatus } from "@/app/dashboard/events/event-shared";
 import { legacyStatus } from "@/lib/events/status";
@@ -71,20 +72,21 @@ export async function getDirectorProfile(
     attN = 0,
     guru = false;
   if (events.length) {
-    const rvs = unwrapRows<{
-      overall: number | null;
-      reviewer_role: string | null;
-      guru_review: boolean;
-    }>(
-      await supabase
-        .from("reviews")
-        .select("overall, reviewer_role, guru_review")
-        .eq("status", "published")
-        .in(
-          "event_id",
-          events.map((e) => e.id),
+    const rvs = await fetchInChunks(
+      events.map((e) => e.id),
+      async (chunk) =>
+        unwrapRows<{
+          overall: number | null;
+          reviewer_role: string | null;
+          guru_review: boolean;
+        }>(
+          await supabase
+            .from("reviews")
+            .select("overall, reviewer_role, guru_review")
+            .eq("status", "published")
+            .in("event_id", chunk),
+          "getDirectorProfile reviews",
         ),
-      "getDirectorProfile reviews",
     );
     for (const r of rvs) {
       if (r.guru_review) guru = true;
@@ -218,16 +220,17 @@ async function fetchEventDirectors(
   const ratingSumByDir = new Map<string, number>();
   const ratedCountByDir = new Map<string, number>();
   if (events.length) {
-    const rvs = unwrapRows(
-      await supabase
-        .from("reviews")
-        .select("event_id, overall")
-        .eq("status", "published")
-        .in(
-          "event_id",
-          events.map((e) => e.id),
+    const rvs = await fetchInChunks(
+      events.map((e) => e.id),
+      async (chunk) =>
+        unwrapRows(
+          await supabase
+            .from("reviews")
+            .select("event_id, overall")
+            .eq("status", "published")
+            .in("event_id", chunk),
+          "getEventDirectors reviews",
         ),
-      "getEventDirectors reviews",
     );
     for (const rv of rvs) {
       if (!rv.event_id) continue;

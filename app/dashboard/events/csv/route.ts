@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { requireSessionAndProfile } from "@/lib/supabase/session";
 import { createServerAuthClient } from "@/lib/supabase/server";
+import { fetchInChunks } from "@/lib/supabase/in-chunks";
 import {
   listTournaments,
   type TournamentSort,
@@ -61,21 +62,32 @@ export async function GET(request: NextRequest) {
   const seasonLabels = new Map(seasons.map((s) => [s.id, s.label]));
   const ownerNames = new Map(ownerRows);
 
-  const eventIds = events.map((e) => e.id);
-  const [ageGroupsRes, levelsRes] = await Promise.all([
-    supabase
-      .from("event_age_groups")
-      .select("event_id, team_gender, age")
-      .in("event_id", eventIds.length ? eventIds : ["00000000-0000-0000-0000-000000000000"]),
-    supabase
-      .from("event_competition_levels")
-      .select("event_id, level")
-      .in("event_id", eventIds.length ? eventIds : ["00000000-0000-0000-0000-000000000000"]),
+  // Admin exports cover every event — batch the child-row .in()s.
+  const eventIds = events.length
+    ? events.map((e) => e.id)
+    : ["00000000-0000-0000-0000-000000000000"];
+  const [ageGroupRows, levelRows] = await Promise.all([
+    fetchInChunks(eventIds, async (chunk) => {
+      const res = await supabase
+        .from("event_age_groups")
+        .select("event_id, team_gender, age")
+        .in("event_id", chunk);
+      if (res.error) throw new Error(res.error.message);
+      return res.data ?? [];
+    }),
+    fetchInChunks(eventIds, async (chunk) => {
+      const res = await supabase
+        .from("event_competition_levels")
+        .select("event_id, level")
+        .in("event_id", chunk);
+      if (res.error) throw new Error(res.error.message);
+      return res.data ?? [];
+    }),
   ]);
 
   const agesByEvent = new Map<string, string[]>();
   const gendersByEvent = new Map<string, Set<string>>();
-  for (const row of (ageGroupsRes.data ?? []) as {
+  for (const row of ageGroupRows as {
     event_id: string;
     team_gender: string;
     age: string;
@@ -88,7 +100,7 @@ export async function GET(request: NextRequest) {
     );
   }
   const levelsByEvent = new Map<string, string[]>();
-  for (const row of (levelsRes.data ?? []) as { event_id: string; level: string }[]) {
+  for (const row of levelRows as { event_id: string; level: string }[]) {
     (levelsByEvent.get(row.event_id) ?? levelsByEvent.set(row.event_id, []).get(row.event_id)!).push(
       row.level,
     );

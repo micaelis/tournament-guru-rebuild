@@ -1,5 +1,6 @@
 import "server-only";
 import { createServerAuthClient } from "@/lib/supabase/server";
+import { fetchInChunks } from "@/lib/supabase/in-chunks";
 import { unwrapRows } from "@/lib/supabase/unwrap";
 import type { EventListRow } from "./event-shared";
 export { deriveEventStatus, type EventListRow } from "./event-shared";
@@ -196,12 +197,25 @@ export async function listEventsForTournaments(
 ): Promise<EventListRow[]> {
   if (tournamentIds.length === 0) return [];
   const supabase = await createServerAuthClient();
-  const { data, error } = await supabase
-    .from("events")
-    .select(EVENT_LIST_COLUMNS)
-    .in("tournament_id", tournamentIds)
-    .order("start_date", { ascending: true, nullsFirst: true });
-  if (error) throw new Error(error.message);
-  return (data ?? []) as unknown as EventListRow[];
+  // Admin scope passes EVERY tournament id — batch the .in() and
+  // restore the global sort across batches.
+  const rows = await fetchInChunks(tournamentIds, async (chunk) => {
+    const { data, error } = await supabase
+      .from("events")
+      .select(EVENT_LIST_COLUMNS)
+      .in("tournament_id", chunk)
+      .order("start_date", { ascending: true, nullsFirst: true });
+    if (error) throw new Error(error.message);
+    return (data ?? []) as unknown as EventListRow[];
+  });
+  rows.sort((a, b) => {
+    const av = a.start_date ?? "";
+    const bv = b.start_date ?? "";
+    if (av === bv) return 0;
+    if (av === "") return -1;
+    if (bv === "") return 1;
+    return av < bv ? -1 : 1;
+  });
+  return rows;
 }
 

@@ -2,6 +2,7 @@ import { requireSessionAndProfile } from "@/lib/supabase/session";
 import { redirect } from "next/navigation";
 import { createServerAuthClient } from "@/lib/supabase/server";
 import { unwrapRows } from "@/lib/supabase/unwrap";
+import { fetchInChunks } from "@/lib/supabase/in-chunks";
 import { UsersTable, type UserRow } from "./UsersTable";
 
 type SearchParams = { [key: string]: string | string[] | undefined };
@@ -61,13 +62,15 @@ export default async function AdminUsersPage({
   const counts = new Map<string, { reviews: number; events: number; premium: number }>();
   if (ids.length) {
     if (tab === "attendees") {
-      const reviewCounts = unwrapRows(
-        await supabase
-          .from("reviews")
-          .select("author_id")
-          .in("author_id", ids)
-          .eq("status", "published"),
-        "AdminUsersPage review counts",
+      const reviewCounts = await fetchInChunks(ids, async (chunk) =>
+        unwrapRows(
+          await supabase
+            .from("reviews")
+            .select("author_id")
+            .in("author_id", chunk)
+            .eq("status", "published"),
+          "AdminUsersPage review counts",
+        ),
       );
       for (const r of reviewCounts) {
         if (!r.author_id) continue;
@@ -80,12 +83,14 @@ export default async function AdminUsersPage({
         counts.set(r.author_id, bucket);
       }
     } else {
-      const eventCounts = unwrapRows(
-        await supabase
-          .from("events")
-          .select("owner_id, is_premium")
-          .in("owner_id", ids),
-        "AdminUsersPage event counts",
+      const eventCounts = await fetchInChunks(ids, async (chunk) =>
+        unwrapRows(
+          await supabase
+            .from("events")
+            .select("owner_id, is_premium")
+            .in("owner_id", chunk),
+          "AdminUsersPage event counts",
+        ),
       );
       for (const e of eventCounts) {
         if (!e.owner_id) continue;

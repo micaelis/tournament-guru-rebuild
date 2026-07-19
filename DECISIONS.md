@@ -2183,3 +2183,33 @@ a seeded attendee with the full last name absent, capacity filter
 flips the list, GURU badge visible, event-page review card links to
 /attendees/[id]. Types + schema.sql regenerated same commit (CI drift
 gate).
+
+### S11.6 · Unbounded .in() id lists batch through in-chunks (URI too long)
+The admin Events dashboard crashed ("URI too long", error boundary)
+once the local DB crossed ~220 tournaments: PostgREST `.in()` filters
+ride the GET query string, the HTTP client caps URIs at ~8 KB, and the
+admin scope passes EVERY tournament id. The same class sat in every
+query fed by an unbounded id list. New `lib/supabase/in-chunks.ts`
+(`chunkIds` / `fetchInChunks`, 150 ids per batch) now backs: dashboard
+events (listEventsForTournaments + owner names + CSV export child
+rows), dashboard reviews (owned-event scoping, author backfill, promo
+codes — with per-chunk FRESH builders, since supabase-js builders
+mutate in place and a shared one would stack filters), director
+aggregates (profile + about-grid review pools), the public ED page
+list (per-batch limit pages merged and re-cut), promo coaches scoping,
+promo-page ED names, and promo send/void (the 1000-row CSV cap already
+cleared 8 KB of emails). Sites bounded by page-size constants (facet
+attach helpers, spotlight, featured) stay direct.
+
+**Known limit, deliberately out of scope:** `lib/events/search.ts`
+filters by `matchingIds` under count+range pagination — chunking that
+means restructuring search pagination, so it keeps the direct `.in()`
+for now and will need its own slice if facet-matched id sets approach
+~200. Flagged for the backlog.
+
+**Verification:** `tests/probes/uri-length.test.ts` seeds 260
+tournaments and drives the original crash site — resolves, finds the
+seeded events, and preserves the cross-batch sort (earliest-dated
+event lives in the LAST batch). Mutation-verified: reverting to the
+direct `.in()` fails the probe with the production error ("URI too
+long"). chunkIds edge cases pinned.

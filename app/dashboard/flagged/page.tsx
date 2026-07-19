@@ -2,6 +2,7 @@ import { requireSessionAndProfile } from "@/lib/supabase/session";
 import { redirect } from "next/navigation";
 import { createServerAuthClient } from "@/lib/supabase/server";
 import { unwrapRows } from "@/lib/supabase/unwrap";
+import { fetchInChunks } from "@/lib/supabase/in-chunks";
 import { FlaggedContent, type FlaggedGroup } from "./FlaggedContent";
 
 type SearchParams = { [key: string]: string | string[] | undefined };
@@ -59,14 +60,16 @@ export default async function FlaggedContentPage({
   const contents: FlaggedGroup[] = [];
 
   if (tab === "reviews" && contentIds.length) {
-    const reviews = unwrapRows(
-      await supabase
-        .from("reviews")
-        .select(
-          "id, event_id, author_id, review_title, review_body, published_at, created_at, event:events!reviews_event_id_fkey(id, title, logo_url), author:profiles!reviews_author_id_fkey(first_name, last_name, profile_photo_url)",
-        )
-        .in("id", contentIds),
-      "FlaggedContentPage reviews",
+    const reviews = await fetchInChunks(contentIds, async (chunk) =>
+      unwrapRows(
+        await supabase
+          .from("reviews")
+          .select(
+            "id, event_id, author_id, review_title, review_body, published_at, created_at, event:events!reviews_event_id_fkey(id, title, logo_url), author:profiles!reviews_author_id_fkey(first_name, last_name, profile_photo_url)",
+          )
+          .in("id", chunk),
+        "FlaggedContentPage reviews",
+      ),
     );
     for (const r of reviews as unknown as Array<{
       id: string;
@@ -97,14 +100,16 @@ export default async function FlaggedContentPage({
       });
     }
   } else if (contentIds.length) {
-    const comments = unwrapRows(
-      await supabase
-        .from("comments")
-        .select(
-          "id, review_id, author_id, body, created_at, author:profiles!comments_author_id_fkey(first_name, last_name, profile_photo_url), review:reviews!comments_review_id_fkey(id, review_title, event_id, event:events!reviews_event_id_fkey(id, title))",
-        )
-        .in("id", contentIds),
-      "FlaggedContentPage comments",
+    const comments = await fetchInChunks(contentIds, async (chunk) =>
+      unwrapRows(
+        await supabase
+          .from("comments")
+          .select(
+            "id, review_id, author_id, body, created_at, author:profiles!comments_author_id_fkey(first_name, last_name, profile_photo_url), review:reviews!comments_review_id_fkey(id, review_title, event_id, event:events!reviews_event_id_fkey(id, title))",
+          )
+          .in("id", chunk),
+        "FlaggedContentPage comments",
+      ),
     );
     for (const c of comments as unknown as Array<{
       id: string;

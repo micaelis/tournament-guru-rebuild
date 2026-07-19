@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { createServerAuthClient } from "@/lib/supabase/server";
+import { chunkIds } from "@/lib/supabase/in-chunks";
 import { generatePrettyCode, generatePromoToken } from "@/lib/promo/codes";
 import { sendPromoEmailsInBatches } from "@/lib/promo/email";
 
@@ -91,12 +92,24 @@ export async function sendPromoEmails(input: {
   // applied to a review." The `apply_promo_to_review` RPC handles the
   // void-on-apply case; for Resend we don't touch already-applied
   // rows.
-  const { data: existing, error: priorError } = await supabase
-    .from("promo_codes")
-    .select("id, email, status")
-    .in("email", chosen)
-    .eq("event_id", csv.event_id)
-    .neq("status", "applied");
+  // `chosen` can be the full 1000-row CSV — batch the .in().
+  let existing: { id: string; email: string; status: string }[] = [];
+  let priorError: { message: string } | null = null;
+  for (const chunk of chunkIds(chosen)) {
+    const res = await supabase
+      .from("promo_codes")
+      .select("id, email, status")
+      .in("email", chunk)
+      .eq("event_id", csv.event_id)
+      .neq("status", "applied");
+    if (res.error) {
+      priorError = res.error;
+      break;
+    }
+    existing = existing.concat(
+      (res.data ?? []) as { id: string; email: string; status: string }[],
+    );
+  }
   // A dropped error is indistinguishable from "no prior promos", so
   // nothing gets voided and the insert below either trips the unique
   // partial index or leaves the coach holding two live promos.
@@ -114,11 +127,11 @@ export async function sendPromoEmails(input: {
     .flat()
     .filter((r) => r.status !== "void")
     .map((r) => r.id);
-  if (toVoid.length) {
+  for (const chunk of chunkIds(toVoid)) {
     const { error: voidError } = await supabase
       .from("promo_codes")
       .update({ status: "void" })
-      .in("id", toVoid);
+      .in("id", chunk);
     if (voidError) return { error: voidError.message };
   }
 

@@ -1,5 +1,6 @@
 import "server-only";
 import { createServerAuthClient } from "@/lib/supabase/server";
+import { fetchInChunks } from "@/lib/supabase/in-chunks";
 import { unwrapRows } from "@/lib/supabase/unwrap";
 import type { ReviewCardRow } from "@/lib/reviews/queries";
 
@@ -45,25 +46,39 @@ export async function listDashboardReviews({
         ).map((r) => r.id)
       : null;
 
-  const base = supabase
-    .from("reviews")
-    .select(
-      "id, event_id, author_id, status, rating_fields, rating_facilities, rating_management, rating_competition, rating_diversity, rating_cost_value, overall, review_title, review_body, would_return, guru_review, helpful_count, published_at, created_at, reviewer_role, anonymized, detached, snapshot_event_title, snapshot_event_start, snapshot_event_end, snapshot_event_location, snapshot_event_logo, promo_id, event:events!reviews_event_id_fkey(id, title, location_state_abbr), author:profiles!reviews_author_id_fkey(first_name, last_name, organization_title, profile_photo_url)",
-    );
-  const scoped = eventFilterIds
-    ? eventFilterIds.length
-      ? base.in("event_id", eventFilterIds)
-      : base.eq("event_id", "00000000-0000-0000-0000-000000000000")
-    : base;
-
-  const { data, error } = await scoped.order("created_at", { ascending: false });
-  if (error) throw new Error(error.message);
-  const rows = (data ?? []) as unknown as Array<
-    ReviewCardRow & {
-      promo_id: string | null;
-      event: { id: string; title: string; location_state_abbr: string | null } | null;
-    }
-  >;
+  // Builder methods mutate in place, so each batch needs a FRESH query —
+  // a shared instance would stack one .in() per chunk.
+  const selectBase = () =>
+    supabase
+      .from("reviews")
+      .select(
+        "id, event_id, author_id, status, rating_fields, rating_facilities, rating_management, rating_competition, rating_diversity, rating_cost_value, overall, review_title, review_body, would_return, guru_review, helpful_count, published_at, created_at, reviewer_role, anonymized, detached, snapshot_event_title, snapshot_event_start, snapshot_event_end, snapshot_event_location, snapshot_event_logo, promo_id, event:events!reviews_event_id_fkey(id, title, location_state_abbr), author:profiles!reviews_author_id_fkey(first_name, last_name, organization_title, profile_photo_url)",
+      );
+  type RawDashboardRow = ReviewCardRow & {
+    promo_id: string | null;
+    event: { id: string; title: string; location_state_abbr: string | null } | null;
+  };
+  // An ED's owned-event id list is unbounded — batch the .in() and
+  // restore the newest-first order across batches.
+  let rows: RawDashboardRow[];
+  if (eventFilterIds && eventFilterIds.length === 0) {
+    rows = [];
+  } else if (eventFilterIds) {
+    rows = (await fetchInChunks(eventFilterIds, async (chunk) => {
+      const { data, error } = await selectBase()
+        .in("event_id", chunk)
+        .order("created_at", { ascending: false });
+      if (error) throw new Error(error.message);
+      return (data ?? []) as unknown as RawDashboardRow[];
+    })) as RawDashboardRow[];
+    rows.sort((a, b) => (a.created_at < b.created_at ? 1 : a.created_at > b.created_at ? -1 : 0));
+  } else {
+    const { data, error } = await selectBase().order("created_at", {
+      ascending: false,
+    });
+    if (error) throw new Error(error.message);
+    rows = (data ?? []) as unknown as RawDashboardRow[];
+  }
 
   // ED path: profiles is RLS-filtered, so the join above returned
   // author = null. Backfill those rows from review_author_public.
@@ -71,12 +86,14 @@ export async function listDashboardReviews({
     .filter((r) => !r.author && !r.anonymized && r.author_id)
     .map((r) => r.id);
   if (missingAuthorIds.length) {
-    const publicAuthors = unwrapRows(
-      await supabase
-        .from("review_author_public")
-        .select("review_id, first_name, organization_title, profile_photo_url")
-        .in("review_id", missingAuthorIds),
-      "dashboard reviews public authors",
+    const publicAuthors = await fetchInChunks(missingAuthorIds, async (chunk) =>
+      unwrapRows(
+        await supabase
+          .from("review_author_public")
+          .select("review_id, first_name, organization_title, profile_photo_url")
+          .in("review_id", chunk),
+        "dashboard reviews public authors",
+      ),
     );
     const authorMap = new Map<string, (typeof publicAuthors)[number]>();
     for (const a of publicAuthors) {
@@ -100,9 +117,11 @@ export async function listDashboardReviews({
   );
   const promoMap = new Map<string, string>();
   if (promoIds.length) {
-    const promos = unwrapRows<{ id: string; pretty_code: string }>(
-      await supabase.from("promo_codes").select("id, pretty_code").in("id", promoIds),
-      "dashboard reviews promo codes",
+    const promos = await fetchInChunks(promoIds, async (chunk) =>
+      unwrapRows<{ id: string; pretty_code: string }>(
+        await supabase.from("promo_codes").select("id, pretty_code").in("id", chunk),
+        "dashboard reviews promo codes",
+      ),
     );
     for (const p of promos) {
       promoMap.set(p.id, p.pretty_code);

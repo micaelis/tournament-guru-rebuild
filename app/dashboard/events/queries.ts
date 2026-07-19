@@ -1,4 +1,5 @@
 import { createServerAuthClient } from "@/lib/supabase/server";
+import { fetchInChunks } from "@/lib/supabase/in-chunks";
 
 /**
  * Data shapes used by the ED / Admin Events page. Fields track only the
@@ -148,16 +149,20 @@ async function fetchOwnerFullNames(
   supabase: Awaited<ReturnType<typeof createServerAuthClient>>,
   ownerIds: string[],
 ): Promise<Map<string, string>> {
-  const { data } = await supabase
-    .from("profiles")
-    .select("id, first_name, last_name")
-    .in("id", ownerIds);
+  // Admin scope: owners of EVERY tournament — batch the .in().
+  const rows = await fetchInChunks(ownerIds, async (chunk) => {
+    const { data } = await supabase
+      .from("profiles")
+      .select("id, first_name, last_name")
+      .in("id", chunk);
+    return (data ?? []) as {
+      id: string;
+      first_name: string | null;
+      last_name: string | null;
+    }[];
+  });
   const out = new Map<string, string>();
-  for (const row of (data ?? []) as {
-    id: string;
-    first_name: string | null;
-    last_name: string | null;
-  }[]) {
+  for (const row of rows) {
     out.set(row.id, [row.first_name, row.last_name].filter(Boolean).join(" "));
   }
   return out;
