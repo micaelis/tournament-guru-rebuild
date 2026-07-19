@@ -129,18 +129,25 @@ CONFIG ONLY. DO NOT USE IN PRODUCTION."
 
 ## 5. Storage
 
-Dashboard → **Storage**.
+**Nothing to do by hand — the buckets and their RLS ship in migration
+`20260719000004_storage_buckets.sql`, applied by the `db push` in §4.**
+After the push, confirm in Dashboard → **Storage** that three buckets
+exist:
 
-Create three private buckets:
+- `event-images` — **public**, 10 MB, png/jpeg (event + sponsor logos, gallery)
+- `org-logos` — **public**, 5 MB, png/jpeg (org logos, profile photos)
+- `promo-csv` — **private**, 2 MB, text/csv (ED CSV submissions; signed URLs)
 
-- `csv-uploads` — private (ED CSV submissions; signed URLs)
-- `avatars` — private (profile + org logos)
-- `event-media` — private (event images)
+Objects are keyed by uploader user id (`<uid>/<file>`); RLS restricts
+writes to the owner's own folder (admin anywhere). `promo-csv` has no
+public read — the admin queue reads it via a short-lived signed URL, and
+the parsed email list is also mirrored inline on
+`submitted_csvs.raw_emails`. See DECISIONS.md §S10.4.
 
-(Bucket-level RLS policies are wired via a follow-up migration once the
-upload flows land — the ED CSV submissions currently store the parsed
-email list inline on `submitted_csvs.raw_emails`, so the bucket is not
-strictly required for launch. See DECISIONS.md §S3.1.)
+⚠ If `db push` reports a permission error creating the storage policies,
+the project's `postgres` migration role lacks rights on
+`storage.objects`; create the policies from the SQL editor as the
+dashboard owner using the same statements from the migration file.
 
 ---
 

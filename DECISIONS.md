@@ -139,6 +139,9 @@ ED has claimed it). Editing an EVENT is always allowed for admins
 per the spec addendum. EDs manage their own only.
 
 ### S1.2 · Uploads = URL fields (bucket flow deferred)
+**Superseded by S10.4** (storage buckets + RLS shipped). The paste-a-URL
+input is retained as a fallback alongside real uploads.
+
 Logo, sponsor logo, event images, org logo, and event video are all
 URL inputs for Slice 1. Wiring the Supabase private/public buckets +
 signed-upload flow doesn't gate the ED/Admin CRUD story, and the
@@ -264,6 +267,10 @@ mapping through the state seed table.
 ## Slice 3 — Promo system
 
 ### S3.1 · CSV bucket upload deferred, email list stored inline
+**Superseded by S10.4** (private `promo-csv` bucket + signed-URL flow
+shipped). `raw_emails` is still stored inline so the admin queue renders
+without a bucket read; the bucket now also holds the original file.
+
 The private storage bucket + signed upload/download URL flow is a
 follow-up (paired with the Slice 0 org-logo defer + Slice 1 image
 uploads under one "storage cutover" task). Meanwhile, migration
@@ -1653,3 +1660,69 @@ mutation had to revert all six at once to be meaningful.
 re-opened ~14 RG1-locked functions" item is the same root; this closes
 the six destructive ones. The remaining re-opened functions still want
 the grant trim Danny flagged.
+
+### S10.4 · Storage buckets + RLS (supersedes S1.2, S3.1)
+Supersedes the URL-field deferrals S1.2 (event/logo/image uploads) and
+S3.1 (promo CSV). Migration 20260719000004 defines three Supabase
+Storage buckets in SQL (so the demo-migrate `db push`, S9.1, provisions
+them) with RLS on `storage.objects`:
+
+| bucket | vis | limit | mime | holds |
+|---|---|---|---|---|
+| `event-images` | public | 10 MB | png/jpeg | event logos, sponsor logos, gallery |
+| `org-logos` | public | 5 MB | png/jpeg | org logos, profile photos |
+| `promo-csv` | **private** | 2 MB | text/csv | coach-email CSVs |
+
+**Path convention — key by uploader user id** (`<auth.uid()>/<file>`).
+Two reasons: (1) it sidesteps the chicken-and-egg of event-scoped keys —
+an event logo is uploaded *before* saveEvent creates the event row, so
+the event id isn't available; the user id always is. (2) It gives a
+one-line ownership test, `(storage.foldername(name))[1] = auth.uid()::text`,
+with no cross-table lookup. A user writes only under their own folder;
+a non-owner cannot; admin (via `is_admin()`) writes anywhere. That is
+exactly the required "owner/admin only to their own paths" guarantee,
+and an ED referencing their own uploaded image from any of their events
+is fine since they own those events.
+
+**Server-side type + size limits** are the bucket's `file_size_limit` +
+`allowed_mime_types`. These are enforced by the Storage API, not the
+file-picker `accept`, so a crafted client cannot bypass them. Per-field
+granularity comes from bucket separation (org-logos 5 MB vs event-images
+10 MB). CSV row cap (≤1000) stays enforced by the parse in `submitCsv`.
+
+**Private-CSV isolation**: the bucket is `public=false` (public CDN
+endpoint dead) and the SELECT policy requires ownership/admin, so anon
+and non-owners cannot download or list. Retrieval is a short-lived
+signed URL minted server-side by the owner/admin (who hold SELECT).
+
+**NULL-safety**: `auth.uid()` is NULL for anon → the folder predicate is
+NULL → the row is excluded. That is correct default-deny for an RLS
+USING/CHECK expression (unlike the plpgsql `if not (...)` guard trap of
+S10.3 — a policy filters NULL rows out, a plpgsql `if` runs the body).
+
+**A real griefing vector found + closed while proving this**: the DELETE
+policy is the SOLE guard for cross-owner deletes — the storage service
+independently blocks cross-owner *overwrites* (via the `owner` column)
+but NOT deletes. Without the folder check on DELETE, any ED could wipe
+another ED's logos/images. The probe asserts object *survival* after a
+non-owner delete (Storage `remove` returns no error even when RLS
+filters the row).
+
+**Verification**: `tests/probes/storage-rls.test.ts`, 20 tests, drives
+the real Storage API. Mutation-verified against 8 independent
+weakenings — promo-csv made public (3 fail), CSV read policy widened (3),
+CSV insert widened (2), public insert widened (3), public delete widened
+(1), each bucket's mime allow-list removed (1 each), org-logos size cap
+removed (1). Every guard has a tripwire; private-CSV isolation has two
+(public-flag + read-policy). The probe deliberately writes FRESH object
+names with `upsert:false` so a deny test is a true INSERT — an earlier
+version used `upsert:true`, which routed onto pre-existing objects
+through the UPDATE policy and masked a widened INSERT policy (caught
+during mutation testing, then fixed).
+
+**Alternatives considered.** Event-id-keyed paths (rejected: the
+chicken-and-egg above; and it needs a cross-table lookup in every
+policy). A single merged public bucket (rejected: loses per-field size
+caps). Enforcing type/size only in the server action (rejected: with
+browser-direct upload the action never sees the bytes, so bucket-level
+limits are the true server-side control).

@@ -337,7 +337,17 @@ New/adjusted:
 - Public projections of locked tables via `security_invoker=false` views / definer RPCs,
   scoped tightly (event_director only), never returning contact_email.
 - Public writes (search log, contact, support) rate-limited at DB + app layers.
-- Private storage bucket for CSVs (RLS owner+admin, signed URLs); public buckets for images.
+- **Storage** (S10.4, migration 20260719000004): three buckets defined in SQL. Public
+  `event-images` (10 MB) + `org-logos` (5 MB), both png/jpeg; private `promo-csv` (2 MB,
+  text/csv). Objects are keyed by the uploader user id as the leading folder
+  (`<auth.uid()>/<file>`), so the RLS ownership test is
+  `(storage.foldername(name))[1] = auth.uid()::text or is_admin()` with no cross-table
+  lookup — user-id keying avoids the event-logo chicken-and-egg (logo uploaded before the
+  event row exists). Type + size limits are bucket-level (Storage-API enforced, not the
+  file picker). `promo-csv` is `public=false` with owner/admin-only SELECT; retrieval is a
+  server-minted signed URL. The DELETE policy is the *sole* guard for cross-owner deletes
+  (the service blocks cross-owner overwrites but not deletes), so all four verbs carry the
+  folder check.
 
 ---
 
