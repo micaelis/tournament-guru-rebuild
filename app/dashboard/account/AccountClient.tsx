@@ -36,6 +36,7 @@ type Tab = "profile" | "security" | "preferences" | "notifications";
 const INITIAL: AccountState = {};
 
 export type AccountProfile = {
+  id: string;
   user_type: "attendee" | "event_director" | "admin";
   role_title: string;
   first_name: string | null;
@@ -177,6 +178,19 @@ function ProfileTab({
     >
       {state.error && <Alert kind="error">{state.error}</Alert>}
       {state.info && <Alert kind="info">{state.info}</Alert>}
+      {!isEd && !isAdmin && (
+        <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-2.5">
+          <p className="m-0 text-[12.5px] text-slate-600">
+            See how your profile looks to others.
+          </p>
+          <a
+            href={`/attendees/${profile.id}`}
+            className="shrink-0 text-[12.5px] font-bold text-red-600 underline underline-offset-2 hover:text-red-700"
+          >
+            View public profile
+          </a>
+        </div>
+      )}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <Field
           label="First name"

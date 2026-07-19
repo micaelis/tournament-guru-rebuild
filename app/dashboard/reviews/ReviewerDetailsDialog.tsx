@@ -77,6 +77,12 @@ export function ReviewerDetailsDialog({
                   {details.publishedCount} published review
                   {details.publishedCount === 1 ? "" : "s"}
                 </p>
+                <a
+                  href={`/attendees/${details.authorId}`}
+                  className="mt-0.5 inline-block text-[12px] font-semibold text-red-600 underline underline-offset-2 hover:text-red-700"
+                >
+                  View public profile
+                </a>
               </div>
             </div>
 

@@ -61,13 +61,24 @@ flag_reason        : profanity | illicit | solicitation | other
 | business_phone, business_email, business_website | text null | ED public contact info; exposed via `public_directors` view. **Never** the auth email. |
 
 > **Public projection views are read-only.** `public_directors`,
-> `public_event_owners`, `public_comment_authors`, and
-> `review_author_public` carry no RLS and run as their owner
+> `public_event_owners`, `public_comment_authors`, `review_author_public`,
+> and `public_attendees` carry no RLS and run as their owner
 > (`security_invoker = false`), so a write grant on one bypasses RLS into
 > the base table. `anon`/`authenticated` hold SELECT only — enforced by
 > migration 20260718000008 and guarded by `h1-public-views` (see S8.5).
 > A newly added view starts out writable via 000005's default
-> privileges; add it to that probe's `PUBLIC_VIEWS` list.
+> privileges; add it to that probe's `PUBLIC_VIEWS` list, and note a
+> DROP+CREATE of an existing view re-applies those default privileges —
+> re-revoke in the same migration (see 20260719000013).
+>
+> **Attendee public-name rule (S11.5):** attendee-facing projections
+> never expose `last_name` — they compute `last_initial`
+> (`upper(left(last_name, 1))`) instead, rendered as "Ashley M.".
+> `public_attendees` (attendees only, blocked excluded) backs the
+> public `/attendees/[id]` page and also projects `role_title` +
+> `organization_title` ("Club Affiliation") + city/state, per the page
+> spec. EDs remain full-name public via `public_directors` (business
+> identities).
 
 Notes: spelling is **organization** everywhere (not organisation). `user_email` lives in
 auth.users; where a public surface needs it, it does NOT get exposed (PII rule).

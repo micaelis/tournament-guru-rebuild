@@ -517,7 +517,27 @@ draft/unclaimed events.**
 - **Reviews tab**: the detailed rating columns plus the list of reviews with
   their comments.
 
-### 5.5 Privacy Policy and Legal pages
+### 5.5 Public Attendee page
+
+`/attendees/[id]` — reached wherever an attendee's avatar or name appears
+(review cards, comments, the ED dashboard's reviewer avatar and popup). The
+attendee's own Account tab links here ("View public profile").
+
+- **Public name rule**: first name + last initial — "Ashley M.". Identity
+  comes only from the `public_attendees` SECURITY DEFINER view, which computes
+  `last_initial` and **never exposes `last_name`** (or email/DOB). Deleted,
+  blocked, or not-yet-onboarded users → 404.
+- **Header**: profile picture, public name, city + state code, role, total
+  published reviews, club affiliation.
+- **Two metric blocks** — "Reviews as Verified Coach" | "Reviews as Attendee":
+  5 stars prefilled with the average score the user has GIVEN in that capacity,
+  the value as e.g. "2.33/5", and the count as "12 reviews" (capacity split:
+  `reviewer_role = 'coach'` vs the rest, same as director ratings).
+- **Review list**: only PUBLISHED, non-hidden reviews, via the shared review
+  card — comments module, helpful, flag, GURU badge on verified reviews, an
+  event-context chip per card — plus a Verified Coach / Attendee filter.
+
+### 5.6 Privacy Policy and Legal pages
 
 `/privacy` ("Privacy Policy") and `/terms` (titled **"Legal"** per its own
 copy; the route name is historical) render client-provided legal copy

@@ -65,6 +65,13 @@ export type Database = {
             foreignKeyName: "banned_words_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "public_attendees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "banned_words_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "public_directors"
             referencedColumns: ["id"]
           },
@@ -120,6 +127,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cards_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_attendees"
             referencedColumns: ["id"]
           },
           {
@@ -197,6 +211,13 @@ export type Database = {
             foreignKeyName: "claim_requests_requester_id_fkey"
             columns: ["requester_id"]
             isOneToOne: false
+            referencedRelation: "public_attendees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "claim_requests_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
             referencedRelation: "public_directors"
             referencedColumns: ["id"]
           },
@@ -256,6 +277,13 @@ export type Database = {
             columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "public_attendees"
             referencedColumns: ["id"]
           },
           {
@@ -327,6 +355,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_hidden_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_attendees"
             referencedColumns: ["id"]
           },
           {
@@ -724,6 +759,13 @@ export type Database = {
             foreignKeyName: "events_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "public_attendees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "public_directors"
             referencedColumns: ["id"]
           },
@@ -739,6 +781,13 @@ export type Database = {
             columns: ["owner_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "public_attendees"
             referencedColumns: ["id"]
           },
           {
@@ -846,6 +895,13 @@ export type Database = {
             foreignKeyName: "faqs_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "public_attendees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "faqs_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "public_directors"
             referencedColumns: ["id"]
           },
@@ -887,6 +943,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "favorites_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_attendees"
             referencedColumns: ["id"]
           },
           {
@@ -945,6 +1008,13 @@ export type Database = {
             foreignKeyName: "flagged_content_flagged_by_fkey"
             columns: ["flagged_by"]
             isOneToOne: false
+            referencedRelation: "public_attendees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "flagged_content_flagged_by_fkey"
+            columns: ["flagged_by"]
+            isOneToOne: false
             referencedRelation: "public_directors"
             referencedColumns: ["id"]
           },
@@ -988,6 +1058,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_attendees"
             referencedColumns: ["id"]
           },
           {
@@ -1210,6 +1287,13 @@ export type Database = {
             foreignKeyName: "promo_codes_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "public_attendees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promo_codes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "public_directors"
             referencedColumns: ["id"]
           },
@@ -1304,6 +1388,13 @@ export type Database = {
             foreignKeyName: "recently_viewed_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "public_attendees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recently_viewed_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "public_directors"
             referencedColumns: ["id"]
           },
@@ -1352,6 +1443,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "review_helpful_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_attendees"
             referencedColumns: ["id"]
           },
           {
@@ -1473,6 +1571,13 @@ export type Database = {
             columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "public_attendees"
             referencedColumns: ["id"]
           },
           {
@@ -1625,6 +1730,13 @@ export type Database = {
             foreignKeyName: "submitted_csvs_ed_id_fkey"
             columns: ["ed_id"]
             isOneToOne: false
+            referencedRelation: "public_attendees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "submitted_csvs_ed_id_fkey"
+            columns: ["ed_id"]
+            isOneToOne: false
             referencedRelation: "public_directors"
             referencedColumns: ["id"]
           },
@@ -1675,6 +1787,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_messages_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_attendees"
             referencedColumns: ["id"]
           },
           {
@@ -1766,6 +1885,13 @@ export type Database = {
             foreignKeyName: "tournaments_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "public_attendees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournaments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "public_directors"
             referencedColumns: ["id"]
           },
@@ -1781,6 +1907,13 @@ export type Database = {
             columns: ["owner_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournaments_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "public_attendees"
             referencedColumns: ["id"]
           },
           {
@@ -1837,6 +1970,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_attendees"
             referencedColumns: ["id"]
           },
           {
@@ -1919,6 +2059,13 @@ export type Database = {
             foreignKeyName: "user_teams_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
+            referencedRelation: "public_attendees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_teams_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
             referencedRelation: "public_directors"
             referencedColumns: ["id"]
           },
@@ -1933,12 +2080,49 @@ export type Database = {
       }
     }
     Views: {
+      public_attendees: {
+        Row: {
+          first_name: string | null
+          id: string | null
+          last_initial: string | null
+          location_city: string | null
+          location_formatted: string | null
+          location_state_abbr: string | null
+          organization_title: string | null
+          profile_photo_url: string | null
+          role_title: Database["public"]["Enums"]["role_title"] | null
+        }
+        Insert: {
+          first_name?: string | null
+          id?: string | null
+          last_initial?: never
+          location_city?: string | null
+          location_formatted?: string | null
+          location_state_abbr?: string | null
+          organization_title?: string | null
+          profile_photo_url?: string | null
+          role_title?: Database["public"]["Enums"]["role_title"] | null
+        }
+        Update: {
+          first_name?: string | null
+          id?: string | null
+          last_initial?: never
+          location_city?: string | null
+          location_formatted?: string | null
+          location_state_abbr?: string | null
+          organization_title?: string | null
+          profile_photo_url?: string | null
+          role_title?: Database["public"]["Enums"]["role_title"] | null
+        }
+        Relationships: []
+      }
       public_comment_authors: {
         Row: {
           author_id: string | null
           comment_id: string | null
           first_name: string | null
           is_owner_reply: boolean | null
+          last_initial: string | null
           org_logo_url: string | null
           organization_title: string | null
           profile_photo_url: string | null
@@ -1950,6 +2134,13 @@ export type Database = {
             columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "public_attendees"
             referencedColumns: ["id"]
           },
           {
@@ -2038,6 +2229,7 @@ export type Database = {
         Row: {
           first_name: string | null
           guru_review: boolean | null
+          last_initial: string | null
           organization_title: string | null
           profile_photo_url: string | null
           review_id: string | null

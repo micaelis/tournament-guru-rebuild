@@ -403,11 +403,23 @@ function ReviewRow({
       </TD>
       <TD>
         <div className="flex items-center gap-2">
-          <Avatar
-            src={row.author?.profile_photo_url}
-            name={name}
-            size={32}
-          />
+          {/* Avatar → the reviewer's public page; the name keeps opening
+              the details popup (which links there too). */}
+          {row.anonymized || !row.author_id ? (
+            <Avatar
+              src={row.author?.profile_photo_url}
+              name={name}
+              size={32}
+            />
+          ) : (
+            <a href={`/attendees/${row.author_id}`} className="shrink-0">
+              <Avatar
+                src={row.author?.profile_photo_url}
+                name={name}
+                size={32}
+              />
+            </a>
+          )}
           <div>
             {row.anonymized || !row.author_id ? (
               <p className="text-sm font-bold text-slate-900">{name}</p>

@@ -5,6 +5,8 @@ import { createServerAuthClient } from "@/lib/supabase/server";
 export type ReviewerPool = { avg: number | null; count: number };
 
 export type ReviewerDetails = {
+  /** For the "View public profile" link (/attendees/[id]). */
+  authorId: string;
   firstName: string | null;
   lastName: string | null;
   organization: string | null;
@@ -118,6 +120,7 @@ export async function getReviewerDetails(
 
   return {
     details: {
+      authorId,
       firstName: profile?.first_name ?? pub?.first_name ?? null,
       lastName: profile?.last_name ?? null,
       organization: profile?.organization_title ?? pub?.organization_title ?? null,

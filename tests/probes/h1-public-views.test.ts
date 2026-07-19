@@ -57,14 +57,81 @@ describe("H1 · public identity views", () => {
     const anonClient = anon();
     const { data, error } = await anonClient
       .from("review_author_public")
-      .select("first_name, organization_title, profile_photo_url, reviewer_role")
+      .select(
+        "first_name, last_initial, organization_title, profile_photo_url, reviewer_role",
+      )
       .eq("review_id", review!.id)
       .maybeSingle();
     expect(error).toBeNull();
     expect(data).not.toBeNull();
     expect(data!.first_name).toBe("Publicly");
+    // The public name rule: first name + last INITIAL, never the last name.
+    expect(data!.last_initial).toBe("N");
     expect(data!.organization_title).toBe("Neighborhood FC");
     expect(data!.reviewer_role).toBe("coach");
+
+    const { error: lastErr } = await anonClient
+      .from("review_author_public")
+      .select("last_name")
+      .eq("review_id", review!.id)
+      .maybeSingle();
+    expect(lastErr).not.toBeNull();
+  });
+
+  it("public_attendees serves first_name + last_initial but never last_name; EDs and blocked users drop out", async () => {
+    const attendee = await createUser({
+      metadata: { user_type: "attendee", role_title: "coach" },
+      completeOnboarding: true,
+      role: "coach",
+      firstName: "Ashley",
+      lastName: "Marks",
+      organization: "Riverside FC",
+    });
+    users.push(attendee.id);
+    const ed = await createUser({
+      metadata: { user_type: "event_director", role_title: "event_director" },
+      completeOnboarding: true,
+      role: "event_director",
+    });
+    users.push(ed.id);
+
+    const anonClient = anon();
+    const { data, error } = await anonClient
+      .from("public_attendees")
+      .select("id, first_name, last_initial, role_title, organization_title")
+      .eq("id", attendee.id)
+      .maybeSingle();
+    expect(error).toBeNull();
+    expect(data).not.toBeNull();
+    expect(data!.first_name).toBe("Ashley");
+    expect(data!.last_initial).toBe("M");
+    expect(data!.role_title).toBe("coach");
+    expect(data!.organization_title).toBe("Riverside FC");
+
+    // last_name is not in the projection.
+    const { error: lastErr } = await anonClient
+      .from("public_attendees")
+      .select("last_name")
+      .eq("id", attendee.id)
+      .maybeSingle();
+    expect(lastErr).not.toBeNull();
+
+    // EDs are not attendees — they live on public_directors instead.
+    const { data: edRow } = await anonClient
+      .from("public_attendees")
+      .select("id")
+      .eq("id", ed.id)
+      .maybeSingle();
+    expect(edRow).toBeNull();
+
+    // Blocking removes the public page.
+    await service().from("profiles").update({ blocked: true }).eq("id", attendee.id);
+    const { data: blockedRow } = await anonClient
+      .from("public_attendees")
+      .select("id")
+      .eq("id", attendee.id)
+      .maybeSingle();
+    expect(blockedRow).toBeNull();
   });
 
   it("anon SELECT on profiles for the same reviewer returns nothing", async () => {
@@ -130,6 +197,7 @@ const PUBLIC_VIEWS = [
   { view: "public_event_owners", key: "id" },
   { view: "public_comment_authors", key: "author_id" },
   { view: "review_author_public", key: "review_id" },
+  { view: "public_attendees", key: "id" },
 ] as const;
 
 const ANY_UUID = "aaaaaaaa-0000-0000-0000-000000000002";

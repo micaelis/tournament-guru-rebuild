@@ -2143,3 +2143,43 @@ page spec found three gaps, all closed:
 **Verification:** e2e drives a seeded ED page anonymously — identity
 row, sort control default, reviews tab card with comments affordance
 and event chip; error-surfacing probe covers listReviewsForEvents.
+
+### S11.5 · Public attendee page + the first-name-plus-initial rule
+`/attendees/[id]` ships per the Public Attendee Page spec, with the
+decided name rule: PUBLIC NAME = first name + last initial ("Ashley
+M."). Migration 20260719000013 recreates `review_author_public` and
+`public_comment_authors` with a computed `last_initial`
+(`upper(left(last_name,1))`) — `last_name` itself stays out of every
+public projection — and adds `public_attendees` (attendees only,
+blocked excluded; projects role_title + organization_title + city/state
+deliberately, because the page spec displays them). DROP+CREATE
+re-applies 000005's default write privileges, so the migration
+re-revokes writes on all three views (h1 write-denial pins it).
+
+Page: header (photo, name, city+state, role, total published, club),
+"Reviews as Verified Coach" | "Reviews as Attendee" metric blocks (avg
+GIVEN per capacity, coach = reviewer_role='coach', same split as
+director ratings), shared ReviewCard list (comments, helpful, flag,
+GURU badge, event chip) with a capacity filter. 404 for deleted /
+blocked / not-onboarded users — deletion anonymizes reviews and drops
+the profile row, so the page naturally vanishes (matches the
+Former-member convention on cards).
+
+Linking: attachPublicAuthors/attachPublicCommentAuthors now map
+last_initial into the display name, and ReviewCard + CommentTree wrap
+avatar/name in a link — attendees → /attendees/[id], comment authors
+who are EDs → /directors/[id]. The ED dashboard table keeps its name
+BUTTON (the reviewer popup is an existing affordance) — there the
+avatar links out and the popup gains "View public profile"; the
+dashboard table also intentionally keeps first-name-only display
+(S10.14 backfill untouched — dashboard is not a public surface, and
+its search semantics + e2e pin the current shape). The attendee
+Account tab links "View public profile".
+
+**Verification:** h1 probes — last_initial served, last_name select
+errors on both reworked views + public_attendees, ED/blocked exclusion,
+write-denial across all five views; e2e — page renders "Ashley U." for
+a seeded attendee with the full last name absent, capacity filter
+flips the list, GURU badge visible, event-page review card links to
+/attendees/[id]. Types + schema.sql regenerated same commit (CI drift
+gate).

@@ -266,6 +266,76 @@ test.describe("Public discovery", () => {
     }
   });
 
+  test("public attendee page: name rule, capacity metrics, filter, GURU badge, linking", async ({
+    page,
+  }) => {
+    let ed: SeededUser | undefined;
+    let attendee: SeededUser | undefined;
+    let seedA: { tournamentId: string; eventId: string } | undefined;
+    let seedB: { tournamentId: string; eventId: string } | undefined;
+    const reviewIds: string[] = [];
+    try {
+      ed = await createEventDirector({ completeOnboarding: true });
+      // Helper seeds last_name "User" → the public name must be "Ashley U."
+      attendee = await createAttendee({
+        completeOnboarding: true,
+        firstName: "Ashley",
+      });
+      seedA = await seedEvent(ed.id, { title: "Attendee Page Event A" });
+      seedB = await seedEvent(ed.id, { title: "Attendee Page Event B" });
+      reviewIds.push(
+        await seedReview(seedA.eventId, attendee.id, "Coach verdict", {
+          guru: true,
+        }),
+        await seedReview(seedB.eventId, attendee.id, "Parent verdict", {
+          reviewerRole: "parent_spectator",
+        }),
+      );
+
+      await page.goto(`/attendees/${attendee.id}`);
+
+      // First name + last INITIAL — never the full last name.
+      await expect(
+        page.getByRole("heading", { name: "Ashley U.", level: 1 }),
+      ).toBeVisible();
+      await expect(page.getByText("Ashley User")).toHaveCount(0);
+
+      // Capacity metric blocks + total.
+      await expect(page.getByText("Reviews as Verified Coach")).toBeVisible();
+      await expect(page.getByText("Reviews as Attendee")).toBeVisible();
+      await expect(page.getByText("2 published reviews")).toBeVisible();
+
+      // Both cards render; the verified one carries the GURU badge.
+      await expect(page.getByText("Coach verdict")).toBeVisible();
+      await expect(page.getByText("Parent verdict")).toBeVisible();
+      await expect(page.getByText("Guru Review").first()).toBeVisible();
+
+      // Capacity filter.
+      await page.getByRole("button", { name: "Verified Coach" }).click();
+      await expect(page.getByText("Parent verdict")).toHaveCount(0);
+      await expect(page.getByText("Coach verdict")).toBeVisible();
+      await page.getByRole("button", { name: "Attendee", exact: true }).click();
+      await expect(page.getByText("Coach verdict")).toHaveCount(0);
+      await expect(page.getByText("Parent verdict")).toBeVisible();
+
+      // Review-card identity links here from other pages.
+      await page.goto(`/events/${seedA.eventId}`);
+      await expect(
+        page.getByRole("link", { name: "Ashley U." }).first(),
+      ).toHaveAttribute("href", `/attendees/${attendee.id}`);
+    } finally {
+      for (const id of reviewIds) await deleteReview(id);
+      for (const s of [seedA, seedB]) {
+        if (s) {
+          await deleteEvent(s.eventId);
+          await deleteTournament(s.tournamentId);
+        }
+      }
+      if (attendee) await deleteUser(attendee.id);
+      if (ed) await deleteUser(ed.id);
+    }
+  });
+
   test("static content routes load with a heading", async ({ page }) => {
     const paths = [
       "/about",

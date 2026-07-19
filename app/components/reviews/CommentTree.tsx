@@ -157,6 +157,16 @@ function CommentNodeView({
   const avatarSrc = isOwnerReply
     ? safeImageSrc(node.author?.org_logo_url)
     : safeImageSrc(node.author?.profile_photo_url);
+  // Identity links to the author's public page by type; anonymized
+  // comments (author gone) and admins have none.
+  const authorHref =
+    !node.anonymized && node.author_id && node.author
+      ? node.author.user_type === "event_director"
+        ? `/directors/${node.author_id}`
+        : node.author.user_type === "attendee"
+          ? `/attendees/${node.author_id}`
+          : null
+      : null;
 
   return (
     <div
@@ -171,10 +181,25 @@ function CommentNodeView({
       >
         <header className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2.5">
-            <Avatar src={avatarSrc} name={displayName} size={32} />
+            {authorHref ? (
+              <a href={authorHref} className="shrink-0">
+                <Avatar src={avatarSrc} name={displayName} size={32} />
+              </a>
+            ) : (
+              <Avatar src={avatarSrc} name={displayName} size={32} />
+            )}
             <div className="min-w-0">
               <p className="truncate text-[13px] font-bold text-slate-900">
-                {displayName}
+                {authorHref ? (
+                  <a
+                    href={authorHref}
+                    className="text-slate-900 no-underline hover:underline"
+                  >
+                    {displayName}
+                  </a>
+                ) : (
+                  displayName
+                )}
                 {isOwnerReply && (
                   <span className="ml-2 rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-white">
                     Event Director

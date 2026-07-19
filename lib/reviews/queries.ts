@@ -133,6 +133,33 @@ export async function listReviewsForEvents(
 }
 
 /**
+ * All PUBLISHED reviews by one author, newest-first — the public
+ * attendee page. RLS keeps hidden rows out for anon; identity attaches
+ * via review_author_public like every public path.
+ */
+export async function listReviewsForAuthor(
+  authorId: string,
+  limit = 50,
+): Promise<ReviewCardRow[]> {
+  const supabase = await createServerAuthClient();
+  const { data, error } = await supabase
+    .from("reviews")
+    .select(REVIEW_BASE_COLUMNS)
+    .eq("author_id", authorId)
+    .eq("status", "published")
+    .order("published_at", { ascending: false, nullsFirst: false })
+    .limit(limit);
+  if (error) throw new Error(`listReviewsForAuthor reviews: ${error.message}`);
+  return attachPublicAuthors(
+    await attachPromoCodes(
+      (data ?? []) as unknown as (Omit<ReviewCardRow, "author" | "promo_pretty_code"> & {
+        promo_id: string | null;
+      })[],
+    ),
+  );
+}
+
+/**
  * Dashboard / My Reviews path — draft-visible for the author + admin
  * per RLS. Uses the profiles-join projection so the ED / Admin table
  * can render full profile info via RLS (admin bypass) when it applies.
@@ -253,7 +280,9 @@ async function attachPublicAuthors(
   const authorRows = unwrapRows(
     await supabase
       .from("review_author_public")
-      .select("review_id, first_name, organization_title, profile_photo_url")
+      .select(
+        "review_id, first_name, last_initial, organization_title, profile_photo_url",
+      )
       .in("review_id", ids),
     "attachPublicAuthors",
   );
@@ -261,6 +290,7 @@ async function attachPublicAuthors(
     string,
     {
       first_name: string | null;
+      last_initial: string | null;
       organization_title: string | null;
       profile_photo_url: string | null;
     }
@@ -269,6 +299,7 @@ async function attachPublicAuthors(
     if (!row.review_id) continue;
     map.set(row.review_id, {
       first_name: row.first_name,
+      last_initial: row.last_initial,
       organization_title: row.organization_title,
       profile_photo_url: row.profile_photo_url,
     });
@@ -280,7 +311,9 @@ async function attachPublicAuthors(
       if (!public_row) return null;
       return {
         first_name: public_row.first_name,
-        last_name: null,
+        // Public name rule: first name + last INITIAL ("Ashley M.") —
+        // the view never carries the last name itself.
+        last_name: public_row.last_initial ? `${public_row.last_initial}.` : null,
         organization_title: public_row.organization_title,
         profile_photo_url: public_row.profile_photo_url,
       };
@@ -299,7 +332,7 @@ async function attachPublicCommentAuthors(
     await supabase
       .from("public_comment_authors")
       .select(
-        "comment_id, first_name, organization_title, org_logo_url, profile_photo_url, user_type",
+        "comment_id, first_name, last_initial, organization_title, org_logo_url, profile_photo_url, user_type",
       )
       .in("comment_id", ids),
     "attachPublicCommentAuthors",
@@ -308,6 +341,7 @@ async function attachPublicCommentAuthors(
     string,
     {
       first_name: string | null;
+      last_initial: string | null;
       organization_title: string | null;
       org_logo_url: string | null;
       profile_photo_url: string | null;
@@ -318,6 +352,7 @@ async function attachPublicCommentAuthors(
     if (!row.comment_id) continue;
     map.set(row.comment_id, {
       first_name: row.first_name,
+      last_initial: row.last_initial,
       organization_title: row.organization_title,
       org_logo_url: row.org_logo_url,
       profile_photo_url: row.profile_photo_url,
@@ -331,7 +366,8 @@ async function attachPublicCommentAuthors(
       author: p
         ? {
             first_name: p.first_name,
-            last_name: null,
+            // Public name rule: first name + last INITIAL ("Ashley M.").
+            last_name: p.last_initial ? `${p.last_initial}.` : null,
             organization_title: p.organization_title,
             org_logo_url: p.org_logo_url,
             profile_photo_url: p.profile_photo_url,

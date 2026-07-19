@@ -333,11 +333,13 @@ export async function deleteSubmittedCsvsForEvent(
   await svc.from("submitted_csvs").delete().eq("event_id", eventId);
 }
 
-/** A published coach review on `eventId` by `authorId`. Returns the id. */
+/** A published review on `eventId` by `authorId` (coach by default;
+ * `guru` marks it verified). Returns the id. */
 export async function seedReview(
   eventId: string,
   authorId: string,
   title: string,
+  opts: { reviewerRole?: string; guru?: boolean } = {},
 ): Promise<string> {
   const { data, error } = await service()
     .from("reviews")
@@ -354,7 +356,8 @@ export async function seedReview(
       rating_diversity: 4,
       rating_cost_value: 4,
       reviewer_user_type: "attendee",
-      reviewer_role: "coach",
+      reviewer_role: opts.reviewerRole ?? "coach",
+      guru_review: opts.guru ?? false,
       published_at: new Date().toISOString(),
     })
     .select("id")
