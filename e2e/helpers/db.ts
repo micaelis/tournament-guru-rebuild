@@ -147,11 +147,14 @@ export async function deleteUser(id: string): Promise<void> {
 }
 
 /** A tournament owned by `ownerId` (so an ED can reach the Add Event form). */
-export async function seedTournament(ownerId: string): Promise<string> {
+export async function seedTournament(
+  ownerId: string,
+  opts: { title?: string } = {},
+): Promise<string> {
   const { data, error } = await service()
     .from("tournaments")
     .insert({
-      title: `E2E Cup ${randomUUID().slice(0, 6)}`,
+      title: opts.title ?? `E2E Cup ${randomUUID().slice(0, 6)}`,
       owner_id: ownerId,
       created_by: ownerId,
       claimed: true,
@@ -166,10 +169,15 @@ export async function deleteTournament(id: string): Promise<void> {
   await service().from("tournaments").delete().eq("id", id);
 }
 
+/** Clean up a tournament created through the UI (no id handed back). */
+export async function deleteTournamentByTitle(title: string): Promise<void> {
+  await service().from("tournaments").delete().eq("title", title);
+}
+
 /** A recently-concluded event owned by `ownerId` (+ its tournament). */
 export async function seedEvent(
   ownerId: string,
-  opts: { premium?: boolean } = {},
+  opts: { premium?: boolean; lifecycle?: "draft" | "active"; title?: string } = {},
 ): Promise<{ tournamentId: string; eventId: string }> {
   const svc = service();
   const { data: t, error: tErr } = await svc
@@ -190,8 +198,8 @@ export async function seedEvent(
       owner_id: ownerId,
       created_by: ownerId,
       claimed: true,
-      title: `E2E Event ${randomUUID().slice(0, 6)}`,
-      lifecycle: "active",
+      title: opts.title ?? `E2E Event ${randomUUID().slice(0, 6)}`,
+      lifecycle: opts.lifecycle ?? "active",
       is_premium: opts.premium ?? false,
       start_date: daysAgo(3),
       end_date: daysAgo(1),
@@ -200,6 +208,106 @@ export async function seedEvent(
     .single();
   if (eErr || !e) throw new Error(`seedEvent event: ${eErr?.message}`);
   return { tournamentId: t.id as string, eventId: e.id as string };
+}
+
+/**
+ * A fully-populated, publish-quality event owned by `ownerId` — every
+ * field the EventForm marks `required` is filled, plus one competition
+ * level + one surface child row. The edit form loads this valid, so an
+ * edit journey can change one field and submit without tripping the
+ * browser's required-field validation on the untouched inputs.
+ */
+export async function seedCompleteEvent(
+  ownerId: string,
+  opts: { lifecycle?: "draft" | "active"; title?: string } = {},
+): Promise<{ tournamentId: string; eventId: string }> {
+  const svc = service();
+  const { data: t, error: tErr } = await svc
+    .from("tournaments")
+    .insert({
+      title: `E2E Cup ${randomUUID().slice(0, 6)}`,
+      owner_id: ownerId,
+      created_by: ownerId,
+      claimed: true,
+    })
+    .select("id")
+    .single();
+  if (tErr || !t) throw new Error(`seedCompleteEvent tournament: ${tErr?.message}`);
+
+  const { data: season } = await svc
+    .from("seasons")
+    .select("id")
+    .limit(1)
+    .single();
+
+  const { data: e, error: eErr } = await svc
+    .from("events")
+    .insert({
+      tournament_id: t.id,
+      owner_id: ownerId,
+      created_by: ownerId,
+      claimed: true,
+      title: opts.title ?? `E2E Complete Event ${randomUUID().slice(0, 6)}`,
+      lifecycle: opts.lifecycle ?? "active",
+      logo_url: "https://example.com/logo.png",
+      website_url: "https://example.com",
+      host_club: "Gateway SC",
+      description: "A premier youth tournament with strong competition.",
+      location_formatted: "St. Louis, MO",
+      region: "I",
+      season_id: (season as { id: string } | null)?.id ?? null,
+      start_date: daysAgo(3),
+      end_date: daysAgo(1),
+    })
+    .select("id")
+    .single();
+  if (eErr || !e) throw new Error(`seedCompleteEvent event: ${eErr?.message}`);
+
+  await svc
+    .from("event_competition_levels")
+    .insert({ event_id: e.id, level: "upper" });
+  await svc.from("event_surfaces").insert({ event_id: e.id, surface: "grass" });
+
+  return { tournamentId: t.id as string, eventId: e.id as string };
+}
+
+/** Read back event columns (service role) for post-journey assertions. */
+export async function getEventFields(
+  id: string,
+  columns: string,
+): Promise<Record<string, unknown>> {
+  const { data, error } = await service()
+    .from("events")
+    .select(columns)
+    .eq("id", id)
+    .single();
+  if (error) throw new Error(`getEventFields: ${error.message}`);
+  return data as unknown as Record<string, unknown>;
+}
+
+/** Does a tournament row still exist? (delete-journey assertion) */
+export async function tournamentExists(id: string): Promise<boolean> {
+  const { data } = await service().from("tournaments").select("id").eq("id", id);
+  return (data ?? []).length === 1;
+}
+
+/** A tournament created by an admin and left unclaimed (owner_id null). */
+export async function seedUnclaimedTournament(
+  adminId: string,
+  opts: { title?: string } = {},
+): Promise<string> {
+  const { data, error } = await service()
+    .from("tournaments")
+    .insert({
+      title: opts.title ?? `E2E Unclaimed ${randomUUID().slice(0, 6)}`,
+      owner_id: null,
+      created_by: adminId,
+      claimed: false,
+    })
+    .select("id")
+    .single();
+  if (error || !data) throw new Error(`seedUnclaimedTournament: ${error?.message}`);
+  return data.id as string;
 }
 
 export async function deleteEvent(id: string): Promise<void> {

@@ -73,24 +73,27 @@ idling and the pane stays blank. Verify via typecheck + build + `npm test` + `np
 | `account-partial-save` | Admin saves their name with location/gender/org fields unrendered; those columns survive. Inverse case: a rendered-but-emptied field still clears (S8.7). |
 | `favorites` | Favoriting an event (add/remove). |
 | `a11y` | Accessibility checks (labeled controls, keyboard reachability). |
+| `tournament-crud` | The tournament/event lifecycle through the real UI: create a tournament via the dialog; **edit** a published event and read the row back (the path that shipped broken with no coverage, S9.2); publish an existing draft (lifecycle→active); an emptied title disables the update submit and the row survives; delete a tournament via the confirm dialog. Plus the admin S1.1 affordance — no Delete on an ED-claimed tournament, Delete present on an admin-created unclaimed one. Stable under `--repeat-each=3`. |
 
 ## Tournament CRUD coverage matrix
 
-Every cell names the covering probe (authorization/invariants, DB layer). UI journeys are
-added to the cells as the E2E specs land. Probe shorthand: **tc** = `tournament-crud`, **ehwg** =
+Each cell names its covering probe (authorization/invariants, DB layer) and, where there is
+a UI journey, the E2E spec. Probe shorthand: **tc** = `tournament-crud` probe, **ehwg** =
 `event-host-write-gate`, **eptg** = `event-parent-tournament-gate`, **eeg** =
-`event-edit-grants`, **dnug** = `definer-null-uid-guard`.
+`event-edit-grants`, **dnug** = `definer-null-uid-guard`. **E2E** = the `tournament-crud`
+spec (or `mutations` where noted).
 
 | Operation | ED-owner | ED-non-owner | Admin | Attendee | Anon |
 |---|---|---|---|---|---|
-| Create | tc *createTournament stamps owner + claimed* | eptg *cannot INSERT an event under ED-A's tournament* | tc *createTournament leaves it unclaimed (S1.1)*; eptg *admin can add to an unclaimed tournament* | tc *createTournament refused, no row lands*; ehwg *cannot INSERT tournament or event* | ehwg *anon cannot INSERT a tournament* |
+| Create | tc *createTournament stamps owner + claimed*; E2E *creates a tournament via the dialog*; E2E `mutations` *creates + publishes a new event* | eptg *cannot INSERT an event under ED-A's tournament* | tc *createTournament leaves it unclaimed (S1.1)*; eptg *admin can add to an unclaimed tournament* | tc *createTournament refused, no row lands*; ehwg *cannot INSERT tournament or event* | ehwg *anon cannot INSERT a tournament* |
 | Read / list | tc *sees own DRAFT event*; tc *published readable* | tc *another ED's draft is hidden*; tc *tournament rows are public-read* | tc *admin sees the draft* | tc *draft hidden, published visible* | tc *draft hidden, published visible*; tc *tournament rows public-read* |
-| Update / edit | tc *updateTournament persists the rename*; eeg *update-intent save persists + publish flips draft→active* | tc *update against another ED's tournament changes nothing*; eptg *cannot REPARENT onto ED-A's tournament* | tc *can update an UNCLAIMED tournament*; eptg *admin can edit an event on a claimed ED tournament (S1.1 addendum)* | tc *attendee cannot update*; ehwg *cannot UPDATE an ED's tournament or event (incl. seizing owner_id)* | tc *anon cannot update* |
-| Delete | tc *cascades child events + DETACHES reviews with snapshot* | tc *delete_tournament refused, row survives* | tc *admin can delete* | tc *delete_tournament refused, row survives* | tc *delete RPC refused*; dnug *anon cannot destroy a claimed tournament or its events* |
+| Update / edit | tc *updateTournament persists the rename*; eeg *update-intent save persists + publish flips draft→active*; E2E *edits a published event + publishes a draft* | tc *update against another ED's tournament changes nothing*; eptg *cannot REPARENT onto ED-A's tournament* | tc *can update an UNCLAIMED tournament*; eptg *admin can edit an event on a claimed ED tournament (S1.1 addendum)*; E2E *no Delete on a claimed tournament* | tc *attendee cannot update*; ehwg *cannot UPDATE an ED's tournament or event (incl. seizing owner_id)* | tc *anon cannot update* |
+| Delete | tc *cascades child events + DETACHES reviews with snapshot*; E2E *deletes a tournament via the confirm dialog* | tc *delete_tournament refused, row survives* | tc *admin can delete* | tc *delete_tournament refused, row survives* | tc *delete RPC refused*; dnug *anon cannot destroy a claimed tournament or its events* |
 
 **Validation** (not a role cell, but part of the lifecycle): tc *create/update reject an
-empty title before any write*; `validation` probe *draft allows null dates, end ≥ start
-enforced at the DB*; eeg *publish enforces the full mandatory set*.
+empty title before any write*; E2E *an emptied title disables the update submit and the row
+survives*; `validation` probe *draft allows null dates, end ≥ start enforced at the DB*;
+eeg *publish enforces the full mandatory set*.
 
 Two authorization holes were found while filling this matrix and fixed first — see
 DECISIONS **S10.1** (attendees could publish into discovery), **S10.2** (cross-ED event
