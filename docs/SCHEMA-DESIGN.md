@@ -304,6 +304,14 @@ New/adjusted:
 ## 10. Security model (carry-forward summary)
 
 - RLS on every table; `USING` (row visibility) + `WITH CHECK` (written values) split.
+- **Role predicates, not just ownership**, on the write policies for `tournaments` and
+  `events`: `is_event_host()` (= `user_type in ('event_director','admin')`, STABLE
+  SECURITY DEFINER, mirroring `is_admin()`) ANDed with the owner check. Ownership alone is
+  not an authorization test on these tables — `owner_id` is caller-supplied and grantable,
+  so an attendee could name themselves owner and publish into discovery (S10.1, migration
+  20260719000001). `is_admin()` implies `is_event_host()`, so admins keep writing the
+  unclaimed rows they don't own (S1.1). Event child tables inherit this via their parent
+  event's owner check.
 - **Column-grant allow-lists** as the privilege-escalation cap (Postgres checks column
   privileges before RLS): `revoke update/insert` then `grant (safe cols)` — omits
   user_type, role, blocked, guru_review, published, counters on profiles/reviews; omits

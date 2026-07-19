@@ -1508,3 +1508,48 @@ bounding box (4).
 **Still open (not distance):** `searchEvents`' bbox prefilter has no
 explicit limit, so it rides PostgREST's default 1000-row cap. Harmless
 at current volume; revisit before the event count approaches it.
+
+### S10.1 · Tournament/event writes gated on being an event host
+
+The RLS write policies on `tournaments` and `events` asked only *"is
+this row yours?"* — `owner_id = auth.uid() or is_admin()` — and never
+*"are you a role that may host events at all"*. An attendee satisfies
+the ownership half simply by writing their own id into the payload, and
+`owner_id`, `claimed`, and `lifecycle` are all in the `authenticated`
+INSERT/UPDATE column grants. The full chain was reachable straight
+through PostgREST, with no server action in the path:
+
+1. INSERT a tournament with `owner_id` = self → allowed
+2. INSERT an event under it with `lifecycle='active'` → allowed
+3. anon reads it (`p_events_read`: `lifecycle <> 'draft'`) → **public**
+
+So any attendee could inject arbitrary published listings into public
+discovery. The only thing standing in the way was the
+`user_type === 'attendee'` check inside the `createTournament` server
+action — an affordance, not a boundary, exactly the shape of C-1 where
+write grants on the `public_*` views were the sole control.
+
+**Fix** (migration `20260719000001`): new `is_event_host()` predicate
+(STABLE SECURITY DEFINER, mirroring `is_admin()`) = `user_type in
+('event_director','admin')`, ANDed into both write policies. Since
+`is_admin()` implies `is_event_host()`, the admin branch is unchanged —
+admins keep creating unclaimed rows they don't own (S1.1) and EDs still
+manage only their own. The event child tables (`event_age_groups`,
+`sponsors`, …) delegate to the parent event's owner check, so they are
+transitively covered: an attendee can no longer own an event to hang
+children off.
+
+**Scope note.** The tier columns (`is_premium`, `is_general_ad`) were
+already withheld from the column grants, so this was never a route to
+Featured/Spotlight placement — ordinary public listings only.
+
+**Verification:** `tests/probes/event-host-write-gate.test.ts`, 7 tests,
+mutation-verified — reverting both policies to the ownership-only
+predicate fails the 3 create-path tripwires (tournament insert, event
+insert, and the anon-discovery chain) while the ED/admin positive cases
+stay green, confirming the fix is what closes the hole and not an
+incidental deny.
+
+**Alternative considered:** enforcing the role check only in the server
+actions. Rejected on the project's own rule — RLS is the security
+boundary; a check that a direct PostgREST call bypasses is not a gate.
