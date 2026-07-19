@@ -1589,3 +1589,67 @@ unaffected: `approve_claim_request` is SECURITY DEFINER and bypasses RLS.
 6 tests, mutation-verified — dropping the parent EXISTS fails the 3
 attack-path tripwires (insert, reparent, rating pollution) while the 3
 ED/admin positive cases stay green.
+
+### S10.3 · CRITICAL — SECURITY DEFINER guards were bypassable by anon (NULL auth.uid)
+
+Six destructive SECURITY DEFINER functions guarded themselves with
+
+```sql
+if not (is_admin() or <owner> = auth.uid()) then
+  raise exception 'not authorized' using errcode = '42501';
+end if;
+```
+
+For anon, `auth.uid()` is NULL, so `<owner> = auth.uid()` evaluates to
+**NULL, not false**. `false or NULL` → NULL; `not NULL` → NULL; and
+`if NULL then` does not execute. The guard fell through and the body ran
+with definer privileges. These functions are owned by a BYPASSRLS role,
+so RLS offered no backstop, and 20260718000005's blanket function grants
+had given `anon` EXECUTE on all six.
+
+**Proven on the local stack:** an anon client holding nothing but the
+public anon key called `delete_tournament` on a claimed tournament and
+permanently destroyed it *and* its child events, with no error returned.
+
+Affected: `delete_tournament`, `delete_event`, `anonymize_account`,
+`scrub_profile_identity`, `soft_delete_attendee`, `delete_ed_account` —
+i.e. unauthenticated destruction of any tournament/event plus
+anonymize / scrub / delete of any account.
+`apply_promo_to_review` and `claim_promo` were already safe: both open
+with an explicit `if auth.uid() is null then raise`.
+
+**Why it hid.** An authenticated non-owner has a real `auth.uid()`, so
+the comparison is false, the predicate is true, and the exception raises
+correctly. `c2-definer-guards` tests exactly that caller, so it stayed
+green. Only the NULL/anon case slipped through. `delete_tournament` also
+only broke on CLAIMED tournaments — for an unclaimed one the preceding
+`v_owner is null and not is_admin()` guard does fire — so the bug bit
+precisely the rows worth protecting.
+
+**Fix** (migration `20260719000003`), two layers, because the grant
+layer has already been re-widened once by a blanket migration and the
+guard is the real boundary:
+1. An explicit `auth.uid() is null` check at the top of each function,
+   matching the pattern the two safe functions already use.
+2. The ownership predicate rewritten as
+   `if (is_admin() or <owner> = auth.uid()) is not true then` so a NULL
+   can never again read as authorized.
+Then `revoke execute ... from anon` on all six — every one requires a
+session by definition.
+
+**Verification:** `tests/probes/definer-null-uid-guard.test.ts`, 7 tests.
+Each asserts the call is refused AND that the target data survived — a
+revoke alone satisfies the first half, so the survival assertion is what
+actually pins the guard. Mutation-verified in three states: (a) anon
+EXECUTE re-granted with the guards fixed → still 7/7 green, proving the
+guard alone suffices; (b) all six reverted to the NULL-unsafe predicate
+with anon granted → all 6 attack tripwires fail while the legitimate
+owner-delete stays green; (c) a partial revert that left `delete_event`
+fixed → only 3 fail, because `delete_tournament` calls `delete_event`
+and the inner guard aborts the transaction transitively. (c) is why the
+mutation had to revert all six at once to be meaningful.
+
+**Follow-on:** the backlog's "20260718000005 function-grant overreach
+re-opened ~14 RG1-locked functions" item is the same root; this closes
+the six destructive ones. The remaining re-opened functions still want
+the grant trim Danny flagged.

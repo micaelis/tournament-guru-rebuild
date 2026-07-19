@@ -328,6 +328,12 @@ New/adjusted:
   (omit email/enumeration keys). service_role bypasses for admin surfaces.
 - Every SECURITY DEFINER fn pins `search_path = public, pg_temp` (+ `extensions` if it
   uses unaccent/trgm).
+- **Definer guards must be NULL-safe.** `auth.uid()` is NULL for anon, so
+  `<owner> = auth.uid()` is NULL — not false — and `if not (…)` never fires: the guard
+  falls through and the body runs with BYPASSRLS privileges. Every destructive definer fn
+  opens with an explicit `if auth.uid() is null then raise` and writes its ownership test
+  as `if (…) is not true then`, never `if not (…)`. Destructive fns are additionally
+  revoked from `anon` (S10.3, migration 20260719000003).
 - Public projections of locked tables via `security_invoker=false` views / definer RPCs,
   scoped tightly (event_director only), never returning contact_email.
 - Public writes (search log, contact, support) rate-limited at DB + app layers.
