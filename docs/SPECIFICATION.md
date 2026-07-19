@@ -652,7 +652,10 @@ admin sees **all**.
   **default sort = descending by creation date**. Columns: Username (avatar +
   full name), Host Club (reviewer org), Event (title → public page), the six
   category averages + **Overall Score** (average across rated categories), and
-  Date. Null-scored categories are excluded from averages.
+  Date. Null-scored categories are excluded from averages. Username depth
+  follows RLS like the reviewer popup: admins get the full name via profiles;
+  EDs get the first name + org + photo backfilled from `review_author_public`
+  (never last name). Name search matches whatever depth the caller sees.
 - Under each row, the **review itself**: title, body, likes count, comments
   count, and reviewer role chips. If the reviewer is a **Coach with an applied
   promo**, the role chip also shows the **8-character pretty code**. Verified

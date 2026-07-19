@@ -72,7 +72,7 @@ idling and the pane stays blank. Verify via typecheck + build + `npm test` + `np
 | `onboarding` | The 3-step (attendee) / 4-step (ED) wizard + guards. |
 | `discovery` | Public browsing: landing, search, event detail, director pages. Includes the host-avatar shape/fit assertion (Avatar primitive, S8.13). |
 | `dashboard` | Role-based dashboard shells render (incl. the ED/Admin owned-tournament render guard). Admin Users search: finds a seeded user by EMAIL (the term no profile column carries, proving the auth.users bridge), and Block/Delete are reachable from the filtered row (confirm dialog opens). |
-| `reviews` | Review display + submission flow. Reviewer-details popup (S10.11): an ED opens it from their dashboard table row and both rating pools render with the seeded review counted in the Attendee pool. |
+| `reviews` | Review display + submission flow. Reviewer-details popup (S10.11) + table identity backfill (S10.14): the ED's dashboard table shows the reviewer's real first name (via `review_author_public`), name search filters on it, and the popup opens with both rating pools rendering the seeded review in the Attendee pool. |
 | `promo` | Promo landing + claim. |
 | `mutations` | Profile edit, admin banned-word add, reaching the Add Event form. |
 | `account-partial-save` | Admin saves their name with location/gender/org fields unrendered; those columns survive. Inverse case: a rendered-but-emptied field still clears (S8.7). |

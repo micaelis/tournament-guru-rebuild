@@ -1957,3 +1957,21 @@ describe the columns, and TURBOCHECK H-6 is marked resolved.
 reset DB (no site referenced the columns — the "zero readers" proof),
 and the full gate (typecheck, lint, build, 402 vitest, 72 e2e) is green
 on the dropped schema.
+
+### S10.14 · ED reviews table backfills reviewer names from review_author_public
+The §6.2 table's `author:profiles!…` join is RLS-blanked for EDs, so
+every row rendered the "Reviewer" placeholder and name search matched
+nothing — while the reviewer popup (S10.11) already resolved identity
+through the public `review_author_public` view. `listDashboardReviews`
+now backfills null-author, non-anonymized rows from that view in one
+batched read (first name + org + photo; last_name stays null), so the
+table cell, name search, and CSV export all run on the same view-backed
+identity the popup shows. No grant widened, no new view — admins are
+untouched (their profiles join resolves first and the backfill skips
+them). Chosen over widening the ED grant on profiles (breaks the
+column-grant privacy line) and over an ED-specific definer RPC (the
+public view already carries exactly the fields §6.2 needs).
+
+**Verification:** e2e reviews spec — the ED sees the seeded reviewer's
+real first name in the table, name search filters on it (miss → empty
+state, hit → row), and the popup still opens from the name button.

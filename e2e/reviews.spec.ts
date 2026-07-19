@@ -237,10 +237,11 @@ test.describe("Review interactions", () => {
  * Reviewer-details popup (spec §6.2, S2.7): clicking a reviewer's
  * username on the dashboard reviews table opens the two-pool popup.
  * Driven as the ED, which also exercises the identity fallback through
- * review_author_public (direct profile reads are admin-only).
+ * review_author_public (direct profile reads are admin-only): the
+ * table cell + name search run on the public first name.
  */
 test.describe("Dashboard reviews — reviewer details popup", () => {
-  test("ED clicks a reviewer and sees the two rating pools", async ({
+  test("ED sees the reviewer's first name, searches by it, and opens the two rating pools", async ({
     page,
   }) => {
     let ed: SeededUser | undefined;
@@ -249,7 +250,8 @@ test.describe("Dashboard reviews — reviewer details popup", () => {
     let reviewId: string | undefined;
     try {
       ed = await createEventDirector({ completeOnboarding: true });
-      author = await createAttendee({ completeOnboarding: true });
+      const firstName = `Zelda${Date.now()}`;
+      author = await createAttendee({ completeOnboarding: true, firstName });
       const eventTitle = `E2E Popup Event ${Date.now()}`;
       seed = await seedEvent(ed.id, { title: eventTitle });
       reviewId = await seedReview(seed.eventId, author.id, "E2E popup review");
@@ -257,16 +259,19 @@ test.describe("Dashboard reviews — reviewer details popup", () => {
       await signIn(page, ed.email, ed.password);
       await page.goto("/dashboard/reviews");
 
-      // The table row carries the EVENT title; the username cell is the
-      // row's first button (the select control is a checkbox). The
-      // ED-visible label may be the public first name or the "Reviewer"
-      // fallback, so don't match the button on a string.
-      await page
-        .getByRole("row")
-        .filter({ hasText: eventTitle })
-        .getByRole("button")
-        .first()
-        .click();
+      // The ED's profiles join is RLS-blanked; the table backfills from
+      // review_author_public, so the real first name renders (never the
+      // "Reviewer" placeholder) and name search matches it.
+      const row = page.getByRole("row").filter({ hasText: eventTitle });
+      await expect(row.getByRole("button", { name: firstName })).toBeVisible();
+
+      const searchBox = page.getByRole("searchbox", { name: "Search reviews" });
+      await searchBox.fill("no-such-reviewer-zzz");
+      await expect(page.getByText("No reviews match your filters.")).toBeVisible();
+      await searchBox.fill(firstName);
+      await expect(row).toBeVisible();
+
+      await row.getByRole("button", { name: firstName }).click();
 
       const dialog = page.getByRole("dialog", { name: "Reviewer details" });
       await expect(dialog).toBeVisible();

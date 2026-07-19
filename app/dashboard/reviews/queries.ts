@@ -8,6 +8,13 @@ import type { ReviewCardRow } from "@/lib/reviews/queries";
  * events (owner_id = self) or all reviews (admin). Search + filters
  * happen in-app after the fetch since the row count per ED is small
  * and the filter graph is complex (event id set + promo flag + state).
+ *
+ * Reviewer identity depth follows RLS, same as the reviewer popup:
+ * the profiles join resolves for admins (full name) and comes back
+ * null for EDs, whose rows are then backfilled from the public
+ * review_author_public view (first name, org, photo — never
+ * last_name). No grant is widened; the two roles see different
+ * depths, and name search runs over whatever depth the caller got.
  */
 export async function listDashboardReviews({
   userId,
@@ -57,6 +64,38 @@ export async function listDashboardReviews({
       event: { id: string; title: string; location_state_abbr: string | null } | null;
     }
   >;
+
+  // ED path: profiles is RLS-filtered, so the join above returned
+  // author = null. Backfill those rows from review_author_public.
+  const missingAuthorIds = rows
+    .filter((r) => !r.author && !r.anonymized && r.author_id)
+    .map((r) => r.id);
+  if (missingAuthorIds.length) {
+    const publicAuthors = unwrapRows<{
+      review_id: string;
+      first_name: string | null;
+      organization_title: string | null;
+      profile_photo_url: string | null;
+    }>(
+      await supabase
+        .from("review_author_public")
+        .select("review_id, first_name, organization_title, profile_photo_url")
+        .in("review_id", missingAuthorIds),
+      "dashboard reviews public authors",
+    );
+    const authorMap = new Map(publicAuthors.map((a) => [a.review_id, a]));
+    for (const row of rows) {
+      if (row.author || row.anonymized || !row.author_id) continue;
+      const pub = authorMap.get(row.id);
+      if (!pub) continue;
+      row.author = {
+        first_name: pub.first_name,
+        last_name: null,
+        organization_title: pub.organization_title,
+        profile_photo_url: pub.profile_photo_url,
+      };
+    }
+  }
 
   const promoIds = Array.from(
     new Set(rows.map((r) => r.promo_id).filter((v): v is string => Boolean(v))),
