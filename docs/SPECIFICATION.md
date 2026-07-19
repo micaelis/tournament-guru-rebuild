@@ -360,7 +360,11 @@ screen. **Role is adjustable here and locked once onboarding completes.**
   Account → Preferences** (see §7.4), not on the profile.
 
 **Screen 4 — Organization (ED only):** Organization logo (**PNG/JPG/JPEG,
-≤ 5MB** — rules enforced) and Organization description.
+≤ 5MB** — enforced server-side by the `org-logos` bucket) and Organization
+description. The logo field is the shared `ImageUploadField`: upload a file
+straight to Storage OR paste a hosted URL, either way rendered through
+`safeImageSrc` with a placeholder on load failure (§ uploads, DECISIONS
+S10.4/S10.6).
 
 On completion, **attendees are redirected to Search Events** and **Event
 Directors to the dashboard**.
@@ -552,16 +556,21 @@ icon with a yellow fill for the average, the **average to 2 decimals (e.g.
 Coach pool = verified coach reviews; the Attendee pool = non-verified.
 
 **Event create/edit form.** `*` = mandatory to publish; `[]` = accepts a list.
-Mandatory-to-publish fields: **Event logo** (≤5MB, png/jpg/jpeg/svg), Event
-title, Event Website URL, Host Club, Starting Date, Ending Date, Event
-Description, Event Location, **Level of Competition []** (≥1), Event Region
-(I–IV), **Surface []** (Turf/Grass, one or both), and **Season** (2021-2022 …
-2028-2029; the set auto-extends yearly). Non-mandatory: Registration Deadline,
-Number of teams this year, **Age Groups []** (each requires Gender, **Age
-(U4–U20 dropdown)**, Price with a `$` prefix, Field Size 5v5–11v11 — add/edit/
-delete anytime), **Sponsors []** (each requires Name, Link, Logo — add/edit/
-delete anytime), and **Event Images** (≤ 3 free).
+Mandatory-to-publish fields: **Event logo** (**PNG/JPG/JPEG, ≤10MB** — no SVG;
+enforced server-side by the `event-images` bucket, S10.4), Event title, Event
+Website URL, Host Club, Starting Date, Ending Date, Event Description, Event
+Location, **Level of Competition []** (≥1), Event Region (I–IV), **Surface []**
+(Turf/Grass, one or both), and **Season** (2021-2022 … 2028-2029; the set
+auto-extends yearly). Non-mandatory: Registration Deadline, Number of teams
+this year, **Age Groups []** (each requires Gender, **Age (U4–U20 dropdown)**,
+Price with a `$` prefix, Field Size 5v5–11v11 — add/edit/delete anytime),
+**Sponsors []** (each requires Name, Link, Logo — add/edit/delete anytime),
+and **Event Images** (≤ 3 free).
 
+- **Event logo, sponsor logos, and event images** use the shared
+  `ImageUploadField`: upload a PNG/JPG straight to the `event-images` bucket OR
+  paste a hosted URL, either way rendered through `safeImageSrc` with a
+  placeholder on load failure (DECISIONS S10.4/S10.6).
 - **Website inputs** show a link-icon container; numeric inputs show a `#` icon
   container.
 - **Free image cap = 3.** A 4th slot shows an **upgrade placeholder**. Upgrading
@@ -1133,11 +1142,14 @@ link), the **support** message to support@tournamentguru.com, and password-reset
 
 - **Event and organization images** live in **public buckets**; all DB-sourced
   URLs render through `safeExternalUrl` / `safeImageSrc` (scheme allow-list).
-- **Uploaded promo CSVs** live in a **private bucket** (RLS: owner + admin), with
-  **signed-URL download only**.
-- Event video uploads (premium, ≤ 200MB) go **direct to storage**.
-- Org logo uploads: PNG/JPG/JPEG, ≤ 5MB. Event logo uploads: png/jpg/jpeg/svg,
-  ≤ 5MB.
+- **Uploaded promo CSVs** live in the **private `promo-csv` bucket** (RLS: owner +
+  admin, `public=false`, ≤2MB text/csv), with **signed-URL download only** (S10.4).
+- Event video uploads (premium) stay a pasted URL for now (not yet a bucket).
+- **Image buckets** (S10.4), keyed by uploader id (`<uid>/<file>`), server-side
+  type/size enforced: `event-images` (public, PNG/JPG/JPEG, ≤10MB — event + sponsor
+  logos, gallery) and `org-logos` (public, PNG/JPG/JPEG, ≤5MB — org logos, profile
+  photos). **No SVG** (it can carry script). Every image field is the shared
+  `ImageUploadField` (upload or paste-a-URL; S10.6).
 
 ### 9.11 Safe URLs
 

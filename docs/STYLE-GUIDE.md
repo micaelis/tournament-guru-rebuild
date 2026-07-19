@@ -110,6 +110,13 @@ Build screens from these; don't hand-roll equivalents.
   so a dead URL never paints the browser's broken-image glyph. Callers still scheme-check via
   `safeImageSrc`. Don't use next/image for per-event remote hosts — the optimizer only accepts
   allow-listed hostnames.
+- **ImageUploadField** — the image input for every DB-backed logo/photo (event logo, sponsor
+  logos, gallery, org logo, profile photo). Controlled (`value`/`onChange`), with BOTH a real
+  upload (pick a PNG/JPG → straight to the bucket via `lib/storage/upload`) and a paste-a-URL
+  fallback in the same field. Shows a `SafeImg` thumbnail that falls back to a neutral "No
+  image" tile, a soft non-blocking "couldn't load that image" warning on a dead URL, and a
+  Clear button. Pass `name` to submit the value in an uncontrolled `<form>`. Never build a
+  bare URL text input for a DB image again — use this.
 - **Table** — dashboard list rows; use a shared grid template with a fixed-width actions column
   so columns align across rows (never `auto`-width action cells).
 - **EmptyState** — the shared "no results / nothing yet" placeholder; reuse everywhere with

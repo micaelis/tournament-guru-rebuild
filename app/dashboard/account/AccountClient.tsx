@@ -3,7 +3,13 @@
 import { useActionState, useState } from "react";
 import { Alert, Field } from "@/app/(auth)/parts";
 import { LocationAutocomplete } from "@/app/components/LocationAutocomplete";
-import { Button, Checkbox, FormButton, useToast } from "@/app/components/ui";
+import {
+  Button,
+  Checkbox,
+  FormButton,
+  ImageUploadField,
+  useToast,
+} from "@/app/components/ui";
 import { useLiveValidation } from "@/app/components/ui/useLiveValidation";
 import { useSubmittedValues } from "@/app/components/ui/useSubmittedValues";
 import { validateEmail, validatePassword } from "@/lib/validation";
@@ -148,6 +154,12 @@ function ProfileTab({
 }) {
   const [state, formAction] = useActionState(updateProfile, INITIAL);
   const { values, capture } = useSubmittedValues();
+  const [profilePhotoUrl, setProfilePhotoUrl] = useState(
+    values.profile_photo_url ?? profile.profile_photo_url ?? "",
+  );
+  const [orgLogoUrl, setOrgLogoUrl] = useState(
+    values.org_logo_url ?? profile.org_logo_url ?? "",
+  );
   const { shownError: genderError, revalidate: revalidateGender } =
     useLiveValidation(state.fieldErrors?.user_gender, (value) =>
       USER_GENDERS.some((g) => g.value === value) ? null : "Invalid gender.",
@@ -183,12 +195,13 @@ function ProfileTab({
           error={state.fieldErrors?.last_name}
         />
       </div>
-      <Field
-        label="Profile photo URL"
+      <ImageUploadField
+        label="Profile photo"
         name="profile_photo_url"
-        type="url"
-        defaultValue={values.profile_photo_url ?? profile.profile_photo_url ?? ""}
-        hint="Upload flow ships in a follow-up."
+        bucket="org-logos"
+        value={profilePhotoUrl}
+        onChange={setProfilePhotoUrl}
+        hint="PNG or JPG, up to 5 MB — or paste a hosted URL."
       />
       {!isAdmin && (
         <>
@@ -269,11 +282,13 @@ function ProfileTab({
               className="tg-control resize-none"
             />
           </label>
-          <Field
-            label="Organization logo URL"
+          <ImageUploadField
+            label="Organization logo"
             name="org_logo_url"
-            type="url"
-            defaultValue={values.org_logo_url ?? profile.org_logo_url ?? ""}
+            bucket="org-logos"
+            value={orgLogoUrl}
+            onChange={setOrgLogoUrl}
+            hint="PNG or JPG, up to 5 MB — or paste a hosted URL."
           />
           <Field
             label="Business phone"

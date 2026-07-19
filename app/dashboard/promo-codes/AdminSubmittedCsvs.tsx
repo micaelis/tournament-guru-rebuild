@@ -15,7 +15,7 @@ import {
   useToast,
 } from "@/app/components/ui";
 import { rejectSubmittedCsv } from "./actions";
-import { emailsToCsv } from "@/lib/promo/csv";
+import { downloadCsvRow } from "./download-csv";
 import { SendEmailsDialog } from "./SendEmailsDialog";
 import type { SubmittedCsvRow } from "./queries";
 
@@ -134,6 +134,7 @@ function AdminRow({
   onReject: () => void;
   onSendEmails: () => void;
 }) {
+  const { push } = useToast();
   const edName =
     [row.ed?.first_name, row.ed?.last_name].filter(Boolean).join(" ") ||
     "Event Director";
@@ -171,7 +172,7 @@ function AdminRow({
       <TD>
         <button
           type="button"
-          onClick={() => downloadInMemory(row)}
+          onClick={() => void downloadCsvRow(row, (m) => push("error", m))}
           className="text-sm font-semibold text-slate-700 underline"
         >
           {row.raw_emails.length} emails.csv
@@ -283,17 +284,6 @@ function RejectDialog({
       </div>
     </div>
   );
-}
-
-function downloadInMemory(row: SubmittedCsvRow) {
-  const csv = emailsToCsv(row.raw_emails);
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-  const href = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = href;
-  a.download = "coach-list.csv";
-  a.click();
-  URL.revokeObjectURL(href);
 }
 
 function formatDate(iso: string): string {

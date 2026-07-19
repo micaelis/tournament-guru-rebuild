@@ -75,6 +75,7 @@ idling and the pane stays blank. Verify via typecheck + build + `npm test` + `np
 | `account-partial-save` | Admin saves their name with location/gender/org fields unrendered; those columns survive. Inverse case: a rendered-but-emptied field still clears (S8.7). |
 | `favorites` | Favoriting an event (add/remove). |
 | `a11y` | Accessibility checks (labeled controls, keyboard reachability). |
+| `uploads` | Real browser → Supabase Storage upload (S10.6): picks a PNG in the event form's logo field and asserts the field fills with a `/event-images/<ed-uid>/` public URL — proof the client upload + owner-scoped RLS path works, not just that the widget renders. Storage RLS is proven separately by the `storage-rls` probe; the promo-CSV upload rides the `mutations` promo-CSV spec. |
 | `tournament-crud` | The tournament/event lifecycle through the real UI: create a tournament via the dialog; **edit** a published event and read the row back (the path that shipped broken with no coverage, S9.2); publish an existing draft (lifecycle→active); an emptied title disables the update submit and the row survives; delete a tournament via the confirm dialog. Plus the admin S1.1 affordance — no Delete on an ED-claimed tournament, Delete present on an admin-created unclaimed one. Stable under `--repeat-each=3`. |
 
 ## Tournament CRUD coverage matrix

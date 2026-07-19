@@ -21,7 +21,12 @@ import {
   SURFACES,
   TEAM_GENDERS,
 } from "@/lib/enums";
-import { Button, FormButton, useToast } from "@/app/components/ui";
+import {
+  Button,
+  FormButton,
+  ImageUploadField,
+  useToast,
+} from "@/app/components/ui";
 import { useLiveValidation } from "@/app/components/ui/useLiveValidation";
 import { useSubmittedValues } from "@/app/components/ui/useSubmittedValues";
 import { safeExternalUrl } from "@/lib/url";
@@ -120,6 +125,9 @@ export function EventForm({ defaults }: { defaults: EventFormDefaults }) {
   const [features, setFeatures] = useState<string[]>(defaults.features);
   const [images, setImages] = useState<string[]>(defaults.images);
   const [liveTitle, setLiveTitle] = useState(defaults.base.title);
+  const [logoUrl, setLogoUrl] = useState(
+    values.logo_url ?? defaults.base.logo_url,
+  );
   const [isPremium, setIsPremium] = useState(defaults.isPremium);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const errorAnchorRef = useRef<HTMLDivElement | null>(null);
@@ -184,16 +192,14 @@ export function EventForm({ defaults }: { defaults: EventFormDefaults }) {
           subtitle="Show attendees what this event is and where to find it."
         />
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-          <LabeledField label="Event logo URL" required htmlFor="logo_url">
-            <IconInput
-              id="logo_url"
-              name="logo_url"
-              type="url"
-              placeholder="https://…"
-              defaultValue={values.logo_url ?? defaults.base.logo_url}
-              icon={<UploadGlyph />}
-            />
-          </LabeledField>
+          <ImageUploadField
+            label="Event logo"
+            name="logo_url"
+            required
+            bucket="event-images"
+            value={logoUrl}
+            onChange={setLogoUrl}
+          />
           <Field
             label="Event title"
             name="title"
@@ -864,21 +870,18 @@ function SponsorsEditor({
               }
             />
           </LabeledField>
-          <LabeledField label="Logo URL" htmlFor={`sp_i_${i}`}>
-            <input
-              id={`sp_i_${i}`}
-              type="url"
-              className="tg-control"
-              value={row.logo_url}
-              onChange={(e) =>
-                onChange(
-                  value.map((r, idx) =>
-                    idx === i ? { ...r, logo_url: e.target.value } : r,
-                  ),
-                )
-              }
-            />
-          </LabeledField>
+          <ImageUploadField
+            label="Logo"
+            bucket="event-images"
+            value={row.logo_url}
+            onChange={(v) =>
+              onChange(
+                value.map((r, idx) =>
+                  idx === i ? { ...r, logo_url: v } : r,
+                ),
+              )
+            }
+          />
           <RemoveRowButton
             onClick={() => onChange(value.filter((_, idx) => idx !== i))}
           />
@@ -992,19 +995,14 @@ function ImagesEditor({
           key={i}
           className="grid grid-cols-1 items-end gap-3 rounded-xl border border-slate-200 bg-slate-50/60 p-4 md:grid-cols-[1fr_auto]"
         >
-          <LabeledField label={`Image ${i + 1}`} htmlFor={`img_${i}`}>
-            <input
-              id={`img_${i}`}
-              type="url"
-              className="tg-control"
-              value={url}
-              onChange={(e) =>
-                onChange(
-                  value.map((v, idx) => (idx === i ? e.target.value : v)),
-                )
-              }
-            />
-          </LabeledField>
+          <ImageUploadField
+            label={`Image ${i + 1}`}
+            bucket="event-images"
+            value={url}
+            onChange={(v) =>
+              onChange(value.map((cur, idx) => (idx === i ? v : cur)))
+            }
+          />
           <RemoveRowButton
             onClick={() => onChange(value.filter((_, idx) => idx !== i))}
           />
@@ -1016,7 +1014,7 @@ function ImagesEditor({
           variant="ghost"
           onClick={() => onChange([...value, ""])}
         >
-          + Add image URL
+          + Add image
         </Button>
       )}
       {!isPremium && value.length >= FREE_IMAGE_LIMIT && (
@@ -1042,16 +1040,6 @@ function HashGlyph() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M4 9h16M4 15h16M10 3L8 21M16 3l-2 18" />
-    </svg>
-  );
-}
-
-function UploadGlyph() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-      <polyline points="17 8 12 3 7 8" />
-      <line x1="12" y1="3" x2="12" y2="15" />
     </svg>
   );
 }

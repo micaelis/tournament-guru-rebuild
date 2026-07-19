@@ -10,4 +10,6 @@ export { StatusPill, eventStatusTone, type PillTone } from "./StatusPill";
 export { Table, TD, TH, THead, TR } from "./Table";
 export { FlashToast, ToastProvider, useToast } from "./Toast";
 export { Avatar } from "./Avatar";
+export { SafeImg } from "./SafeImg";
+export { ImageUploadField } from "./ImageUploadField";
 export { cn } from "./cn";

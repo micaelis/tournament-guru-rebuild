@@ -12,6 +12,7 @@ import {
 import { useLiveValidation } from "@/app/components/ui/useLiveValidation";
 import { submitCsv, type CsvSubmitState } from "./actions";
 import { emailsToCsv, MAX_CSV_ROWS, parseCsvEmails } from "@/lib/promo/csv";
+import { uploadPromoCsv } from "@/lib/storage/upload";
 
 const INITIAL: CsvSubmitState = {};
 
@@ -46,6 +47,8 @@ function SubmitCsvFormInner({
   const [eventId, setEventId] = useState(events[0]?.id ?? "");
   const [csvText, setCsvText] = useState("");
   const [fileName, setFileName] = useState("");
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [previewCount, setPreviewCount] = useState<number | null>(null);
   const [previewErrors, setPreviewErrors] = useState<string[]>([]);
   const [pending, startTransition] = useTransition();
@@ -85,12 +88,38 @@ function SubmitCsvFormInner({
 
   const readFile = async (file: File) => {
     setFileName(file.name);
+    setCsvFile(file);
     const text = await file.text();
     setCsvText(text);
     const parsed = parseCsvEmails(text);
     setPreviewCount(parsed.rows.length);
     setPreviewErrors(parsed.errors);
     revalidateCsv({ value: text, checkValidity: () => true });
+  };
+
+  /**
+   * Upload the picked file to the private promo-csv bucket, then fire the
+   * server action with its object path. The parsed emails still travel as
+   * csv_text (the action re-validates + stores raw_emails); the uploaded
+   * file is the auditable original the admin can pull via signed URL.
+   */
+  const doSubmit = async () => {
+    const fd = new FormData();
+    fd.set("event_id", eventId);
+    fd.set("csv_text", csvText);
+    fd.set("file_name", fileName || "coach-list.csv");
+    if (csvFile) {
+      setUploading(true);
+      const { path, error } = await uploadPromoCsv(csvFile);
+      setUploading(false);
+      if (error) {
+        push("error", error);
+        return;
+      }
+      if (path) fd.set("file_path", path);
+    }
+    submittedRef.current = true;
+    startTransition(() => formAction(fd));
   };
 
   const downloadDemo = () => {
@@ -233,18 +262,13 @@ function SubmitCsvFormInner({
                 Back
               </Button>
               <Button
-                disabled={pending}
+                disabled={pending || uploading}
                 onClick={() => {
-                  const fd = new FormData();
-                  fd.set("event_id", eventId);
-                  fd.set("csv_text", csvText);
-                  fd.set("file_name", fileName || "coach-list.csv");
                   setShowConfirm(false);
-                  submittedRef.current = true;
-                  startTransition(() => formAction(fd));
+                  void doSubmit();
                 }}
               >
-                Submit
+                {uploading ? "Uploading…" : "Submit"}
               </Button>
             </div>
           </div>

@@ -1750,3 +1750,36 @@ all still pass.
 tests, mutation-verified — reverting to the ownership-only `p_csv_rw`
 fails the attendee-injection and cross-event tripwires while the owning
 ED's legit insert stays green.
+
+### S10.6 · Upload flow wired to the buckets (client + CSV)
+Builds on S10.4. The URL text fields for DB-backed images are replaced by
+the shared `ImageUploadField` (event logo, sponsor logos, gallery, org
+logo, profile photo). It keeps the paste-a-URL fallback in the SAME field
+and previews via `SafeImg` (dead URL → placeholder + soft warning), so no
+surface loses the "paste a hosted URL" path. `lib/storage/upload.ts` does
+the browser-side upload to the right bucket at `<uid>/<uuid>.<ext>`; the
+value stored on the row is the public URL (rendered through `safeImageSrc`
+as before). Client-side type/size checks are UX only — the bucket
+(S10.4) is the server-side authority.
+
+Promo CSV: the browser uploads the file to the private promo-csv bucket
+at submit time and passes the object path; `submitCsv` stores it after
+re-checking it sits under the caller's own `<uid>/` folder. `raw_emails`
+stays inline (the admin queue still renders without a bucket read). The
+download button now prefers the ORIGINAL uploaded file via
+`getCsvSignedUrl` (a 60s signed URL, RLS-scoped to owner/admin two ways:
+the row read and `createSignedUrl` both require ownership) and falls back
+to regenerating from `raw_emails` for legacy rows.
+
+**Form integration.** `ImageUploadField` is controlled, so each host form
+holds the value in `useState` (seeded from the preserved submitted value
+or the profile row). The visible URL input carries the field `name`, so a
+plain `<form>` submits it and Playwright can drive it — an earlier draft
+put `name` on a hidden input, which broke the publish e2e (the visible
+input was unfillable).
+
+**Verification:** `e2e/uploads.spec.ts` drives a REAL browser upload —
+picks a PNG in the event form, asserts the logo field fills with a
+`/event-images/<ed-uid>/` public URL. Storage RLS itself is proven in
+`tests/probes/storage-rls.test.ts` (S10.4). The promo CSV upload rides
+the existing `mutations` promo-CSV e2e.

@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import type { Route } from "next";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { Alert, Field, SubmitButton } from "../../(auth)/parts";
+import { ImageUploadField } from "@/app/components/ui";
 import { USDateField } from "@/app/components/ui/USDateInput";
 import { LocationAutocomplete } from "@/app/components/LocationAutocomplete";
 import { useLiveValidation } from "@/app/components/ui/useLiveValidation";
@@ -588,6 +589,9 @@ function TeamSlotFields({
 function Step4Form({ profile, back }: { profile: Profile; back?: number }) {
   const [state, formAction] = useActionState(saveStep4, INITIAL);
   const { values, capture } = useSubmittedValues();
+  const [orgLogoUrl, setOrgLogoUrl] = useState(
+    values.org_logo_url ?? profile.org_logo_url ?? "",
+  );
   const { shownError: descriptionError, revalidate: revalidateDescription } =
     useLiveValidation(state.fieldErrors?.org_description, (value) =>
       value.trim() ? null : "Tell attendees who your organization is.",
@@ -601,13 +605,13 @@ function Step4Form({ profile, back }: { profile: Profile; back?: number }) {
       className="space-y-5"
     >
       {state.error && <Alert kind="error">{state.error}</Alert>}
-      <Field
-        label="Organization logo URL"
+      <ImageUploadField
+        label="Organization logo"
         name="org_logo_url"
-        type="url"
-        defaultValue={values.org_logo_url ?? profile.org_logo_url ?? ""}
-        placeholder="https://yoursite.com/logo.png"
-        hint="Optional for now — you'll be able to upload a file from your Account settings."
+        bucket="org-logos"
+        value={orgLogoUrl}
+        onChange={setOrgLogoUrl}
+        hint="Optional — PNG or JPG up to 5 MB, or paste a hosted URL."
         error={state.fieldErrors?.org_logo_url}
       />
       <label className="block">

@@ -15,9 +15,9 @@ export type CsvSubmitState = {
  * ED submits a CSV — parses the caller-provided text (spec caps at
  * 1000 rows), validates that the chosen event is one of their own
  * premium events, and writes a submitted_csvs row with raw_emails
- * populated. The bucket upload flow is a follow-up (see DECISIONS
- * §S3.1); file_path is set to a synthetic marker string so the row
- * shape doesn't require an actual bucket write yet.
+ * populated. The browser uploads the original file to the private
+ * promo-csv bucket and passes its path (S10.4); raw_emails is still the
+ * inline payload the admin queue renders without a bucket read.
  */
 export async function submitCsv(
   _prev: CsvSubmitState,
@@ -83,12 +83,25 @@ export async function submitCsv(
 
   const emails = parsed.rows.map((r) => r.email);
 
+  // The browser uploads the file to the private promo-csv bucket and
+  // passes back its object path. Accept it only if it sits under the
+  // caller's own <uid>/ folder — storage RLS already enforces that at
+  // upload time, and this re-checks the stored string. Absent (older
+  // client), fall back to a synthetic marker; raw_emails is the payload
+  // either way.
+  const uploadedPath = String(formData.get("file_path") ?? "").trim();
+  if (uploadedPath && !uploadedPath.startsWith(`${user.id}/`)) {
+    return { error: "That upload path isn't yours." };
+  }
+  const filePath =
+    uploadedPath || `pending://${user.id}/${Date.now()}-${fileName}`;
+
   const { data, error } = await supabase
     .from("submitted_csvs")
     .insert({
       ed_id: user.id,
       event_id: eventId,
-      file_path: `pending://${user.id}/${Date.now()}-${fileName}`,
+      file_path: filePath,
       raw_emails: emails,
     })
     .select("id")
@@ -165,4 +178,39 @@ export async function cancelSubmittedCsv(
   if (error) return { error: error.message };
   revalidatePath("/dashboard/promo-codes");
   return {};
+}
+
+/**
+ * Mint a short-lived signed URL for a submission's original CSV in the
+ * private promo-csv bucket. Two layers of the same guarantee: the row
+ * read is RLS-scoped to owner/admin (p_csv_read), and createSignedUrl
+ * requires SELECT on the object (p_storage_csv_read, owner/admin). Anon
+ * and non-owners get nothing. Returns null for legacy rows whose
+ * file_path is the synthetic marker (no bucket object exists).
+ */
+export async function getCsvSignedUrl(
+  csvId: string,
+): Promise<{ url?: string; error?: string }> {
+  const supabase = await createServerAuthClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Sign in required." };
+
+  const { data: row } = await supabase
+    .from("submitted_csvs")
+    .select("file_path")
+    .eq("id", csvId)
+    .maybeSingle<{ file_path: string | null }>();
+  if (!row?.file_path) return { error: "Submission not found." };
+  // Synthetic markers (older rows) point at no real object.
+  if (!row.file_path.includes("/") || row.file_path.startsWith("pending://")) {
+    return { error: "No uploaded file for this submission." };
+  }
+
+  const { data, error } = await supabase.storage
+    .from("promo-csv")
+    .createSignedUrl(row.file_path, 60);
+  if (error || !data) return { error: error?.message ?? "Could not sign URL." };
+  return { url: data.signedUrl };
 }

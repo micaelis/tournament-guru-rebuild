@@ -15,7 +15,7 @@ import {
   useToast,
 } from "@/app/components/ui";
 import { cancelSubmittedCsv } from "./actions";
-import { emailsToCsv } from "@/lib/promo/csv";
+import { csvFileName, downloadCsvRow } from "./download-csv";
 import type { SubmittedCsvRow } from "./queries";
 
 /** ED's submissions — one flat list per spec; status chip carries the
@@ -63,7 +63,7 @@ export function EdSubmittedList({ rows }: { rows: SubmittedCsvRow[] }) {
               <TD>
                 <button
                   type="button"
-                  onClick={() => downloadInMemory(r)}
+                  onClick={() => void downloadCsvRow(r, (m) => push("error", m))}
                   className="inline-flex items-center gap-1 text-sm font-semibold text-slate-700 underline"
                 >
                   <DownloadGlyph /> {csvFileName(r)}
@@ -125,25 +125,6 @@ export function EdSubmittedList({ rows }: { rows: SubmittedCsvRow[] }) {
       />
     </>
   );
-}
-
-function csvFileName(row: SubmittedCsvRow): string {
-  if (row.file_path) {
-    const bits = row.file_path.split("/");
-    return bits[bits.length - 1] || "coach-list.csv";
-  }
-  return "coach-list.csv";
-}
-
-function downloadInMemory(row: SubmittedCsvRow) {
-  const csv = emailsToCsv(row.raw_emails);
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-  const href = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = href;
-  a.download = csvFileName(row);
-  a.click();
-  URL.revokeObjectURL(href);
 }
 
 function formatDate(iso: string): string {
