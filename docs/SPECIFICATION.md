@@ -77,7 +77,7 @@ These conventions apply everywhere and are not repeated in each feature section.
   was labelled "Format" is replaced by the **Distance** filter in the search
   subheader (see §5.2).
 - **Featured Events.** The public-facing section label **"Featured Events"
-  stays** (no rename). It surfaces events that are **premium OR sponsored**
+  stays** (no rename). It surfaces events that are **premium OR general-ad**
   (see §2.4 and §5.1).
 - **Verified / GURU review.** A published review written by a coach through the
   promo flow (`guru_review = true`). Rendered with a "GURU REVIEW" badge.
@@ -518,11 +518,11 @@ draft/unclaimed events.**
 
 ## 6. Event Director dashboard
 
-Sidebar: Events · Reviews · Search Events · Claim Requests · Promo Codes ·
-Transactions* · Add-on Pricing* · Notifications* · Account · FAQ* · Support ·
-Log Out. Items marked * are **hidden this sprint** (Transactions, Add-on
-Pricing, Notifications, FAQ). The default landing page is **Events**. Log Out
-returns to `/login`.
+Sidebar (order per `app/dashboard/nav-items.ts`): Events · Reviews · Claim
+Requests · Promo Codes · Search Events · Transactions* · Add-on Pricing* ·
+Notifications* · Account · FAQ · Support · Log Out. Items marked * are
+**hidden this sprint** (Transactions, Add-on Pricing, Notifications). The
+default landing page is **Events**. Log Out returns to `/login`.
 
 ### 6.1 Events
 
@@ -833,8 +833,9 @@ followed by the message in italics — and shows a confirmation popup.
 
 ## 7. Attendee dashboard
 
-Sidebar: Search Events · Favorites · My Reviews · Activity · Notifications*
-(hidden) · Account · Support · Log Out. Log Out returns to `/login`.
+Sidebar (order per `app/dashboard/nav-items.ts`): Search Events · My Reviews ·
+Promo Codes · Favorites · Activity · Notifications* (hidden) · Account · FAQ ·
+Support · Log Out. Log Out returns to `/login`.
 
 ### 7.1 My Reviews
 
@@ -912,8 +913,9 @@ first name, last name).
 
 ## 8. Admin dashboard
 
-Sidebar: Events · Reviews · Search Events · Users · Banned Words · Flagged ·
-Claim Requests · Promo Codes · Support Messages · Account · Log Out. Admin Events, Reviews, and
+Sidebar (order per `app/dashboard/nav-items.ts`): Events · Reviews · Flagged ·
+Banned Words · FAQs · Users · Claim Requests · Promo Codes · Support Messages ·
+Search Events · Account · Log Out. Admin Events, Reviews, and
 Promo Codes are covered in §6 (with their admin-only differences); this section
 covers the admin-specific pages. Admins reach their dashboard through the shared
 auth screen via role-based redirect.
