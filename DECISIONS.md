@@ -1783,3 +1783,24 @@ picks a PNG in the event form, asserts the logo field fills with a
 `/event-images/<ed-uid>/` public URL. Storage RLS itself is proven in
 `tests/probes/storage-rls.test.ts` (S10.4). The promo CSV upload rides
 the existing `mutations` promo-CSV e2e.
+
+### S10.7 · submitted_csvs UPDATE is admin-only (supersedes the S10.5 UPDATE arm)
+Storage-audit follow-up. S10.5 kept a defensive owner arm on
+`p_csv_update` ("no ED path updates today, keep it symmetric with
+delete"). That arm was itself a hole: `status` is the admin review
+verdict, so an ED could PATCH their own row to `status='approved'` via
+PostgREST — skipping admin review, rendering as "Sent emails" on their
+dashboard, and dropping the row out of the admin pending queue.
+
+Considered the column-grant allow-list route and rejected it: admin and
+ED both connect as the `authenticated` Postgres role, so column
+privileges cannot tell them apart — only RLS can. Migration
+20260719000006 drops the owner arm: UPDATE is `is_admin()` for USING and
+WITH CHECK. The ED lifecycle is INSERT (submit) + DELETE (cancel while
+pending), both untouched; admin paths (rejectSubmittedCsv,
+sendPromoEmails→approved) untouched.
+
+**Verification:** `tests/probes/submitted-csv-host-gate.test.ts` — ED
+self-approve touches 0 rows and status stays `pending`; admin reject
+succeeds. Mutation-verified: reintroducing the owner arm fails the
+self-approve tripwire; restoring the migration greens it.

@@ -313,7 +313,10 @@ New/adjusted:
   unclaimed rows they don't own (S1.1). Event child tables inherit this via their parent
   event's owner check. `submitted_csvs` writes are gated the same way —
   `is_event_host()` + `ed_id = self` + (INSERT) event ownership — so an attendee can't
-  inject rows/emails into the admin queue (S10.5, migration 20260719000005).
+  inject rows/emails into the admin queue (S10.5, migration 20260719000005). UPDATE on
+  `submitted_csvs` is `is_admin()`-only: `status` is the admin review verdict, and admin
+  vs ED can't be told apart by column grants (both are `authenticated`), so the owner arm
+  was dropped to stop an ED self-approving (S10.7, migration 20260719000006).
 - **Parent-row authorization** on `events`: writing an event also requires write access to
   its parent tournament (`t.owner_id = auth.uid() or is_admin()`). `tournament_id` is
   caller-supplied, so checking only the event's own `owner_id` let one ED graft or reparent

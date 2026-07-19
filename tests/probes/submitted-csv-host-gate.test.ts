@@ -10,6 +10,12 @@
  *
  * Migration 20260719000005 splits the policy: writes require
  * is_event_host(), and INSERT requires the caller own the event.
+ *
+ * Migration 20260719000006 drops the owner arm of UPDATE entirely:
+ * `status` is the admin review verdict, so an ED must not be able to
+ * flip their own row to 'approved' and skip review. Column grants
+ * can't express this (admin and ED are both `authenticated`), so the
+ * UPDATE policy is is_admin()-only.
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createUser, purge, service } from "../harness";
@@ -134,5 +140,59 @@ describe("submitted_csvs write gate", () => {
       .from("submitted_csvs")
       .insert({ ...payload(edA.id) }); // ed_id spoofed to a real ED
     expect(error).not.toBeNull();
+  });
+});
+
+describe("submitted_csvs status transitions are admin-only", () => {
+  let csvId = "";
+
+  beforeAll(async () => {
+    const { data, error } = await service()
+      .from("submitted_csvs")
+      .insert(payload(edA.id))
+      .select("id")
+      .single<{ id: string }>();
+    if (error) throw new Error(error.message);
+    csvId = data!.id;
+  });
+
+  afterAll(async () => {
+    await service().from("submitted_csvs").delete().eq("id", csvId);
+  });
+
+  it("the owning ED CANNOT flip their own submission to 'approved'", async () => {
+    const { data } = await edA.client
+      .from("submitted_csvs")
+      .update({ status: "approved" })
+      .eq("id", csvId)
+      .select("id");
+    // RLS filters the row out of the UPDATE: zero rows touched, no error.
+    expect(data ?? []).toHaveLength(0);
+
+    const { data: after } = await service()
+      .from("submitted_csvs")
+      .select("status")
+      .eq("id", csvId)
+      .single<{ status: string }>();
+    expect(after?.status).toBe("pending");
+  });
+
+  it("an admin CAN reject (status + reason)", async () => {
+    const admin = await createUser({ becomeAdmin: true, completeOnboarding: true });
+    users.push(admin.id);
+    const { data, error } = await admin.client
+      .from("submitted_csvs")
+      .update({ status: "rejected", rejection_reason: "probe" })
+      .eq("id", csvId)
+      .select("id, status");
+    expect(error).toBeNull();
+    expect(data).toHaveLength(1);
+
+    const { data: after } = await service()
+      .from("submitted_csvs")
+      .select("status")
+      .eq("id", csvId)
+      .single<{ status: string }>();
+    expect(after?.status).toBe("rejected");
   });
 });
