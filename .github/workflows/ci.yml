@@ -53,6 +53,15 @@ jobs:
       - name: Reset DB from zero (applies migrations + seed.sql)
         run: supabase db reset
 
+      # A migration that changes the schema without regenerating
+      # lib/database.types.ts in the same commit fails here — the
+      # compile-time drift guard's own drift guard. The CLI is pinned
+      # above, so regeneration is byte-stable across runs.
+      - name: Types drift gate (migration ⇒ regenerated types)
+        run: |
+          supabase gen types typescript --local > lib/database.types.ts
+          git diff --exit-code lib/database.types.ts
+
       - name: Export local Supabase env for the tests
         # tests/harness.ts reads TEST_SUPABASE_URL / TEST_SUPABASE_ANON_KEY /
         # TEST_SUPABASE_SERVICE_ROLE_KEY. The build step (next build) also

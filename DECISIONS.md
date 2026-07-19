@@ -2017,3 +2017,40 @@ delete of approved + rejected rows touches zero rows (row survives),
 pending cancel still works, admin deletes a reviewed row.
 Mutation-verified: reinstalling the status-blind S10.5 arm fails the
 reviewed-row tripwire.
+
+### S10.17 · Generated Supabase types — compile-time guard for the column-drift class
+`supabase gen types typescript --local > lib/database.types.ts` is now
+committed, and all three client factories (`createServerAuthClient`,
+`createAnonServerClient`, browser `createClient`) are typed with
+`<Database>` — every uncast `.from()/.select()/.insert()/.rpc()` is
+column- and enum-checked at compile time. CI regenerates the file after
+`supabase db reset` and `git diff --exit-code`s it, so a migration
+without regenerated types fails the build (convention in CLAUDE.md +
+supabase/README.md: migration ⇒ regenerate types, same commit; the CI
+CLI pin keeps output byte-stable).
+
+The tsc wave (28 errors) was fixed without one `as any`: view reads
+accept the generated all-nullable view columns and guard the key at the
+loop (views drop NOT NULL); URL-sourced facet filters narrow through
+the existing allow-lists (now typed predicates — `enumOrNull` in
+lib/enums); dynamically-built writes are typed against the generated
+`Insert`/`Update` shapes (profiles patch, user_teams rows, reviews row,
+faq_audiences); duplicateEvent dropped its `Record<string, unknown>`
+cast so the RPC payload type-checks against `p_event: Json`. Two small
+behavior improvements fell out: tampered team/audience enum values now
+return a clean field error instead of a raw DB cast error.
+
+Scope honesty, proven with a scratch rename (events.location_lat +
+user_teams.competition_level → tsc failed in the distance facet, both
+team-write actions, and the reviewer popup; reverted, never committed):
+the compile guard covers UNCAST sites only. The ~80 legacy
+`as unknown as` casts on query results still blind tsc — a rename of a
+column read only through casts (verified with reviews.helpful_count)
+compiles clean. Until those casts are removed per-file as files get
+touched (deliberately incremental, no big-bang sweep), the
+`schema-drift` probe remains the required runtime layer, and the seed
+itself catches renames of seeded columns at `db reset`.
+
+**Verification:** full gate green on the typed clients; drift gate
+proven by the scratch-rename experiment above; `git diff --exit-code
+lib/database.types.ts` after a fresh regen is clean.

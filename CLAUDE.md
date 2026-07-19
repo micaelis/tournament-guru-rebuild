@@ -156,6 +156,11 @@ If you add a public write endpoint, gate it at both layers.
   YYYYMMDD timestamp.
 - Regenerate `supabase/schema.sql` after adding a migration:
   `bash scripts/build-schema.sh`.
+- **Migration ⇒ regenerate types, same commit**: any migration that
+  changes the schema also reruns
+  `supabase gen types typescript --local > lib/database.types.ts`.
+  CI regenerates and diffs the file, so a schema change without
+  regenerated types fails the build (S10.17).
 - Local reset (safe): `supabase db reset`. NEVER pass `--linked`; NEVER
   `supabase link`; NEVER `supabase db push`. Those touch the staging
   project.

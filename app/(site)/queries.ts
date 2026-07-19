@@ -155,11 +155,13 @@ export async function fetchFeaturedEventRows(): Promise<EventRow[]> {
 
   const ids = rows.map((r) => r.id);
   const ownerIds = Array.from(
-    new Set(rows.map((r) => r.owner_id).filter(Boolean)),
-  ) as string[];
+    new Set(rows.map((r) => r.owner_id).filter((v): v is string => Boolean(v))),
+  );
 
+  // The view's generated types mark every column nullable (views drop
+  // NOT NULL), so id/event_id narrow via the loop guards below.
   type OwnerRow = {
-    id: string;
+    id: string | null;
     org_logo_url: string | null;
     profile_photo_url: string | null;
   };
@@ -169,27 +171,24 @@ export async function fetchFeaturedEventRows(): Promise<EventRow[]> {
           .from("public_event_owners")
           .select("id, org_logo_url, profile_photo_url")
           .in("id", ownerIds)
-          .then((r) => unwrapRowsLogged<OwnerRow>(r, "fetchFeaturedEventRows owners"))
+          .then((r) => unwrapRowsLogged(r, "fetchFeaturedEventRows owners"))
       : Promise.resolve([] as OwnerRow[]),
     supabase
       .from("reviews")
       .select("event_id, reviewer_role")
       .eq("status", "published")
       .in("event_id", ids)
-      .then((r) =>
-        unwrapRowsLogged<{ event_id: string; reviewer_role: string | null }>(
-          r,
-          "fetchFeaturedEventRows reviews",
-        ),
-      ),
+      .then((r) => unwrapRowsLogged(r, "fetchFeaturedEventRows reviews")),
   ]);
 
-  const logoByOwner = new Map(
-    owners.map((o) => [o.id, o.org_logo_url ?? o.profile_photo_url ?? null] as const),
-  );
+  const logoByOwner = new Map<string, string | null>();
+  for (const o of owners) {
+    if (o.id) logoByOwner.set(o.id, o.org_logo_url ?? o.profile_photo_url ?? null);
+  }
   const coachCount = new Map<string, number>();
   const attendeeCount = new Map<string, number>();
   for (const rv of reviewRows) {
+    if (!rv.event_id) continue;
     const bucket = rv.reviewer_role === "coach" ? coachCount : attendeeCount;
     bucket.set(rv.event_id, (bucket.get(rv.event_id) ?? 0) + 1);
   }

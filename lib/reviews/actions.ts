@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createServerAuthClient } from "@/lib/supabase/server";
 import { fetchBannedWords, findBannedWords } from "./banned-words";
+import type { Database } from "@/lib/database.types";
 import {
   REVIEW_BODY_MAX,
   REVIEW_CATEGORIES,
@@ -49,10 +50,7 @@ export async function saveReview(
     .from("profiles")
     .select("user_type, role_title")
     .eq("id", user.id)
-    .maybeSingle<{
-      user_type: "attendee" | "event_director" | "admin";
-      role_title: string;
-    }>();
+    .maybeSingle();
   if (!profile) redirect("/login");
   if (profile.user_type !== "attendee") {
     return { error: "Only attendees can publish reviews." };
@@ -134,7 +132,7 @@ export async function saveReview(
     targetId = existingReview.data?.id ?? "";
   }
 
-  const row: Record<string, unknown> = {
+  const row: Database["public"]["Tables"]["reviews"]["Insert"] = {
     event_id: eventId,
     author_id: user.id,
     status: intent === "publish" ? "published" : "draft",

@@ -102,11 +102,7 @@ export async function sendPromoEmails(input: {
   // partial index or leaves the coach holding two live promos.
   if (priorError) return { error: priorError.message };
   const priorByEmail = new Map<string, { id: string; status: string }[]>();
-  for (const row of (existing ?? []) as {
-    id: string;
-    email: string;
-    status: string;
-  }[]) {
+  for (const row of existing ?? []) {
     const list = priorByEmail.get(row.email) ?? [];
     list.push({ id: row.id, status: row.status });
     priorByEmail.set(row.email, list);
@@ -153,14 +149,22 @@ export async function sendPromoEmails(input: {
     hdrs.get("origin") ??
     process.env.NEXT_PUBLIC_SITE_URL ??
     "http://localhost:3000";
+  // url_token is nullable in the schema but always set by the insert
+  // above; the flatMap guard narrows without pretending otherwise.
   const sendResult = await sendPromoEmailsInBatches(
-    (created ?? []).map((c: { email: string; url_token: string }) => ({
-      to: c.email,
-      templateData: {
-        event_title: event.title,
-        link_url: `${origin}/promo/${c.url_token}`,
-      },
-    })),
+    (created ?? []).flatMap((c) =>
+      c.url_token
+        ? [
+            {
+              to: c.email,
+              templateData: {
+                event_title: event.title,
+                link_url: `${origin}/promo/${c.url_token}`,
+              },
+            },
+          ]
+        : [],
+    ),
   );
 
   // The emails are already out, so this cannot return a bare error —

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createServerAuthClient } from "@/lib/supabase/server";
+import { ATTENDEE_ROLES, ED_ROLES, USER_TYPES, enumOrNull } from "@/lib/enums";
 
 export type FaqState = {
   error?: string;
@@ -13,6 +14,15 @@ export type AudienceInput = {
   user_type: string;
   role_title: string | null;
 };
+
+// The audience payload arrives as client-built JSON, so both fields
+// re-validate against the enum allow-lists before insert (targetable
+// audiences are attendee/ED — never admin).
+const AUDIENCE_USER_TYPES = USER_TYPES.map((t) => t.value);
+const AUDIENCE_ROLES = [
+  ...ATTENDEE_ROLES.map((r) => r.value),
+  ...ED_ROLES.map((r) => r.value),
+];
 
 async function requireAdmin() {
   const supabase = await createServerAuthClient();
@@ -57,6 +67,20 @@ export async function upsertFaq(
   if (!content) fieldErrors.content = "Content required.";
   if (!["draft", "published"].includes(status)) fieldErrors.status = "Invalid status.";
   if (audiences.length === 0) fieldErrors.audiences = "Select at least one audience.";
+
+  const audienceRows: {
+    user_type: (typeof AUDIENCE_USER_TYPES)[number];
+    role_title: (typeof AUDIENCE_ROLES)[number] | null;
+  }[] = [];
+  for (const a of audiences) {
+    const user_type = enumOrNull(AUDIENCE_USER_TYPES, a.user_type);
+    const role_title = enumOrNull(AUDIENCE_ROLES, a.role_title || null);
+    if (!user_type || (a.role_title && !role_title)) {
+      fieldErrors.audiences = "Invalid audience selection.";
+      break;
+    }
+    audienceRows.push({ user_type, role_title });
+  }
   if (Object.keys(fieldErrors).length) return { fieldErrors };
 
   const { supabase, user } = await requireAdmin();
@@ -87,14 +111,11 @@ export async function upsertFaq(
     faqId = (data as { id: string }).id;
   }
 
-  // Validation above guarantees at least one audience, so a dropped
-  // error here would report a saved FAQ that is visible to nobody.
+  // Validation above guarantees at least one audience (with narrowed
+  // enum values), so a dropped error here would report a saved FAQ
+  // that is visible to nobody.
   const { error: audienceError } = await supabase.from("faq_audiences").insert(
-    audiences.map((a) => ({
-      faq_id: faqId,
-      user_type: a.user_type,
-      role_title: a.role_title || null,
-    })),
+    audienceRows.map((a) => ({ faq_id: faqId, ...a })),
   );
   if (audienceError) return { error: audienceError.message };
 

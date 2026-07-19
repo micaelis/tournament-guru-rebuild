@@ -71,19 +71,17 @@ export async function listDashboardReviews({
     .filter((r) => !r.author && !r.anonymized && r.author_id)
     .map((r) => r.id);
   if (missingAuthorIds.length) {
-    const publicAuthors = unwrapRows<{
-      review_id: string;
-      first_name: string | null;
-      organization_title: string | null;
-      profile_photo_url: string | null;
-    }>(
+    const publicAuthors = unwrapRows(
       await supabase
         .from("review_author_public")
         .select("review_id, first_name, organization_title, profile_photo_url")
         .in("review_id", missingAuthorIds),
       "dashboard reviews public authors",
     );
-    const authorMap = new Map(publicAuthors.map((a) => [a.review_id, a]));
+    const authorMap = new Map<string, (typeof publicAuthors)[number]>();
+    for (const a of publicAuthors) {
+      if (a.review_id) authorMap.set(a.review_id, a);
+    }
     for (const row of rows) {
       if (row.author || row.anonymized || !row.author_id) continue;
       const pub = authorMap.get(row.id);

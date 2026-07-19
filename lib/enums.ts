@@ -4,6 +4,20 @@
  * is what the user sees. Keep this file in lockstep with the DB enums.
  */
 
+/**
+ * Narrow a raw form/query string to one of an enum's values. Returns
+ * null for absent OR unknown input — callers that must distinguish
+ * "tampered" from "blank" compare against the raw string they passed.
+ * This is the bridge from untyped FormData to the generated Database
+ * enum unions (no casts).
+ */
+export function enumOrNull<T extends string>(
+  values: readonly T[],
+  raw: string | null | undefined,
+): T | null {
+  return values.find((v) => v === raw) ?? null;
+}
+
 export const USER_TYPES = [
   { value: "attendee", label: "I'm looking for events" },
   { value: "event_director", label: "I run events" },

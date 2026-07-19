@@ -217,7 +217,7 @@ async function fetchEventDirectors(
   const ratingSumByDir = new Map<string, number>();
   const ratedCountByDir = new Map<string, number>();
   if (events.length) {
-    const rvs = unwrapRows<{ event_id: string; overall: number | null }>(
+    const rvs = unwrapRows(
       await supabase
         .from("reviews")
         .select("event_id, overall")
@@ -229,6 +229,7 @@ async function fetchEventDirectors(
       "getEventDirectors reviews",
     );
     for (const rv of rvs) {
+      if (!rv.event_id) continue;
       const dir = eventToDir.get(rv.event_id);
       if (!dir) continue;
       reviewCountByDir.set(dir, (reviewCountByDir.get(dir) ?? 0) + 1);
@@ -340,14 +341,10 @@ export async function getDirectorReviewRows(
   );
 
   // Reviewer display identity comes through the public projection view
-  // (first name + org only — never last name / email / dob).
-  type AuthorRow = {
-    review_id: string;
-    first_name: string | null;
-    organization_title: string | null;
-  };
+  // (first name + org only — never last name / email / dob). View
+  // columns generate as nullable, so the review_id key gets a guard.
   const authors = rows.length
-    ? unwrapRows<AuthorRow>(
+    ? unwrapRows(
         await supabase
           .from("review_author_public")
           .select("review_id, first_name, organization_title")
@@ -358,11 +355,11 @@ export async function getDirectorReviewRows(
         "getDirectorReviewRows authors",
       )
     : [];
-  const nameByReview = new Map(
-    authors.map(
-      (a) => [a.review_id, a.first_name ?? a.organization_title ?? null] as const,
-    ),
-  );
+  const nameByReview = new Map<string, string | null>();
+  for (const a of authors) {
+    if (!a.review_id) continue;
+    nameByReview.set(a.review_id, a.first_name ?? a.organization_title ?? null);
+  }
 
   return rows.map((r) => {
     const username = r.anonymized

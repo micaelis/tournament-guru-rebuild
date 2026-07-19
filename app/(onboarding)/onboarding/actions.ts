@@ -12,7 +12,9 @@ import {
   TEAM_GENDERS,
   USER_GENDERS,
   AGE_BRACKETS,
+  enumOrNull,
 } from "@/lib/enums";
+import type { Database } from "@/lib/database.types";
 
 export type OnboardingState = {
   error?: string;
@@ -84,15 +86,15 @@ export async function saveStep2(
   formData: FormData,
 ): Promise<OnboardingState> {
   const location = String(formData.get("location") ?? "").trim();
-  const gender = String(formData.get("user_gender") ?? "").trim();
+  const gender = enumOrNull(
+    USER_GENDERS.map((g) => g.value),
+    String(formData.get("user_gender") ?? "").trim(),
+  );
   const dob = String(formData.get("dob") ?? "").trim();
 
   const fieldErrors: Record<string, string> = {};
   if (!location) fieldErrors.location = "Location is required.";
   if (!gender) fieldErrors.user_gender = "Pick one to continue.";
-  if (!USER_GENDERS.some((g) => g.value === gender)) {
-    fieldErrors.user_gender = "Pick one to continue.";
-  }
   if (!dob) fieldErrors.dob = "Date of birth is required.";
   else if (!isAdultDob(dob)) {
     fieldErrors.dob =
@@ -144,47 +146,50 @@ export async function saveStep3(
     }>();
   if (!profile) redirect("/login");
 
-  const distance = String(formData.get("distance_pref") ?? "").trim() || null;
-  if (distance && !DISTANCE_PREFS.some((d) => d.value === distance)) {
+  const distanceRaw = String(formData.get("distance_pref") ?? "").trim() || null;
+  const distance = enumOrNull(
+    DISTANCE_PREFS.map((d) => d.value),
+    distanceRaw,
+  );
+  if (distanceRaw && !distance) {
     return { fieldErrors: { distance_pref: "Invalid distance option." } };
   }
 
   const maxSlots = profile.role_title === "parent_spectator" ? 1 : 3;
-  type TeamRow = {
-    profile_id: string;
-    slot: number;
-    team_gender: string | null;
-    age: string | null;
-    competition_level: string | null;
-  };
-  const teams: TeamRow[] = [];
+  const teams: Database["public"]["Tables"]["user_teams"]["Insert"][] = [];
   for (let slot = 1; slot <= maxSlots; slot++) {
-    const team_gender =
+    const genderRaw =
       String(formData.get(`team_${slot}_gender`) ?? "").trim() || null;
-    const age = String(formData.get(`team_${slot}_age`) ?? "").trim() || null;
-    const level =
+    const ageRaw = String(formData.get(`team_${slot}_age`) ?? "").trim() || null;
+    const levelRaw =
       String(formData.get(`team_${slot}_level`) ?? "").trim() || null;
-    if (team_gender && !TEAM_GENDERS.some((t) => t.value === team_gender)) {
+    const team_gender = enumOrNull(
+      TEAM_GENDERS.map((t) => t.value),
+      genderRaw,
+    );
+    const age = enumOrNull(AGE_BRACKETS, ageRaw);
+    const competition_level = enumOrNull(
+      COMPETITION_LEVELS.map((c) => c.value),
+      levelRaw,
+    );
+    if (genderRaw && !team_gender) {
       return {
         fieldErrors: { [`team_${slot}_gender`]: "Invalid gender option." },
       };
     }
-    if (age && !AGE_BRACKETS.includes(age as (typeof AGE_BRACKETS)[number])) {
+    if (ageRaw && !age) {
       return { fieldErrors: { [`team_${slot}_age`]: "Invalid age option." } };
     }
-    if (
-      level &&
-      !COMPETITION_LEVELS.some((c) => c.value === level)
-    ) {
+    if (levelRaw && !competition_level) {
       return { fieldErrors: { [`team_${slot}_level`]: "Invalid level option." } };
     }
-    if (team_gender || age || level) {
+    if (team_gender || age || competition_level) {
       teams.push({
         profile_id: user.id,
         slot,
         team_gender,
         age,
-        competition_level: level,
+        competition_level,
       });
     }
   }

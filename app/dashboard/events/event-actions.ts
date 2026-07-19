@@ -436,8 +436,6 @@ export async function duplicateEvent(
   if (srcError) return { error: srcError.message };
   if (!source) return { error: "Event not found." };
 
-  const src = source as unknown as Record<string, unknown>;
-
   // Copy the child collections that spec allows. A failed read here is
   // indistinguishable from an empty collection, so it would hand back a
   // duplicate quietly missing whole sections of the original.
@@ -463,35 +461,31 @@ export async function duplicateEvent(
     {
       p_event: {
         id: null,
-        tournament_id: src.tournament_id as string,
+        tournament_id: source.tournament_id,
         lifecycle: "draft",
-        logo_url: src.logo_url,
-        title: `${src.title as string} (copy)`,
-        website_url: src.website_url,
-        host_club: src.host_club,
-        description: src.description,
-        location_formatted: src.location_formatted,
-        location_state_abbr: src.location_state_abbr,
-        location_city: src.location_city,
-        location_state_full: src.location_state_full,
-        location_zip: src.location_zip,
-        num_teams_this_year: src.num_teams_this_year,
-        region: src.region,
-        season_id: src.season_id,
+        logo_url: source.logo_url,
+        title: `${source.title} (copy)`,
+        website_url: source.website_url,
+        host_club: source.host_club,
+        description: source.description,
+        location_formatted: source.location_formatted,
+        location_state_abbr: source.location_state_abbr,
+        location_city: source.location_city,
+        location_state_full: source.location_state_full,
+        location_zip: source.location_zip,
+        num_teams_this_year: source.num_teams_this_year,
+        region: source.region,
+        season_id: source.season_id,
         age_groups: ageGroupsRes.data ?? [],
         sponsors: sponsorsRes.data ?? [],
-        competition_levels: ((levelsRes.data ?? []) as { level: string }[]).map(
-          (r) => r.level,
-        ),
-        surfaces: ((surfacesRes.data ?? []) as { surface: string }[]).map(
-          (r) => r.surface,
-        ),
-        images: ((imagesRes.data ?? []) as { url: string }[]).map((i) => i.url),
+        competition_levels: (levelsRes.data ?? []).map((r) => r.level),
+        surfaces: (surfacesRes.data ?? []).map((r) => r.surface),
+        images: (imagesRes.data ?? []).map((i) => i.url),
       },
     },
   );
   if (createError) return { error: createError.message };
-  const newId = created as string;
+  const newId = created;
 
   revalidatePath("/dashboard/events");
   redirect(`/dashboard/events/${newId}/edit`);

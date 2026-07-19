@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { createServerClient as createSSRServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import type { Database } from "@/lib/database.types";
 
 /**
  * Auth-aware server client — use in Server Components, Route Handlers, and
@@ -15,7 +16,7 @@ import { cookies } from "next/headers";
 export async function createServerAuthClient() {
   const cookieStore = await cookies();
 
-  return createSSRServerClient(
+  return createSSRServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
@@ -48,7 +49,7 @@ export async function createServerAuthClient() {
 export function createAnonServerClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-  return createClient(url, key, {
+  return createClient<Database>(url, key, {
     global: {
       fetch: (input, init) => {
         // 4-second timeout so the page doesn't hang on RLS-blocked queries

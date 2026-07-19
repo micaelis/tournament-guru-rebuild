@@ -61,7 +61,7 @@ export default async function AdminUsersPage({
   const counts = new Map<string, { reviews: number; events: number; premium: number }>();
   if (ids.length) {
     if (tab === "attendees") {
-      const reviewCounts = unwrapRows<{ author_id: string }>(
+      const reviewCounts = unwrapRows(
         await supabase
           .from("reviews")
           .select("author_id")
@@ -70,6 +70,7 @@ export default async function AdminUsersPage({
         "AdminUsersPage review counts",
       );
       for (const r of reviewCounts) {
+        if (!r.author_id) continue;
         const bucket = counts.get(r.author_id) ?? {
           reviews: 0,
           events: 0,
@@ -79,10 +80,7 @@ export default async function AdminUsersPage({
         counts.set(r.author_id, bucket);
       }
     } else {
-      const eventCounts = unwrapRows<{
-        owner_id: string;
-        is_premium: boolean;
-      }>(
+      const eventCounts = unwrapRows(
         await supabase
           .from("events")
           .select("owner_id, is_premium")
@@ -90,6 +88,7 @@ export default async function AdminUsersPage({
         "AdminUsersPage event counts",
       );
       for (const e of eventCounts) {
+        if (!e.owner_id) continue;
         const bucket = counts.get(e.owner_id) ?? {
           reviews: 0,
           events: 0,

@@ -47,6 +47,13 @@ Restart `npm run dev` after changing env vars.
   bash ../scripts/build-schema.sh
   ```
 
+- Regenerate the app's generated DB types in the **same commit** as any
+  schema-changing migration (CI diffs the file and fails on drift):
+
+  ```bash
+  supabase gen types typescript --local > ../lib/database.types.ts
+  ```
+
 ## Do NOT
 
 - `supabase link` a staging or production project from this working tree.

@@ -10,8 +10,8 @@ type SpotlightEvent = {
   id: string;
   title: string;
   logo_url: string | null;
-  start_date: string;
-  end_date: string;
+  start_date: string | null;
+  end_date: string | null;
   location_city: string | null;
   location_state_abbr: string | null;
 };
@@ -66,9 +66,10 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-function formatDateRange(start: string, end: string): string {
+function formatDateRange(start: string | null, end: string | null): string {
+  if (!start) return "";
   const s = new Date(start);
-  const e = new Date(end);
+  const e = new Date(end ?? "");
   if (isNaN(s.getTime())) return start;
   const fmt = (d: Date) =>
     d.toLocaleDateString(undefined, { month: "short", day: "numeric" });

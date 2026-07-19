@@ -40,12 +40,18 @@ const ZERO_UUID = "00000000-0000-0000-0000-000000000000";
  * unknown facet values are dropped against the enum allow-lists before
  * they reach a query, the same way both routes already drop an invalid
  * `sort` or `dist`. A dropped value means that filter simply doesn't
- * constrain the search.
+ * constrain the search. The allow-list filter doubles as the type
+ * narrowing from raw string[] to the generated enum unions.
  */
-const VALID_AGES = new Set<string>(AGE_BRACKETS);
-const VALID_GENDERS = new Set<string>(TEAM_GENDERS.map((g) => g.value));
-const VALID_LEVELS = new Set<string>(COMPETITION_LEVELS.map((l) => l.value));
-const VALID_SURFACES = new Set<string>(SURFACES.map((s) => s.value));
+function allowList<T extends string>(values: readonly T[]) {
+  const set = new Set<string>(values);
+  return (input: readonly string[]): T[] =>
+    input.filter((v): v is T => set.has(v));
+}
+const validAges = allowList(AGE_BRACKETS);
+const validGenders = allowList(TEAM_GENDERS.map((g) => g.value));
+const validLevels = allowList(COMPETITION_LEVELS.map((l) => l.value));
+const validSurfaces = allowList(SURFACES.map((s) => s.value));
 
 /** Only pass real ISO dates into date-typed comparisons. */
 function isoDateOrNull(value: string | null | undefined): string | null {
@@ -114,12 +120,10 @@ export async function searchEvents(
   const pageSize = opts.pageSize ?? 12;
   const sort = opts.sort ?? "teams";
 
-  const ages = (filters.ages ?? [])
-    .map((a) => a.toUpperCase())
-    .filter((a) => VALID_AGES.has(a));
-  const genders = (filters.genders ?? []).filter((g) => VALID_GENDERS.has(g));
-  const surfaces = (filters.surfaces ?? []).filter((s) => VALID_SURFACES.has(s));
-  const levels = (filters.levels ?? []).filter((l) => VALID_LEVELS.has(l));
+  const ages = validAges((filters.ages ?? []).map((a) => a.toUpperCase()));
+  const genders = validGenders(filters.genders ?? []);
+  const surfaces = validSurfaces(filters.surfaces ?? []);
+  const levels = validLevels(filters.levels ?? []);
   const dateStart = isoDateOrNull(filters.dateStart);
   const dateEnd = isoDateOrNull(filters.dateEnd);
 
@@ -145,10 +149,10 @@ export async function searchEvents(
     // "both" is a union value on either side of the match: a Both
     // search finds boys-, girls-, and both-tagged events, and a coed
     // ("both"-tagged) event satisfies a Boys or Girls search.
-    const genderMatch = genders.includes("both")
+    const genderMatch: (typeof genders)[number][] = genders.includes("both")
       ? ["boys", "girls", "both"]
       : [...genders, "both"];
-    const rows = unwrapRows<{ event_id: string }>(
+    const rows = unwrapRows(
       await supabase
         .from("event_age_groups")
         .select("event_id")
@@ -189,11 +193,7 @@ export async function searchEvents(
       filters.centerLng,
       filters.distanceMiles,
     );
-    const rows = unwrapRows<{
-      id: string;
-      location_lat: number;
-      location_lng: number;
-    }>(
+    const rows = unwrapRows(
       await supabase
         .from("events")
         .select("id, location_lat, location_lng")
@@ -204,9 +204,13 @@ export async function searchEvents(
         .lte("location_lng", box.maxLng),
       "searchEvents distance facet",
     );
+    // The gte/lte bounds already exclude null coordinates at the DB;
+    // the null check just narrows the generated nullable column type.
     const within = rows
       .filter(
         (r) =>
+          r.location_lat !== null &&
+          r.location_lng !== null &&
           milesBetween(
             filters.centerLat!,
             filters.centerLng!,
@@ -275,21 +279,23 @@ export async function searchEvents(
   const rows = (data ?? []) as RawSearchRow[];
   if (rows.length === 0) return { data: [], total: count ?? 0 };
 
+  // The view's generated types mark every column nullable (Postgres
+  // drops NOT NULL through views), so id/event_id narrow at use sites.
   type OwnerRow = {
-    id: string;
+    id: string | null;
     org_logo_url: string | null;
     profile_photo_url: string | null;
   };
   const ownerIds = Array.from(
-    new Set(rows.map((r) => r.owner_id).filter(Boolean)),
-  ) as string[];
+    new Set(rows.map((r) => r.owner_id).filter((v): v is string => Boolean(v))),
+  );
   const [owners, reviewRows] = await Promise.all([
     ownerIds.length
       ? supabase
           .from("public_event_owners")
           .select("id, org_logo_url, profile_photo_url")
           .in("id", ownerIds)
-          .then((r) => unwrapRows<OwnerRow>(r, "searchEvents owner logos"))
+          .then((r) => unwrapRows(r, "searchEvents owner logos"))
       : Promise.resolve([] as OwnerRow[]),
     supabase
       .from("reviews")
@@ -299,19 +305,16 @@ export async function searchEvents(
         "event_id",
         rows.map((r) => r.id),
       )
-      .then((r) =>
-        unwrapRows<{ event_id: string; reviewer_role: string | null }>(
-          r,
-          "searchEvents review counts",
-        ),
-      ),
+      .then((r) => unwrapRows(r, "searchEvents review counts")),
   ]);
-  const logoByOwner = new Map(
-    owners.map((o) => [o.id, o.org_logo_url ?? o.profile_photo_url ?? null] as const),
-  );
+  const logoByOwner = new Map<string, string | null>();
+  for (const o of owners) {
+    if (o.id) logoByOwner.set(o.id, o.org_logo_url ?? o.profile_photo_url ?? null);
+  }
   const coachCount = new Map<string, number>();
   const attendeeCount = new Map<string, number>();
   for (const rv of reviewRows) {
+    if (!rv.event_id) continue;
     const bucket = rv.reviewer_role === "coach" ? coachCount : attendeeCount;
     bucket.set(rv.event_id, (bucket.get(rv.event_id) ?? 0) + 1);
   }

@@ -3,10 +3,18 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createServerAuthClient } from "@/lib/supabase/server";
-import { DISTANCE_PREFS, USER_GENDERS } from "@/lib/enums";
+import {
+  AGE_BRACKETS,
+  COMPETITION_LEVELS,
+  DISTANCE_PREFS,
+  TEAM_GENDERS,
+  USER_GENDERS,
+  enumOrNull,
+} from "@/lib/enums";
 import { safeExternalUrl, safeImageSrc } from "@/lib/url";
 import { parseGeoFields } from "@/lib/geo";
 import { validateEmail, validatePassword } from "@/lib/validation";
+import type { Database } from "@/lib/database.types";
 
 export type AccountState = {
   error?: string;
@@ -41,7 +49,12 @@ export async function updateProfile(
     safeImageSrc(String(formData.get("profile_photo_url") ?? "")) ?? null;
   const location_formatted =
     String(formData.get("location_formatted") ?? "").trim() || null;
-  const user_gender = String(formData.get("user_gender") ?? "").trim() || null;
+  const user_gender_raw =
+    String(formData.get("user_gender") ?? "").trim() || null;
+  const user_gender = enumOrNull(
+    USER_GENDERS.map((g) => g.value),
+    user_gender_raw,
+  );
 
   const business_phone = String(formData.get("business_phone") ?? "").trim() || null;
   const business_email = String(formData.get("business_email") ?? "").trim() || null;
@@ -51,10 +64,7 @@ export async function updateProfile(
   const fieldErrors: Record<string, string> = {};
   if (!first_name) fieldErrors.first_name = "First name is required.";
   if (!last_name) fieldErrors.last_name = "Last name is required.";
-  if (
-    user_gender &&
-    !USER_GENDERS.some((g) => g.value === user_gender)
-  ) {
+  if (user_gender_raw && !user_gender) {
     fieldErrors.user_gender = "Invalid gender.";
   }
   if (business_email) {
@@ -68,8 +78,12 @@ export async function updateProfile(
   // for EDs). Writing every column unconditionally turned an absent
   // input into "" -> null and silently wiped real data on save, so only
   // columns whose input was actually submitted are written.
-  const patch: Record<string, unknown> = { first_name, last_name };
-  const setIfSubmitted = (field: string, value: unknown) => {
+  type ProfileUpdate = Database["public"]["Tables"]["profiles"]["Update"];
+  const patch: ProfileUpdate = { first_name, last_name };
+  const setIfSubmitted = <K extends keyof ProfileUpdate>(
+    field: K,
+    value: ProfileUpdate[K],
+  ) => {
     if (formData.has(field)) patch[field] = value;
   };
 
@@ -210,35 +224,44 @@ export async function updateTeams(
   if (!profile) return { error: "Profile not found." };
   const maxSlots = profile.role_title === "parent_spectator" ? 1 : 3;
 
-  const distance_pref = String(formData.get("distance_pref") ?? "").trim() || null;
-  if (
-    distance_pref &&
-    !DISTANCE_PREFS.some((d) => d.value === distance_pref)
-  ) {
+  const distanceRaw =
+    String(formData.get("distance_pref") ?? "").trim() || null;
+  const distance_pref = enumOrNull(
+    DISTANCE_PREFS.map((d) => d.value),
+    distanceRaw,
+  );
+  if (distanceRaw && !distance_pref) {
     return { fieldErrors: { distance_pref: "Invalid distance option." } };
   }
 
-  type TeamRow = {
-    profile_id: string;
-    slot: number;
-    team_gender: string | null;
-    age: string | null;
-    competition_level: string | null;
-  };
-  const rows: TeamRow[] = [];
+  const rows: Database["public"]["Tables"]["user_teams"]["Insert"][] = [];
   for (let slot = 1; slot <= maxSlots; slot++) {
-    const team_gender =
+    const genderRaw =
       String(formData.get(`team_${slot}_gender`) ?? "").trim() || null;
-    const age = String(formData.get(`team_${slot}_age`) ?? "").trim() || null;
-    const level =
+    const ageRaw = String(formData.get(`team_${slot}_age`) ?? "").trim() || null;
+    const levelRaw =
       String(formData.get(`team_${slot}_level`) ?? "").trim() || null;
-    if (team_gender || age || level) {
+    const team_gender = enumOrNull(
+      TEAM_GENDERS.map((t) => t.value),
+      genderRaw,
+    );
+    const age = enumOrNull(AGE_BRACKETS, ageRaw);
+    const competition_level = enumOrNull(
+      COMPETITION_LEVELS.map((c) => c.value),
+      levelRaw,
+    );
+    // A tampered enum value narrows to null; reject rather than store a
+    // silently different team than the form claimed to save.
+    if ((genderRaw && !team_gender) || (ageRaw && !age) || (levelRaw && !competition_level)) {
+      return { fieldErrors: { [`team_${slot}_gender`]: "Invalid team selection." } };
+    }
+    if (team_gender || age || competition_level) {
       rows.push({
         profile_id: user.id,
         slot,
         team_gender,
         age,
-        competition_level: level,
+        competition_level,
       });
     }
   }
@@ -293,7 +316,7 @@ export async function updateNotificationPrefs(
   // FormData just like an unrendered one — so presence of the row's
   // `section:<name>` marker is what says "this pair was on screen".
   // Each row names its inputs `inapp_<section>` / `email_<section>`.
-  const patch: Record<string, boolean> = {};
+  const patch: Partial<Record<(typeof NOTIF_FIELDS)[number], boolean>> = {};
   for (const field of NOTIF_FIELDS) {
     const section = field.replace(/^(email|inapp)_/, "");
     if (!formData.has(`section:${section}`)) continue;

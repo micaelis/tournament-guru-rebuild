@@ -219,12 +219,9 @@ async function attachPublicAuthors(
   if (rows.length === 0) return rows as unknown as ReviewCardRow[];
   const supabase = await createServerAuthClient();
   const ids = rows.map((r) => r.id);
-  const authorRows = unwrapRows<{
-    review_id: string;
-    first_name: string | null;
-    organization_title: string | null;
-    profile_photo_url: string | null;
-  }>(
+  // View columns generate as nullable (views drop NOT NULL), so the
+  // review_id key narrows via the loop guard.
+  const authorRows = unwrapRows(
     await supabase
       .from("review_author_public")
       .select("review_id, first_name, organization_title, profile_photo_url")
@@ -240,6 +237,7 @@ async function attachPublicAuthors(
     }
   >();
   for (const row of authorRows) {
+    if (!row.review_id) continue;
     map.set(row.review_id, {
       first_name: row.first_name,
       organization_title: row.organization_title,
@@ -268,14 +266,7 @@ async function attachPublicCommentAuthors(
   if (rows.length === 0) return rows as unknown as CommentRow[];
   const supabase = await createServerAuthClient();
   const ids = rows.map((r) => r.id);
-  const authorRows = unwrapRows<{
-    comment_id: string;
-    first_name: string | null;
-    organization_title: string | null;
-    org_logo_url: string | null;
-    profile_photo_url: string | null;
-    user_type: string | null;
-  }>(
+  const authorRows = unwrapRows(
     await supabase
       .from("public_comment_authors")
       .select(
@@ -295,6 +286,7 @@ async function attachPublicCommentAuthors(
     }
   >();
   for (const row of authorRows) {
+    if (!row.comment_id) continue;
     map.set(row.comment_id, {
       first_name: row.first_name,
       organization_title: row.organization_title,
