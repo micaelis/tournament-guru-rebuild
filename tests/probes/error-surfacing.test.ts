@@ -46,8 +46,8 @@ import {
   getDirectorProfile,
   getEventDirectors,
   getDirectorEventRows,
-  getDirectorReviewRows,
 } from "@/lib/directors/queries";
+import { listReviewsForEvents } from "@/lib/reviews/queries";
 import { fetchFeaturedEventRows } from "@/app/(site)/queries";
 import { fetchBannedWords } from "@/lib/reviews/banned-words";
 import { listDashboardReviews } from "@/app/dashboard/reviews/queries";
@@ -104,9 +104,11 @@ describe("error-surfacing · content reads throw instead of rendering empty", ()
     await expect(getDirectorEventRows(edId)).rejects.toThrow(/getDirectorEventRows/);
   });
 
-  it("getDirectorReviewRows rejects when the reviews read fails", async () => {
+  it("listReviewsForEvents (ED page reviews tab) rejects when the reviews read fails", async () => {
     ctl.breakTable = "reviews";
-    await expect(getDirectorReviewRows(edId)).rejects.toThrow(/getDirectorReviewRows reviews/);
+    await expect(listReviewsForEvents([eventId])).rejects.toThrow(
+      /listReviewsForEvents reviews/,
+    );
   });
 
   it("listDashboardReviews rejects when the owned-events scoping read fails (was: ED sees no reviews)", async () => {

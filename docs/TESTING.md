@@ -70,7 +70,7 @@ idling and the pane stays blank. Verify via typecheck + build + `npm test` + `np
 |---|---|
 | `auth` | Login, signup (type→role), password reset, variant screens. Terms consent (S11.2): checkbox + new-tab legal links render, a checked signup completes to onboarding, and an unchecked submit with the client `required` stripped is rejected by the SERVER with typed values preserved. |
 | `onboarding` | The 3-step (attendee) / 4-step (ED) wizard + guards. |
-| `discovery` | Public browsing: landing, search, event detail, director pages. Includes the host-avatar shape/fit assertion (Avatar primitive, S8.13). |
+| `discovery` | Public browsing: landing, search, event detail, director pages. Includes the host-avatar shape/fit assertion (Avatar primitive, S8.13). Public ED page (S11.4): identity row (ED picture + name), events sort control defaulting to publish date, reviews tab rendering the shared review card with comments affordance + event-context chip. Privacy/Legal pages render the provided copy verbatim (S11.1). |
 | `dashboard` | Role-based dashboard shells render (incl. the ED/Admin owned-tournament render guard). Admin Users search: finds a seeded user by EMAIL (the term no profile column carries, proving the auth.users bridge), and Block/Delete are reachable from the filtered row (confirm dialog opens). |
 | `reviews` | Review display + submission flow. Reviewer-details popup (S10.11) + table identity backfill (S10.14): the ED's dashboard table shows the reviewer's real first name (via `review_author_public`), name search filters on it, and the popup opens with both rating pools rendering the seeded review in the Attendee pool. |
 | `promo` | Promo landing + claim. |

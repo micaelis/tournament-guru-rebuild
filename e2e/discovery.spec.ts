@@ -1,5 +1,16 @@
 import { test, expect } from "@playwright/test";
-import { firstViewableEvent } from "./helpers/db";
+import {
+  createAttendee,
+  createEventDirector,
+  deleteEvent,
+  deleteTournament,
+  deleteReview,
+  deleteUser,
+  firstViewableEvent,
+  seedEvent,
+  seedReview,
+  type SeededUser,
+} from "./helpers/db";
 
 /**
  * Public discovery E2E — the un-authenticated marketing + search surfaces.
@@ -193,6 +204,66 @@ test.describe("Public discovery", () => {
     await expect(
       page.getByRole("heading", { name: "Event Directors" }),
     ).toBeVisible();
+  });
+
+  test("public ED page: identity row, sortable events, reviews with comments module", async ({
+    page,
+  }) => {
+    let ed: SeededUser | undefined;
+    let reviewer: SeededUser | undefined;
+    let seed: { tournamentId: string; eventId: string } | undefined;
+    let reviewId: string | undefined;
+    try {
+      ed = await createEventDirector({ completeOnboarding: true });
+      reviewer = await createAttendee({
+        completeOnboarding: true,
+        firstName: "Reviewer",
+      });
+      seed = await seedEvent(ed.id, { title: "ED Page Probe Event" });
+      reviewId = await seedReview(seed.eventId, reviewer.id, "Great weekend");
+
+      await page.goto(`/directors/${ed.id}`);
+
+      // Header: org identity + the ED's own picture-and-name row (spec gap).
+      await expect(
+        page.getByRole("heading", { name: "Test Org" }),
+      ).toBeVisible();
+      await expect(page.getByText("Event Director", { exact: true })).toBeVisible();
+      await expect(page.getByText("Test User", { exact: true })).toBeVisible();
+
+      // Events tab: sort control defaults to publish date desc.
+      const sort = page.getByLabel("Sort by");
+      await expect(sort).toHaveValue("published");
+      await expect(
+        sort.locator("option", { hasText: "Highest rated" }),
+      ).toHaveCount(1);
+      await expect(page.getByText("ED Page Probe Event").first()).toBeVisible();
+
+      // Reviews tab: summary columns (rating labels now appear in the
+      // header AND the tab strip) + the shared review card with the
+      // comments module affordance and the event-context chip.
+      await page.getByRole("tab", { name: /Reviews/ }).click();
+      await expect(page.getByText("Coach Rating")).toHaveCount(2);
+      await expect(page.getByText("Attendee Rating")).toHaveCount(2);
+      await expect(page.getByText("Great weekend")).toBeVisible();
+      // The reviewer name is "Reviewer" today, "Reviewer U." once public
+      // names carry the last initial.
+      await expect(page.getByText(/^Reviewer(\sU\.)?$/)).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: /Show comments · 0/ }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("link", { name: /ED Page Probe Event/ }),
+      ).toBeVisible();
+    } finally {
+      if (reviewId) await deleteReview(reviewId);
+      if (seed) {
+        await deleteEvent(seed.eventId);
+        await deleteTournament(seed.tournamentId);
+      }
+      if (reviewer) await deleteUser(reviewer.id);
+      if (ed) await deleteUser(ed.id);
+    }
   });
 
   test("static content routes load with a heading", async ({ page }) => {

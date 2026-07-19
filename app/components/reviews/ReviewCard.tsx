@@ -27,6 +27,7 @@ export function ReviewCard({
   isAdmin,
   helpful,
   bannedWords,
+  eventContext,
 }: {
   review: ReviewCardRow;
   comments: CommentRow[];
@@ -34,6 +35,10 @@ export function ReviewCard({
   isAdmin: boolean;
   helpful: boolean;
   bannedWords: string[];
+  /** Where the review was written — shown on pages that list reviews
+   * across events (public ED / attendee profiles); the event page
+   * itself omits it. */
+  eventContext?: { title: string; href: string };
 }) {
   const [flagOpen, setFlagOpen] = useState(false);
   const [showComments, setShowComments] = useState(comments.length > 0);
@@ -102,6 +107,29 @@ export function ReviewCard({
           </div>
         </div>
       </header>
+
+      {eventContext && (
+        <a
+          href={eventContext.href}
+          className="mt-3.5 inline-flex max-w-full items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[12px] font-semibold text-slate-600 no-underline hover:border-slate-400 hover:text-slate-900"
+        >
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+            className="shrink-0"
+          >
+            <path d="M8 2v3M16 2v3M3.5 9h17M5 4.5h14a1.5 1.5 0 011.5 1.5v14a1.5 1.5 0 01-1.5 1.5H5A1.5 1.5 0 013.5 20V6A1.5 1.5 0 015 4.5z" />
+          </svg>
+          <span className="truncate">{eventContext.title}</span>
+        </a>
+      )}
 
       {review.review_title && (
         <h3 className="mt-4 font-[var(--font-heading)] text-xl font-extrabold text-slate-900">

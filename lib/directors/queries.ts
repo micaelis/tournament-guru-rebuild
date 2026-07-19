@@ -5,7 +5,6 @@ import { deriveEventStatus } from "@/app/dashboard/events/event-shared";
 import { legacyStatus } from "@/lib/events/status";
 import type {
   DirectorProfile,
-  DirectorReviewRow,
   EventDirectorsPage,
   EventDirectorRow,
   EventRow,
@@ -122,6 +121,8 @@ export async function getDirectorProfile(
   return {
     id: dir.id,
     display_name: name,
+    director_name:
+      [dir.first_name, dir.last_name].filter(Boolean).join(" ") || null,
     org_logo: dir.org_logo_url,
     org_description: dir.org_description,
     club_affiliation: dir.organization_title,
@@ -294,90 +295,6 @@ export async function getDirectorEventRows(
 
   const data = unwrapRows<RawEventRow>(await query, "getDirectorEventRows events");
   return mapEventRows(data, hostLogo);
-}
-
-/** Published reviews across a director's events, for the ED reviews tab. */
-export async function getDirectorReviewRows(
-  id: string,
-  limit = 30,
-): Promise<DirectorReviewRow[]> {
-  const supabase = createAnonServerClient();
-  const events = unwrapRows<{ id: string; title: string }>(
-    await supabase
-      .from("events")
-      .select("id, title")
-      .eq("owner_id", id)
-      .neq("lifecycle", "draft"),
-    "getDirectorReviewRows events",
-  );
-  if (!events.length) return [];
-  const titleById = new Map(events.map((e) => [e.id, e.title] as const));
-
-  type Raw = {
-    id: string;
-    review_title: string | null;
-    review_body: string | null;
-    overall: number | null;
-    reviewer_role: string | null;
-    guru_review: boolean | null;
-    created_at: string;
-    event_id: string | null;
-    anonymized: boolean;
-  };
-  const rows = unwrapRows<Raw>(
-    await supabase
-      .from("reviews")
-      .select(
-        "id, review_title, review_body, overall, reviewer_role, guru_review, created_at, event_id, anonymized",
-      )
-      .eq("status", "published")
-      .in(
-        "event_id",
-        events.map((e) => e.id),
-      )
-      .order("created_at", { ascending: false })
-      .limit(limit),
-    "getDirectorReviewRows reviews",
-  );
-
-  // Reviewer display identity comes through the public projection view
-  // (first name + org only — never last name / email / dob). View
-  // columns generate as nullable, so the review_id key gets a guard.
-  const authors = rows.length
-    ? unwrapRows(
-        await supabase
-          .from("review_author_public")
-          .select("review_id, first_name, organization_title")
-          .in(
-            "review_id",
-            rows.map((r) => r.id),
-          ),
-        "getDirectorReviewRows authors",
-      )
-    : [];
-  const nameByReview = new Map<string, string | null>();
-  for (const a of authors) {
-    if (!a.review_id) continue;
-    nameByReview.set(a.review_id, a.first_name ?? a.organization_title ?? null);
-  }
-
-  return rows.map((r) => {
-    const username = r.anonymized
-      ? "Former member"
-      : nameByReview.get(r.id) ?? "Reviewer";
-    return {
-      id: r.id,
-      review_title: r.review_title,
-      review_body: r.review_body,
-      overall_rating: r.overall,
-      username,
-      user_role: r.reviewer_role,
-      guru_review: r.guru_review,
-      created_at: r.created_at,
-      event_id: r.event_id,
-      event_title: r.event_id ? titleById.get(r.event_id) ?? null : null,
-    } satisfies DirectorReviewRow;
-  });
 }
 
 type RawEventRow = {

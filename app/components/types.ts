@@ -98,6 +98,9 @@ export type SponsorRow = {
 export type DirectorProfile = {
   id: string;
   display_name: string;
+  /** The ED's own name (first + last) — EDs are business-public
+   * identities, unlike attendees who project first name + initial. */
+  director_name: string | null;
   org_logo: string | null;
   org_description: string | null;
   club_affiliation: string | null;
@@ -140,20 +143,6 @@ export type EventDirectorsPage = {
   data: EventDirectorRow[];
   total: number;
   source: "rpc" | "unavailable";
-};
-
-/** Public director review row (ED page reviews tab). */
-export type DirectorReviewRow = {
-  id: string;
-  review_title: string | null;
-  review_body: string | null;
-  overall_rating: number | null;
-  username: string | null;
-  user_role: string | null;
-  guru_review: boolean | null;
-  created_at: string;
-  event_id: string | null;
-  event_title: string | null;
 };
 
 /** Review contract used by ReviewShowcase / ReviewCard (landing testimonials). */

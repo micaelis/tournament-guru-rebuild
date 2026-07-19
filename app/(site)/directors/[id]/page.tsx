@@ -2,11 +2,18 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { safeImageSrc } from "@/lib/url";
 import { SafeImg } from "@/app/components/ui/SafeImg";
+import { Avatar } from "@/app/components/Avatar";
 import {
   getDirectorProfile,
   getDirectorEventRows,
-  getDirectorReviewRows,
 } from "@/lib/directors/queries";
+import {
+  listReviewsForEvents,
+  listCommentsForReview,
+  getUserHelpfulSet,
+} from "@/lib/reviews/queries";
+import { fetchBannedWords } from "@/lib/reviews/banned-words";
+import { createServerAuthClient } from "@/lib/supabase/server";
 import { DirectorTabs } from "./parts";
 
 type Params = { id: string };
@@ -34,10 +41,50 @@ export default async function DirectorPublicPage({
   const profile = await getDirectorProfile(id);
   if (!profile) notFound();
 
-  const [events, reviews] = await Promise.all([
+  const supabaseAuth = await createServerAuthClient();
+  const {
+    data: { user },
+  } = await supabaseAuth.auth.getUser();
+
+  const [events, bannedWords] = await Promise.all([
     getDirectorEventRows(id),
-    getDirectorReviewRows(id),
+    fetchBannedWords(),
   ]);
+  const reviews = await listReviewsForEvents(events.map((e) => e.id));
+
+  // Same wiring as the public event page: eager comments per review,
+  // the viewer's helpful set, and the admin flag for moderation affordances.
+  const [commentsByReviewArr, helpfulSet, isAdmin] = await Promise.all([
+    Promise.all(
+      reviews.map(async (r) => ({
+        id: r.id,
+        comments: await listCommentsForReview(r.id),
+      })),
+    ),
+    user
+      ? getUserHelpfulSet(
+          user.id,
+          reviews.map((r) => r.id),
+        )
+      : Promise.resolve(new Set<string>()),
+    (async () => {
+      if (!user) return false;
+      const { data } = await supabaseAuth
+        .from("profiles")
+        .select("user_type")
+        .eq("id", user.id)
+        .maybeSingle<{ user_type: "attendee" | "event_director" | "admin" }>();
+      return data?.user_type === "admin";
+    })(),
+  ]);
+  const commentsByReview: Record<
+    string,
+    (typeof commentsByReviewArr)[number]["comments"]
+  > = {};
+  for (const c of commentsByReviewArr) commentsByReview[c.id] = c.comments;
+
+  const eventTitleById: Record<string, string> = {};
+  for (const e of events) eventTitleById[e.id] = e.title;
 
   return (
     <div
@@ -102,6 +149,44 @@ export default async function DirectorPublicPage({
                     {profile.org_description}
                   </p>
                 )}
+                {profile.director_name && (
+                  <div className="mt-3.5 inline-flex items-center gap-2.5 rounded-full border py-1 pl-1 pr-3.5"
+                    style={{
+                      borderColor: "var(--color-border)",
+                      background: "var(--color-surface-alt)",
+                    }}
+                  >
+                    <Avatar
+                      src={profile.profile_picture}
+                      name={profile.director_name}
+                      size={28}
+                    />
+                    <div className="text-left">
+                      <div
+                        className="font-heading uppercase"
+                        style={{
+                          fontSize: 8.5,
+                          fontWeight: 800,
+                          letterSpacing: ".12em",
+                          color: "var(--color-text-muted)",
+                          lineHeight: 1.2,
+                        }}
+                      >
+                        Event Director
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 13,
+                          fontWeight: 700,
+                          color: "var(--color-dark)",
+                          lineHeight: 1.25,
+                        }}
+                      >
+                        {profile.director_name}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -145,6 +230,12 @@ export default async function DirectorPublicPage({
             reviewCount={reviews.length}
             events={events}
             reviews={reviews}
+            commentsByReview={commentsByReview}
+            helpfulReviewIds={Array.from(helpfulSet)}
+            currentUserId={user?.id ?? null}
+            isAdmin={isAdmin}
+            bannedWords={bannedWords}
+            eventTitleById={eventTitleById}
             coachSummary={{
               rating: profile.coach_rating,
               reviews: profile.coach_reviews,

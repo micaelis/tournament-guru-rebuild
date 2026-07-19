@@ -104,6 +104,35 @@ export async function listReviewsForEvent(eventId: string): Promise<ReviewCardRo
 }
 
 /**
+ * All PUBLISHED reviews across a set of events, newest-first — the
+ * public ED page's Reviews tab (every event this director owns).
+ * Same identity guarantee as listReviewsForEvent: authors attach via
+ * review_author_public, never the profiles table.
+ */
+export async function listReviewsForEvents(
+  eventIds: string[],
+  limit = 50,
+): Promise<ReviewCardRow[]> {
+  if (eventIds.length === 0) return [];
+  const supabase = await createServerAuthClient();
+  const { data, error } = await supabase
+    .from("reviews")
+    .select(REVIEW_BASE_COLUMNS)
+    .in("event_id", eventIds)
+    .eq("status", "published")
+    .order("published_at", { ascending: false, nullsFirst: false })
+    .limit(limit);
+  if (error) throw new Error(`listReviewsForEvents reviews: ${error.message}`);
+  return attachPublicAuthors(
+    await attachPromoCodes(
+      (data ?? []) as unknown as (Omit<ReviewCardRow, "author" | "promo_pretty_code"> & {
+        promo_id: string | null;
+      })[],
+    ),
+  );
+}
+
+/**
  * Dashboard / My Reviews path — draft-visible for the author + admin
  * per RLS. Uses the profiles-join projection so the ED / Admin table
  * can render full profile info via RLS (admin bypass) when it applies.

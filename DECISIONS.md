@@ -2115,3 +2115,31 @@ signup e2e (identical one-liner, previously failing assertion); the
 swept sites are exercised by the existing form journeys staying green.
 No new per-site failed-submit e2e — none of those forms had one, and
 the fix is mechanical.
+
+### S11.4 · Public ED page brought up to spec (identity, sorting, comments)
+Component-by-component diff of `/directors/[id]` against the Public ED
+page spec found three gaps, all closed:
+1. **ED picture + name** — `public_directors` already exposed them
+   (EDs are business-public identities; the attendee first-name+initial
+   rule does not apply) but the header never rendered them. Added an
+   identity row under the org description.
+2. **Events tab sorting** — the spec's "search-page options, default
+   desc publish date, paid flag FIXED as the second key" was absent
+   (hardcoded start-date order, no UI). Client-side sort over the
+   fetched list: Recently published (default) / Most teams / Date ·
+   soonest / Highest rated, each tie-broken by `is_premium` desc then
+   publish date. Note the deliberate difference from search, which pins
+   premium FIRST — here paid is always second, per spec.
+3. **Reviews without comments** — the bespoke `ReviewItem` list is
+   replaced by the shared `ReviewCard` (+ eager `CommentTree` wiring
+   copied from the event page), which brings comments, helpful, flag,
+   and the GURU badge in one move. `ReviewCard` gained an optional
+   `eventContext` chip since profile pages list reviews across events;
+   `listReviewsForEvents` (published, across an owner's events) is the
+   new shared query. `getDirectorReviewRows` + `DirectorReviewRow` died
+   with the bespoke list; the error-surfacing probe now pins the
+   replacement query's throw path.
+
+**Verification:** e2e drives a seeded ED page anonymously — identity
+row, sort control default, reviews tab card with comments affordance
+and event chip; error-surfacing probe covers listReviewsForEvents.
