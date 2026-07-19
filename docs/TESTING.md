@@ -53,6 +53,7 @@ idling and the pane stays blank. Verify via typecheck + build + `npm test` + `np
 | `write-error-surfacing` | The mutation-side twin of `error-surfacing` (S9.3): a failed WRITE reaches the caller instead of reporting success. Pins `saveEvent`'s replace-all child deletes AND inserts separately (proxy breaks one table for one verb, so the delete half can't mask the insert half), plus `duplicateEvent`'s child reads + inserts. Asserts the data loss the silent path hid — delete lands, insert fails, collection empty, error returned. |
 | `search-distance` | The distance filter's tier math (fixtures straddling every threshold, incl. 149 vs 151 mi), its intersection with the facet filters (never widens, empty intersection stays empty), and no-coords events being excluded from every tier while still listed with the filter off. Also pins that miles-without-a-center is inert (the no-origin case). Mutation-verified against a wrong Earth radius, a replaced-instead-of-intersected id set, and a too-narrow bounding box (RG10.1). |
 | `event-edit-grants` | An ED can actually SAVE an existing event: the update-intent path persists, publish flips a draft to `active`, and `id` stays unwritable. Guards the `upsert` → INSERT/UPDATE split (S9.2) — `upsert` put `id` in PostgREST's `ON CONFLICT DO UPDATE SET` list, which the events UPDATE grant denies, so every edit and every publish-a-draft failed. **This path had no e2e coverage**, which is why it shipped broken. |
+| `tournament-crud` | The tournament + child-event CRUD lifecycle across the full role×operation matrix (see the matrix below): create ownership/claimed stamping per role, draft-vs-published read visibility, update persistence + cross-role denial, and delete cascade with review DETACH + snapshot. Drives the real `createTournament`/`updateTournament`/`deleteTournament` actions. Mutation-verified: dropping the ownership half of `p_tournaments_write` fails the ED-non-owner cell; dropping `delete_tournament`'s ownership guard fails the ED-non-owner, attendee, and cascade/detach cells. |
 | `definer-null-uid-guard` | **CRITICAL (S10.3).** The six destructive SECURITY DEFINER functions reject a NULL `auth.uid()`. `not (is_admin() or owner = auth.uid())` evaluates to NULL for anon — not false — so the guard fell through and anon could destroy any claimed tournament + its events and anonymize/scrub/delete any account. Each test asserts the call is refused AND the data survived (a revoke alone would satisfy only the former). Mutation-verified three ways, incl. anon re-granted with guards fixed (still green — the guard alone suffices). Complements `c2-definer-guards`, which covers the authenticated non-owner. |
 | `event-host-write-gate` | Tournament/event writes require `is_event_host()`, not just row ownership (S10.1). An attendee satisfied the old `owner_id = auth.uid()` predicate by writing their own id, and `owner_id`/`claimed`/`lifecycle` are all grantable — so they could publish a tournament + `active` event that anon then read out of public discovery. Pins the whole chain closed plus the ED/admin positive cases. Mutation-verified: the ownership-only policies fail the 3 create-path tripwires. |
 | `event-parent-tournament-gate` | An event write is authorized against its PARENT tournament, not just its own `owner_id` (S10.2). Both columns are caller-supplied, so ED-B could graft (or reparent) an event onto ED-A's tournament and pollute its rollup ratings via `recalc_tournament_ratings`. Pins insert + reparent + rating-pollution closed, and the ED-own / admin-unclaimed / admin-edits-claimed-event cases open. Mutation-verified: dropping the parent EXISTS fails the 3 attack paths. |
@@ -75,15 +76,26 @@ idling and the pane stays blank. Verify via typecheck + build + `npm test` + `np
 
 ## Tournament CRUD coverage matrix
 
-_Filled by the Tournament CRUD test task. Each role×operation cell links to the covering
-spec/probe once written._
+Every cell names the covering probe (authorization/invariants, DB layer). UI journeys are
+added to the cells as the E2E specs land. Probe shorthand: **tc** = `tournament-crud`, **ehwg** =
+`event-host-write-gate`, **eptg** = `event-parent-tournament-gate`, **eeg** =
+`event-edit-grants`, **dnug** = `definer-null-uid-guard`.
 
 | Operation | ED-owner | ED-non-owner | Admin | Attendee | Anon |
 |---|---|---|---|---|---|
-| Create | | | | | |
-| Read / list | | | | | |
-| Update / edit | | | | | |
-| Delete | | | | | |
+| Create | tc *createTournament stamps owner + claimed* | eptg *cannot INSERT an event under ED-A's tournament* | tc *createTournament leaves it unclaimed (S1.1)*; eptg *admin can add to an unclaimed tournament* | tc *createTournament refused, no row lands*; ehwg *cannot INSERT tournament or event* | ehwg *anon cannot INSERT a tournament* |
+| Read / list | tc *sees own DRAFT event*; tc *published readable* | tc *another ED's draft is hidden*; tc *tournament rows are public-read* | tc *admin sees the draft* | tc *draft hidden, published visible* | tc *draft hidden, published visible*; tc *tournament rows public-read* |
+| Update / edit | tc *updateTournament persists the rename*; eeg *update-intent save persists + publish flips draft→active* | tc *update against another ED's tournament changes nothing*; eptg *cannot REPARENT onto ED-A's tournament* | tc *can update an UNCLAIMED tournament*; eptg *admin can edit an event on a claimed ED tournament (S1.1 addendum)* | tc *attendee cannot update*; ehwg *cannot UPDATE an ED's tournament or event (incl. seizing owner_id)* | tc *anon cannot update* |
+| Delete | tc *cascades child events + DETACHES reviews with snapshot* | tc *delete_tournament refused, row survives* | tc *admin can delete* | tc *delete_tournament refused, row survives* | tc *delete RPC refused*; dnug *anon cannot destroy a claimed tournament or its events* |
+
+**Validation** (not a role cell, but part of the lifecycle): tc *create/update reject an
+empty title before any write*; `validation` probe *draft allows null dates, end ≥ start
+enforced at the DB*; eeg *publish enforces the full mandatory set*.
+
+Two authorization holes were found while filling this matrix and fixed first — see
+DECISIONS **S10.1** (attendees could publish into discovery), **S10.2** (cross-ED event
+grafting), and **S10.3** (anon could destroy any claimed tournament via the definer RPCs).
+The matrix' Attendee/Anon and ED-non-owner cells are the regression guards for those.
 
 ## Conventions for adding tests
 
