@@ -124,3 +124,28 @@ describe("promo_email_eligibility · the §6.3 exclusion matrix", () => {
     expect(data).toEqual([{ email: shouted, status: "eligible" }]);
   });
 });
+
+describe("promo_email_eligibility · input cap (S10.15)", () => {
+  const batch = (n: number) =>
+    Array.from({ length: n }, (_, i) => `cap-probe-${i}@probe.test`);
+
+  it("rejects an oversize array (22023), even for an admin", async () => {
+    for (const caller of [ed, admin]) {
+      const { data, error } = await caller.client.rpc(
+        "promo_email_eligibility",
+        { p_emails: batch(1001) },
+      );
+      expect(error).not.toBeNull();
+      expect(error!.code).toBe("22023");
+      expect(data).toBeNull();
+    }
+  });
+
+  it("still answers exactly at the 1000-row CSV cap", async () => {
+    const { data, error } = await ed.client.rpc("promo_email_eligibility", {
+      p_emails: batch(1000),
+    });
+    expect(error).toBeNull();
+    expect(data).toHaveLength(1000);
+  });
+});

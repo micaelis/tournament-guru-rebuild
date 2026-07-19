@@ -1975,3 +1975,26 @@ public view already carries exactly the fields §6.2 needs).
 **Verification:** e2e reviews spec — the ED sees the seeded reviewer's
 real first name in the table, name search filters on it (miss → empty
 state, hit → row), and the popup still opens from the name button.
+
+### S10.15 · promo_email_eligibility input capped at the CSV row cap
+The pre-flight RPC (S10.12) accepted an unbounded text[] and joined it
+all against auth.users — legitimate callers can never exceed 1000
+addresses because `MAX_CSV_ROWS` rejects bigger CSVs before the RPC
+runs, so an oversize array is either a bug or an event host using the
+definer bridge as a bulk account-status oracle. Migration
+20260719000011 raises 22023 above 1000 inputs (after the authz gates,
+so unauthorized callers still see only 42501). Raise chosen over
+truncation: a silent trim would return a partial verdict the Send
+Emails popup renders as complete.
+
+Documented deliberately, not a leak: the per-email blocked /
+wrong-user-type statuses this RPC shows an event host are exactly what
+spec §6.3 mandates the popup display ("already in use by an account
+with a different user type…"), and the cap now bounds how much of that
+an ED can harvest per call. The breadth is spec-mandated; the cap is
+the guard on abusing it at scale.
+
+**Verification:** `tests/probes/promo-eligibility.test.ts` — 1001
+inputs raise 22023 for both ED and admin; exactly 1000 still answers.
+Mutation-verified: reinstalling the uncapped S10.12 body fails the
+oversize probe.
