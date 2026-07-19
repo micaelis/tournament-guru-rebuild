@@ -232,3 +232,60 @@ test.describe("Review interactions", () => {
     }
   });
 });
+
+/**
+ * Reviewer-details popup (spec §6.2, S2.7): clicking a reviewer's
+ * username on the dashboard reviews table opens the two-pool popup.
+ * Driven as the ED, which also exercises the identity fallback through
+ * review_author_public (direct profile reads are admin-only).
+ */
+test.describe("Dashboard reviews — reviewer details popup", () => {
+  test("ED clicks a reviewer and sees the two rating pools", async ({
+    page,
+  }) => {
+    let ed: SeededUser | undefined;
+    let author: SeededUser | undefined;
+    let seed: { tournamentId: string; eventId: string } | undefined;
+    let reviewId: string | undefined;
+    try {
+      ed = await createEventDirector({ completeOnboarding: true });
+      author = await createAttendee({ completeOnboarding: true });
+      const eventTitle = `E2E Popup Event ${Date.now()}`;
+      seed = await seedEvent(ed.id, { title: eventTitle });
+      reviewId = await seedReview(seed.eventId, author.id, "E2E popup review");
+
+      await signIn(page, ed.email, ed.password);
+      await page.goto("/dashboard/reviews");
+
+      // The table row carries the EVENT title; the username cell is the
+      // row's first button (the select control is a checkbox). The
+      // ED-visible label may be the public first name or the "Reviewer"
+      // fallback, so don't match the button on a string.
+      await page
+        .getByRole("row")
+        .filter({ hasText: eventTitle })
+        .getByRole("button")
+        .first()
+        .click();
+
+      const dialog = page.getByRole("dialog", { name: "Reviewer details" });
+      await expect(dialog).toBeVisible();
+      await expect(
+        dialog.getByText("Reviews as Verified Coach"),
+      ).toBeVisible();
+      await expect(dialog.getByText("Reviews as Attendee")).toBeVisible();
+      // The seeded review is promo-less and published: the attendee
+      // pool carries it, the coach pool is empty.
+      await expect(dialog.getByText("1 review", { exact: true })).toBeVisible();
+      await expect(dialog.getByText("0 reviews", { exact: true })).toBeVisible();
+    } finally {
+      if (reviewId) await deleteReview(reviewId);
+      if (seed) {
+        await deleteEvent(seed.eventId);
+        await deleteTournament(seed.tournamentId);
+      }
+      if (ed) await deleteUser(ed.id);
+      if (author) await deleteUser(author.id);
+    }
+  });
+});

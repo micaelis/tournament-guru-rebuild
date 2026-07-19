@@ -681,7 +681,10 @@ admin sees **all**.
   state code, org name, published-review count), team info rows, and two rating
   columns — **Reviews as Verified Coach** (with-promo pool, **red** accents) and
   **Reviews as Attendee** (without-promo pool, **yellow** accents), each with a
-  5-star average, `x.00/5`, and count. Pools are computed on read.
+  5-star average, `x.00/5`, and count. Pools are computed on read. Identity
+  depth follows RLS: admins see the full profile + teams; EDs see what the
+  public `review_author_public` view exposes (first name, org, photo) with the
+  rest rendered as "—" — no grant is widened for this popup.
 
 **The review form** (also used on the public event page and the promo-review
 flow):

@@ -22,6 +22,7 @@ import type { ReviewCardRow } from "@/lib/reviews/queries";
 import { deleteReview } from "@/lib/reviews/actions";
 import { OwnerReplyDialog } from "./OwnerReplyDialog";
 import { AdminEditDialog } from "./AdminEditDialog";
+import { ReviewerDetailsDialog } from "./ReviewerDetailsDialog";
 
 type Row = ReviewCardRow & {
   event: { id: string; title: string; location_state_abbr: string | null } | null;
@@ -71,6 +72,7 @@ export function ReviewsTable({
   const [page, setPage] = useState(0);
   const [replyingFor, setReplyingFor] = useState<Row | null>(null);
   const [editingRow, setEditingRow] = useState<Row | null>(null);
+  const [reviewerFor, setReviewerFor] = useState<Row | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const { push } = useToast();
 
@@ -292,6 +294,7 @@ export function ReviewsTable({
                 onReply={() => setReplyingFor(r)}
                 onEdit={() => setEditingRow(r)}
                 onDelete={() => setDeletingId(r.id)}
+                onOpenReviewer={() => setReviewerFor(r)}
               />
             ))}
           </tbody>
@@ -336,6 +339,12 @@ export function ReviewsTable({
           onClose={() => setEditingRow(null)}
         />
       )}
+      {reviewerFor && (
+        <ReviewerDetailsDialog
+          reviewId={reviewerFor.id}
+          onClose={() => setReviewerFor(null)}
+        />
+      )}
       <ConfirmDialog
         open={deletingId !== null}
         title="Delete this review?"
@@ -363,6 +372,7 @@ function ReviewRow({
   onReply,
   onEdit,
   onDelete,
+  onOpenReviewer,
 }: {
   row: Row;
   selected: boolean;
@@ -372,6 +382,7 @@ function ReviewRow({
   onReply: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  onOpenReviewer: () => void;
 }) {
   const name = row.anonymized
     ? "Former member"
@@ -398,7 +409,17 @@ function ReviewRow({
             size={32}
           />
           <div>
-            <p className="text-sm font-bold text-slate-900">{name}</p>
+            {row.anonymized || !row.author_id ? (
+              <p className="text-sm font-bold text-slate-900">{name}</p>
+            ) : (
+              <button
+                type="button"
+                onClick={onOpenReviewer}
+                className="text-left text-sm font-bold text-slate-900 hover:text-red-600 hover:underline"
+              >
+                {name}
+              </button>
+            )}
             <p className="text-[11px] text-slate-500">
               {roleLabel}
               {row.promo_pretty_code ? ` · ${row.promo_pretty_code}` : ""}

@@ -1881,3 +1881,27 @@ ids-only shape + blank-term guard; mutation-verified by dropping the
 admin predicate). E2E in `dashboard.spec.ts`: an admin finds a seeded
 user by email — a term no profile column carries — and Block/Delete
 are reachable from the filtered row.
+
+### S10.11 · Reviewer-details popup ships on existing grants (supersedes S2.7)
+The §6.2 popup (click a Username on the dashboard reviews table → two
+rating pools) was deferred in S2.7. Implemented now as
+`getReviewerDetails(reviewId)` + `ReviewerDetailsDialog`: keyed by
+REVIEW id (the caller must be able to see the review before the
+reviewer resolves), pools computed on read from published reviews
+(Verified Coach = `guru_review`, Attendee = rest, NULL-overall rows
+excluded), and identity passed through EXACTLY what RLS already
+exposes. Admins get the full profile + user_teams via the `is_admin()`
+policy arms; EDs get the `review_author_public` view fields (first
+name, org, photo) and "—" for the rest. No grant or view was widened —
+the two roles simply see different depths, now stated in §6.2.
+
+Found in passing, flagged as a separate task (not fixed here): the ED
+reviews TABLE itself renders "Reviewer" for every username because its
+profiles join is RLS-filtered for EDs — the §6.2 "avatar + full name"
+column only works for admins, and the name search is a no-op for EDs.
+
+**Verification:** e2e in `reviews.spec.ts` — an ED opens the popup from
+their table row and sees both pool columns with the seeded review
+counted in the Attendee pool (also the render proof: star rows, x.00/5,
+counts). Failed reads surface as the popup's error state instead of
+rendering empty pools (S8.9 class).
