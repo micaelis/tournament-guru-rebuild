@@ -379,8 +379,11 @@ function FaqForm({
           <span className="mb-1.5 block text-[13px] font-semibold text-slate-800">
             Status
           </span>
+          {/* key: select defaultValue applies only at mount — remount on the
+              captured value so a failed submit keeps the chosen status. */}
           <select
             name="status"
+            key={values.status ?? "unset"}
             defaultValue={values.status ?? editing?.status ?? "draft"}
             className="tg-control tg-select"
           >

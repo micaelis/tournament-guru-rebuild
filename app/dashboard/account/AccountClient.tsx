@@ -597,8 +597,11 @@ function TeamSlot({
           <span className="mb-1 block text-xs font-semibold text-slate-700">
             Gender
           </span>
+          {/* key: select defaultValue applies only at mount — remount on the
+              captured value so a failed submit keeps the chosen option. */}
           <select
             name={`team_${slot}_gender`}
+            key={values[`team_${slot}_gender`] ?? "unset"}
             defaultValue={values[`team_${slot}_gender`] ?? team.team_gender ?? ""}
             onChange={(e) => onChange({ team_gender: e.target.value || null })}
             className="tg-control tg-select"
@@ -617,6 +620,7 @@ function TeamSlot({
           </span>
           <select
             name={`team_${slot}_age`}
+            key={values[`team_${slot}_age`] ?? "unset"}
             defaultValue={values[`team_${slot}_age`] ?? team.age ?? ""}
             onChange={(e) => onChange({ age: e.target.value || null })}
             className="tg-control tg-select"
@@ -635,6 +639,7 @@ function TeamSlot({
           </span>
           <select
             name={`team_${slot}_level`}
+            key={values[`team_${slot}_level`] ?? "unset"}
             defaultValue={values[`team_${slot}_level`] ?? team.competition_level ?? ""}
             onChange={(e) => onChange({ competition_level: e.target.value || null })}
             className="tg-control tg-select"

@@ -549,8 +549,11 @@ function TeamSlotFields({
           <span className="mb-1.5 block text-xs font-semibold text-slate-700">
             Age group
           </span>
+          {/* key: select defaultValue applies only at mount — remount on the
+              captured value so a failed submit keeps the chosen age. */}
           <select
             name={`team_${slot}_age`}
+            key={values[`team_${slot}_age`] ?? "unset"}
             className="tg-control tg-select transition-all"
             defaultValue={values[`team_${slot}_age`] ?? ""}
           >

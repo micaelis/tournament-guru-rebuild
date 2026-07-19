@@ -2098,3 +2098,20 @@ signup → onboarding, and proves the server rejects an unchecked submit
 after stripping `required` client-side, with typed values preserved
 (incl. the role select). Mutation check: deleting the action's
 `if (!agreedTerms)` arm fails both probes.
+
+### S11.3 · Select defaultValue survives failed submits — class sweep
+The S11.2 e2e exposed that React applies a `<select>`'s `defaultValue`
+only at mount, so React 19's post-action form reset blanks selects
+back to their mount-time default while inputs/textareas (whose DOM
+default syncs on prop change) keep the submitted value. Sweep of every
+`defaultValue={values.…}` select: EventForm (region, season),
+FaqsClient (status), OnboardingWizard (team age), AccountClient (team
+gender/age/level) now remount on the captured value (`key=`), matching
+the signup role select. Alternative — making selects controlled — was
+rejected: it changes every consumer's contract for the same result.
+
+**Verification:** the mechanism is proven end-to-end by the S11.2
+signup e2e (identical one-liner, previously failing assertion); the
+swept sites are exercised by the existing form journeys staying green.
+No new per-site failed-submit e2e — none of those forms had one, and
+the fix is mechanical.

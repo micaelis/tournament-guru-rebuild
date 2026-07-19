@@ -361,9 +361,13 @@ export function EventForm({ defaults }: { defaults: EventFormDefaults }) {
             htmlFor="region"
             error={regionError}
           >
+            {/* key: a select's defaultValue applies only at mount, so the
+                post-action form reset would blank it — remount on the
+                captured value (inputs/textareas sync and don't need this). */}
             <select
               id="region"
               name="region"
+              key={values.region ?? "unset"}
               defaultValue={values.region ?? defaults.base.region}
               onInput={(e) => revalidateRegion(e.currentTarget)}
               className="tg-control tg-select"
@@ -385,6 +389,7 @@ export function EventForm({ defaults }: { defaults: EventFormDefaults }) {
             <select
               id="season_id"
               name="season_id"
+              key={values.season_id ?? "unset"}
               defaultValue={values.season_id ?? defaults.base.season_id}
               onInput={(e) => revalidateSeason(e.currentTarget)}
               className="tg-control tg-select"
