@@ -1998,3 +1998,22 @@ the guard on abusing it at scale.
 inputs raise 22023 for both ED and admin; exactly 1000 still answers.
 Mutation-verified: reinstalling the uncapped S10.12 body fails the
 oversize probe.
+
+### S10.16 · submitted_csvs ED DELETE narrowed to pending (rule moved into RLS)
+"Only pending submissions can be canceled" was enforced solely in
+`cancelSubmittedCsv`; the S10.5 DELETE arm let an owning ED delete a
+row in any status straight through PostgREST. Deleting an approved row
+destroys the admin's review record AND cascades away the promo_codes
+audit anchor (`submitted_csv_id … on delete cascade`); deleting a
+rejected row erases the verdict. Same principle as the S10.7 UPDATE
+narrowing: once an admin verdict exists, the row is admin-managed.
+Migration 20260719000012 adds `status = 'pending'` to the owner arm;
+the admin arm is unchanged, and the app action keeps its friendlier
+pre-check ("Only pending submissions can be canceled") as UX on top of
+the boundary.
+
+**Verification:** `tests/probes/submitted-csv-host-gate.test.ts` — ED
+delete of approved + rejected rows touches zero rows (row survives),
+pending cancel still works, admin deletes a reviewed row.
+Mutation-verified: reinstalling the status-blind S10.5 arm fails the
+reviewed-row tripwire.

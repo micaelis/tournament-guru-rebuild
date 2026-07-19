@@ -16,6 +16,12 @@
  * flip their own row to 'approved' and skip review. Column grants
  * can't express this (admin and ED are both `authenticated`), so the
  * UPDATE policy is is_admin()-only.
+ *
+ * Migration 20260719000012 narrows the DELETE owner arm to
+ * status = 'pending': once an admin verdict exists (approved /
+ * rejected), the row is the review record — an ED deleting it would
+ * erase the verdict (and cascade the promo_codes audit anchor), so
+ * only admins may.
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createUser, purge, service } from "../harness";
@@ -194,5 +200,66 @@ describe("submitted_csvs status transitions are admin-only", () => {
       .eq("id", csvId)
       .single<{ status: string }>();
     expect(after?.status).toBe("rejected");
+  });
+});
+
+describe("submitted_csvs ED delete is pending-only (S10.16)", () => {
+  async function seedCsv(status: string): Promise<string> {
+    const { data, error } = await service()
+      .from("submitted_csvs")
+      .insert({ ...payload(edA.id), status })
+      .select("id")
+      .single<{ id: string }>();
+    if (error) throw new Error(error.message);
+    return data!.id;
+  }
+
+  async function stillExists(id: string): Promise<boolean> {
+    const { data } = await service()
+      .from("submitted_csvs")
+      .select("id")
+      .eq("id", id);
+    return (data ?? []).length === 1;
+  }
+
+  it("the owning ED CANNOT delete an approved or rejected submission", async () => {
+    for (const status of ["approved", "rejected"]) {
+      const id = await seedCsv(status);
+      const { data } = await edA.client
+        .from("submitted_csvs")
+        .delete()
+        .eq("id", id)
+        .select("id");
+      // RLS filters the row out of the DELETE: zero rows, no error.
+      expect(data ?? []).toHaveLength(0);
+      expect(await stillExists(id)).toBe(true);
+      await service().from("submitted_csvs").delete().eq("id", id);
+    }
+  });
+
+  it("the owning ED CAN still cancel a pending submission", async () => {
+    const id = await seedCsv("pending");
+    const { data, error } = await edA.client
+      .from("submitted_csvs")
+      .delete()
+      .eq("id", id)
+      .select("id");
+    expect(error).toBeNull();
+    expect(data).toHaveLength(1);
+    expect(await stillExists(id)).toBe(false);
+  });
+
+  it("an admin CAN still delete a reviewed submission", async () => {
+    const admin = await createUser({ becomeAdmin: true, completeOnboarding: true });
+    users.push(admin.id);
+    const id = await seedCsv("approved");
+    const { data, error } = await admin.client
+      .from("submitted_csvs")
+      .delete()
+      .eq("id", id)
+      .select("id");
+    expect(error).toBeNull();
+    expect(data).toHaveLength(1);
+    expect(await stillExists(id)).toBe(false);
   });
 });

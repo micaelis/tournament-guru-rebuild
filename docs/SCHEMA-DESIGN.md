@@ -334,7 +334,10 @@ New/adjusted:
   inject rows/emails into the admin queue (S10.5, migration 20260719000005). UPDATE on
   `submitted_csvs` is `is_admin()`-only: `status` is the admin review verdict, and admin
   vs ED can't be told apart by column grants (both are `authenticated`), so the owner arm
-  was dropped to stop an ED self-approving (S10.7, migration 20260719000006).
+  was dropped to stop an ED self-approving (S10.7, migration 20260719000006). DELETE's
+  owner arm requires `status = 'pending'`: once a verdict exists the row is the review
+  record (and the promo_codes audit anchor cascades off it), so only admins may delete it
+  (S10.16, migration 20260719000012).
 - **Parent-row authorization** on `events`: writing an event also requires write access to
   its parent tournament (`t.owner_id = auth.uid() or is_admin()`). `tournament_id` is
   caller-supplied, so checking only the event's own `owner_id` let one ED graft or reparent
