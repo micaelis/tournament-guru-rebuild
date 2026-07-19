@@ -2213,3 +2213,47 @@ seeded events, and preserves the cross-batch sort (earliest-dated
 event lives in the LAST batch). Mutation-verified: reverting to the
 direct `.in()` fails the probe with the production error ("URI too
 long"). chunkIds edge cases pinned.
+
+### S11.7 · Search pages over the merged facet id set in app code (URI too long, part 2)
+`searchEvents` was S11.6's flagged known limit: the facet child-table
+matches and the distance prefilter merge into one unbounded id list,
+and the count+range-paginated events query filtered it with
+`.in("id", ids)` — dead at ~200 UUIDs ("URI too long"), so any facet
+matching a few hundred events turned filtered search into a 500.
+Chunk-and-concat can't wrap a count+range query, so the id-filtered
+path now paginates in app code: the merged ids resolve to bare sort
+keys (id, is_premium, start_date, general_rating,
+teams_attended_prev_year, created_at) per 150-id chunk through
+`fetchInChunks` — each chunk on a FRESH builder carrying every
+events-table filter — the keys are ordered by an app-side mirror of
+the SQL ORDER BY, `total` is the merged length, and only the requested
+page (a pageSize-bounded id list) is fetched in full and re-cut to the
+computed order. The facet-less path keeps the single count+range
+query. Alternative (a definer RPC taking the id array as a POST body,
+or SQL-side facet resolution) saves the extra round trips but
+duplicates the whole filter grammar in SQL; at realistic catalog scale
+(hundreds of events → 2–3 chunks) the app-side merge is simpler and
+stays inside the S11.6 helper convention.
+
+Both paths also gained `id` as a final ORDER BY / comparator
+tie-break: bulk-inserted events share a statement-level `created_at`,
+and without a total order equal-key rows could shuffle between page
+fetches (duplicate/missing cards while paging — a latent flake in the
+old SQL path too).
+
+**Known limit, deliberately out of scope:** each facet sub-query and
+the distance prefilter still ride single un-ranged GETs, so
+PostgREST's max-rows cap (1000 by default) silently truncates a facet
+id set once a single facet value tags >1000 events — truncation
+narrows (drops events), never widens. Needs range-paged facet fetches
+or SQL-side facet resolution if the catalog approaches that scale.
+
+**Verification:** `tests/probes/search-id-batching.test.ts` seeds 260
+turf events and drives the real `searchEvents`: full count, premium
+tier + sort-key order preserved across chunk boundaries (the
+earliest-dated event is inserted LAST, so it lives in the last chunk
+yet must lead the non-premium results), three 100-row pages tile the
+exact sorted order with a stable total and an empty page past the
+end, and a second facet still intersects (never widens; an empty
+intersection stays empty). Mutation-verified: the pre-fix code fails
+the probe with the production error ("URI too long").

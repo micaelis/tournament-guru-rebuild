@@ -10,6 +10,7 @@ import {
 import type { EventRow, EventFacets, EventSort } from "@/app/components/types";
 import { boundingBox, milesBetween } from "@/lib/geo";
 import { unwrap, unwrapRows } from "@/lib/supabase/unwrap";
+import { fetchInChunks } from "@/lib/supabase/in-chunks";
 
 export type SearchFilters = {
   q?: string;
@@ -29,8 +30,6 @@ export type SearchFilters = {
   centerLat?: number | null;
   centerLng?: number | null;
 };
-
-const ZERO_UUID = "00000000-0000-0000-0000-000000000000";
 
 /**
  * Filter values arrive from raw URL query strings, and the facet columns
@@ -111,6 +110,53 @@ type RawSearchRow = {
   event_surfaces: { surface: string | null }[] | null;
 };
 
+/** Just enough of an event to place it in the search order. */
+const SORT_KEY_SELECT =
+  "id, is_premium, start_date, general_rating, teams_attended_prev_year, created_at";
+
+type SortKeyRow = {
+  id: string;
+  is_premium: boolean;
+  start_date: string | null;
+  general_rating: number | null;
+  teams_attended_prev_year: number | null;
+  created_at: string;
+};
+
+/** NULLS LAST in either direction, matching the SQL orderings below. */
+function cmpNullsLast(
+  a: string | number | null,
+  b: string | number | null,
+  dir: 1 | -1,
+): number {
+  if (a === null || b === null) return a === null ? (b === null ? 0 : 1) : -1;
+  return a < b ? -dir : a > b ? dir : 0;
+}
+
+/**
+ * App-side mirror of the SQL ORDER BY (premium tier first, the chosen
+ * sort key with NULLS LAST, newest created_at then id as tie-breaks)
+ * for the id-filtered path, which pages over the merged facet id set
+ * in app code. Dates, timestamps, and lowercase UUIDs all arrive as
+ * strings whose lexicographic order matches the SQL order.
+ */
+function compareEvents(sort: EventSort) {
+  return (a: SortKeyRow, b: SortKeyRow): number => {
+    if (a.is_premium !== b.is_premium) return a.is_premium ? -1 : 1;
+    const byKey =
+      sort === "date"
+        ? cmpNullsLast(a.start_date, b.start_date, 1)
+        : sort === "rating"
+          ? cmpNullsLast(a.general_rating, b.general_rating, -1)
+          : cmpNullsLast(a.teams_attended_prev_year, b.teams_attended_prev_year, -1);
+    return (
+      byKey ||
+      cmpNullsLast(a.created_at, b.created_at, -1) ||
+      cmpNullsLast(a.id, b.id, 1)
+    );
+  };
+}
+
 export async function searchEvents(
   filters: SearchFilters,
   opts: { page?: number; pageSize?: number; sort?: EventSort } = {},
@@ -132,7 +178,7 @@ export async function searchEvents(
   // active group contributes a set of matching event ids; they're
   // intersected at the end (no closure mutation, so type narrows cleanly).
   // A facet query ERROR throws via unwrapRows — it must never collapse
-  // into an empty id set, which the ZERO_UUID branch below would turn
+  // into an empty id set, which the id-filtered branch below would turn
   // into a successful "0 events" result.
   const dedupe = (rows: { event_id: string }[]) =>
     Array.from(new Set(rows.map((r) => r.event_id)));
@@ -230,54 +276,94 @@ export async function searchEvents(
           return acc.filter((x) => s.has(x));
         });
 
-  let query = supabase
-    .from("events")
-    .select(SEARCH_SELECT, { count: "exact" })
-    .eq("lifecycle", "active");
-
-  if (filters.states?.length)
-    query = query.in("location_state_abbr", filters.states);
-  if (filters.q?.trim()) {
-    // The pattern is double-quoted so PostgREST's or() grammar tolerates
-    // commas/parens in the typed term; quotes and backslashes are
-    // stripped since they'd escape out of the quoted literal.
-    const like = `%${filters.q.trim().replace(/["\\]/g, " ")}%`;
-    query = query.or(
-      `title.ilike."${like}",host_club.ilike."${like}",location_formatted.ilike."${like}"`,
-    );
-  }
-  if (dateStart) query = query.gte("start_date", dateStart);
-  if (dateEnd) query = query.lte("start_date", dateEnd);
-  if (filters.openOnly)
-    query = query.gte("end_date", new Date().toISOString().slice(0, 10));
-  if (filters.concludedOnly)
-    query = query.lt("end_date", new Date().toISOString().slice(0, 10));
-  if (matchingIds !== null) {
-    query =
-      matchingIds.length === 0
-        ? query.eq("id", ZERO_UUID)
-        : query.in("id", matchingIds);
-  }
-
-  // Premium always sorts first; the chosen key breaks ties within tier.
-  query = query.order("is_premium", { ascending: false });
-  if (sort === "date") query = query.order("start_date", { ascending: true });
-  else if (sort === "rating")
-    query = query.order("general_rating", { ascending: false, nullsFirst: false });
-  else
-    query = query.order("teams_attended_prev_year", {
-      ascending: false,
-      nullsFirst: false,
-    });
-  query = query.order("created_at", { ascending: false });
+  // Everything the search constrains on the events table itself. The
+  // id-filtered path re-applies it per chunk, so each caller must get
+  // a FRESH builder (supabase-js builders mutate in place, S11.6);
+  // "today" is computed once so chunks can never straddle midnight.
+  const today = new Date().toISOString().slice(0, 10);
+  const filteredEvents = <Q extends string>(
+    select: Q,
+    opts?: { count: "exact" },
+  ) => {
+    let q = supabase
+      .from("events")
+      .select(select, opts)
+      .eq("lifecycle", "active");
+    if (filters.states?.length) q = q.in("location_state_abbr", filters.states);
+    if (filters.q?.trim()) {
+      // The pattern is double-quoted so PostgREST's or() grammar tolerates
+      // commas/parens in the typed term; quotes and backslashes are
+      // stripped since they'd escape out of the quoted literal.
+      const like = `%${filters.q.trim().replace(/["\\]/g, " ")}%`;
+      q = q.or(
+        `title.ilike."${like}",host_club.ilike."${like}",location_formatted.ilike."${like}"`,
+      );
+    }
+    if (dateStart) q = q.gte("start_date", dateStart);
+    if (dateEnd) q = q.lte("start_date", dateEnd);
+    if (filters.openOnly) q = q.gte("end_date", today);
+    if (filters.concludedOnly) q = q.lt("end_date", today);
+    return q;
+  };
 
   const from = (page - 1) * pageSize;
-  const { data, count } = unwrap(
-    await query.range(from, from + pageSize - 1),
-    "searchEvents events query",
-  );
-  const rows = (data ?? []) as RawSearchRow[];
-  if (rows.length === 0) return { data: [], total: count ?? 0 };
+  let rows: RawSearchRow[];
+  let total: number;
+
+  if (matchingIds === null) {
+    // No facet filters: count + range paginate straight in SQL.
+    // Premium always sorts first; the chosen key breaks ties within
+    // tier; created_at + id keep ties stable across page fetches.
+    let query = filteredEvents(SEARCH_SELECT, { count: "exact" });
+    query = query.order("is_premium", { ascending: false });
+    if (sort === "date") query = query.order("start_date", { ascending: true });
+    else if (sort === "rating")
+      query = query.order("general_rating", { ascending: false, nullsFirst: false });
+    else
+      query = query.order("teams_attended_prev_year", {
+        ascending: false,
+        nullsFirst: false,
+      });
+    query = query.order("created_at", { ascending: false });
+    query = query.order("id", { ascending: true });
+    const { data, count } = unwrap(
+      await query.range(from, from + pageSize - 1),
+      "searchEvents events query",
+    );
+    rows = (data ?? []) as RawSearchRow[];
+    total = count ?? 0;
+  } else {
+    // The facet id set is unbounded and `.in()` rides the GET query
+    // string, so a single filter dies at ~200 UUIDs ("URI too long"),
+    // and count+range pagination can't chunk-and-concat. Instead the
+    // id set resolves to bare sort keys in batches, is ordered here
+    // under the same contract as the SQL path, and only the requested
+    // page — a pageSize-bounded id list — is fetched in full.
+    const keyRows = await fetchInChunks(matchingIds, async (chunk) => {
+      const { data } = unwrap(
+        await filteredEvents(SORT_KEY_SELECT).in("id", chunk),
+        "searchEvents sort keys",
+      );
+      return (data ?? []) as SortKeyRow[];
+    });
+    keyRows.sort(compareEvents(sort));
+    total = keyRows.length;
+    const pageIds = keyRows.slice(from, from + pageSize).map((r) => r.id);
+    if (pageIds.length === 0) {
+      rows = [];
+    } else {
+      const { data } = unwrap(
+        await filteredEvents(SEARCH_SELECT).in("id", pageIds),
+        "searchEvents events query",
+      );
+      const rank = new Map(pageIds.map((id, i) => [id, i]));
+      rows = ((data ?? []) as RawSearchRow[])
+        .slice()
+        .sort((a, b) => (rank.get(a.id) ?? 0) - (rank.get(b.id) ?? 0));
+    }
+  }
+
+  if (rows.length === 0) return { data: [], total };
 
   // The view's generated types mark every column nullable (Postgres
   // drops NOT NULL through views), so id/event_id narrow at use sites.
@@ -366,5 +452,5 @@ export async function searchEvents(
     } satisfies EventRow;
   });
 
-  return { data: mapped, total: count ?? 0 };
+  return { data: mapped, total };
 }
