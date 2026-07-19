@@ -1,10 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import { signupAction, type FormState } from "../actions";
 import { Alert, Field, PasswordField, SubmitButton } from "../parts";
 import { Select } from "@/app/components/ui/Field";
+import { Checkbox } from "@/app/components/ui/Checkbox";
 import { useSubmittedValues } from "@/app/components/ui/useSubmittedValues";
+import { useLiveValidation } from "@/app/components/ui/useLiveValidation";
 import { validateEmail, validatePassword } from "@/lib/validation";
 import { rolesFor, type UserTypeValue } from "@/lib/enums";
 
@@ -71,6 +74,10 @@ export default function SignupForm({
           name="role_title"
           required
           placeholder="Select your role"
+          /* React applies a select's defaultValue only at mount, so the
+             post-action form reset would blank it — remount on the captured
+             value to keep the submitted choice (inputs don't need this). */
+          key={values.role_title ?? "unset"}
           defaultValue={values.role_title ?? ""}
           error={state.fieldErrors?.role_title}
           validate={(v) => (v ? null : "Pick a role to continue.")}
@@ -81,8 +88,67 @@ export default function SignupForm({
             </option>
           ))}
         </Select>
+        <TermsAgreement
+          error={state.fieldErrors?.agree_terms}
+          defaultChecked={values.agree_terms === "yes"}
+        />
         <SubmitButton>Create account</SubmitButton>
       </div>
     </form>
+  );
+}
+
+/**
+ * Required consent row. The `required` attribute is the UX layer only —
+ * signupAction re-checks `agree_terms` server-side and returns this field
+ * error, so a client that strips the attribute still can't sign up.
+ */
+function TermsAgreement({
+  error,
+  defaultChecked,
+}: {
+  error?: string;
+  defaultChecked: boolean;
+}) {
+  const { shownError, revalidate } = useLiveValidation(error);
+  return (
+    <div>
+      <Checkbox
+        name="agree_terms"
+        value="yes"
+        required
+        defaultChecked={defaultChecked}
+        aria-invalid={Boolean(shownError) || undefined}
+        onChange={(e) => revalidate(e.currentTarget)}
+        className="items-start"
+        label={
+          <>
+            I agree to the{" "}
+            <Link
+              href="/privacy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-slate-900 underline underline-offset-2 hover:text-[var(--color-accent)]"
+            >
+              Privacy Policy
+            </Link>{" "}
+            and{" "}
+            <Link
+              href="/terms"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-slate-900 underline underline-offset-2 hover:text-[var(--color-accent)]"
+            >
+              Legal Terms
+            </Link>
+          </>
+        }
+      />
+      {shownError && (
+        <span className="mt-1 block text-xs font-medium text-red-600">
+          {shownError}
+        </span>
+      )}
+    </div>
   );
 }

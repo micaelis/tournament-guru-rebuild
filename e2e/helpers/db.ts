@@ -146,6 +146,16 @@ export async function deleteUser(id: string): Promise<void> {
   await service().auth.admin.deleteUser(id).catch(() => undefined);
 }
 
+/** Teardown for a user created through the UI (no id handed back). */
+export async function deleteUserByEmail(email: string): Promise<void> {
+  const svc = service();
+  const { data } = await svc.auth.admin
+    .listUsers({ page: 1, perPage: 1000 })
+    .catch(() => ({ data: { users: [] } }));
+  const user = data?.users?.find((u) => u.email === email);
+  if (user) await deleteUser(user.id);
+}
+
 /** A tournament owned by `ownerId` (so an ED can reach the Add Event form). */
 export async function seedTournament(
   ownerId: string,

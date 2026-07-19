@@ -1,5 +1,10 @@
 import { test, expect } from "@playwright/test";
-import { createAttendee, deleteUser, type SeededUser } from "./helpers/db";
+import {
+  createAttendee,
+  deleteUser,
+  deleteUserByEmail,
+  type SeededUser,
+} from "./helpers/db";
 
 /**
  * Click-through E2E for the redesigned auth screens. Covers the shell/chrome,
@@ -117,6 +122,84 @@ test.describe("Signup", () => {
     await expect(
       role.locator("option", { hasText: "Club Director" }),
     ).toHaveCount(1);
+  });
+
+  test("terms checkbox is required and links open the legal pages in a new tab", async ({
+    page,
+  }) => {
+    await page.goto("/signup");
+    const agree = page.getByRole("checkbox", {
+      name: /I agree to the Privacy Policy and Legal Terms/,
+    });
+    await expect(agree).toBeAttached();
+    await expect(agree).toHaveJSProperty("required", true);
+    for (const [label, href] of [
+      ["Privacy Policy", "/privacy"],
+      ["Legal Terms", "/terms"],
+    ] as const) {
+      const link = page.getByRole("link", { name: label, exact: true });
+      await expect(link).toHaveAttribute("href", href);
+      await expect(link).toHaveAttribute("target", "_blank");
+    }
+  });
+
+  test("signup with the box checked creates the account (local: straight to onboarding)", async ({
+    page,
+  }) => {
+    const email = `e2e-signup-${Date.now()}@local.test`;
+    try {
+      await page.goto("/signup");
+      await page.getByLabel("Email", { exact: true }).fill(email);
+      await page.getByLabel("Password", { exact: true }).fill("TgTest123");
+      await page
+        .getByLabel(/Are you a coach, parent \/ spectator, team manager\?/)
+        .selectOption("coach");
+      // The real input is sr-only behind the styled box — force past the
+      // visibility actionability check (same idiom as the radio chips).
+      await page
+        .getByRole("checkbox", { name: /I agree to the Privacy Policy/ })
+        .check({ force: true });
+      await page.getByRole("button", { name: "Create account" }).click();
+      await expect(page).toHaveURL(/\/onboarding/, { timeout: 15_000 });
+    } finally {
+      await deleteUserByEmail(email);
+    }
+  });
+
+  test("unchecked terms box is rejected by the SERVER and typed values survive", async ({
+    page,
+  }) => {
+    await page.goto("/signup");
+    await page.getByLabel("Email", { exact: true }).fill("keeps-values@example.com");
+    await page.getByLabel("Password", { exact: true }).fill("TgTest123");
+    await page
+      .getByLabel(/Are you a coach, parent \/ spectator, team manager\?/)
+      .selectOption("team_manager");
+    // Strip the client-side gate to prove the server enforces the rule
+    // (the client `required` is UX only).
+    await page.evaluate(() => {
+      document
+        .querySelector('input[name="agree_terms"]')
+        ?.removeAttribute("required");
+    });
+    await page.getByRole("button", { name: "Create account" }).click();
+
+    await expect(
+      page.getByText(
+        "Please agree to the Privacy Policy and Legal Terms to continue.",
+      ),
+    ).toBeVisible();
+    await expect(page).toHaveURL(/\/signup/);
+    // Failed submit keeps what the user typed.
+    await expect(page.getByLabel("Email", { exact: true })).toHaveValue(
+      "keeps-values@example.com",
+    );
+    await expect(
+      page.getByLabel(/Are you a coach, parent \/ spectator, team manager\?/),
+    ).toHaveValue("team_manager");
+    await expect(page.getByLabel("Password", { exact: true })).toHaveValue(
+      "TgTest123",
+    );
   });
 });
 

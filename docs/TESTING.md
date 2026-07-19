@@ -68,7 +68,7 @@ idling and the pane stays blank. Verify via typecheck + build + `npm test` + `np
 
 | Spec | Covers |
 |---|---|
-| `auth` | Login, signup (type→role), password reset, variant screens. |
+| `auth` | Login, signup (type→role), password reset, variant screens. Terms consent (S11.2): checkbox + new-tab legal links render, a checked signup completes to onboarding, and an unchecked submit with the client `required` stripped is rejected by the SERVER with typed values preserved. |
 | `onboarding` | The 3-step (attendee) / 4-step (ED) wizard + guards. |
 | `discovery` | Public browsing: landing, search, event detail, director pages. Includes the host-avatar shape/fit assertion (Avatar primitive, S8.13). |
 | `dashboard` | Role-based dashboard shells render (incl. the ED/Admin owned-tournament render guard). Admin Users search: finds a seeded user by EMAIL (the term no profile column carries, proving the auth.users bridge), and Block/Delete are reachable from the filtered row (confirm dialog opens). |

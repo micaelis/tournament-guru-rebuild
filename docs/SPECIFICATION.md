@@ -297,6 +297,9 @@ right place. All choice selections here use selectable blocks (Age excepted).
   chosen via friendly selectable blocks. **`user_type` is locked after signup**;
   thereafter only the role within the type is adjustable (and role, too, locks
   once onboarding completes — see §4.4).
+- Requires **agreeing to the terms**: a checkbox "I agree to the Privacy Policy
+  and Legal Terms" linking both pages (new tab). Validated **server-side** —
+  without it signup returns a field error; the client `required` is UX only.
 - A **"Skip registration"** CTA redirects to the Search Events page.
 - The header link **"Claim/List your event free"** (on the *For Event Directors*
   page) routes to signup with **Event Director pre-selected**. If a signed-in

@@ -35,6 +35,11 @@ reference for building/verifying the UI.
 - Role selection is a **mandatory dropdown**, phrased as a question per type:
   - Attendee: "Are you a coach, parent / spectator, team manager?"
   - Event Director: "Are you an Event Director, Event Admin, or Club Director?"
+- **Terms consent is required**: a checkbox — "I agree to the Privacy Policy and
+  Legal Terms" — with both documents linked (open in a new tab). Enforced
+  **server-side** (`agree_terms` field error when missing); the client
+  `required` attribute is UX only. The checkbox state survives a failed submit
+  like every other field.
 - "Skip registration" CTA → Search Events page.
 - Deep-link: arriving from "Claim/List your event free" → **Event Director type pre-selected**;
   if a signed-in user clicked it → log them out first, then signup with ED pre-selected.

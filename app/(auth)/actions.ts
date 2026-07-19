@@ -72,6 +72,7 @@ export async function signupAction(
   const password = String(formData.get("password") ?? "");
   const userType = String(formData.get("user_type") ?? "") as UserTypeValue;
   const roleTitle = String(formData.get("role_title") ?? "");
+  const agreedTerms = formData.get("agree_terms") === "yes";
 
   const fieldErrors: Record<string, string> = {};
   const emailErr = validateEmail(email);
@@ -86,6 +87,10 @@ export async function signupAction(
   );
   if (!validRoles.has(roleTitle)) {
     fieldErrors.role_title = "Pick a role to continue.";
+  }
+  if (!agreedTerms) {
+    fieldErrors.agree_terms =
+      "Please agree to the Privacy Policy and Legal Terms to continue.";
   }
   if (Object.keys(fieldErrors).length) return { fieldErrors };
 

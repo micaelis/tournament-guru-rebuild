@@ -1,6 +1,6 @@
 "use client";
 
-import { type InputHTMLAttributes, forwardRef } from "react";
+import { type InputHTMLAttributes, type ReactNode, forwardRef } from "react";
 import { cn } from "./cn";
 
 type CheckboxProps = Omit<
@@ -8,7 +8,9 @@ type CheckboxProps = Omit<
   "type" | "size"
 > & {
   size?: "sm" | "md";
-  label?: string;
+  /** Plain text or rich content (e.g. inline links — clicks on interactive
+   * children navigate without toggling the box, per label semantics). */
+  label?: ReactNode;
 };
 
 export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(

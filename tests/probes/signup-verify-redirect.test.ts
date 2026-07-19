@@ -39,6 +39,7 @@ function form(overrides: Record<string, string> = {}): FormData {
   fd.set("password", "TgTest123");
   fd.set("user_type", "attendee");
   fd.set("role_title", "coach");
+  fd.set("agree_terms", "yes");
   for (const [k, v] of Object.entries(overrides)) fd.set(k, v);
   return fd;
 }
@@ -72,5 +73,19 @@ describe("signup post-create routing", () => {
   it("returns field errors without redirecting on invalid input", async () => {
     const state = await signupAction({}, form({ email: "not-an-email" }));
     expect(state.fieldErrors?.email).toBeTruthy();
+  });
+
+  it("rejects signup server-side when the terms box is unchecked", async () => {
+    // The client `required` is UX only — a stripped attribute must still
+    // stop the account at the action.
+    const fd = form();
+    fd.delete("agree_terms");
+    const state = await signupAction({}, fd);
+    expect(state.fieldErrors?.agree_terms).toMatch(/Privacy Policy and Legal Terms/);
+  });
+
+  it("treats a tampered agree_terms value as not agreed", async () => {
+    const state = await signupAction({}, form({ agree_terms: "maybe" }));
+    expect(state.fieldErrors?.agree_terms).toBeTruthy();
   });
 });

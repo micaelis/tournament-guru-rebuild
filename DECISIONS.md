@@ -2070,3 +2070,31 @@ and the route rename buys nothing.
 
 **Verification:** e2e `discovery.spec.ts` asserts both h1s, section
 headings, and body snippets render.
+
+### S11.2 · Signup terms consent enforced in the Server Action
+Signup now requires the "I agree to the Privacy Policy and Legal
+Terms" checkbox (both linked, new tab). The gate lives in
+`signupAction` — `agree_terms === "yes"` or an `agree_terms` field
+error comes back; the checkbox's `required` attribute is only the UX
+layer, and a tampered value ("maybe") counts as not agreed. The
+checkbox state rides the existing `useSubmittedValues` snapshot, so a
+failed submit restores it like every other field. `Checkbox.label`
+widened `string → ReactNode` to host the inline links (label semantics
+keep link clicks from toggling the box). No DB column: consent is
+implied by the account's existence post-gate; an audit trail was
+considered and skipped as scope the client hasn't asked for.
+
+The values-preserved e2e exposed a latent gap: React applies a
+`<select>`'s `defaultValue` only at mount, so the post-action form
+reset blanked the role dropdown while inputs survived. Signup's role
+select now remounts on the captured value (`key=`). The same
+`defaultValue={values.x}` select pattern exists in EventForm,
+FaqsClient, AccountClient, and OnboardingWizard — swept separately in
+S11.3 so this commit stays one concern.
+
+**Verification:** probes drive `signupAction` without/with tampered
+`agree_terms` (field error, no redirect); e2e checks the box for a real
+signup → onboarding, and proves the server rejects an unchecked submit
+after stripping `required` client-side, with typed values preserved
+(incl. the role select). Mutation check: deleting the action's
+`if (!agreedTerms)` arm fails both probes.
