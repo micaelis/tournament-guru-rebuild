@@ -126,7 +126,7 @@ export function Footer() {
               href={"/terms" as Route}
               className="text-[#94a3b8] no-underline transition-colors hover:text-white"
             >
-              Terms
+              Legal
             </Link>
             <Link
               href={"/cookies" as Route}

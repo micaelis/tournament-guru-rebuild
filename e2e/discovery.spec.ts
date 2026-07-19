@@ -216,4 +216,26 @@ test.describe("Public discovery", () => {
       ).toBeVisible();
     }
   });
+
+  test("privacy and legal pages render the provided copy", async ({ page }) => {
+    await page.goto("/privacy");
+    await expect(
+      page.getByRole("heading", { name: "Privacy Policy", level: 1 }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "What User Data We Collect" }),
+    ).toBeVisible();
+    await expect(page.getByText("Your IP address.")).toBeVisible();
+
+    await page.goto("/terms");
+    await expect(
+      page.getByRole("heading", { name: "Legal", level: 1, exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Prohibited Use" }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("Use bots, crawlers, or other automated systems"),
+    ).toBeVisible();
+  });
 });

@@ -514,6 +514,15 @@ draft/unclaimed events.**
 - **Reviews tab**: the detailed rating columns plus the list of reviews with
   their comments.
 
+### 5.5 Privacy Policy and Legal pages
+
+`/privacy` ("Privacy Policy") and `/terms` (titled **"Legal"** per its own
+copy; the route name is historical) render client-provided legal copy
+**verbatim** — structure only (headings, bullet lists) via the shared
+`LegalArticle` long-form layout. Never rewrite or "improve" the copy in code;
+changes come from the client as new source texts. Both pages are linked from
+the footer bottom bar (Privacy · Legal).
+
 ---
 
 ## 6. Event Director dashboard

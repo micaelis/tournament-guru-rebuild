@@ -2054,3 +2054,19 @@ itself catches renames of seeded columns at `db reset`.
 **Verification:** full gate green on the typed clients; drift gate
 proven by the scratch-rename experiment above; `git diff --exit-code
 lib/database.types.ts` after a fresh regen is clean.
+
+### S11.1 · Privacy Policy + Legal pages render client copy verbatim
+`/privacy` and `/terms` replace their ComingSoon stubs with the
+client-provided texts rendered **verbatim** through a shared
+`LegalArticle` long-form layout (aurora backdrop, white article card,
+h2 sections, bullet lists). We only structured the copy — no rewording,
+including the unfilled "Website home URL" placeholder in the privacy
+intro, which is the client's to fix in source text. The `/terms` route
+name stays (footer + e2e already point at it) but the page titles
+itself **"Legal"**, matching its own copy; the footer bottom-bar label
+follows ("Privacy · Legal · Cookies"). Alternative — polishing the
+copy or renaming the route — rejected: legal text isn't ours to edit,
+and the route rename buys nothing.
+
+**Verification:** e2e `discovery.spec.ts` asserts both h1s, section
+headings, and body snippets render.
