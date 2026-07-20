@@ -2257,3 +2257,35 @@ exact sorted order with a stable total and an empty page past the
 end, and a second facet still intersects (never widens; an empty
 intersection stays empty). Mutation-verified: the pre-fix code fails
 the probe with the production error ("URI too long").
+
+### S11.8 · EDs are public business identities — full name everywhere
+Decided (Option A): an Event Director's full name is their public
+business identity, shown wherever the ED appears — `/directors`, the
+public ED page, and the event-page host row. Attendees/reviewers keep
+the S11.5 "First L." rule (`last_initial`, never `last_name`) on
+`review_author_public`, `public_comment_authors`, `public_attendees` —
+untouched here.
+
+The one inconsistency was `public_event_owners` (the host-sidebar
+projection): it omitted `last_name`, so the event-page host surface
+could not render the same name the ED page shows. Recreated the view
+(20260720000001) to project the full name, mirroring
+`public_directors`; the drop/recreate re-applies 20260718000005's
+default write privileges, so the migration re-grants SELECT and
+re-revokes writes in the same file (the S8.5 lesson). The
+ContactPanel host row now renders "Event Director · <full name>"
+(deduped against the org-title headline), so the personal name shows
+even when the org title leads.
+
+Alternative — keeping the host row org-only — rejected: the ED page
+already publishes the full name, so hiding it on event pages was
+inconsistency, not privacy.
+
+**Verification:** `tests/probes/h1-public-views.test.ts` flipped — it
+now asserts `public_event_owners` EXPOSES `last_name` for an ED while
+`review_author_public` / `public_attendees` /
+`public_comment_authors` still refuse a `last_name` select (the
+comment-authors denial was added; it was previously unpinned).
+Mutation-verified both ways: reverting the view to the last_name-less
+projection fails the ED probe; leaking `last_name` through
+`public_comment_authors` fails the attendee probe.

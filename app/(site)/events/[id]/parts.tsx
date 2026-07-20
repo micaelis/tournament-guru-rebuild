@@ -1996,14 +1996,26 @@ function ContactPanel({
               {hostName}
             </div>
           )}
-          {director?.club_affiliation && (
-            <div
-              className="mt-0.5 truncate"
-              style={{ fontSize: 11.5, color: "var(--color-text-muted)" }}
-            >
-              {director.club_affiliation}
-            </div>
-          )}
+          {director?.club_affiliation &&
+            director.club_affiliation !== hostName && (
+              <div
+                className="mt-0.5 truncate"
+                style={{ fontSize: 11.5, color: "var(--color-text-muted)" }}
+              >
+                {director.club_affiliation}
+              </div>
+            )}
+          {/* EDs are public business identities — the host row always
+              carries the director's full name, matching /directors. */}
+          {director?.director_name &&
+            director.director_name !== hostName && (
+              <div
+                className="mt-0.5 truncate"
+                style={{ fontSize: 11.5, color: "var(--color-text-muted)" }}
+              >
+                Event Director · {director.director_name}
+              </div>
+            )}
         </div>
       </div>
 

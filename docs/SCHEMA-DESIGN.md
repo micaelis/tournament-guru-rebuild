@@ -77,8 +77,13 @@ flag_reason        : profanity | illicit | solicitation | other
 > `public_attendees` (attendees only, blocked excluded) backs the
 > public `/attendees/[id]` page and also projects `role_title` +
 > `organization_title` ("Club Affiliation") + city/state, per the page
-> spec. EDs remain full-name public via `public_directors` (business
-> identities).
+> spec.
+>
+> **ED public-name rule (S11.8):** EDs are public *business* identities
+> — the full name is public everywhere. `public_directors` AND
+> `public_event_owners` both project `first_name` + `last_name`; the
+> event-page host row renders the full name to match `/directors` and
+> the ED page.
 
 Notes: spelling is **organization** everywhere (not organisation). `user_email` lives in
 auth.users; where a public surface needs it, it does NOT get exposed (PII rule).

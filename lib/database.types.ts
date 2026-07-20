@@ -2202,6 +2202,7 @@ export type Database = {
         Row: {
           first_name: string | null
           id: string | null
+          last_name: string | null
           org_description: string | null
           org_logo_url: string | null
           organization_title: string | null
@@ -2210,6 +2211,7 @@ export type Database = {
         Insert: {
           first_name?: string | null
           id?: string | null
+          last_name?: string | null
           org_description?: string | null
           org_logo_url?: string | null
           organization_title?: string | null
@@ -2218,6 +2220,7 @@ export type Database = {
         Update: {
           first_name?: string | null
           id?: string | null
+          last_name?: string | null
           org_description?: string | null
           org_logo_url?: string | null
           organization_title?: string | null

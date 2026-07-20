@@ -482,6 +482,9 @@ logged in, favouriting prompts account creation first.
   definer view — never the auth email), org description, registration URL, and
   **Other Events by this host** (3–4 max). The host card pulls the owner ED's
   profile org (logo/title); the event card itself always shows `host_club`.
+  The host row shows the ED's **full name** — EDs are public business
+  identities (S11.8), matching `/directors` and the public ED page; the
+  "First L." rule applies to attendees/reviewers only.
 - **Left content**: age groups, gender, **surface**, level, teams, description,
   age groups and pricing; **Key Dates & Deadlines** (featured only — see below);
   additional features (what's included).

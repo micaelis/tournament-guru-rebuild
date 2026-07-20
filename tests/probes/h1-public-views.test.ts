@@ -1,8 +1,10 @@
 /**
  * H1 probes — public reviewer / comment / host identity comes through
- * the SECURITY DEFINER views. Anon callers see first_name + org +
- * photo, never last_name / email / dob. Direct reads of the profiles
- * table for these fields return nothing (RLS-protected).
+ * the SECURITY DEFINER views. Attendees and reviewers surface as
+ * "First L." — first_name + last_initial, never last_name / email /
+ * dob. EDs are public business identities (S11.8): public_directors
+ * and public_event_owners expose the full name. Direct reads of the
+ * profiles table for these fields return nothing (RLS-protected).
  */
 import { afterAll, describe, expect, it } from "vitest";
 import {
@@ -144,7 +146,7 @@ describe("H1 · public identity views", () => {
     expect(data ?? []).toEqual([]);
   });
 
-  it("anon SELECT on public_event_owners returns the ED's public fields but not last_name", async () => {
+  it("anon SELECT on public_event_owners returns the ED's FULL name (public business identity)", async () => {
     const ed = await createUser({
       metadata: { user_type: "event_director", role_title: "event_director" },
       completeOnboarding: true,
@@ -157,20 +159,27 @@ describe("H1 · public identity views", () => {
     const anonClient = anon();
     const { data, error } = await anonClient
       .from("public_event_owners")
-      .select("id, first_name, organization_title, org_description")
+      .select("id, first_name, last_name, organization_title, org_description")
       .eq("id", ed.id)
       .maybeSingle();
     expect(error).toBeNull();
     expect(data).not.toBeNull();
     expect(data!.first_name).toBe("Public");
-    // Selecting last_name from the view should fail because it's not
-    // in the projection.
-    const { error: lastErr } = await anonClient
-      .from("public_event_owners")
+    // EDs are public business identities — the full name IS the public
+    // surface (S11.8), so the host row can render it. The "First L."
+    // rule applies to attendees/reviewers only.
+    expect(data!.last_name).toBe("SecretName");
+    expect(data!.organization_title).toBe("The Org");
+  });
+
+  it("public_comment_authors keeps last_name out of the projection (attendee rule)", async () => {
+    // Column-level denial: selecting last_name must fail regardless of
+    // rows — the attendee/reviewer views only ever expose last_initial.
+    const { error } = await anon()
+      .from("public_comment_authors")
       .select("last_name")
-      .eq("id", ed.id)
-      .maybeSingle();
-    expect(lastErr).not.toBeNull();
+      .limit(1);
+    expect(error).not.toBeNull();
   });
 });
 
