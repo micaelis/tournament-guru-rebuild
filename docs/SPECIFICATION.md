@@ -243,12 +243,12 @@ for case-insensitive email/banned-word matching.
   `overall`, `review_title`, `review_body` (rich text, server-sanitized),
   `would_return` (coach/manager only), `guru_review` (**server-set only**),
   `promo_id`, `helpful_count`, `published_at`, snapshot reviewer type/role,
-  `anonymized`, `detached`, and `snapshot_*` event fields (populated on event
+  `detached`, and `snapshot_*` event fields (populated on event
   delete so a detached review still renders). One published review per
   (author, event) — partial unique index.
 - **`comments`** (→ reviews, self-threaded): `parent_comment_id`, `body` (rich
   text, sanitized + banned-word checked), `is_owner_reply` (the single pinned
-  ED-owner reply), `anonymized`.
+  ED-owner reply).
 - **`review_helpful`** (unique per user × review; count derived),
   **`content_hidden`** (per-user permanent hide after flagging),
   **`flagged_content`** (content_type, content_id, flagged_by, reason,
@@ -994,7 +994,7 @@ Two tabs: **Attendees (x) | Event Directors (x)**.
 - A three-dot action per row reveals **Block User** and **Delete User**, each
   behind a confirm popup and followed by a success alert. Blocked users cannot
   access their dashboard and see the account-unavailable popup (§4.2). Deleting a
-  user removes all removable linked data (reviews/comments anonymized — §9.3).
+  user removes all removable linked data (reviews/comments deleted — §9.3).
 
 ### 8.4 Banned Words
 
@@ -1071,7 +1071,7 @@ only** (they hide buttons or change copy, never gate data).
   tightly (never returning contact email).
 - Specific negatives that must be rejected: signup-as-admin, self-PATCH to admin,
   unauthorized calls to destructive RPCs (`delete_event`, `delete_tournament`,
-  `anonymize_account`, etc.), guru-badge forgery via `apply_promo_to_review` on a
+  `soft_delete_attendee`, etc.), guru-badge forgery via `apply_promo_to_review` on a
   promo/review that isn't the caller's, and anon reads of reviewer email or
   `profiles.dob`.
 
@@ -1082,9 +1082,11 @@ only** (they hide buttons or change copy, never gate data).
 - Reviewer email appears only in the **admin** CSV export, never the ED's.
 - Under-18 DOBs are blocked at onboarding.
 
-### 9.3 Deletion & anonymization
+### 9.3 Deletion
 
-The platform retains review/comment/reply content as a business asset. Deletions
+Reviews survive an EVENT's deletion (detach + snapshot) but not their AUTHOR's:
+deleting an account is a **true delete + recompute** (Option B — supersedes the
+earlier anonymize-and-retain model; the `anonymized` column is gone). Deletions
 are handled by atomic SECURITY DEFINER routines:
 
 - **Event delete** = **detach + snapshot**: null the review's `event_id`, set
@@ -1093,17 +1095,21 @@ are handled by atomic SECURITY DEFINER routines:
   event's child data, and **keep reviewer identity**.
 - **Tournament delete** cascades to child events and their child data, but
   reviews/comments/replies are **retained (detached)** per the exception above.
-- **Attendee account delete** = **anonymize and disclose**: destroy
-  `user_id`/email/name/handle/avatar on their reviews and comments, **keep the
-  content and `user_type`/`role`**, set `anonymized = true`, and display **"Former
-  member"**.
-- **ED account delete** = mixed cascade: **anonymize their comments**; **delete
-  events they originally created** (→ their reviews detached + snapshotted); for
-  **claimed** events, **revert `owner_id` to admin** so admins can manage them
-  again — only events/comments the ED published **after claiming** are deleted.
+- **Attendee account delete** = **true delete**: remove the user's review and
+  comment **rows** (comment threads under a deleted review fall to the FK
+  cascade, moderation rows to the purge triggers), and the reviews delete
+  trigger **recomputes the affected events' scores**. The profile is scrubbed
+  (PII nulled, `blocked = true`) and `auth.users` stays (§S6.1 follow-up
+  unchanged).
+- **ED account delete** = mixed cascade: **delete their reviews + comments** the
+  same way; **delete events they originally created** (→ other authors' reviews
+  detached + snapshotted); for **claimed** events, **revert `owner_id` to
+  admin** so admins can manage them again — only events the ED published
+  **after claiming** are deleted.
 - **Reviewer self-delete of a review** fully removes the review + its comments +
-  flags (the one exception to retention) — but the platform review counter is
-  **not decremented**.
+  flags — same semantics as the account path.
+- **The platform review counter is never decremented** by any deletion
+  (§9.5) — it is a durable "reviews ever published" figure.
 
 ### 9.4 Ratings recomputation
 

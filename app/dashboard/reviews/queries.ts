@@ -52,7 +52,7 @@ export async function listDashboardReviews({
     supabase
       .from("reviews")
       .select(
-        "id, event_id, author_id, status, rating_fields, rating_facilities, rating_management, rating_competition, rating_diversity, rating_cost_value, overall, review_title, review_body, would_return, guru_review, helpful_count, published_at, created_at, reviewer_role, anonymized, detached, snapshot_event_title, snapshot_event_start, snapshot_event_end, snapshot_event_location, snapshot_event_logo, promo_id, event:events!reviews_event_id_fkey(id, title, location_state_abbr), author:profiles!reviews_author_id_fkey(first_name, last_name, organization_title, profile_photo_url)",
+        "id, event_id, author_id, status, rating_fields, rating_facilities, rating_management, rating_competition, rating_diversity, rating_cost_value, overall, review_title, review_body, would_return, guru_review, helpful_count, published_at, created_at, reviewer_role, detached, snapshot_event_title, snapshot_event_start, snapshot_event_end, snapshot_event_location, snapshot_event_logo, promo_id, event:events!reviews_event_id_fkey(id, title, location_state_abbr), author:profiles!reviews_author_id_fkey(first_name, last_name, organization_title, profile_photo_url)",
       );
   type RawDashboardRow = ReviewCardRow & {
     promo_id: string | null;
@@ -83,7 +83,7 @@ export async function listDashboardReviews({
   // ED path: profiles is RLS-filtered, so the join above returned
   // author = null. Backfill those rows from review_author_public.
   const missingAuthorIds = rows
-    .filter((r) => !r.author && !r.anonymized && r.author_id)
+    .filter((r) => !r.author && r.author_id)
     .map((r) => r.id);
   if (missingAuthorIds.length) {
     const publicAuthors = await fetchInChunks(missingAuthorIds, async (chunk) =>
@@ -100,7 +100,7 @@ export async function listDashboardReviews({
       if (a.review_id) authorMap.set(a.review_id, a);
     }
     for (const row of rows) {
-      if (row.author || row.anonymized || !row.author_id) continue;
+      if (row.author || !row.author_id) continue;
       const pub = authorMap.get(row.id);
       if (!pub) continue;
       row.author = {

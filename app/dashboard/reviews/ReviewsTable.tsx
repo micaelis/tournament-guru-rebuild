@@ -384,7 +384,7 @@ function ReviewRow({
   onDelete: () => void;
   onOpenReviewer: () => void;
 }) {
-  const name = row.anonymized
+  const name = !row.author_id
     ? "Former member"
     : [row.author?.first_name, row.author?.last_name]
         .filter(Boolean)
@@ -405,7 +405,7 @@ function ReviewRow({
         <div className="flex items-center gap-2">
           {/* Avatar → the reviewer's public page; the name keeps opening
               the details popup (which links there too). */}
-          {row.anonymized || !row.author_id ? (
+          {!row.author_id ? (
             <Avatar
               src={row.author?.profile_photo_url}
               name={name}
@@ -421,7 +421,7 @@ function ReviewRow({
             </a>
           )}
           <div>
-            {row.anonymized || !row.author_id ? (
+            {!row.author_id ? (
               <p className="text-sm font-bold text-slate-900">{name}</p>
             ) : (
               <button

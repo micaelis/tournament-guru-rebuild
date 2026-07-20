@@ -109,8 +109,8 @@ search strip) stay parked — flags/tables exist, no UI.
 
 ### Slice 6 — Account & activity
 - **Depends on:** 0 (light deps on 1/2 for counts).
-- **Builds:** account tabs per role (Profile, Security with re-auth + account delete → the deletion/anonymize routines, Preferences, Notifications settings UI); favorites; activity/recently-viewed (capped 50); support form (SendGrid via server action); FAQ display.
-- **Done when:** users manage their profile/teams, favorite events, delete accounts (with anonymize-and-disclose), contact support.
+- **Builds:** account tabs per role (Profile, Security with re-auth + account delete → the deletion routines, Preferences, Notifications settings UI); favorites; activity/recently-viewed (capped 50); support form (SendGrid via server action); FAQ display.
+- **Done when:** users manage their profile/teams, favorite events, delete accounts (true-delete + recompute, S11.9), contact support.
 
 ### Slice 7 — Admin content ops
 - **Depends on:** 2 (flagged content needs reviews/comments).
@@ -156,14 +156,14 @@ Layers (highest value first):
    Tooling: **pgTAP** (`supabase test db`) or **supabase-js integration tests (Vitest)**.
 2. **Business-logic / RPC tests** — status derivation from dates; NULL-aware averaging;
    ratings recalc rolling up to tournament; would_return_pct; promo apply atomicity (guru set
-   + applied + siblings void + one-review-per-event); deletion/anonymization (detach+snapshot
-   vs anonymize); counters survive deletion. Seeded fixtures against the SQL functions.
+   + applied + siblings void + one-review-per-event); deletion semantics (detach+snapshot
+   on event delete vs true-delete on account delete); counters survive deletion. Seeded fixtures against the SQL functions.
 3. **Server-action / validation tests (Vitest)** — password rules; onboarding-complete gating;
    server-side banned-word rejection; 400-char cap; anti-enumeration reset message; rate limits.
 4. **E2E flow tests (Playwright)** — the cross-feature chains: signup→onboard→dashboard;
    tournament→event→publish→correct status; coach via promo link→verified review→shows on
    event with recomputed ratings; claim→approve→ownership transfers to siblings;
-   account delete→anonymize. These catch the SEAMS BETWEEN SLICES.
+   account delete→true-delete+recompute. These catch the SEAMS BETWEEN SLICES.
 5. Baseline: tsc + lint + build (already required per step).
 
 Structure:

@@ -42,7 +42,7 @@ export function ReviewCard({
 }) {
   const [flagOpen, setFlagOpen] = useState(false);
   const [showComments, setShowComments] = useState(comments.length > 0);
-  const displayName = review.anonymized
+  const displayName = !review.author_id
     ? "Former member"
     : [review.author?.first_name, review.author?.last_name]
         .filter(Boolean)
@@ -55,11 +55,10 @@ export function ReviewCard({
       : null;
   const isOwnReview = currentUserId === review.author_id;
   // Reviews are attendee-authored — identity links to the public
-  // attendee page (never for anonymized rows, whose author is gone).
-  const authorHref =
-    !review.anonymized && review.author_id
-      ? `/attendees/${review.author_id}`
-      : null;
+  // attendee page (only when the author still exists).
+  const authorHref = review.author_id
+    ? `/attendees/${review.author_id}`
+    : null;
 
   return (
     <Card

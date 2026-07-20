@@ -7,7 +7,8 @@
  * does not execute, so the guard fell through and the function ran with
  * definer privileges (BYPASSRLS). An anon client holding only the public
  * anon key could destroy any claimed tournament and its events, delete
- * events, and anonymize / scrub / delete arbitrary accounts.
+ * events, and scrub / delete arbitrary accounts (at the time that
+ * included the since-dropped anonymize_account).
  *
  * `c2-definer-guards` covers the AUTHENTICATED non-owner, whose
  * `auth.uid()` is a real uuid — the comparison is false, so the guard
@@ -121,7 +122,22 @@ describe("definer guards · anon (NULL auth.uid) is refused", () => {
     expect(data ?? []).toHaveLength(1);
   });
 
-  it("anonymize_account: anon cannot strip authorship from someone's reviews", async () => {
+  it("scrub_profile_identity: anon cannot wipe a profile or block the user", async () => {
+    const { error } = await anon().rpc("scrub_profile_identity", {
+      target_user: victim.id,
+    });
+    expect(error).not.toBeNull();
+
+    const { data } = await service()
+      .from("profiles")
+      .select("first_name, blocked")
+      .eq("id", victim.id)
+      .single<{ first_name: string | null; blocked: boolean }>();
+    expect(data!.first_name).toBe("Victim");
+    expect(data!.blocked).toBe(false);
+  });
+
+  it("soft_delete_attendee: anon cannot delete an account or its reviews", async () => {
     const svc = service();
     const { eventId } = await seedClaimedTournamentWithEvent();
     const { data: review } = await svc
@@ -145,43 +161,20 @@ describe("definer guards · anon (NULL auth.uid) is refused", () => {
       .select("id")
       .single<{ id: string }>();
 
-    const { error } = await anon().rpc("anonymize_account", {
-      target_user: victim.id,
-    });
-    expect(error).not.toBeNull();
-
-    const { data: after } = await svc
-      .from("reviews")
-      .select("author_id, anonymized")
-      .eq("id", review!.id)
-      .single<{ author_id: string | null; anonymized: boolean }>();
-    expect(after!.author_id).toBe(victim.id);
-    expect(after!.anonymized).toBe(false);
-
-    await svc.from("reviews").delete().eq("id", review!.id);
-  });
-
-  it("scrub_profile_identity: anon cannot wipe a profile or block the user", async () => {
-    const { error } = await anon().rpc("scrub_profile_identity", {
-      target_user: victim.id,
-    });
-    expect(error).not.toBeNull();
-
-    const { data } = await service()
-      .from("profiles")
-      .select("first_name, blocked")
-      .eq("id", victim.id)
-      .single<{ first_name: string | null; blocked: boolean }>();
-    expect(data!.first_name).toBe("Victim");
-    expect(data!.blocked).toBe(false);
-  });
-
-  it("soft_delete_attendee: anon cannot soft-delete an account", async () => {
     const { error } = await anon().rpc("soft_delete_attendee", {
       target_user: victim.id,
     });
     expect(error).not.toBeNull();
 
+    // The account delete is now a TRUE delete of the user's reviews —
+    // survival of the row (still authored) is what pins the guard.
+    const { data: after } = await svc
+      .from("reviews")
+      .select("author_id")
+      .eq("id", review!.id)
+      .single<{ author_id: string | null }>();
+    expect(after!.author_id).toBe(victim.id);
+
     const { data } = await service()
       .from("profiles")
       .select("first_name, blocked")
@@ -189,6 +182,8 @@ describe("definer guards · anon (NULL auth.uid) is refused", () => {
       .single<{ first_name: string | null; blocked: boolean }>();
     expect(data!.first_name).toBe("Victim");
     expect(data!.blocked).toBe(false);
+
+    await svc.from("reviews").delete().eq("id", review!.id);
   });
 
   it("delete_ed_account: anon cannot delete an ED's account or their tournaments", async () => {

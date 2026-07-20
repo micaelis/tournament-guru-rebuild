@@ -12,7 +12,7 @@ seed for the permanent automated suite (BUILD-PLAN §2.5).
 - **UI flows:** Playwright over the running app.
 - Tags: **FLOW** (happy path must work) · **VALID** (bad input must be rejected) ·
   **PERM** (access rule; negatives phrased as "must be REJECTED") · **STATE** (derived/computed
-  rule) · **DATA** (data-integrity: deletion/anonymize/cascade/dedupe).
+  rule) · **DATA** (data-integrity: deletion/cascade/dedupe).
 - Priority: **run Section 0 first** — those are the platform-takeover / broken-flagship probes
   from Review Gate 1. Every one must pass (exploit blocked, flow works) before anything ships.
 
@@ -23,7 +23,7 @@ seed for the permanent automated suite (BUILD-PLAN §2.5).
 **Exploit-blocked (must be REJECTED):**
 - **[PERM] Signup-as-admin blocked (C1)** — GIVEN the public anon key WHEN `signUp({data:{user_type:'admin'}})` THEN the resulting profile is NOT admin.
 - **[PERM] Self-PATCH to admin blocked (C1 regression)** — GIVEN an authed user WHEN they PATCH their own `profiles.user_type='admin'` via REST THEN denied.
-- **[PERM] Destructive RPCs guarded (C2)** — GIVEN a normal authed user WHEN they call `delete_event` / `delete_tournament` / `scrub_profile_identity` / `anonymize_account` / `soft_delete_attendee` / `delete_ed_account` on any UUID THEN denied.
+- **[PERM] Destructive RPCs guarded (C2)** — GIVEN a normal authed user WHEN they call `delete_event` / `delete_tournament` / `scrub_profile_identity` / `soft_delete_attendee` / `delete_ed_account` on any UUID THEN denied.
 - **[PERM] Guru-badge forgery blocked (C3)** — GIVEN a user WHEN they call `apply_promo_to_review` on a review or promo not theirs (or mismatched event/void status) THEN denied; they cannot self-set `guru_review`/`published`.
 - **[PERM] Anon PII blocked (C3/C5)** — GIVEN anon WHEN reading reviewer email or `profiles.dob` THEN empty/denied.
 
@@ -224,7 +224,7 @@ seed for the permanent automated suite (BUILD-PLAN §2.5).
 - **[STATE] Attendee profile fields** — photo/name/city/state/dob("not displayed")/gender/role/org; team placeholder; 3 counts.
 - **[FLOW] Attendee profile edit** — photo/first/last/location/org/gender/role-question/teams. (Note: SCHEMA locks role post-onboarding; team info in Preferences.)
 - **[FLOW] Security email/password** — password update → email confirm first; alert on success. (SCHEMA adds re-auth before change — see Gate 1 M4.)
-- **[DATA] Account delete cascade** — reviews+comments anonymized.
+- **[DATA] Account delete cascade** — reviews+comments deleted; affected event scores recompute.
 - **[DATA] ED delete + claimed-event revert** — claimed events owner→admin; only post-claim events/comments deleted; originally-created deleted (reviews detached).
 - **[FLOW] Preferences = team info.**
 - **[STATE] Notifications default off** — 6 settings; enabled shown as chips.
@@ -258,7 +258,7 @@ seed for the permanent automated suite (BUILD-PLAN §2.5).
 - **[STATE] ED columns** — Name/Org Title/Joined/Type/Total Events/Premium Events.
 - **[FLOW] Block/Delete user** — confirm + success alert.
 - **[PERM] Blocked user cannot access dashboard** — sees "account unavailable" popup.
-- **[DATA] Delete user removes removable linked data** (reviews/comments anonymized).
+- **[DATA] Delete user removes removable linked data** (reviews/comments deleted, event scores recompute).
 
 ### ED pages / FAQ
 - **[PERM] ED sidebar + hidden items** — Transactions/Add-on Pricing/Notifications/FAQ hidden this sprint.
@@ -304,7 +304,7 @@ seed for the permanent automated suite (BUILD-PLAN §2.5).
 ## Section 2 — Schema data-integrity rules (cross-cutting)
 - **[DATA] Event delete = detach + snapshot** — event_id nulled, detached=true, snapshot_* populated, child data deleted, reviewer identity kept.
 - **[DATA] Tournament delete cascade** — child events + child data deleted; reviews/comments/replies retained (detached).
-- **[DATA] Attendee anonymize on account delete** — content + user_type/role kept; user_id/email/name/avatar nulled; anonymized=true; "Former member".
+- **[DATA] Attendee true-delete on account delete** — review + comment rows removed; affected event scores recompute; profile PII nulled + blocked; platform counter unchanged.
 - **[STATE] recalc_ratings NULL-aware + rollup** — from PUBLISHED reviews only; event + 6 category avgs + would_return_pct; rolls to tournament.
 - **[STATE] Counters never decremented** on delete.
 - **[PERM] Column-grant allow-list** — user_type/role(post-onboarding)/blocked/guru_review/published_at/promo_id/counters not client-writable.
@@ -317,8 +317,8 @@ seed for the permanent automated suite (BUILD-PLAN §2.5).
 ## Section 3 — Cross-feature chains (E2E)
 1. **Promo → verified review → ratings → public:** CSV (private bucket) → admin approve+send → 8-char code + nanoid token, rows Active/Sent → SendGrid ?promo link → coach 2nd-auth → Step-1 Continue → Active → review form (6 cats + title + body ≤400 + would_return) → publish sets guru_review, promo→Applied, siblings→void → recalc event+tournament + would_return_pct → public page shows GURU badge, verified pool, "% would return".
 2. **Admin event → claim → transfer:** admin unclaimed event → Claim CTA → ED submits (phone+links) → Requested → admin approve → tournament + siblings transfer, others auto-rejected, CTA→org logo/title across siblings.
-3. **Attendee delete → anonymize:** reviews/comments → "Former member" (content+role kept, PII nulled) → counters unchanged.
-4. **ED delete → mixed cascade:** comments anonymized → originally-created events deleted (reviews detached+snapshot) → claimed events owner→admin (only post-claim deleted).
+3. **Attendee delete → true-delete:** reviews/comments removed → affected event scores recompute → profile scrubbed + blocked → counters unchanged.
+4. **ED delete → mixed cascade:** own reviews/comments removed → originally-created events deleted (other authors' reviews detached+snapshot) → claimed events owner→admin (only post-claim deleted).
 5. **Date edit → status re-derivation → discovery:** dates change → status recomputes → search filters + Featured window + chips reflect it (no stale).
 6. **Flag → admin delete → recalc + cascade:** flag → Flagged page groups by review → Delete recalcs + deletes comments/flags/review; Dismiss keeps content, clears flags.
 7. **Reviewer self-delete vs retention:** full delete (review+comments+flags) but counter not decremented.

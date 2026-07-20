@@ -7,7 +7,6 @@
  *   - `delete_event` / `delete_tournament` refuse a non-owner caller
  *   - `scrub_profile_identity` refuses a caller ≠ target
  *   - `soft_delete_attendee` / `delete_ed_account` same
- *   - `anonymize_account` same
  *   - `recalc_event_ratings` / `recalc_tournament_ratings` EXECUTE
  *     revoked from authenticated (returns 42501 / not accessible)
  *   - All 17 RG1-revoked functions (000011 + 000013) are NOT callable
@@ -95,26 +94,6 @@ describe("C2 · destructive definer guards", () => {
       .single();
     expect(p!.blocked).toBe(false);
     expect(p!.first_name).not.toBeNull();
-  });
-
-  it("anonymize_account against another user is refused", async () => {
-    const victim = await createUser({
-      metadata: { user_type: "attendee", role_title: "coach" },
-      completeOnboarding: true,
-      role: "coach",
-    });
-    users.push(victim.id);
-    const attacker = await createUser({
-      metadata: { user_type: "attendee", role_title: "coach" },
-      completeOnboarding: true,
-      role: "coach",
-    });
-    users.push(attacker.id);
-    const { error } = await attacker.client.rpc("anonymize_account", {
-      target_user: victim.id,
-    });
-    expect(error).not.toBeNull();
-    expect(error!.code).toBe("42501");
   });
 
   it("soft_delete_attendee against another user is refused", async () => {

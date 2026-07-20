@@ -2297,3 +2297,52 @@ unpinned, now added). Mutation-verified: leaking `last_name` into
 `public_event_owners` fails the probe, dropping it from
 `public_directors` fails the probe, and leaking it through
 `public_comment_authors` fails the attendee probe.
+
+### S11.9 · Account deletion is a TRUE delete + recompute (Option B)
+
+**Supersedes S6.1 (soft-delete via anonymize + scrub) and the
+"anonymize and disclose" account-delete rule formerly in
+SPECIFICATION §9.3.**
+
+**What:** `soft_delete_attendee` / `delete_ed_account` now DELETE the
+user's review + comment rows instead of calling `anonymize_account`
+(migration 20260720000002). The existing `t_reviews_recalc` AFTER
+DELETE trigger recomputes each affected event's aggregates (and rolls
+up), the reviews→comments FK cascade removes threads under a deleted
+review, and the S10-era purge triggers clean the moderation rows.
+`anonymize_account` is dropped, the `anonymized` columns on reviews +
+comments are dropped, and the two public identity views are recreated
+without their anonymized CASE arms (writes re-revoked in the same
+file, per the S8.5 lesson). A one-time purge deleted every
+legacy-anonymized row — users who deleted under the old model — so
+their events' scores are finally honest; the migration RAISEs the
+count as a NOTICE (0/0 on the local dev DB; the real count surfaces
+when demo-migrate applies the migration on push).
+
+**Why:** under the old model a "deleted" user's reviews stayed
+published and kept counting toward event scores — a rating no one
+stood behind still moved the number EDs compete on. Product call:
+content leaves with its author. The privacy/legal texts (S11.1)
+never promised retention or required deletion either way — this is a
+product choice, not a compliance fix.
+
+**Deliberately unchanged:** `detached` + `snapshot_*` (event deleted,
+review kept, author retained) is a different feature and keeps its
+semantics; `published_reviews_total` stays a frozen "ever published"
+counter (deletes never decrement — the probe pins it); profile scrub +
+`blocked=true` + auth.users retention are exactly as in S6.1's second
+half. Single-review self-delete already hard-deleted and is untouched.
+
+**Read layer:** every `anonymized` branch collapsed to the `author_id`
+check (`app/dashboard/reviews/*`, `app/components/reviews/*`,
+`lib/reviews/queries.ts`); the defensive null-author fallback keeps
+the neutral "Former member" label.
+
+**Verification:** `reauth-delete` probe rewritten — two published
+reviews by different attendees, one author deletes: rows gone, event
+review_count 2→1, general_rating 4.00→3.00 (the higher rater leaving
+LOWERS the score), profile scrubbed + blocked, platform counter
+unchanged; plus an ED-path case. Mutation-verified: restoring
+anonymize-style row survival turns the probe red. The C2 /
+null-uid-guard probes retargeted off the dropped function (the
+review-survival pin moved into the `soft_delete_attendee` case).

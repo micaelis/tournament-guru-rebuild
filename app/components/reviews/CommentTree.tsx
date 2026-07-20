@@ -157,10 +157,10 @@ function CommentNodeView({
   const avatarSrc = isOwnerReply
     ? safeImageSrc(node.author?.org_logo_url)
     : safeImageSrc(node.author?.profile_photo_url);
-  // Identity links to the author's public page by type; anonymized
-  // comments (author gone) and admins have none.
+  // Identity links to the author's public page by type; authorless
+  // comments and admins have none.
   const authorHref =
-    !node.anonymized && node.author_id && node.author
+    node.author_id && node.author
       ? node.author.user_type === "event_director"
         ? `/directors/${node.author_id}`
         : node.author.user_type === "attendee"

@@ -239,7 +239,6 @@ export type Database = {
       }
       comments: {
         Row: {
-          anonymized: boolean
           author_id: string | null
           body: string
           created_at: string
@@ -250,7 +249,6 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          anonymized?: boolean
           author_id?: string | null
           body: string
           created_at?: string
@@ -261,7 +259,6 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          anonymized?: boolean
           author_id?: string | null
           body?: string
           created_at?: string
@@ -1470,7 +1467,6 @@ export type Database = {
       }
       reviews: {
         Row: {
-          anonymized: boolean
           author_id: string | null
           created_at: string
           detached: boolean
@@ -1502,7 +1498,6 @@ export type Database = {
           would_return: boolean | null
         }
         Insert: {
-          anonymized?: boolean
           author_id?: string | null
           created_at?: string
           detached?: boolean
@@ -1534,7 +1529,6 @@ export type Database = {
           would_return?: boolean | null
         }
         Update: {
-          anonymized?: boolean
           author_id?: string | null
           created_at?: string
           detached?: boolean
@@ -2247,7 +2241,6 @@ export type Database = {
         Args: { target_event: string; val: boolean }
         Returns: undefined
       }
-      anonymize_account: { Args: { target_user: string }; Returns: undefined }
       apply_promo_to_review: {
         Args: { p_promo: string; p_review: string }
         Returns: undefined

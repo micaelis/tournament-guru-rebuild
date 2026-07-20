@@ -146,9 +146,10 @@ export async function updatePassword(
 
 /**
  * Delete-my-account. Routes to the role-appropriate RPC:
- * - Attendee → soft_delete_attendee (anonymize + scrub identity)
+ * - Attendee → soft_delete_attendee (delete their reviews + comments,
+ *   scrub identity)
  * - ED → delete_ed_account (reset claimed events, delete created
- *   ones, then attendee scrub)
+ *   ones, then the same delete + scrub)
  * - Admin → NOT allowed via this action; admins can't self-delete.
  *
  * Requires the caller to re-enter their password (S8.2 / RG1 M4) —

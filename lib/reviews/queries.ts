@@ -35,7 +35,6 @@ export type ReviewCardRow = {
   published_at: string | null;
   created_at: string;
   reviewer_role: string | null;
-  anonymized: boolean;
   detached: boolean;
   snapshot_event_title: string | null;
   snapshot_event_start: string | null;
@@ -58,7 +57,6 @@ export type CommentRow = {
   parent_comment_id: string | null;
   body: string;
   is_owner_reply: boolean;
-  anonymized: boolean;
   created_at: string;
   updated_at: string;
   author: {
@@ -78,7 +76,7 @@ export type CommentRow = {
  * paths add their own joined author later.
  */
 const REVIEW_BASE_COLUMNS =
-  "id, event_id, author_id, status, rating_fields, rating_facilities, rating_management, rating_competition, rating_diversity, rating_cost_value, overall, review_title, review_body, would_return, guru_review, helpful_count, published_at, created_at, reviewer_role, anonymized, detached, snapshot_event_title, snapshot_event_start, snapshot_event_end, snapshot_event_location, snapshot_event_logo, promo_id";
+  "id, event_id, author_id, status, rating_fields, rating_facilities, rating_management, rating_competition, rating_diversity, rating_cost_value, overall, review_title, review_body, would_return, guru_review, helpful_count, published_at, created_at, reviewer_role, detached, snapshot_event_title, snapshot_event_start, snapshot_event_end, snapshot_event_location, snapshot_event_logo, promo_id";
 
 /**
  * All PUBLISHED reviews for an event, ready to render on the public
@@ -246,7 +244,7 @@ export async function listCommentsForReview(reviewId: string): Promise<CommentRo
   const { data, error } = await supabase
     .from("comments")
     .select(
-      "id, review_id, author_id, parent_comment_id, body, is_owner_reply, anonymized, created_at, updated_at",
+      "id, review_id, author_id, parent_comment_id, body, is_owner_reply, created_at, updated_at",
     )
     .eq("review_id", reviewId)
     .order("created_at", { ascending: true });

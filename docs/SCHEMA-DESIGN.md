@@ -181,7 +181,7 @@ Exposed via a generated column or a `SELECT` helper (`event_display_status(event
 | Field | Type | Notes |
 |---|---|---|
 | event_id | uuid → events null | nulled on event delete (detach) |
-| author_id | uuid → profiles null | nulled on account-delete anonymize |
+| author_id | uuid → profiles null | account delete removes the row itself (true-delete) |
 | status | review_status default draft | draft = creator-only (RLS) |
 | rating_fields, rating_facilities, rating_management, rating_competition, rating_diversity, rating_cost_value | smallint null | 1..5 each; null = not counted in averages |
 | overall | numeric(3,2) | computed avg of non-null categories |
@@ -192,8 +192,7 @@ Exposed via a generated column or a `SELECT` helper (`event_display_status(event
 | promo_id | uuid → promo_codes null | the applied promo |
 | helpful_count | int default 0 | denormalized from review_helpful |
 | published_at | timestamptz null | |
-| reviewer_user_type, reviewer_role | snapshot enums | kept even after anonymize (for coach/attendee pools) |
-| anonymized | bool default false | account-deleted author → display "Former member" |
+| reviewer_user_type, reviewer_role | snapshot enums | survive profile scrubs (for coach/attendee pools) |
 | detached | bool default false | event deleted |
 | snapshot_* | event_title, tournament_title, event_dates, event_location, event_logo | populated on event delete so review renders standalone |
 
@@ -207,12 +206,11 @@ guru_review/published/promo_id). `user_email`-equivalent PII never exposed to an
 ### comments  (→ reviews; self-threaded)
 | Field | Type | Notes |
 |---|---|---|
-| review_id | uuid → reviews | |
-| author_id | uuid → profiles null | nulled on anonymize |
+| review_id | uuid → reviews | cascade: deleting a review removes its thread |
+| author_id | uuid → profiles null | account delete removes the row itself (true-delete) |
 | parent_comment_id | uuid → comments null | threading (Facebook-style) |
 | body | text | rich text, server-sanitized + banned-word checked |
 | is_owner_reply | bool | ED-owner comment: pinned, highlighted, shows org logo/name; limited to 1 |
-| anonymized | bool default false | |
 
 ### review_helpful  (user × review)  — unique(user_id, review_id); count derived
 ### content_hidden  (user × content) — user_id, content_type (review|comment), content_id; per-user permanent hide after flagging
@@ -314,8 +312,8 @@ New/adjusted:
   never decrement on delete.
 - **deletion routines** (SECURITY DEFINER functions, atomic):
   - delete_event / delete_tournament → detach reviews/comments (null FK), copy event snapshot, keep reviewer identity; delete event child data.
-  - anonymize_account (attendee) → destroy user_id/email/name/handle/avatar on their reviews+comments, keep content + user_type/role, set anonymized=true, display "Former member".
-  - ED account delete → anonymize their comments; delete owned events (→ detach their reviews); claimed events revert owner to admin.
+  - soft_delete_attendee → TRUE-DELETE the user's review + comment rows (delete trigger recomputes event scores; FK cascade takes comment threads, purge triggers take moderation rows), then scrub + block the profile. The old anonymize_account path (retain rows authorless) is retired — Option B, migration 20260720000002.
+  - delete_ed_account → same true-delete of their reviews/comments; delete owned events (→ detach other authors' reviews); claimed events revert owner to admin.
 - **promo apply** (atomic RPC): on publish-with-promo → set guru_review, promo→applied+ts, sibling promos→void, recalc. One-review-per-event resolution (create / upgrade draft / upgrade non-verified / block-if-verified).
 - **promo_email_eligibility(text[])** (S10.12, capped S10.15): host-gated definer bridge for
   the promo CSV pre-flight — classifies each input email per spec §6.3 (eligible / blocked /
@@ -405,7 +403,7 @@ Your files reflect the pre-chat state. These chat decisions **supersede** them (
 5. **Reset rate-limit**: server-side (files describe client timer only — insufficient).
 6. **Org Name = Organization Title** (one field, role-dependent label).
 7. **Team info edited in Preferences only** (removed from Attendee Profile).
-8. **Deletion model** fully reworked: detach+snapshot on event delete; anonymize-and-disclose on account delete (files describe simple delete/retain — superseded).
+8. **Deletion model** fully reworked: detach+snapshot on event delete; true-delete + recompute on account delete (the interim anonymize-and-disclose model is itself superseded — Option B, migration 20260720000002).
 9. **Promo status** = engagement lifecycle; account-existence = separate Account chip.
 10. **Promo URL token** = nanoid, not the 8-char pretty code.
 11. **is_premium vs is_general_ad** are two independent flags. `is_sponsored` renamed to `is_general_ad` (migration 20260718000001). Internal label "General Ads", public label "Spotlight". "Featured Events" stays for premium.

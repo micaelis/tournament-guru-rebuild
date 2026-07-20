@@ -50,11 +50,11 @@ export async function getReviewerDetails(
 
   const { data: review, error: reviewError } = await supabase
     .from("reviews")
-    .select("author_id, anonymized")
+    .select("author_id")
     .eq("id", reviewId)
-    .maybeSingle<{ author_id: string | null; anonymized: boolean }>();
+    .maybeSingle<{ author_id: string | null }>();
   if (reviewError) return { error: reviewError.message };
-  if (!review || review.anonymized || !review.author_id) {
+  if (!review || !review.author_id) {
     return { error: "This reviewer is no longer available." };
   }
   const authorId = review.author_id;
