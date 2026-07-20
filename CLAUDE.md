@@ -82,6 +82,11 @@ supabase/:
 - `migrations/` — the schema + RLS. **Security is enforced here**, not just in the app.
 - `README.md` — local Supabase / migrations workflow.
 
+reference/:
+- `tournamentguru.bubble` + `README.md` — scrubbed export of the legacy Bubble app
+  (secrets replaced with `REDACTED`). Historical reference only, never a spec —
+  behavior is authoritative in docs/.
+
 ## Commands
 
 ```
