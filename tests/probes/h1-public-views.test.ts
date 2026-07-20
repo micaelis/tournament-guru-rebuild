@@ -3,8 +3,10 @@
  * the SECURITY DEFINER views. Attendees and reviewers surface as
  * "First L." — first_name + last_initial, never last_name / email /
  * dob. EDs are public business identities (S11.8): public_directors
- * and public_event_owners expose the full name. Direct reads of the
- * profiles table for these fields return nothing (RLS-protected).
+ * serves their full name, and it is the ONLY view that does —
+ * public_event_owners is a lean host-logo lookup that refuses
+ * last_name. Direct reads of the profiles table for these fields
+ * return nothing (RLS-protected).
  */
 import { afterAll, describe, expect, it } from "vitest";
 import {
@@ -146,7 +148,7 @@ describe("H1 · public identity views", () => {
     expect(data ?? []).toEqual([]);
   });
 
-  it("anon SELECT on public_event_owners returns the ED's FULL name (public business identity)", async () => {
+  it("ED identity splits: public_directors serves the full name, public_event_owners only logos", async () => {
     const ed = await createUser({
       metadata: { user_type: "event_director", role_title: "event_director" },
       completeOnboarding: true,
@@ -157,19 +159,35 @@ describe("H1 · public identity views", () => {
     });
     users.push(ed.id);
     const anonClient = anon();
-    const { data, error } = await anonClient
-      .from("public_event_owners")
-      .select("id, first_name, last_name, organization_title, org_description")
+    // The host row's identity source (S11.8): EDs are public business
+    // identities, and public_directors carries the full name.
+    const { data: dir, error: dirErr } = await anonClient
+      .from("public_directors")
+      .select("id, first_name, last_name, organization_title")
       .eq("id", ed.id)
       .maybeSingle();
-    expect(error).toBeNull();
-    expect(data).not.toBeNull();
-    expect(data!.first_name).toBe("Public");
-    // EDs are public business identities — the full name IS the public
-    // surface (S11.8), so the host row can render it. The "First L."
-    // rule applies to attendees/reviewers only.
-    expect(data!.last_name).toBe("SecretName");
-    expect(data!.organization_title).toBe("The Org");
+    expect(dirErr).toBeNull();
+    expect(dir).not.toBeNull();
+    expect(dir!.first_name).toBe("Public");
+    expect(dir!.last_name).toBe("SecretName");
+    expect(dir!.organization_title).toBe("The Org");
+
+    // public_event_owners is a host-logo lookup, not an identity
+    // surface — its projection stays lean and refuses last_name.
+    const { data: owner, error: ownerErr } = await anonClient
+      .from("public_event_owners")
+      .select("id, first_name, org_logo_url, profile_photo_url")
+      .eq("id", ed.id)
+      .maybeSingle();
+    expect(ownerErr).toBeNull();
+    expect(owner).not.toBeNull();
+    expect(owner!.first_name).toBe("Public");
+    const { error: lastErr } = await anonClient
+      .from("public_event_owners")
+      .select("last_name")
+      .eq("id", ed.id)
+      .maybeSingle();
+    expect(lastErr).not.toBeNull();
   });
 
   it("public_comment_authors keeps last_name out of the projection (attendee rule)", async () => {

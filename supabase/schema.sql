@@ -3804,14 +3804,17 @@ revoke insert, update, delete, truncate, references, trigger
   on review_author_public, public_comment_authors, public_attendees
   from anon, authenticated;
 
--- ── 20260720000001_public_event_owners_full_name.sql ──────────────────────────────────────────
--- EDs are public business identities — full name everywhere (S11.8).
--- public_event_owners was the one ED-facing projection still omitting
--- last_name, so the event-page host surface couldn't show the same
--- name /directors and the ED page show. Recreate it to project the
--- full name, mirroring public_directors. The attendee/reviewer views
--- (review_author_public, public_comment_authors, public_attendees)
--- keep the "First L." rule — this migration does not touch them.
+-- ── 20260720000001_public_event_owners_lean_projection.sql ──────────────────────────────────────────
+-- Narrow public_event_owners to what its consumers actually read
+-- (S11.8). The view exists for host-logo lookups keyed by
+-- events.owner_id — every consumer selects id + org_logo_url +
+-- profile_photo_url only. The host *identity* (name, org, contact)
+-- renders from public_directors via getDirectorProfile, so the wider
+-- projection (organization_title, org_description) was dead surface,
+-- and last_name deliberately never ships here: an ED's full name is
+-- public via public_directors, but an unused view is no place to
+-- carry PII. first_name stays — the h1 write-denial harness requires
+-- it in every probed projection.
 --
 -- NOTE the drop/recreate re-applies the 20260718000005 default
 -- privileges (write grants to anon/authenticated), so the explicit
@@ -3823,10 +3826,7 @@ create view public_event_owners
 as
   select p.id,
          p.first_name,
-         p.last_name,
-         p.organization_title,
          p.org_logo_url,
-         p.org_description,
          p.profile_photo_url
   from profiles p
   where p.user_type = 'event_director';

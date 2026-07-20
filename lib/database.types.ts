@@ -2202,28 +2202,19 @@ export type Database = {
         Row: {
           first_name: string | null
           id: string | null
-          last_name: string | null
-          org_description: string | null
           org_logo_url: string | null
-          organization_title: string | null
           profile_photo_url: string | null
         }
         Insert: {
           first_name?: string | null
           id?: string | null
-          last_name?: string | null
-          org_description?: string | null
           org_logo_url?: string | null
-          organization_title?: string | null
           profile_photo_url?: string | null
         }
         Update: {
           first_name?: string | null
           id?: string | null
-          last_name?: string | null
-          org_description?: string | null
           org_logo_url?: string | null
-          organization_title?: string | null
           profile_photo_url?: string | null
         }
         Relationships: []

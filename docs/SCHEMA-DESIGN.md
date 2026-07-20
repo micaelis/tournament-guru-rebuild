@@ -80,10 +80,12 @@ flag_reason        : profanity | illicit | solicitation | other
 > spec.
 >
 > **ED public-name rule (S11.8):** EDs are public *business* identities
-> — the full name is public everywhere. `public_directors` AND
-> `public_event_owners` both project `first_name` + `last_name`; the
-> event-page host row renders the full name to match `/directors` and
-> the ED page.
+> — the full name is public everywhere, served by `public_directors`
+> (the only view that projects the ED's `last_name`); the event-page
+> host row renders it to match `/directors` and the ED page.
+> `public_event_owners` is NOT an identity surface: it is a lean
+> host-logo lookup (id, first_name, org_logo_url, profile_photo_url)
+> and refuses `last_name` — don't widen unused public projections.
 
 Notes: spelling is **organization** everywhere (not organisation). `user_email` lives in
 auth.users; where a public surface needs it, it does NOT get exposed (PII rule).

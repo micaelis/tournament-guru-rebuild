@@ -2266,26 +2266,34 @@ the S11.5 "First L." rule (`last_initial`, never `last_name`) on
 `review_author_public`, `public_comment_authors`, `public_attendees` —
 untouched here.
 
-The one inconsistency was `public_event_owners` (the host-sidebar
-projection): it omitted `last_name`, so the event-page host surface
-could not render the same name the ED page shows. Recreated the view
-(20260720000001) to project the full name, mirroring
-`public_directors`; the drop/recreate re-applies 20260718000005's
-default write privileges, so the migration re-grants SELECT and
-re-revokes writes in the same file (the S8.5 lesson). The
-ContactPanel host row now renders "Event Director · <full name>"
-(deduped against the org-title headline), so the personal name shows
-even when the org title leads.
+The event-page gap was RENDERING, not schema: host identity already
+flows from `public_directors` (full name projected since baseline)
+via `getDirectorProfile`, but ContactPanel only rendered the
+org-first `display_name` and never `director_name` — the personal
+name vanished whenever an org title existed. The fix: the host row
+now renders "Event Director · <full name>", deduped against the
+org-title headline.
 
-Alternative — keeping the host row org-only — rejected: the ED page
-already publishes the full name, so hiding it on event pages was
-inconsistency, not privacy.
+`public_event_owners` was never the identity source and needs no
+name widening: its only consumers (featured-events + search logo
+enrichment) select id + logo fields. Instead the view was NARROWED to
+what its consumers read — id, first_name, org_logo_url,
+profile_photo_url (first_name retained because the h1 write-denial
+harness requires it in every probed projection);
+organization_title / org_description were dead there too (the host
+sidebar reads `public_directors`). An earlier draft of this slice
+widened the view to carry `last_name` — superseded in place before
+push (migration 20260720000001 edited; local DBs are disposable), per
+the rule that an unused public surface is no place to carry PII. The
+drop/recreate re-grants SELECT and re-revokes writes in the same file
+(the S8.5 lesson).
 
-**Verification:** `tests/probes/h1-public-views.test.ts` flipped — it
-now asserts `public_event_owners` EXPOSES `last_name` for an ED while
-`review_author_public` / `public_attendees` /
-`public_comment_authors` still refuse a `last_name` select (the
-comment-authors denial was added; it was previously unpinned).
-Mutation-verified both ways: reverting the view to the last_name-less
-projection fails the ED probe; leaking `last_name` through
+**Verification:** `tests/probes/h1-public-views.test.ts` pins the
+split: `public_directors` serves the ED's full name (the host row's
+identity source) while `public_event_owners` refuses a `last_name`
+select, as do `review_author_public` / `public_attendees` /
+`public_comment_authors` (the comment-authors denial was previously
+unpinned, now added). Mutation-verified: leaking `last_name` into
+`public_event_owners` fails the probe, dropping it from
+`public_directors` fails the probe, and leaking it through
 `public_comment_authors` fails the attendee probe.
