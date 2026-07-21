@@ -117,6 +117,18 @@ Build screens from these; don't hand-roll equivalents.
   image" tile, a soft non-blocking "couldn't load that image" warning on a dead URL, and a
   Clear button. Pass `name` to submit the value in an uncontrolled `<form>`. Never build a
   bare URL text input for a DB image again — use this.
+- **TextLink** — the canonical inline text link (the signup page's "browse events"
+  treatment): semibold slate-700 with a soft slate underline, warming to the red accent
+  (text + decoration) on hover. Font-size inherits from the surrounding copy; pass a
+  `text-*` class only when the context needs a specific scale. Renders `next/link` for
+  in-app routes and a plain `<a>` for scheme-prefixed hrefs (`http:`, `mailto:`, …).
+  EVERY link that sits in or beside body copy uses it — auth cross-links, back-links,
+  helper rows, legal body links, table utility links. Buttons that look like text links
+  (CSV downloads, filter Reset/Clear, inline sign-out) share the exported
+  `textLinkClass`. The one intentional exception: **entity-title links** (event/reviewer
+  names in tables, cards, dashboards) stay bold slate-900 with `hover:text-red-600` and
+  no underline at rest — that's a title pattern, not a text link. Don't hand-roll either
+  style again.
 - **Table** — dashboard list rows; use a shared grid template with a fixed-width actions column
   so columns align across rows (never `auto`-width action cells).
 - **EmptyState** — the shared "no results / nothing yet" placeholder; reuse everywhere with

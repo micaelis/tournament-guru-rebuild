@@ -1,6 +1,5 @@
-import Link from "next/link";
-import type { Route } from "next";
 import { notFound, redirect } from "next/navigation";
+import { TextLink } from "@/app/components/ui";
 import { requireSessionAndProfile } from "@/lib/supabase/session";
 import { EventForm, type EventFormDefaults } from "../../EventForm";
 import { getEventForEdit, listSeasons } from "../../event-queries";
@@ -115,12 +114,9 @@ export default async function EditEventPage({
             {payload.event.title || "Untitled event"}
           </h1>
         </div>
-        <Link
-          href={`/dashboard/events/${id}` as Route}
-          className="text-sm font-semibold text-slate-700 underline"
-        >
+        <TextLink href={`/dashboard/events/${id}`} className="text-sm">
           Back to event details
-        </Link>
+        </TextLink>
       </div>
       <EventForm defaults={defaults} />
     </div>

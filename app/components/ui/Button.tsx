@@ -1,5 +1,6 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { cn } from "./cn";
+import { textLinkClass } from "./TextLink";
 
 type Variant = "primary" | "ghost" | "danger" | "link";
 type Size = "sm" | "md" | "lg";
@@ -35,7 +36,7 @@ export function Button({
       "border border-slate-200 bg-white text-slate-800 hover:border-slate-400 hover:bg-slate-50",
     danger:
       "border border-red-200 bg-white text-red-700 hover:bg-red-50 hover:border-red-400",
-    link: "text-red-600 hover:text-red-700 underline underline-offset-2",
+    link: textLinkClass,
   };
   return (
     <button

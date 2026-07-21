@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Avatar, StarRating } from "@/app/components/ui";
+import { Avatar, StarRating, TextLink } from "@/app/components/ui";
 import { formatRating } from "@/lib/reviews/shared";
 import {
   getReviewerDetails,
@@ -77,12 +77,12 @@ export function ReviewerDetailsDialog({
                   {details.publishedCount} published review
                   {details.publishedCount === 1 ? "" : "s"}
                 </p>
-                <a
+                <TextLink
                   href={`/attendees/${details.authorId}`}
-                  className="mt-0.5 inline-block text-[12px] font-semibold text-red-600 underline underline-offset-2 hover:text-red-700"
+                  className="mt-0.5 inline-block text-[12px]"
                 >
                   View public profile
-                </a>
+                </TextLink>
               </div>
             </div>
 

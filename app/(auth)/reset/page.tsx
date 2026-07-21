@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { TextLink } from "@/app/components/ui";
 import RequestResetForm from "./RequestResetForm";
 import AuthShell from "../AuthShell";
 import { AuthEyebrow } from "../parts";
@@ -20,12 +20,7 @@ export default function ResetPage() {
         </div>
         <p className="mt-6 text-center text-sm text-slate-600">
           Remembered it?{" "}
-          <Link
-            href="/login"
-            className="font-semibold text-red-600 hover:underline"
-          >
-            Sign in
-          </Link>
+          <TextLink href="/login">Sign in</TextLink>
         </p>
       </div>
     </AuthShell>

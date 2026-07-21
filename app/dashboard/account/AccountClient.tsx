@@ -8,6 +8,7 @@ import {
   Checkbox,
   FormButton,
   ImageUploadField,
+  TextLink,
   useToast,
 } from "@/app/components/ui";
 import { useLiveValidation } from "@/app/components/ui/useLiveValidation";
@@ -183,12 +184,12 @@ function ProfileTab({
           <p className="m-0 text-[12.5px] text-slate-600">
             See how your profile looks to others.
           </p>
-          <a
+          <TextLink
             href={`/attendees/${profile.id}`}
-            className="shrink-0 text-[12.5px] font-bold text-red-600 underline underline-offset-2 hover:text-red-700"
+            className="shrink-0 text-[12.5px]"
           >
             View public profile
-          </a>
+          </TextLink>
         </div>
       )}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

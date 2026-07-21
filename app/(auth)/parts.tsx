@@ -4,6 +4,7 @@ import { useFormStatus } from "react-dom";
 import { useState } from "react";
 import type { InputHTMLAttributes, ReactNode } from "react";
 import { useLiveValidation } from "@/app/components/ui/useLiveValidation";
+import { TextLink } from "@/app/components/ui/TextLink";
 
 /**
  * Small red-rule eyebrow sitting above each auth screen's heading
@@ -246,12 +247,12 @@ export function BlockedModal({ onDismiss }: { onDismiss: () => void }) {
           indefinitely blocked. If you believe this is a mistake, please
           reach out to our support team.
         </p>
-        <a
+        <TextLink
           href="mailto:support@tournamentguru.net"
-          className="mt-3 block text-sm font-semibold text-red-600 underline underline-offset-2 hover:text-red-700"
+          className="mt-3 block text-sm"
         >
           Contact support
-        </a>
+        </TextLink>
         <button
           type="button"
           onClick={onDismiss}

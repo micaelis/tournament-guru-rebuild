@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { TextLink } from "@/app/components/ui";
 import LoginForm from "./LoginForm";
 import AuthShell from "../AuthShell";
 import { AuthEyebrow } from "../parts";
@@ -32,12 +32,7 @@ export default async function LoginPage({
         </div>
         <p className="mt-6 text-center text-sm text-slate-600">
           New here?{" "}
-          <Link
-            href="/signup"
-            className="font-semibold text-red-600 hover:underline"
-          >
-            Create an account
-          </Link>
+          <TextLink href="/signup">Create an account</TextLink>
         </p>
       </div>
     </AuthShell>

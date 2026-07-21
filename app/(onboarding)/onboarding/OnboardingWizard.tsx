@@ -4,7 +4,7 @@ import Link from "next/link";
 import type { Route } from "next";
 import { useActionState, useState } from "react";
 import { Alert, Field, SubmitButton } from "../../(auth)/parts";
-import { ImageUploadField } from "@/app/components/ui";
+import { ImageUploadField, textLinkClass } from "@/app/components/ui";
 import { USDateField } from "@/app/components/ui/USDateInput";
 import { LocationAutocomplete } from "@/app/components/LocationAutocomplete";
 import { useLiveValidation } from "@/app/components/ui/useLiveValidation";
@@ -83,10 +83,7 @@ function Footer() {
       <div className="text-sm text-slate-500">
         Wrong account?{" "}
         <form action={signOutAction} className="inline">
-          <button
-            type="submit"
-            className="font-semibold text-slate-700 underline decoration-slate-300 underline-offset-2 transition-colors hover:text-[var(--color-accent)] hover:decoration-[var(--color-accent)]"
-          >
+          <button type="submit" className={textLinkClass}>
             Sign out
           </button>
         </form>

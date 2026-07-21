@@ -427,7 +427,7 @@ function ReviewRow({
               <button
                 type="button"
                 onClick={onOpenReviewer}
-                className="text-left text-sm font-bold text-slate-900 hover:text-red-600 hover:underline"
+                className="text-left text-sm font-bold text-slate-900 hover:text-red-600"
               >
                 {name}
               </button>

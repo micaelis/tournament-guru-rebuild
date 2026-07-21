@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { TextLink } from "@/app/components/ui";
 
 /**
  * Long-form legal/content page layout: aurora backdrop, single white
@@ -26,14 +27,7 @@ export function LegalLink({
   href: string;
   children: ReactNode;
 }) {
-  return (
-    <a
-      href={href}
-      className="font-semibold text-slate-700 underline decoration-slate-300 underline-offset-2 transition-colors hover:text-[var(--color-accent)] hover:decoration-[var(--color-accent)]"
-    >
-      {children}
-    </a>
-  );
+  return <TextLink href={href}>{children}</TextLink>;
 }
 
 export function LegalArticle({

@@ -7,7 +7,7 @@ import { fetchBannedWords } from "@/lib/reviews/banned-words";
 import { getMyReviewForEvent } from "@/lib/reviews/queries";
 import { ReviewWriteForm } from "./ReviewWriteForm";
 import { isReviewStillEditable } from "@/lib/reviews/shared";
-import { Button } from "@/app/components/ui";
+import { Button, TextLink } from "@/app/components/ui";
 
 type Params = { id: string };
 type SearchParams = { [key: string]: string | string[] | undefined };
@@ -80,12 +80,9 @@ export default async function ReviewWritePage({
 
   return (
     <main className="mx-auto max-w-2xl px-6 py-12">
-      <Link
-        href={`/events/${id}` as Route}
-        className="text-sm font-semibold text-slate-700 underline decoration-slate-300 underline-offset-2 transition-colors hover:text-[var(--color-accent)] hover:decoration-[var(--color-accent)]"
-      >
+      <TextLink href={`/events/${id}`} className="text-sm">
         ← Back to {ev.title}
-      </Link>
+      </TextLink>
       <h1 className="mt-4 font-[var(--font-heading)] text-3xl font-extrabold text-slate-900">
         {myReview ? "Edit your review" : "Write a review"}
       </h1>

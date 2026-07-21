@@ -16,6 +16,7 @@ import {
 } from "./taxonomy";
 import type { FilterGroupKey } from "./SearchFilterBar";
 import { LocationAutocomplete } from "@/app/components/LocationAutocomplete";
+import { cn, textLinkClass } from "@/app/components/ui";
 import { USDateText } from "@/app/components/ui/USDateInput";
 import { DISTANCE_OPTIONS } from "@/lib/geo";
 
@@ -316,8 +317,7 @@ export function FilterDrawer({
         >
           <button
             onClick={onReset}
-            className="text-[13.5px] font-semibold underline transition-opacity hover:opacity-70"
-            style={{ color: "var(--color-dark)" }}
+            className={cn(textLinkClass, "text-[13.5px]")}
           >
             Reset
           </button>

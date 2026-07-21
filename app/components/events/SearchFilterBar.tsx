@@ -4,6 +4,7 @@
    Chips summarise the active selection and open the drawer focused on that
    group. Collapses to search + a single Filters button on mobile. */
 
+import { cn, textLinkClass } from "@/app/components/ui";
 import {
   type Filters,
   type FilterOptions,
@@ -223,8 +224,7 @@ export function SearchFilterBar({
       {activeFilterCount > 0 && (
         <button
           onClick={onClear}
-          className="tg-hover cursor-pointer text-[13px] font-semibold underline"
-          style={{ color: "var(--color-text-muted)" }}
+          className={cn(textLinkClass, "cursor-pointer text-[13px]")}
         >
           Clear
         </button>

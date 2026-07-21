@@ -1,6 +1,7 @@
 import Link from "next/link";
 import AuthShell from "../../AuthShell";
 import { AuthEyebrow } from "../../parts";
+import { TextLink } from "@/app/components/ui";
 
 export const metadata = {
   title: "Verify your email · Tournament Guru",
@@ -87,12 +88,7 @@ export default function VerifyEmailPage() {
 
         <p className="mt-5 text-center text-sm text-slate-500">
           Nothing in your inbox? Check your spam folder, or{" "}
-          <Link
-            href="/signup"
-            className="font-semibold text-red-600 hover:underline"
-          >
-            sign up again
-          </Link>{" "}
+          <TextLink href="/signup">sign up again</TextLink>{" "}
           with the right address.
         </p>
       </div>

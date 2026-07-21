@@ -9,6 +9,8 @@ import {
   StatusPill,
   Table,
   TD,
+  cn,
+  textLinkClass,
   TH,
   THead,
   TR,
@@ -64,7 +66,7 @@ export function EdSubmittedList({ rows }: { rows: SubmittedCsvRow[] }) {
                 <button
                   type="button"
                   onClick={() => void downloadCsvRow(r, (m) => push("error", m))}
-                  className="inline-flex items-center gap-1 text-sm font-semibold text-slate-700 underline"
+                  className={cn(textLinkClass, "inline-flex items-center gap-1 text-sm")}
                 >
                   <DownloadGlyph /> {csvFileName(r)}
                 </button>

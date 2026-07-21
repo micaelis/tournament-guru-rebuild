@@ -10,6 +10,7 @@ import {
   StatusPill,
   Table,
   TD,
+  TextLink,
   TH,
   THead,
   TR,
@@ -251,14 +252,13 @@ function ClaimRow({
                         return (
                           <li key={l}>
                             {safe ? (
-                              <a
+                              <TextLink
                                 href={safe}
                                 target="_blank"
                                 rel="noreferrer nofollow"
-                                className="text-red-600 underline"
                               >
                                 {l}
-                              </a>
+                              </TextLink>
                             ) : (
                               <span className="text-slate-500">{l}</span>
                             )}

@@ -8,6 +8,7 @@ export { MetricStrip, MetricTile, type MetricTileData } from "./MetricStrip";
 export { StarRating } from "./StarRating";
 export { StatusPill, eventStatusTone, type PillTone } from "./StatusPill";
 export { Table, TD, TH, THead, TR } from "./Table";
+export { TextLink, textLinkClass } from "./TextLink";
 export { FlashToast, ToastProvider, useToast } from "./Toast";
 export { Avatar } from "./Avatar";
 export { SafeImg } from "./SafeImg";

@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { TextLink } from "@/app/components/ui/TextLink";
 import { useActionState } from "react";
 import { signupAction, type FormState } from "../actions";
 import { Alert, Field, PasswordField, SubmitButton } from "../parts";
@@ -124,23 +124,17 @@ function TermsAgreement({
         label={
           <>
             I agree to the{" "}
-            <Link
+            <TextLink
               href="/privacy"
               target="_blank"
               rel="noopener noreferrer"
-              className="font-semibold text-slate-900 underline underline-offset-2 hover:text-[var(--color-accent)]"
             >
               Privacy Policy
-            </Link>{" "}
+            </TextLink>{" "}
             and{" "}
-            <Link
-              href="/terms"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-semibold text-slate-900 underline underline-offset-2 hover:text-[var(--color-accent)]"
-            >
+            <TextLink href="/terms" target="_blank" rel="noopener noreferrer">
               Legal Terms
-            </Link>
+            </TextLink>
           </>
         }
       />

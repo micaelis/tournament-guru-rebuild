@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { StatusPill, Table, TD, TH, THead, TR } from "@/app/components/ui";
+import { cn, StatusPill, Table, TD, textLinkClass, TH, THead, TR } from "@/app/components/ui";
 
 export type SupportMessageRow = {
   id: string;
@@ -48,7 +48,7 @@ export function SupportMessagesTable({ rows }: { rows: SupportMessageRow[] }) {
                   {longMessage && (
                     <button
                       type="button"
-                      className="ml-1 text-xs font-medium text-blue-600 hover:underline"
+                      className={cn(textLinkClass, "ml-1 text-xs")}
                       onClick={() => {
                         const next = new Set(expanded);
                         if (isExpanded) next.delete(r.id);

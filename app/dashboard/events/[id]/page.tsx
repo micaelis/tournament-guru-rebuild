@@ -8,6 +8,7 @@ import {
   MetricStrip,
   StarRating,
   StatusPill,
+  TextLink,
   eventStatusTone,
   type MetricTileData,
 } from "@/app/components/ui";
@@ -131,14 +132,13 @@ export default async function EventDetailPage({
             label="Website"
             value={
               website ? (
-                <a
+                <TextLink
                   href={website}
                   target="_blank"
                   rel="noreferrer nofollow"
-                  className="font-semibold text-red-600 underline"
                 >
                   {event.website_url}
-                </a>
+                </TextLink>
               ) : (
                 "—"
               )

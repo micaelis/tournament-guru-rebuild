@@ -9,6 +9,8 @@ import {
   StatusPill,
   Table,
   TD,
+  cn,
+  textLinkClass,
   TH,
   THead,
   TR,
@@ -173,7 +175,7 @@ function AdminRow({
         <button
           type="button"
           onClick={() => void downloadCsvRow(row, (m) => push("error", m))}
-          className="text-sm font-semibold text-slate-700 underline"
+          className={cn(textLinkClass, "text-sm")}
         >
           {row.raw_emails.length} emails.csv
         </button>

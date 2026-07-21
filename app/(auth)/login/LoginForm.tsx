@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useActionState, useState } from "react";
 import { loginAction, type FormState } from "../actions";
 import { Alert, BlockedModal, Field, PasswordField, SubmitButton } from "../parts";
+import { TextLink } from "@/app/components/ui";
 import { useSubmittedValues } from "@/app/components/ui/useSubmittedValues";
 import { validateEmail } from "@/lib/validation";
 
@@ -55,12 +55,9 @@ export default function LoginForm({
           placeholder="Enter your password"
           error={state.fieldErrors?.password}
           labelAccessory={
-            <Link
-              href="/reset"
-              className="text-[12.5px] font-semibold text-[var(--color-accent)] hover:underline"
-            >
+            <TextLink href="/reset" className="text-[12.5px]">
               Forgot password?
-            </Link>
+            </TextLink>
           }
         />
         <SubmitButton>Sign in</SubmitButton>
