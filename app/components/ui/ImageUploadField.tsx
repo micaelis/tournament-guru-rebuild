@@ -69,8 +69,9 @@ export function ImageUploadField({
         {required && <span aria-hidden="true" className="text-red-600">*</span>}
       </span>
 
-      <div className="flex items-start gap-3">
-        <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+      <div className="flex items-stretch gap-3.5">
+        {/* Stretches to the control column's height so the two edges align. */}
+        <div className="grid w-[88px] shrink-0 place-items-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
           <SafeImg
             src={preview ?? undefined}
             alt=""
@@ -131,27 +132,29 @@ export function ImageUploadField({
               </Button>
             )}
           </div>
+
+          {/* Messages sit under the controls, aligned with them — not
+              under the thumbnail. */}
+          {hint && !error && !uploadError && !loadWarning && (
+            <span className="block text-xs text-slate-500">{hint}</span>
+          )}
+          {uploadError && (
+            <span className="block text-xs font-medium text-red-600">
+              {uploadError}
+            </span>
+          )}
+          {error && (
+            <span className="block text-xs font-medium text-red-600">
+              {error}
+            </span>
+          )}
+          {loadWarning && !uploadError && (
+            <span className="block text-xs text-amber-600">
+              We couldn&apos;t load that image — it may not display.
+            </span>
+          )}
         </div>
       </div>
-
-      {hint && !error && !uploadError && !loadWarning && (
-        <span className="mt-1 block text-xs text-slate-500">{hint}</span>
-      )}
-      {uploadError && (
-        <span className="mt-1 block text-xs font-medium text-red-600">
-          {uploadError}
-        </span>
-      )}
-      {error && (
-        <span className="mt-1 block text-xs font-medium text-red-600">
-          {error}
-        </span>
-      )}
-      {loadWarning && !uploadError && (
-        <span className="mt-1 block text-xs text-amber-600">
-          We couldn&apos;t load that image — it may not display.
-        </span>
-      )}
     </div>
   );
 }

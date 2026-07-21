@@ -3,6 +3,11 @@ import { redirect } from "next/navigation";
 import { createServerAuthClient } from "@/lib/supabase/server";
 import { TGLogo } from "@/app/components/TGLogo";
 
+/* Lives in its own route group ON PURPOSE: the (onboarding) group wraps
+   its children in AuthShell, which paints the brand logo at the top of
+   the column — this standalone celebration screen brings its own logo,
+   so nesting it there rendered the logo twice. Same /onboarding/success
+   URL either way. */
 export default async function OnboardingSuccessPage() {
   const supabase = await createServerAuthClient();
   const { data: userData } = await supabase.auth.getUser();

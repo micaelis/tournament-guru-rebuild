@@ -106,6 +106,9 @@ Same left/right chrome as the auth screens.
 - **Screen 4 — Event Directors only:** Organization logo (PNG/JPG/JPEG, 5MB max), Organization
   description* (required).
 - Redirects: Attendee → Search Events; Event Director → dashboard.
+- **Success screen** (`/onboarding/success`): standalone celebration card (own logo +
+  check icon + role-based CTAs) rendered OUTSIDE the auth shell — its route group opts
+  out of the left/right chrome so the brand logo appears exactly once.
 - Role: adjustable during onboarding, locked once onboarding completes.
 - Mandatory-to-complete set: first_name, last_name, role, dob, gender, location,
   organization_title (except Parent/Spectator), org_description (ED).
@@ -132,8 +135,9 @@ Running log of auth-screen visual decisions (kept here so future changes stay co
   actions — smaller font (~13.5px) with a touch more vertical padding than the public pill.
   The signed-in "Log out" button shares the exact same outline-pill look (`headerPillLook`).
 - **Primary CTA (Sign in / Continue / etc.):** public red-gradient pill, hover-lift +
-  active-press. Secondary links (Create an account, Forgot password) are brand-red + hover
-  underline; footer lines (Create an account, privacy note) are centered.
+  active-press. Secondary links (Create an account, Forgot password, Contact support) use
+  the canonical **TextLink** treatment from the style guide (semibold slate, soft slate
+  underline, accent on hover); footer lines (Create an account, privacy note) are centered.
 - **Password field:** show/hide via an eye / eye-off icon toggle (hover + active-applied
   state), not a text button.
 - **Metric bar:** render ONLY when at least TWO metrics are non-zero; if 0 or 1 has data,

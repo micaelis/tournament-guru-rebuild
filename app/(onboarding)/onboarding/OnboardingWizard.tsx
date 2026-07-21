@@ -183,6 +183,7 @@ function Chip({
   defaultChecked,
   onChange,
   type = "radio",
+  size = "md",
 }: {
   name: string;
   value: string;
@@ -190,10 +191,16 @@ function Chip({
   defaultChecked?: boolean;
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   type?: "radio" | "checkbox";
+  /** "sm" — the lighter in-card chips (team Division / Competitive level). */
+  size?: "md" | "sm";
 }) {
+  const sizeCls =
+    size === "sm"
+      ? "px-3.5 py-1.5 text-[12.5px] hover:shadow-sm has-[input:checked]:shadow-sm"
+      : "px-5 py-2.5 text-sm shadow-sm hover:shadow-md has-[input:checked]:shadow-lg has-[input:checked]:scale-[1.02]";
   return (
     <label
-      className="cursor-pointer select-none rounded-full border px-5 py-2.5 text-center text-sm font-semibold transition-all duration-150 border-slate-200 bg-white text-slate-700 shadow-sm hover:border-slate-400 hover:shadow-md active:scale-95 has-[input:checked]:border-slate-900 has-[input:checked]:bg-slate-900 has-[input:checked]:text-white has-[input:checked]:shadow-lg has-[input:checked]:scale-[1.02]"
+      className={`cursor-pointer select-none rounded-full border text-center font-semibold transition-all duration-150 border-slate-200 bg-white text-slate-700 hover:border-slate-400 active:scale-95 has-[input:checked]:border-slate-900 has-[input:checked]:bg-slate-900 has-[input:checked]:text-white ${sizeCls}`}
     >
       <input
         type={type}
@@ -528,10 +535,11 @@ function TeamSlotFields({
           <legend className="mb-2 text-xs font-semibold text-slate-700">
             Division
           </legend>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5">
             {TEAM_GENDERS.map((g) => (
               <Chip
                 key={g.value}
+                size="sm"
                 name={`team_${slot}_gender`}
                 value={g.value}
                 label={g.label}
@@ -568,10 +576,11 @@ function TeamSlotFields({
           <legend className="mb-2 text-xs font-semibold text-slate-700">
             Competitive level
           </legend>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5">
             {COMPETITION_LEVELS.map((c) => (
               <Chip
                 key={c.value}
+                size="sm"
                 name={`team_${slot}_level`}
                 value={c.value}
                 label={c.label}
