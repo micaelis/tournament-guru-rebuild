@@ -18,14 +18,6 @@ const COLS = [
       { label: "Contact", href: "/contact" },
     ],
   },
-  {
-    title: "Resources",
-    links: [
-      { label: "Help center", href: "/help" },
-      { label: "Travel & hotels", href: "/travel" },
-      { label: "Guides", href: "/guides" },
-    ],
-  },
 ];
 
 export function Footer() {
