@@ -101,7 +101,7 @@ export function AccountClient({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-[var(--font-heading)] text-3xl font-extrabold text-slate-900">
+        <h1 className="font-[var(--font-heading)] text-2xl font-extrabold text-slate-900">
           Account
         </h1>
       </div>

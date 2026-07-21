@@ -7,6 +7,7 @@ import {
   Avatar,
   Button,
   ConfirmDialog,
+  EmptyState,
   StatusPill,
   Table,
   TD,
@@ -93,9 +94,7 @@ export function ClaimRequestsTable({
       </div>
 
       {filtered.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-6 py-10 text-center text-sm text-slate-500">
-          No claim requests match the current filters.
-        </div>
+        <EmptyState compact title="No claim requests match the current filters." />
       ) : (
         <Table>
           <THead>
@@ -221,7 +220,12 @@ function ClaimRow({
         </TD>
         <TD>
           <div className="flex flex-wrap gap-1">
-            <Button size="sm" variant="ghost" onClick={onToggle}>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={onToggle}
+              aria-expanded={expanded}
+            >
               {expanded ? "Hide" : "Details"}
             </Button>
             {isAdmin && row.status === "pending" && (

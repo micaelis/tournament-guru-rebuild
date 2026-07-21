@@ -7,6 +7,7 @@ import {
   Button,
   ConfirmDialog,
   StatusPill,
+  EmptyState,
   Table,
   TD,
   cn,
@@ -28,10 +29,10 @@ export function EdSubmittedList({ rows }: { rows: SubmittedCsvRow[] }) {
 
   if (rows.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-6 py-10 text-center text-sm text-slate-500">
-        No submissions yet. Head to the Submit CSV tab to send your first
-        batch to the admin.
-      </div>
+      <EmptyState
+        title="No submissions yet"
+        body="Head to the Submit CSV tab to send your first batch to the admin."
+      />
     );
   }
 

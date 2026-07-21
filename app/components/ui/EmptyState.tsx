@@ -15,6 +15,7 @@ export function EmptyState({
   action,
   secondary,
   className,
+  compact = false,
 }: {
   icon?: ReactNode;
   title: ReactNode;
@@ -22,7 +23,31 @@ export function EmptyState({
   action?: ReactNode;
   secondary?: ReactNode;
   className?: string;
+  /** Quieter variant for filtered-no-results ("nothing matched") —
+   * no icon, plain title — vs. the illustrated first-run state. */
+  compact?: boolean;
 }) {
+  if (compact) {
+    return (
+      <div
+        className={cn(
+          "flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white px-6 py-10 text-center",
+          className,
+        )}
+      >
+        <p className="text-sm font-semibold text-slate-600">{title}</p>
+        {body && (
+          <p className="mt-1 max-w-md text-sm text-slate-500">{body}</p>
+        )}
+        {(action || secondary) && (
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+            {action}
+            {secondary}
+          </div>
+        )}
+      </div>
+    );
+  }
   return (
     <div
       className={cn(

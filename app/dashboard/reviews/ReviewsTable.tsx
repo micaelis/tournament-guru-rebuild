@@ -8,6 +8,7 @@ import {
   Button,
   Checkbox,
   ConfirmDialog,
+  EmptyState,
   StarRating,
   StatusPill,
   Table,
@@ -243,9 +244,7 @@ export function ReviewsTable({
       </div>
 
       {shown.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-6 py-10 text-center text-sm text-slate-500">
-          No reviews match your filters.
-        </div>
+        <EmptyState compact title="No reviews match your filters." />
       ) : (
         <Table>
           <THead>

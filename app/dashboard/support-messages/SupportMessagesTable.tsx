@@ -48,6 +48,7 @@ export function SupportMessagesTable({ rows }: { rows: SupportMessageRow[] }) {
                   {longMessage && (
                     <button
                       type="button"
+                      aria-expanded={isExpanded}
                       className={cn(textLinkClass, "ml-1 text-xs")}
                       onClick={() => {
                         const next = new Set(expanded);

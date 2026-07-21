@@ -138,7 +138,9 @@ Build screens from these; don't hand-roll equivalents.
 - **Table** — dashboard list rows; use a shared grid template with a fixed-width actions column
   so columns align across rows (never `auto`-width action cells).
 - **EmptyState** — the shared "no results / nothing yet" placeholder; reuse everywhere with
-  adjusted copy + CTA (e.g. "Find Events").
+  adjusted copy + CTA (e.g. "Find Events"). Two weights: the illustrated default (icon +
+  heading) for first-run empties, and `compact` (no icon, plain one-liner) for
+  filtered-no-results ("nothing matched"). Never hand-roll a dashed placeholder box.
 - **ConfirmDialog** — destructive/confirm popups (delete tournament, unfollow, decline claim).
 - **USDateText / USDateField** — masked `mm/dd/yyyy` date input (native `type="date"`
   localizes its placeholder to the browser, not the app). Visible text is always US format;

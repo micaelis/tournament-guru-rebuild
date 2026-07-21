@@ -129,7 +129,8 @@ export function TournamentCard({
               <button
                 type="button"
                 onClick={() => setShowEvents((s) => !s)}
-                className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:border-slate-400"
+                aria-expanded={showEvents}
+                className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 transition-colors hover:border-slate-400"
               >
                 {showEvents ? "Hide" : "Show"}
               </button>

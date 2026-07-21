@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { FaqViewRow } from "./page";
+import { EmptyState } from "@/app/components/ui";
 
 export function FaqViewer({ rows }: { rows: FaqViewRow[] }) {
   const [search, setSearch] = useState("");
@@ -24,9 +25,10 @@ export function FaqViewer({ rows }: { rows: FaqViewRow[] }) {
         className="tg-control max-w-sm"
       />
       {visible.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-slate-200 bg-white px-6 py-10 text-center text-sm text-slate-500">
-          {q ? "No matching questions." : "No FAQs available yet."}
-        </p>
+        <EmptyState
+          compact
+          title={q ? "No matching questions." : "No FAQs available yet."}
+        />
       ) : (
         visible.map((r) => (
           <details

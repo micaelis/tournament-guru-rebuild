@@ -6,6 +6,7 @@ import { Alert, Field } from "@/app/(auth)/parts";
 import {
   Button,
   ConfirmDialog,
+  EmptyState,
   FormButton,
   Table,
   TD,
@@ -79,9 +80,7 @@ export function BannedWordsClient({ rows }: { rows: BannedRow[] }) {
           {rows.length} word{rows.length === 1 ? "" : "s"} on the list
         </p>
         {rows.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-6 text-center text-sm text-slate-500">
-            No banned words yet. Add one above.
-          </p>
+          <EmptyState compact title="No banned words yet. Add one above." />
         ) : (
           <Table>
             <THead>

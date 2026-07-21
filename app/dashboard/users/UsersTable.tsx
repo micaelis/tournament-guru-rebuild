@@ -12,6 +12,7 @@ import {
   THead,
   TR,
   useToast,
+  EmptyState,
 } from "@/app/components/ui";
 import { deleteUser, setBlocked } from "./actions";
 
@@ -51,9 +52,10 @@ export function UsersTable({
 
   if (rows.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-6 py-12 text-center text-sm text-slate-500">
-        No {tab === "attendees" ? "attendees" : "event directors"} yet.
-      </div>
+      <EmptyState
+        compact
+        title={<>No {tab === "attendees" ? "attendees" : "event directors"} yet.</>}
+      />
     );
   }
 

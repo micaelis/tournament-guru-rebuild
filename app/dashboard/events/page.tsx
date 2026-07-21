@@ -14,6 +14,7 @@ import {
   listSeasons,
   type EventListRow,
 } from "./event-queries";
+import { EmptyState } from "@/app/components/ui";
 
 type SearchParams = { [key: string]: string | string[] | undefined };
 
@@ -113,9 +114,10 @@ export default async function EventsDashboardPage({
             hasResults={tournaments.length > 0}
           />
           {tournaments.length === 0 ? (
-            <p className="rounded-2xl border border-dashed border-slate-200 bg-white px-6 py-10 text-center text-sm text-slate-500">
-              No tournaments matched &quot;{search}&quot;.
-            </p>
+            <EmptyState
+              compact
+              title={<>No tournaments matched &quot;{search}&quot;.</>}
+            />
           ) : (
             <div className="space-y-5">
               {tournaments.map((t) => (

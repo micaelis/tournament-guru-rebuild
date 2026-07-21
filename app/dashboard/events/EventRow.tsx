@@ -112,20 +112,27 @@ export function EventRow({
         </div>
       </header>
 
-      <div className="mt-4">
-        <button
-          type="button"
-          onClick={() => setShowMetrics((s) => !s)}
-          className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:border-slate-400"
-        >
-          {showMetrics ? "Hide metrics" : "Show metrics"}
-        </button>
-      </div>
+      {/* The toggle only exists when there are metrics to reveal — with
+          zero reviews it controlled an always-empty strip. */}
+      {event.review_count > 0 && (
+        <>
+          <div className="mt-4">
+            <button
+              type="button"
+              onClick={() => setShowMetrics((s) => !s)}
+              aria-expanded={showMetrics}
+              className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 transition-colors hover:border-slate-400"
+            >
+              {showMetrics ? "Hide metrics" : "Show metrics"}
+            </button>
+          </div>
 
-      {showMetrics && event.review_count > 0 && (
-        <div className="mt-3">
-          <MetricStrip tiles={tiles} collapsible={false} />
-        </div>
+          {showMetrics && (
+            <div className="mt-3">
+              <MetricStrip tiles={tiles} collapsible={false} />
+            </div>
+          )}
+        </>
       )}
     </article>
   );

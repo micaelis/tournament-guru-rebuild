@@ -1,6 +1,7 @@
 import { requireSessionAndProfile } from "@/lib/supabase/session";
 import { SupportForm } from "./SupportForm";
 import { createServerAuthClient } from "@/lib/supabase/server";
+import { EmptyState } from "@/app/components/ui";
 
 /**
  * Support hub. Contact form + audience-scoped FAQ list.
@@ -54,10 +55,11 @@ export default async function SupportPage() {
             Frequently Asked
           </h2>
           {faqs.length === 0 ? (
-            <p className="mt-3 rounded-xl border border-dashed border-slate-200 bg-white px-4 py-8 text-center text-sm text-slate-500">
-              We&apos;ll add answers here soon. Meanwhile drop us a note on the
-              right.
-            </p>
+            <EmptyState
+              compact
+              className="mt-3"
+              title="We'll add answers here soon. Meanwhile drop us a note on the right."
+            />
           ) : (
             <div className="mt-3 space-y-2">
               {faqs.map((f) => (

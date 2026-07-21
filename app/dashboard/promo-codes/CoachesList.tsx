@@ -11,6 +11,7 @@ import {
   THead,
   TR,
   useToast,
+  EmptyState,
 } from "@/app/components/ui";
 import type { PromoCoachRow } from "./queries";
 
@@ -31,9 +32,7 @@ export function CoachesList({
 }) {
   if (rows.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-6 py-10 text-center text-sm text-slate-500">
-        No promo codes on file yet.
-      </div>
+      <EmptyState compact title="No promo codes on file yet." />
     );
   }
   return (
@@ -133,10 +132,10 @@ export function AttendeePromoList({ rows }: { rows: PromoCoachRow[] }) {
   const { push } = useToast();
   if (rows.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-6 py-10 text-center text-sm text-slate-500">
-        You don&apos;t have any promo codes on your account yet. Event
-        directors send them by email once their premium event is approved.
-      </div>
+      <EmptyState
+        title="No promo codes yet"
+        body="You don't have any promo codes on your account yet. Event directors send them by email once their premium event is approved."
+      />
     );
   }
   return (

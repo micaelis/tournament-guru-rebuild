@@ -5,12 +5,12 @@ import { useRouter } from "next/navigation";
 import {
   Alert,
   Field,
-  SubmitButton,
 } from "../../(auth)/parts";
 import {
   Button,
   Checkbox,
   ConfirmDialog,
+  FormButton,
   useToast,
 } from "@/app/components/ui";
 import { useSubmittedValues } from "@/app/components/ui/useSubmittedValues";
@@ -92,7 +92,7 @@ export function CreateTournamentDialog({
             <Button type="button" variant="ghost" onClick={onClose}>
               Cancel
             </Button>
-            <SubmitButton className="!w-auto">Add tournament</SubmitButton>
+            <FormButton pendingLabel="Adding…">Add tournament</FormButton>
           </div>
         </form>
       </div>
@@ -219,7 +219,7 @@ export function EditTournamentDialog({
             <Button type="button" variant="ghost" onClick={onClose}>
               Cancel
             </Button>
-            <SubmitButton className="!w-auto">Save changes</SubmitButton>
+            <FormButton pendingLabel="Saving…">Save changes</FormButton>
           </div>
         </form>
       </div>

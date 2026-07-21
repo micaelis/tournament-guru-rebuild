@@ -14,6 +14,7 @@ import {
   THead,
   TR,
   useToast,
+  EmptyState,
 } from "@/app/components/ui";
 import {
   deleteFlaggedContent,
@@ -67,9 +68,10 @@ export function FlaggedContent({
 
   if (groups.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-6 py-12 text-center text-sm text-slate-500">
-        No flagged {tab === "reviews" ? "reviews" : "comments"} right now.
-      </div>
+      <EmptyState
+        compact
+        title={<>No flagged {tab === "reviews" ? "reviews" : "comments"} right now.</>}
+      />
     );
   }
 
