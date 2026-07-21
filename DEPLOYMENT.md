@@ -161,6 +161,13 @@ Set on Vercel (or your host) as **Environment Variables**:
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | anon JWT from §1 |
 | `NEXT_PUBLIC_SITE_URL` | `https://<production-domain>` |
 
+`NEXT_PUBLIC_SITE_URL` is **required in production**: `lib/site-url.ts`
+resolves the public home URL from it (the legal pages print and link it,
+and auth/promo emails fall back to it). Without it the app falls back to
+the Vercel deployment host or the request host, which keeps working but
+prints deployment-specific hostnames and makes the legal pages
+dynamically rendered.
+
 Optional (unset → the app runs in log-stub mode for both):
 
 | Key | Effect |

@@ -1,16 +1,25 @@
 import type { Metadata } from "next";
-import { LegalArticle } from "@/app/components/LegalArticle";
+import { LegalArticle, LegalLink } from "@/app/components/LegalArticle";
+import { siteUrl } from "@/lib/site-url";
 
 export const metadata: Metadata = { title: "Privacy Policy · Tournament Guru" };
 
-/* Client-provided copy, rendered verbatim — do not edit the strings. */
-export default function Page() {
+/* Client-provided copy, rendered verbatim — do not edit the words. The
+   only dynamic parts are sanctioned: "Website home URL" resolves to the
+   live site URL, and TournamentGuru brand mentions link home. */
+export default async function Page() {
+  const url = await siteUrl();
+  const brand = <LegalLink href={url}>TournamentGuru</LegalLink>;
   return (
     <LegalArticle
       eyebrow="Privacy"
       title="Privacy Policy"
       intro={[
-        "This privacy policy will help you understand how TournamentGuru uses and protects the data you provide to us when you visit and use Website home URL.",
+        <>
+          This privacy policy will help you understand how {brand} uses and
+          protects the data you provide to us when you visit and use{" "}
+          <LegalLink href={url}>{url}</LegalLink>.
+        </>,
         "We reserve the right to change this policy at any given time, of which you will be promptly updated. If you want to make sure that you are up to date with the latest changes, we advise you to frequently visit this page.",
       ]}
       sections={[
@@ -38,7 +47,13 @@ export default function Page() {
         {
           heading: "Safeguarding and Securing the Data",
           paragraphs: [
-            "TournamentGuru is committed to securing your data and keeping it confidential. TournamentGuru has done all in its power to prevent data theft, unauthorized access, and disclosure by implementing the latest technologies and software, which help us safeguard all the information we collect online.",
+            <>
+              {brand} is committed to securing your data and keeping it
+              confidential. {brand} has done all in its power to prevent data
+              theft, unauthorized access, and disclosure by implementing the
+              latest technologies and software, which help us safeguard all the
+              information we collect online.
+            </>,
           ],
         },
       ]}

@@ -2346,3 +2346,28 @@ unchanged; plus an ED-path case. Mutation-verified: restoring
 anonymize-style row survival turns the probe red. The C2 /
 null-uid-guard probes retargeted off the dropped function (the
 review-survival pin moved into the `soft_delete_attendee` case).
+
+### S12.1 · Legal pages: dynamic site URL + linked brand mentions (verbatim otherwise)
+
+**What:** `lib/site-url.ts` adds `siteUrl()` — the rebuild's answer to
+Bubble's "Website home URL" token: `NEXT_PUBLIC_SITE_URL` →
+`VERCEL_PROJECT_PRODUCTION_URL`/`VERCEL_URL` (https-prefixed) → request
+host → `http://localhost:3000`. The privacy page renders the resolved
+URL where the copy said the literal words "Website home URL", and the
+"TournamentGuru" brand mentions in privacy/legal body copy are now
+links to `siteUrl()` (via `LegalLink` in `LegalArticle.tsx`). These two
+substitutions are client-sanctioned; every other word stays verbatim
+per S11.1 — don't "fix" the links back to plain text, and don't edit
+the strings.
+
+**Why:** the Bubble original inserted the live home URL into the same
+sentence; the rebuild had shipped the placeholder words. Env legs
+resolve before any `headers()` read, so the legal pages stay statically
+rendered whenever the URL is configured (DEPLOYMENT.md §6 now requires
+it in prod).
+
+**Alternative rejected:** reusing `siteUrl()` inside the existing
+server actions (signup/reset/promo emails). Those resolve
+`origin`-header-first by design — a multi-domain deployment keeps the
+user on the host they signed up from — so folding them into the
+env-first helper would change behavior.

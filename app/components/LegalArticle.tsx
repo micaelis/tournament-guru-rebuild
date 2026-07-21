@@ -1,18 +1,40 @@
+import type { ReactNode } from "react";
+
 /**
  * Long-form legal/content page layout: aurora backdrop, single white
  * article card, left-aligned reading measure. Copy is client-provided and
  * rendered verbatim — structure (headings, lists) is the only styling
- * applied here; never edit the strings in the page files.
+ * applied here; never edit the strings in the page files. Paragraphs
+ * accept nodes so the pages can inline the dynamic site URL and brand
+ * links without changing the words.
  */
 
 export type LegalSection = {
   heading: string;
-  /** Plain paragraphs rendered in order, before any bullet list. */
-  paragraphs?: string[];
+  /** Paragraphs rendered in order, before any bullet list. */
+  paragraphs?: ReactNode[];
   /** One-line lead-in shown directly above the bullet list. */
   lead?: string;
   bullets?: string[];
 };
+
+/** Inline link inside legal body copy — the canonical text-link look. */
+export function LegalLink({
+  href,
+  children,
+}: {
+  href: string;
+  children: ReactNode;
+}) {
+  return (
+    <a
+      href={href}
+      className="font-semibold text-slate-700 underline decoration-slate-300 underline-offset-2 transition-colors hover:text-[var(--color-accent)] hover:decoration-[var(--color-accent)]"
+    >
+      {children}
+    </a>
+  );
+}
 
 export function LegalArticle({
   eyebrow,
@@ -22,7 +44,7 @@ export function LegalArticle({
 }: {
   eyebrow: string;
   title: string;
-  intro: string[];
+  intro: ReactNode[];
   sections: LegalSection[];
 }) {
   return (
@@ -64,9 +86,9 @@ export function LegalArticle({
               "0 20px 48px -24px rgba(15,23,42,.18), 0 2px 6px rgba(15,23,42,.04)",
           }}
         >
-          {intro.map((p) => (
+          {intro.map((p, i) => (
             <p
-              key={p.slice(0, 40)}
+              key={i}
               className="mt-0 mb-4 last:mb-0"
               style={{
                 fontSize: 15.5,
@@ -93,9 +115,9 @@ export function LegalArticle({
               >
                 {s.heading}
               </h2>
-              {s.paragraphs?.map((p) => (
+              {s.paragraphs?.map((p, i) => (
                 <p
-                  key={p.slice(0, 40)}
+                  key={i}
                   className="mt-0 mb-4 last:mb-0"
                   style={{
                     fontSize: 15.5,
