@@ -128,7 +128,8 @@ export function FlagDialog({
           <Button
             variant="danger"
             onClick={submit}
-            disabled={pending || !reason}
+            loading={pending}
+            disabled={!reason}
           >
             {pending ? "Sending…" : "Confirm"}
           </Button>

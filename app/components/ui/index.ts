@@ -6,6 +6,7 @@ export { EmptyState } from "./EmptyState";
 export { FormButton } from "./FormButton";
 export { MetricStrip, MetricTile, type MetricTileData } from "./MetricStrip";
 export { StarRating } from "./StarRating";
+export { Spinner } from "./Spinner";
 export { StatusPill, eventStatusTone, type PillTone } from "./StatusPill";
 export { Table, TD, TH, THead, TR } from "./Table";
 export { TextLink, textLinkClass } from "./TextLink";

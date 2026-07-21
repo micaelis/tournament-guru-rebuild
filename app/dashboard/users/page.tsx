@@ -4,6 +4,7 @@ import { createServerAuthClient } from "@/lib/supabase/server";
 import { unwrapRows } from "@/lib/supabase/unwrap";
 import { fetchInChunks } from "@/lib/supabase/in-chunks";
 import { UsersTable, type UserRow } from "./UsersTable";
+import { Button } from "@/app/components/ui";
 
 type SearchParams = { [key: string]: string | string[] | undefined };
 
@@ -146,12 +147,9 @@ export default async function AdminUsersPage({
           placeholder="Search by name, email, or organization…"
           className="tg-control"
         />
-        <button
-          type="submit"
-          className="shrink-0 rounded-full border border-slate-200 bg-white px-4 py-1.5 text-sm font-semibold text-slate-700 transition hover:border-slate-400"
-        >
+        <Button type="submit" variant="ghost" className="shrink-0">
           Search
-        </button>
+        </Button>
       </form>
       <UsersTable rows={rows} counts={counts} tab={tab} />
     </div>

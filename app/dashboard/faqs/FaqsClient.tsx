@@ -6,6 +6,7 @@ import { Alert, Field } from "@/app/(auth)/parts";
 import {
   Button,
   ConfirmDialog,
+  FormButton,
   useToast,
 } from "@/app/components/ui";
 import { useLiveValidation } from "@/app/components/ui/useLiveValidation";
@@ -419,7 +420,9 @@ function FaqForm({
             Cancel
           </Button>
         )}
-        <Button type="submit">{editing ? "Save" : "Add FAQ"}</Button>
+        <FormButton pendingLabel="Saving…">
+          {editing ? "Save" : "Add FAQ"}
+        </FormButton>
       </div>
     </form>
   );

@@ -348,7 +348,8 @@ function DeclineDialog({
           </Button>
           <Button
             variant="danger"
-            disabled={pending || !reason.trim()}
+            loading={pending}
+            disabled={!reason.trim()}
             onClick={async () => {
               setPending(true);
               const res = await declineClaimRequest(row.id, reason);

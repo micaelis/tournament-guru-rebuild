@@ -161,7 +161,8 @@ export function SendEmailsDialog({
             Cancel
           </Button>
           <Button
-            disabled={sending || eligible.length === 0 || preflight === null}
+            loading={sending}
+            disabled={eligible.length === 0 || preflight === null}
             onClick={async () => {
               setSending(true);
               const res = await sendPromoEmails({

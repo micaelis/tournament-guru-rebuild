@@ -112,16 +112,7 @@ export function ContactForm({ source }: { source: ContactSource }) {
           />
         </Field>
 
-        <Button
-          type="submit"
-          disabled={pending}
-          className="transition-transform hover:-translate-y-0.5"
-          style={{
-            marginTop: 4,
-            background: "linear-gradient(135deg, #1e293b, #0f172a)",
-            boxShadow: "0 8px 20px -8px rgba(15,23,42,.5)",
-          }}
-        >
+        <Button type="submit" loading={pending} className="mt-1">
           {pending ? "Sending…" : copy.submit}
         </Button>
 

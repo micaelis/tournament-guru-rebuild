@@ -87,8 +87,14 @@ recurs on rating pools, reviewer cards, and metric strips — keep it consistent
 
 Build screens from these; don't hand-roll equivalents.
 
-- **Button** — variants: `primary` (dark `#0f172a`, white text), `default` (white, bordered),
-  `ghost`. Sizes: default, `sm`. Radius 9–10px. Primary lifts on hover.
+- **Button** — variants: `primary` (dark `#0f172a`, white text; lifts 1px with a soft
+  shadow on hover), `ghost` (white, bordered — the secondary), `danger` (red-tinted ghost
+  for destructive confirms), `link` (the TextLink treatment). Sizes: `sm`, `md`, `lg`.
+  All transitions run 150ms ease-out. `loading` disables the button and prepends the
+  shared **Spinner** — pass the pending flag from `useActionState`, or use **FormButton**
+  (a submit Button that wires `useFormStatus` automatically, with an optional
+  `pendingLabel` swap like "Saving…"). Every in-flight action shows the spinner; don't
+  hand-roll "…" or label-only pending states.
 - **Card** — white surface, `1px` line border, radius 14–16px, border-color hover. The base
   container for tournaments, events, reviews, panels.
 - **Chip** — small pill: `count` (slate, neutral), `prem` (red, "Premium"), `spons` (violet,
@@ -140,8 +146,10 @@ Build screens from these; don't hand-roll equivalents.
   labelled Field-wrapped variant (onboarding DOB); `USDateText` is bare (filter drawer dates).
   User-facing date ENTRY goes through these; dashboard ED tooling may still use native pickers.
 - **Toast** — transient confirmations ("Link copied", "Downloaded", "Saved").
-- **Spinner** — no shared component yet; build section loaders from the `tg-spin` keyframe
-  (globals.css) like the search results' "Searching…" overlay pill (EventsSearch).
+- **Spinner** — the shared inline spinner (`tg-spin` keyframe, border-current circle,
+  em-sized so it tracks the text scale, `currentColor` tint). Button/FormButton render it
+  when pending; section loaders (like the search results' "Searching…" overlay pill)
+  compose it with their own copy.
 
 ---
 

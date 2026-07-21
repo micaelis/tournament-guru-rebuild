@@ -269,7 +269,8 @@ function RejectDialog({
           </Button>
           <Button
             variant="danger"
-            disabled={pending || !reason.trim()}
+            loading={pending}
+            disabled={!reason.trim()}
             onClick={async () => {
               setPending(true);
               const res = await rejectSubmittedCsv(row.id, reason);

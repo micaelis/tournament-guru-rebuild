@@ -182,7 +182,7 @@ function ClaimModal({
             <Button type="button" variant="ghost" onClick={onClose} disabled={pending}>
               Cancel
             </Button>
-            <Button type="submit" disabled={pending}>
+            <Button type="submit" loading={pending}>
               {pending ? "Submitting…" : "Submit"}
             </Button>
           </div>

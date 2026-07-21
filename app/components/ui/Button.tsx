@@ -1,5 +1,6 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { cn } from "./cn";
+import { Spinner } from "./Spinner";
 import { textLinkClass } from "./TextLink";
 
 type Variant = "primary" | "ghost" | "danger" | "link";
@@ -7,23 +8,30 @@ type Size = "sm" | "md" | "lg";
 
 /**
  * The three-and-a-half button variants used across the app. Primary =
- * slate-900 filled (the "commit" action). Ghost = white with border
- * (secondary). Danger = red-tinted ghost for destructive confirms.
- * Link = flat, red-accent inline action.
+ * slate-900 filled (the "commit" action) with a gentle lift on hover.
+ * Ghost = white with border (secondary). Danger = red-tinted ghost for
+ * destructive confirms. Link = the canonical inline text-link look.
+ *
+ * `loading` disables the button and swaps in the shared Spinner ahead
+ * of the label — pass the pending flag from useActionState /
+ * useFormStatus (or use FormButton, which wires it automatically).
  */
 export function Button({
   variant = "primary",
   size = "md",
   className,
   children,
+  loading = false,
+  disabled,
   ...rest
 }: {
   variant?: Variant;
   size?: Size;
+  loading?: boolean;
   children: ReactNode;
 } & ButtonHTMLAttributes<HTMLButtonElement>) {
   const base =
-    "inline-flex items-center justify-center gap-2 rounded-xl font-bold transition disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline-none";
+    "inline-flex items-center justify-center gap-2 rounded-xl font-bold transition-all duration-150 ease-out disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline-none";
   const sizes: Record<Size, string> = {
     sm: "px-3 py-1.5 text-[12.5px]",
     md: "px-4 py-2.5 text-sm",
@@ -31,7 +39,7 @@ export function Button({
   };
   const variants: Record<Variant, string> = {
     primary:
-      "bg-slate-900 text-white hover:bg-slate-700 focus-visible:ring-2 focus-visible:ring-slate-900/40",
+      "bg-slate-900 text-white hover:bg-slate-700 hover:-translate-y-px hover:shadow-[0_6px_16px_-8px_rgba(15,23,42,.55)] active:translate-y-0 active:shadow-none disabled:hover:translate-y-0 disabled:hover:shadow-none focus-visible:ring-2 focus-visible:ring-slate-900/40",
     ghost:
       "border border-slate-200 bg-white text-slate-800 hover:border-slate-400 hover:bg-slate-50",
     danger:
@@ -41,8 +49,11 @@ export function Button({
   return (
     <button
       {...rest}
+      disabled={loading || disabled}
+      aria-busy={loading || undefined}
       className={cn(base, sizes[size], variants[variant], className)}
     >
+      {loading && <Spinner />}
       {children}
     </button>
   );

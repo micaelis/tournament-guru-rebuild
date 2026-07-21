@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Alert } from "@/app/(auth)/parts";
-import { Button, useToast } from "@/app/components/ui";
+import { Button, FormButton, useToast } from "@/app/components/ui";
 import { useLiveValidation } from "@/app/components/ui/useLiveValidation";
 import { saveComment, type ReviewState } from "@/lib/reviews/actions";
 import { findBannedWords } from "@/lib/reviews/client-check";
@@ -109,13 +109,13 @@ export function CommentForm({
             Cancel
           </Button>
         )}
-        <Button
-          type="submit"
+        <FormButton
           size="sm"
+          pendingLabel="Posting…"
           disabled={!body.trim() || over || banned.length > 0}
         >
           {submitLabel}
-        </Button>
+        </FormButton>
       </div>
     </form>
   );

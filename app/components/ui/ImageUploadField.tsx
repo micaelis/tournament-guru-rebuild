@@ -111,7 +111,7 @@ export function ImageUploadField({
               type="button"
               variant="ghost"
               size="sm"
-              disabled={busy}
+              loading={busy}
               onClick={() => fileRef.current?.click()}
             >
               {busy ? "Uploading…" : "Upload PNG/JPG"}

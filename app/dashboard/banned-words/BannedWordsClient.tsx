@@ -6,6 +6,7 @@ import { Alert, Field } from "@/app/(auth)/parts";
 import {
   Button,
   ConfirmDialog,
+  FormButton,
   Table,
   TD,
   TH,
@@ -68,7 +69,7 @@ export function BannedWordsClient({ rows }: { rows: BannedRow[] }) {
             error={state.fieldErrors?.word}
           />
           <div className="flex justify-end">
-            <Button type="submit">Add</Button>
+            <FormButton pendingLabel="Adding…">Add</FormButton>
           </div>
         </form>
       </div>

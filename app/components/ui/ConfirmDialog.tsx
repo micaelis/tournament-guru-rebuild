@@ -82,9 +82,9 @@ function ConfirmDialogInner({
           <Button
             variant={destructive ? "danger" : "primary"}
             onClick={handleConfirm}
-            disabled={pending}
+            loading={pending}
           >
-            {pending ? "…" : confirmLabel}
+            {confirmLabel}
           </Button>
         </div>
       </div>

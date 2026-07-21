@@ -67,7 +67,7 @@ export function ReviewWriteForm({
   reviewerRole: string;
   bannedWords: string[];
 }) {
-  const [state, formAction] = useActionState(saveReview, INITIAL);
+  const [state, formAction, isPending] = useActionState(saveReview, INITIAL);
   const [ratings, setRatings] = useState<Record<ReviewCategoryKey, number | null>>({
     rating_fields: defaults?.rating_fields ?? null,
     rating_facilities: defaults?.rating_facilities ?? null,
@@ -302,12 +302,18 @@ export function ReviewWriteForm({
             Save any time as a draft; publish when it&apos;s ready.
           </p>
           <div className="flex gap-2">
-            <Button type="button" variant="ghost" onClick={submitDraft}>
+            <Button
+              type="button"
+              variant="ghost"
+              loading={isPending && intent === "draft"}
+              onClick={submitDraft}
+            >
               Save draft
             </Button>
             <Button
               type="button"
               variant="primary"
+              loading={isPending && intent === "publish"}
               disabled={!canPublish}
               onClick={openConfirm}
             >

@@ -234,7 +234,7 @@ function SubmitCsvFormInner({
         </label>
 
         <div className="flex justify-end gap-2">
-          <Button type="submit" disabled={!previewOk || pending}>
+          <Button type="submit" loading={pending} disabled={!previewOk}>
             {pending ? "Submitting…" : "Submit for review"}
           </Button>
         </div>
@@ -262,7 +262,7 @@ function SubmitCsvFormInner({
                 Back
               </Button>
               <Button
-                disabled={pending || uploading}
+                loading={pending || uploading}
                 onClick={() => {
                   setShowConfirm(false);
                   void doSubmit();
