@@ -17,3 +17,13 @@ of what was explored).
   placeholders (inputs get `placeholder`, the preview card shows "Add your …" rows);
   selected choice-chips are red-tinted, NOT ink/black, so selections never read as
   CTAs. Still design-only — do not implement into `app/` until Danny signs off.
+- `event-details-redesign.html` — redesigned public event-details page (Danny's
+  2026-07-24 brief), shown on a premium example ("Spring Kickoff Cup — U12 Girls").
+  Status pill after "Hosted by"; prominent ATTENDEE + COACH header ratings +
+  "% would attend again" pill; tinted icon facts row (Format derived from age groups);
+  About + Age groups & pricing collapsed by default; single-pin map + premium
+  facility-features checklist (no Key Dates, no airports); right rail without
+  price/dates (org description leads, Call + Email tiles); share tiles; compact
+  "More from this org" list; refined past-event cards; tidy sponsors. The gallery
+  mocks both states — switch with the floating toggle (or open with `#no-photos`).
+  Design-only — do not implement into `app/` until Danny signs off.

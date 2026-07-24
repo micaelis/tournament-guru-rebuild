@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<!--
+  Tournament Guru — public EVENT DETAILS redesign (DESIGN ARTIFACT, not wired to the app).
+  Open directly in a browser; needs network for Tailwind CDN + Google Fonts + placeholder photos.
+
+  Danny's brief (2026-07-24), all reflected here on realistic data
+  ("Spring Kickoff Cup — U12 Girls" · Lone Star Youth Sports · Austin, TX · PREMIUM example):
+
+    Header      · status pill AFTER "Hosted by <Org>"; org name larger; location text larger;
+                  prominent event ratings — ATTENDEE + COACH (premium) + "% would attend again" pill.
+                  (Simple events would show the ATTENDEE block only.)
+    Gallery     · two mocked states, switch with the small toggle above it:
+                  photos → lead + 2×2 grid;  no photos → org logo centered on a clean surface.
+    Facts row   · six tinted icon tiles (Age Group / Gender / Format* / Surface / Level / Teams),
+                  single row, never wraps.  *Format derived from the event's age groups.
+    Body        · "About this tournament" + "Age groups & pricing" COLLAPSED by default with
+                  chevron + Show more. No Key Dates section. No airport info.
+    Location    · ONE map, one pin, venue label; premium "Facility features" checklist under it.
+    Right rail  · no price/dates; org identity + rating line, description leads, Call + Email
+                  tiles, Contact host + Visit Tournament / Organization Website. Larger text.
+    Share       · "Share with your team" icon tiles (Copy link / Email / X / WhatsApp).
+    Rail list   · compact "More events by this org" under Share: logo · title · avg · count · dates.
+    Main column · "Past events from this tournament" on a REFINED event card.
+    Sponsors    · tidy compact cards, not stretched.
+    Buttons/chips · smooth default↔hover transitions throughout.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>TG — Event details redesign</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: { ink: "#0f172a", accent: "#dc2626" },
+        fontFamily: {
+          sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+          heading: ['"Bricolage Grotesque"', "Inter", "sans-serif"],
+        },
+      },
+    },
+  };
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0f172a; --body:#475569; --muted:#64748b; --faint:#94a3b8;
+    --line:#e2e8f0; --line2:#f1f5f9; --accent:#dc2626; --accent-dark:#b91c1c; --gold:#f59e0b;
+  }
+  html{scroll-behavior:smooth}
+  body{color:var(--ink); -webkit-font-smoothing:antialiased}
+
+  /* ── shared surfaces ── */
+  .card{background:#fff;border:1px solid var(--line);border-radius:18px;
+    box-shadow:0 1px 2px rgba(15,23,42,.04);transition:border-color .15s ease-out}
+  .card-hover:hover{border-color:#cbd5e1}
+  .eyebrow{font-family:"Bricolage Grotesque",Inter,sans-serif;font-size:10.5px;font-weight:800;
+    letter-spacing:.14em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+  .hairline{height:1px;background:var(--line2)}
+
+  /* ── buttons: every interactive element eases both ways ── */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;
+    font-family:"Bricolage Grotesque",Inter,sans-serif;font-weight:700;border-radius:9999px;
+    text-decoration:none;border:1px solid transparent;
+    transition:background .15s ease-out,border-color .15s ease-out,color .15s ease-out,
+      box-shadow .15s ease-out,transform .15s ease-out}
+  .btn-red{background:var(--accent);color:#fff;font-weight:800;
+    box-shadow:0 10px 22px -8px rgba(220,38,38,.5)}
+  .btn-red:hover{background:var(--accent-dark);transform:translateY(-1px);
+    box-shadow:0 14px 26px -8px rgba(220,38,38,.55)}
+  .btn-ghost{background:#fff;color:var(--ink);border-color:var(--line)}
+  .btn-ghost:hover{border-color:#94a3b8;background:#fafbfd}
+  .btn-icon{width:40px;height:40px;padding:0;border-radius:9999px;background:#fff;
+    border:1px solid var(--line);color:var(--ink)}
+  .btn-icon:hover{border-color:#94a3b8;color:var(--accent)}
+
+  /* ── status pills ── */
+  .pill{display:inline-flex;align-items:center;gap:6px;border-radius:9999px;
+    font-family:"Bricolage Grotesque",Inter,sans-serif;font-size:10px;font-weight:800;
+    letter-spacing:.08em;text-transform:uppercase;padding:3px 10px 3px 8px;border:1px solid}
+  .pill .dot{width:5px;height:5px;border-radius:9999px}
+  .pill-open{background:#ecfdf5;color:#15803d;border-color:#bbf7d0}
+  .pill-open .dot{background:#16a34a}
+  .pill-concluded{background:#f1f5f9;color:#475569;border-color:#e2e8f0}
+  .pill-concluded .dot{background:#94a3b8}
+
+  /* ── stars (fractional fill via clipped gold layer) ── */
+  .stars{position:relative;display:inline-flex;line-height:0}
+  .stars svg{width:15px;height:15px;flex:none}
+  .stars.sm svg{width:13px;height:13px}
+  .stars.lg svg{width:17px;height:17px}
+  .stars-base{display:inline-flex;color:#e2e8f0}
+  .stars-fill{display:inline-flex;color:var(--gold);position:absolute;inset:0 auto 0 0;
+    overflow:hidden;white-space:nowrap}
+
+  /* ── facts row: tinted icon tiles, one line, never wraps ── */
+  .facts{display:grid;grid-template-columns:repeat(6,minmax(118px,1fr));gap:10px}
+  .fact{display:flex;flex-direction:column;align-items:flex-start;gap:8px;white-space:nowrap}
+  .fact .ic{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;
+    justify-content:center}
+  .fact .lab{font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--faint);font-family:"Bricolage Grotesque",Inter,sans-serif}
+  .fact .val{font-family:"Bricolage Grotesque",Inter,sans-serif;font-size:17px;font-weight:800;
+    letter-spacing:-.02em;color:var(--ink)}
+
+  /* ── collapsible sections ── */
+  .clamp{position:relative;max-height:66px;overflow:hidden;
+    -webkit-mask-image:linear-gradient(180deg,#000 45%,transparent 100%);
+    mask-image:linear-gradient(180deg,#000 45%,transparent 100%);
+    transition:max-height .25s ease-out}
+  .clamp.open{max-height:1200px;-webkit-mask-image:none;mask-image:none}
+  .disclose{display:inline-flex;align-items:center;gap:6px;cursor:pointer;background:#fff;
+    border:1px solid var(--line);border-radius:9999px;padding:7px 14px;font-size:12.5px;
+    font-weight:700;color:var(--ink);font-family:"Bricolage Grotesque",Inter,sans-serif;
+    transition:border-color .15s ease-out,background .15s ease-out}
+  .disclose:hover{border-color:#94a3b8;background:#fafbfd}
+  .disclose svg{transition:transform .2s ease-out}
+  .disclose.open svg{transform:rotate(180deg)}
+
+  /* ── event-card chips ── */
+  .tag{display:inline-flex;align-items:center;border-radius:9999px;background:#f8fafc;
+    border:1px solid var(--line);color:#334155;font-size:12px;font-weight:600;
+    padding:4px 11px;transition:border-color .15s ease-out,background .15s ease-out}
+  .tag:hover{border-color:#cbd5e1;background:#fff}
+
+  /* ── reviews segmented filter (selected = red tint, never ink) ── */
+  .seg{display:inline-flex;gap:2px;background:#f1f5f9;border:1px solid var(--line);
+    border-radius:9999px;padding:3px}
+  .seg button{border:1px solid transparent;background:transparent;border-radius:9999px;
+    padding:6px 13px;font-size:12px;font-weight:700;color:var(--body);cursor:pointer;
+    font-family:"Bricolage Grotesque",Inter,sans-serif;
+    transition:background .15s ease-out,color .15s ease-out,border-color .15s ease-out}
+  .seg button:hover{color:var(--ink)}
+  .seg button.on{background:#fef2f2;border-color:var(--accent);color:#b91c1c}
+
+  /* ── share tiles ── */
+  .share-tile{display:flex;flex-direction:column;align-items:center;gap:7px;background:#fff;
+    border:1px solid var(--line);border-radius:14px;padding:13px 6px 11px;cursor:pointer;
+    color:var(--ink);font-size:12.5px;font-weight:700;
+    font-family:"Bricolage Grotesque",Inter,sans-serif;
+    transition:border-color .15s ease-out,transform .15s ease-out,box-shadow .15s ease-out}
+  .share-tile:hover{border-color:#94a3b8;transform:translateY(-1px);
+    box-shadow:0 8px 18px -10px rgba(15,23,42,.18)}
+
+  /* ── map pin pulse ── */
+  @keyframes tg-pulse{0%{transform:scale(.6);opacity:.55}70%{transform:scale(1.6);opacity:0}
+    100%{transform:scale(1.6);opacity:0}}
+  .pin-pulse{animation:tg-pulse 2.2s ease-out infinite}
+
+  /* ── compact org-events rows ── */
+  .mini-ev{display:flex;align-items:center;gap:12px;padding:11px 6px;border-radius:12px;
+    text-decoration:none;transition:background .15s ease-out}
+  .mini-ev:hover{background:#f8fafc}
+  .mini-ev:hover .mini-title{color:var(--accent)}
+
+  /* two-column page grid */
+  .page-grid{display:grid;gap:32px;grid-template-columns:minmax(0,1fr)}
+  @media(min-width:1024px){.page-grid{grid-template-columns:minmax(0,1fr) 372px}}
+
+  .facts-scroll{overflow-x:auto;scrollbar-width:none}
+  .facts-scroll::-webkit-scrollbar{display:none}
+
+  .entity-link{color:var(--ink);text-decoration:none;transition:color .15s ease-out}
+  .entity-link:hover{color:var(--accent)}
+</style>
+</head>
+
+<body class="font-sans" style="background:#eef2f9;
+  background-image:
+    radial-gradient(1040px 640px at -4% -14%, rgba(220,38,38,.10), transparent 56%),
+    radial-gradient(980px 600px at 104% -8%, rgba(0,77,255,.08), transparent 56%),
+    radial-gradient(820px 820px at 100% 50%, rgba(245,158,11,.06), transparent 60%),
+    radial-gradient(1000px 900px at 40% 126%, rgba(124,58,237,.06), transparent 60%);
+  background-attachment:fixed;background-repeat:no-repeat;">
+
+<!-- ═══════════════ slim site bar (framing only) ═══════════════ -->
+<header class="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur">
+  <div class="mx-auto flex h-16 max-w-[1240px] items-center justify-between px-4 sm:px-6">
+    <div class="flex items-center gap-2.5">
+      <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-ink text-white">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="#dc2626"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg>
+      </span>
+      <span class="font-heading text-[17px] font-extrabold tracking-tight">Tournament <span class="text-accent">Guru</span></span>
+    </div>
+    <nav class="hidden items-center gap-6 text-[13.5px] font-semibold text-slate-600 sm:flex">
+      <a class="entity-link" href="#">Find Events</a>
+      <a class="entity-link" href="#">Directors</a>
+      <a class="entity-link" href="#">About</a>
+    </nav>
+    <a href="#" class="btn btn-ghost px-4 py-2 text-[13px]">Sign in</a>
+  </div>
+</header>
+
+<div class="mx-auto max-w-[1240px] px-4 pb-20 sm:px-6" style="padding-top:clamp(20px,3vw,32px)">
+
+  <!-- ═══════════════ breadcrumb + mockup gallery toggle ═══════════════ -->
+  <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+    <nav aria-label="Breadcrumb" class="flex items-center gap-2 text-[12.5px] font-semibold text-slate-500">
+      <a href="#" class="btn btn-ghost gap-1.5 px-3 py-1.5 text-[12.5px] font-semibold" style="font-family:Inter">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+        Find Events
+      </a>
+      <span aria-hidden class="text-slate-400">›</span>
+      <span class="truncate text-slate-700">Spring Kickoff Cup — U12 Girls</span>
+    </nav>
+    <!-- mockup-only control -->
+    <div class="flex items-center gap-2 rounded-full border border-dashed border-slate-300 bg-white/70 py-1 pl-3 pr-1">
+      <span class="text-[10px] font-extrabold uppercase tracking-[.12em] text-slate-400">Mockup · gallery state</span>
+      <div class="seg" style="background:#fff">
+        <button id="tgl-photos" class="on" onclick="setGallery('photos')">Photos</button>
+        <button id="tgl-logo" onclick="setGallery('logo')">No photos</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ HERO GALLERY — state 1: photos ═══════════════ -->
+  <div id="gal-photos" class="relative overflow-hidden"
+       style="border-radius:20px;border:1px solid rgba(255,255,255,.7);
+              box-shadow:0 24px 60px -30px rgba(15,23,42,.28),0 4px 12px -6px rgba(15,23,42,.10)">
+    <div class="grid gap-1.5 bg-white" style="grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);min-height:380px">
+      <div class="relative min-h-[380px] cursor-pointer overflow-hidden bg-slate-200">
+        <img src="https://picsum.photos/seed/tg-pitch1/1100/760" alt="" class="absolute inset-0 h-full w-full object-cover">
+      </div>
+      <div class="grid gap-1.5" style="grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr">
+        <div class="relative cursor-pointer overflow-hidden bg-slate-200"><img src="https://picsum.photos/seed/tg-pitch2/560/420" alt="" class="absolute inset-0 h-full w-full object-cover"></div>
+        <div class="relative cursor-pointer overflow-hidden bg-slate-200"><img src="https://picsum.photos/seed/tg-pitch3/560/420" alt="" class="absolute inset-0 h-full w-full object-cover"></div>
+        <div class="relative cursor-pointer overflow-hidden bg-slate-200"><img src="https://picsum.photos/seed/tg-pitch4/560/420" alt="" class="absolute inset-0 h-full w-full object-cover"></div>
+        <div class="relative cursor-pointer overflow-hidden bg-slate-200"><img src="https://picsum.photos/seed/tg-pitch5/560/420" alt="" class="absolute inset-0 h-full w-full object-cover"></div>
+      </div>
+    </div>
+    <span class="absolute left-3.5 top-3.5 inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 font-heading text-[10.5px] font-extrabold uppercase tracking-[.14em] text-white"
+          style="background:linear-gradient(135deg,#dc2626,#b91c1c);box-shadow:0 6px 14px -4px rgba(220,38,38,.45)">
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="#fbbf24"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg>
+      Featured
+    </span>
+    <button class="btn absolute bottom-3.5 right-3.5 gap-2 bg-white/95 px-3.5 py-2 text-[12.5px]"
+            style="border:1px solid rgba(15,23,42,.10);box-shadow:0 6px 18px -6px rgba(15,23,42,.28);backdrop-filter:saturate(140%) blur(6px)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+      Show all 7 photos
+    </button>
+  </div>
+
+  <!-- ═══════════════ HERO GALLERY — state 2: no photos → logo, intentional ═══════════════ -->
+  <div id="gal-logo" class="relative hidden overflow-hidden"
+       style="border-radius:20px;border:1px solid rgba(255,255,255,.7);min-height:320px;
+              background:radial-gradient(120% 100% at 50% 0%,#ffffff 0%,#f4f7fb 55%,#e9eef5 100%);
+              box-shadow:0 24px 60px -30px rgba(15,23,42,.28),0 4px 12px -6px rgba(15,23,42,.10)">
+    <span aria-hidden class="absolute inset-0 flex items-center justify-center" style="font-size:230px;opacity:.05">⚽</span>
+    <span class="absolute left-3.5 top-3.5 inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 font-heading text-[10.5px] font-extrabold uppercase tracking-[.14em] text-white"
+          style="background:linear-gradient(135deg,#dc2626,#b91c1c);box-shadow:0 6px 14px -4px rgba(220,38,38,.45)">
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="#fbbf24"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg>
+      Featured
+    </span>
+    <div class="absolute inset-0 flex flex-col items-center justify-center gap-4">
+      <span class="flex h-[132px] w-[132px] items-center justify-center overflow-hidden rounded-3xl border border-slate-200 bg-white"
+            style="box-shadow:0 18px 40px -18px rgba(15,23,42,.25)">
+        <img src="https://picsum.photos/seed/tg-orglogo/240/240" alt="Lone Star Youth Sports logo" class="h-full w-full object-cover">
+      </span>
+      <span class="rounded-full border border-slate-200 bg-white/90 px-4 py-1.5 font-heading text-[13px] font-bold tracking-tight text-slate-700">
+        Lone Star Youth Sports
+      </span>
+    </div>
+  </div>
+
+  <!-- ═══════════════ HERO HEADER ═══════════════ -->
+  <div class="mt-7 flex flex-wrap items-end justify-between gap-5">
+    <div class="flex min-w-0 items-start gap-5">
+      <!-- calendar tile -->
+      <div class="relative hidden shrink-0 flex-col items-stretch overflow-hidden rounded-xl border border-slate-200 bg-white text-center sm:inline-flex"
+           style="min-width:84px;line-height:1;box-shadow:0 4px 10px -4px rgba(15,23,42,.15)">
+        <span aria-hidden class="absolute left-2.5 right-2.5 top-0 h-[2.5px] rounded-b bg-accent"></span>
+        <span class="px-3.5 pb-1 pt-3 font-heading text-[11px] font-extrabold uppercase tracking-[.14em] text-accent">Jul–Aug</span>
+        <span class="px-3.5 font-heading text-[28px] font-extrabold tracking-tight">30–1</span>
+        <span class="px-3.5 pb-3 pt-1 font-heading text-[12px] font-bold tracking-[.04em] text-slate-600">2026</span>
+      </div>
+
+      <div class="min-w-0">
+        <!-- hosted by · larger, pill AFTER -->
+        <div class="mb-2 flex flex-wrap items-center gap-2.5">
+          <span class="text-[14.5px] font-medium text-slate-500">Hosted by
+            <a href="#" class="entity-link font-heading text-[16px] font-extrabold tracking-tight">Lone Star Youth Sports</a>
+          </span>
+          <span class="pill pill-open"><span class="dot"></span>Open</span>
+        </div>
+
+        <h1 class="font-heading font-extrabold" style="font-size:clamp(28px,4.4vw,44px);letter-spacing:-.03em;line-height:1.05;text-wrap:balance">
+          Spring Kickoff Cup — U12 Girls
+        </h1>
+
+        <!-- location · larger -->
+        <div class="mt-2.5 flex items-center gap-2 text-[15.5px] font-medium text-slate-600">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-400"><path d="M12 22s7-7.58 7-13a7 7 0 10-14 0c0 5.42 7 13 7 13z"/><circle cx="12" cy="9" r="2.5"/></svg>
+          Austin, TX
+        </div>
+
+        <!-- prominent event ratings: ATTENDEE + COACH (premium) + would-attend pill -->
+        <div class="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3">
+          <div class="flex items-center gap-3">
+            <span class="flex h-10 w-10 items-center justify-center rounded-xl" style="background:#fffbeb;color:#b45309">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M4 20c0-3.6 3.6-5.6 8-5.6s8 2 8 5.6"/></svg>
+            </span>
+            <div>
+              <div class="eyebrow" style="color:#b45309">Attendee</div>
+              <div class="mt-0.5 flex items-baseline gap-2">
+                <b class="font-heading text-[22px] font-extrabold leading-none tracking-tight">4.32</b>
+                <span class="stars" data-rating="4.32">
+                  <span class="stars-base"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg></span>
+                  <span class="stars-fill"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg></span>
+                </span>
+              </div>
+              <div class="mt-0.5 text-[12px] font-semibold text-slate-500">22 reviews</div>
+            </div>
+          </div>
+
+          <span aria-hidden class="hidden h-9 w-px bg-slate-200 sm:block"></span>
+
+          <div class="flex items-center gap-3">
+            <span class="flex h-10 w-10 items-center justify-center rounded-xl" style="background:#fef2f2;color:#dc2626">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8v4a4 4 0 11-8 0V4z"/><path d="M4 6h4M20 6h-4M12 12v4M8 20h8"/></svg>
+            </span>
+            <div>
+              <div class="eyebrow" style="color:#dc2626">Coach</div>
+              <div class="mt-0.5 flex items-baseline gap-2">
+                <b class="font-heading text-[22px] font-extrabold leading-none tracking-tight">4.58</b>
+                <span class="stars" data-rating="4.58">
+                  <span class="stars-base"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg></span>
+                  <span class="stars-fill"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg></span>
+                </span>
+              </div>
+              <div class="mt-0.5 text-[12px] font-semibold text-slate-500">12 reviews</div>
+            </div>
+          </div>
+
+          <span class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-extrabold"
+                style="background:#fff7ed;border-color:#fed7aa;color:#9a3412"
+                title="86% of verified reviewers would attend again">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 019-9 9 9 0 016.7 3"/><path d="M21 3v6h-6"/><path d="M21 12a9 9 0 01-9 9 9 9 0 01-6.7-3"/><path d="M3 21v-6h6"/></svg>
+            86% would attend again
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <button class="btn btn-icon" aria-label="Save to favorites">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+      </button>
+      <button class="btn btn-ghost px-4 py-2 text-[12.5px]">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a2 2 0 002 2h12a2 2 0 002-2v-7"/><path d="M16 6l-4-4-4 4"/><path d="M12 2v14"/></svg>
+        Share
+      </button>
+    </div>
+  </div>
+
+  <!-- ═══════════════ MAIN GRID ═══════════════ -->
+  <div class="page-grid mt-9">
+    <!-- ─────────── main column ─────────── -->
+    <div class="flex min-w-0 flex-col gap-7">
+
+      <!-- FACTS + collapsed About + collapsed Pricing -->
+      <section class="card p-6">
+        <div class="facts-scroll -mx-1 px-1">
+          <div class="facts">
+            <div class="fact">
+              <span class="ic" style="background:#eef2ff;color:#4f46e5">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M4 20c0-3.6 3.6-5.6 8-5.6s8 2 8 5.6"/></svg>
+              </span>
+              <span class="lab">Age Group</span><span class="val">U9–U12</span>
+            </div>
+            <div class="fact">
+              <span class="ic" style="background:#fdf2f8;color:#db2777">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5"/><path d="M12 14v7M9 18h6"/></svg>
+              </span>
+              <span class="lab">Gender</span><span class="val">Girls</span>
+            </div>
+            <div class="fact">
+              <span class="ic" style="background:#f5f3ff;color:#7c3aed">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18"/></svg>
+              </span>
+              <span class="lab">Format</span><span class="val">7v7–9v9</span>
+            </div>
+            <div class="fact">
+              <span class="ic" style="background:#ecfdf5;color:#16a34a">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 9.5V20h14V9.5"/></svg>
+              </span>
+              <span class="lab">Surface</span><span class="val">Grass</span>
+            </div>
+            <div class="fact">
+              <span class="ic" style="background:#fffbeb;color:#f59e0b">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg>
+              </span>
+              <span class="lab">Level</span><span class="val">Upper</span>
+            </div>
+            <div class="fact">
+              <span class="ic" style="background:#ecfeff;color:#0891b2">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M2 20c0-3.4 3.2-5.2 7-5.2s7 1.8 7 5.2"/><circle cx="17" cy="9" r="2.6"/><path d="M22 19c0-2.7-2.4-4-5-4"/></svg>
+              </span>
+              <span class="lab">Teams</span><span class="val">24</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="hairline my-6"></div>
+
+        <!-- About · collapsed by default -->
+        <h2 class="font-heading text-[18px] font-extrabold tracking-tight">About this tournament</h2>
+        <div id="about-body" class="clamp mt-2.5 text-[14.5px] leading-[1.65] text-slate-600">
+          <p>The Kickoff Cup's flagship U12 girls bracket returns to Austin for its eighth year.
+          Twenty-four teams across two competitive tiers play a guaranteed four-match weekend —
+          group stage Saturday, semifinals and a third-place match Sunday morning, finals under
+          the lights Sunday evening.</p>
+          <p class="mt-3">Every match is centrally refereed with certified USSF officials, rosters are
+          verified at check-in, and standings post live to the tournament app. College and ODP
+          scouts have attended the Upper bracket every year since 2022.</p>
+          <p class="mt-3">Teams travel from across Texas, Oklahoma and Louisiana; gate admission is free
+          for spectators, and the complex offers free parking on both days.</p>
+        </div>
+        <button class="disclose mt-3" data-target="about-body" onclick="toggleClamp(this)">
+          <span class="disclose-label">Show more</span>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+
+        <div class="hairline my-6"></div>
+
+        <!-- Age groups & pricing · collapsed by default -->
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 class="font-heading text-[18px] font-extrabold tracking-tight">Age groups &amp; pricing</h2>
+            <div class="mt-1 text-[13px] font-semibold text-slate-500">6 divisions · $495–$595 per team</div>
+          </div>
+          <button class="disclose" data-target="pricing-body" onclick="toggleReveal(this)">
+            <span class="disclose-label">Show all pricing</span>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+        </div>
+        <div id="pricing-body" class="hidden">
+          <div class="mt-4 grid gap-2.5" style="grid-template-columns:repeat(auto-fit,minmax(230px,1fr))">
+            <div class="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50/60 px-4 py-3">
+              <div><div class="font-heading text-[15px] font-bold">U9</div><div class="mt-0.5 text-[11.5px] text-slate-500">Girls · 7v7</div></div>
+              <div class="font-heading text-[15.5px] font-extrabold tracking-tight">$495</div>
+            </div>
+            <div class="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50/60 px-4 py-3">
+              <div><div class="font-heading text-[15px] font-bold">U10</div><div class="mt-0.5 text-[11.5px] text-slate-500">Girls · 7v7</div></div>
+              <div class="font-heading text-[15.5px] font-extrabold tracking-tight">$495</div>
+            </div>
+            <div class="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50/60 px-4 py-3">
+              <div><div class="font-heading text-[15px] font-bold">U11</div><div class="mt-0.5 text-[11.5px] text-slate-500">Girls · 9v9</div></div>
+              <div class="font-heading text-[15.5px] font-extrabold tracking-tight">$545</div>
+            </div>
+            <div class="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50/60 px-4 py-3">
+              <div><div class="font-heading text-[15px] font-bold">U11 Upper</div><div class="mt-0.5 text-[11.5px] text-slate-500">Girls · 9v9</div></div>
+              <div class="font-heading text-[15.5px] font-extrabold tracking-tight">$595</div>
+            </div>
+            <div class="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50/60 px-4 py-3">
+              <div><div class="font-heading text-[15px] font-bold">U12</div><div class="mt-0.5 text-[11.5px] text-slate-500">Girls · 9v9</div></div>
+              <div class="font-heading text-[15.5px] font-extrabold tracking-tight">$545</div>
+            </div>
+            <div class="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50/60 px-4 py-3">
+              <div><div class="font-heading text-[15px] font-bold">U12 Upper</div><div class="mt-0.5 text-[11.5px] text-slate-500">Girls · 9v9</div></div>
+              <div class="font-heading text-[15.5px] font-extrabold tracking-tight">$595</div>
+            </div>
+          </div>
+          <p class="mt-3 text-[12.5px] leading-relaxed text-slate-500">Prices are per team. Age groups
+          may be assigned to different fields depending on registrations.</p>
+        </div>
+      </section>
+
+      <!-- LOCATION · one map, one pin + premium facility features -->
+      <section class="card p-6">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <h2 class="font-heading text-[18px] font-extrabold tracking-tight">Location</h2>
+          <div class="text-[13.5px] font-medium text-slate-500">Onion Creek Soccer Complex · 5600 E William Cannon Dr, Austin, TX</div>
+        </div>
+
+        <div class="relative mt-4 overflow-hidden rounded-2xl border border-slate-200" style="height:300px">
+          <!-- stylized map -->
+          <svg viewBox="0 0 900 360" preserveAspectRatio="xMidYMid slice" class="absolute inset-0 h-full w-full" aria-hidden="true">
+            <rect width="900" height="360" fill="#edf2f6"/>
+            <ellipse cx="150" cy="70" rx="150" ry="95" fill="#e2efe2"/>
+            <ellipse cx="700" cy="330" rx="190" ry="110" fill="#e2efe2"/>
+            <ellipse cx="452" cy="180" rx="120" ry="86" fill="#dcebdc"/>
+            <path d="M900 60 C790 95 740 180 770 360 L900 360 Z" fill="#d8e6f5"/>
+            <path d="M0 260 C120 250 210 300 260 360 L0 360 Z" fill="#e7edf2"/>
+            <g stroke="#d7dfe7" fill="none" stroke-linecap="round">
+              <path d="M-20 130 C180 110 420 150 920 90" stroke-width="13"/>
+              <path d="M240 -20 C250 120 220 260 300 380" stroke-width="13"/>
+              <path d="M-20 300 C240 270 500 300 920 240" stroke-width="10"/>
+              <path d="M600 -20 C580 120 640 260 610 380" stroke-width="10"/>
+            </g>
+            <g stroke="#ffffff" fill="none" stroke-linecap="round">
+              <path d="M-20 130 C180 110 420 150 920 90" stroke-width="8"/>
+              <path d="M240 -20 C250 120 220 260 300 380" stroke-width="8"/>
+              <path d="M-20 300 C240 270 500 300 920 240" stroke-width="6"/>
+              <path d="M600 -20 C580 120 640 260 610 380" stroke-width="6"/>
+              <path d="M60 -20 C90 80 60 200 110 380" stroke-width="4"/>
+              <path d="M-20 210 C200 200 380 230 920 170" stroke-width="4"/>
+              <path d="M780 -20 C760 100 820 240 790 380" stroke-width="4"/>
+            </g>
+            <path d="M-20 40 C260 60 560 20 920 46" stroke="#fde68a" stroke-width="7" fill="none" stroke-linecap="round"/>
+            <g fill="#e3eaf0">
+              <rect x="330" y="70" width="52" height="34" rx="4"/>
+              <rect x="520" y="120" width="44" height="30" rx="4"/>
+              <rect x="140" y="180" width="58" height="36" rx="4"/>
+              <rect x="680" y="70" width="48" height="30" rx="4"/>
+              <rect x="380" y="250" width="50" height="32" rx="4"/>
+            </g>
+          </svg>
+
+          <!-- pin + pulse + venue label -->
+          <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+            <div class="relative flex flex-col items-center">
+              <span class="pin-pulse absolute -top-1 h-12 w-12 rounded-full" style="background:rgba(220,38,38,.28)"></span>
+              <svg width="40" height="40" viewBox="0 0 24 24" class="relative" style="filter:drop-shadow(0 6px 10px rgba(220,38,38,.4))">
+                <path d="M12 22s7-7.58 7-13a7 7 0 10-14 0c0 5.42 7 13 7 13z" fill="#dc2626"/>
+                <circle cx="12" cy="9" r="2.6" fill="#fff"/>
+              </svg>
+              <span class="mt-1.5 whitespace-nowrap rounded-full border border-slate-200 bg-white/95 px-3.5 py-1.5 font-heading text-[12.5px] font-bold tracking-tight shadow-sm">
+                Onion Creek Soccer Complex
+              </span>
+            </div>
+          </div>
+
+          <a href="#" class="btn absolute bottom-3.5 right-3.5 gap-1.5 bg-white/95 px-3.5 py-2 text-[12.5px]"
+             style="border:1px solid rgba(15,23,42,.10);box-shadow:0 6px 18px -6px rgba(15,23,42,.25)">
+            Open in Google Maps
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6"/><path d="M10 14L20 4"/><path d="M20 14v6H4V4h6"/></svg>
+          </a>
+        </div>
+
+        <!-- premium facility features -->
+        <div class="mt-5 flex flex-wrap items-center gap-2.5">
+          <h3 class="font-heading text-[15px] font-bold tracking-tight">Facility features</h3>
+          <span class="rounded-full px-2.5 py-1 font-heading text-[9.5px] font-extrabold uppercase tracking-[.12em] text-white" style="background:var(--accent)">Premium</span>
+          <span class="text-[12px] font-medium text-slate-400">added by the event director</span>
+        </div>
+        <div class="mt-3 grid gap-x-6 gap-y-2.5 sm:grid-cols-2">
+          <div class="flex items-center gap-3 text-[14px] font-medium text-slate-700">
+            <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg" style="background:#ecfdf5;color:#16a34a"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-11"/></svg></span>
+            Free on-site parking
+          </div>
+          <div class="flex items-center gap-3 text-[14px] font-medium text-slate-700">
+            <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg" style="background:#ecfdf5;color:#16a34a"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-11"/></svg></span>
+            12 full-size grass fields
+          </div>
+          <div class="flex items-center gap-3 text-[14px] font-medium text-slate-700">
+            <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg" style="background:#ecfdf5;color:#16a34a"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-11"/></svg></span>
+            Restrooms &amp; changing rooms
+          </div>
+          <div class="flex items-center gap-3 text-[14px] font-medium text-slate-700">
+            <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg" style="background:#ecfdf5;color:#16a34a"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-11"/></svg></span>
+            Concessions &amp; food trucks
+          </div>
+          <div class="flex items-center gap-3 text-[14px] font-medium text-slate-700">
+            <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg" style="background:#ecfdf5;color:#16a34a"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-11"/></svg></span>
+            Shaded spectator seating
+          </div>
+          <div class="flex items-center gap-3 text-[14px] font-medium text-slate-700">
+            <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg" style="background:#ecfdf5;color:#16a34a"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-11"/></svg></span>
+            ADA accessible
+          </div>
+          <div class="flex items-center gap-3 text-[14px] font-medium text-slate-700">
+            <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg" style="background:#ecfdf5;color:#16a34a"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-11"/></svg></span>
+            Athletic trainer on site
+          </div>
+          <div class="flex items-center gap-3 text-[14px] font-medium text-slate-700">
+            <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg" style="background:#ecfdf5;color:#16a34a"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-11"/></svg></span>
+            Team warm-up zones
+          </div>
+        </div>
+      </section>
+
+      <!-- REVIEWS -->
+      <section class="flex flex-col gap-5">
+        <!-- banner -->
+        <div class="relative overflow-hidden rounded-2xl px-6 py-5"
+             style="background:linear-gradient(135deg,#ef4444 0%,#dc2626 45%,#b91c1c 100%);
+                    box-shadow:0 20px 40px -18px rgba(220,38,38,.55)">
+          <div class="relative flex flex-wrap items-center justify-between gap-3">
+            <div class="flex min-w-0 items-center gap-3.5">
+              <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white"
+                    style="background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.28)">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg>
+              </span>
+              <div class="min-w-0">
+                <div class="font-heading text-[10.5px] font-extrabold uppercase tracking-[.18em] text-white/90">Reviews · 2026 edition</div>
+                <div class="font-heading text-[20px] font-extrabold tracking-tight text-white" style="text-wrap:balance">What coaches and attendees are saying</div>
+              </div>
+            </div>
+            <a href="#" class="btn gap-1.5 bg-white px-4 py-2.5 text-[12.5px] font-extrabold" style="color:#b91c1c;box-shadow:0 4px 14px -4px rgba(0,0,0,.25)">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+              Write a review
+            </a>
+          </div>
+        </div>
+
+        <!-- ratings overview -->
+        <div class="card p-6">
+          <div class="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 class="font-heading text-[18px] font-extrabold tracking-tight">Ratings overview</h2>
+            <div class="text-[12.5px] text-slate-500">34 total reviews</div>
+          </div>
+          <div class="mt-4 grid gap-4 md:grid-cols-2">
+            <!-- coach -->
+            <div class="grid gap-4 rounded-xl border border-slate-200 p-4" style="grid-template-columns:minmax(0,1fr) minmax(0,1.15fr)">
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="flex h-[22px] w-[22px] items-center justify-center rounded-md" style="background:#fef2f2;color:#dc2626"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg></span>
+                  <span class="eyebrow">Coach rating</span>
+                </div>
+                <div class="mt-2 flex items-baseline gap-1.5">
+                  <b class="font-heading text-[34px] font-extrabold leading-none tracking-tight">4.58</b>
+                  <span class="text-[14px] font-bold text-slate-400">/5</span>
+                </div>
+                <div class="mt-2"><span class="stars lg" data-rating="4.58"><span class="stars-base"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg></span><span class="stars-fill"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg></span></span></div>
+                <div class="mt-1.5 text-[12px] font-semibold text-slate-500">12 reviews</div>
+              </div>
+              <div class="flex flex-col justify-center gap-1.5">
+                <div class="flex items-center gap-2"><span class="w-[24px] text-right font-heading text-[11px] font-bold text-slate-500">5★</span><div class="h-[7px] flex-1 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full" style="width:67%;background:#dc2626"></div></div><span class="w-[20px] text-right text-[11px] font-bold text-slate-500">8</span></div>
+                <div class="flex items-center gap-2"><span class="w-[24px] text-right font-heading text-[11px] font-bold text-slate-500">4★</span><div class="h-[7px] flex-1 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full" style="width:25%;background:#dc2626"></div></div><span class="w-[20px] text-right text-[11px] font-bold text-slate-500">3</span></div>
+                <div class="flex items-center gap-2"><span class="w-[24px] text-right font-heading text-[11px] font-bold text-slate-500">3★</span><div class="h-[7px] flex-1 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full" style="width:8%;background:#dc2626"></div></div><span class="w-[20px] text-right text-[11px] font-bold text-slate-500">1</span></div>
+                <div class="flex items-center gap-2"><span class="w-[24px] text-right font-heading text-[11px] font-bold text-slate-500">2★</span><div class="h-[7px] flex-1 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full" style="width:0%;background:#dc2626"></div></div><span class="w-[20px] text-right text-[11px] font-bold text-slate-500">0</span></div>
+                <div class="flex items-center gap-2"><span class="w-[24px] text-right font-heading text-[11px] font-bold text-slate-500">1★</span><div class="h-[7px] flex-1 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full" style="width:0%;background:#dc2626"></div></div><span class="w-[20px] text-right text-[11px] font-bold text-slate-500">0</span></div>
+              </div>
+            </div>
+            <!-- attendee -->
+            <div class="grid gap-4 rounded-xl border border-slate-200 p-4" style="grid-template-columns:minmax(0,1fr) minmax(0,1.15fr)">
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="flex h-[22px] w-[22px] items-center justify-center rounded-md" style="background:#fffbeb;color:#f59e0b"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg></span>
+                  <span class="eyebrow">Attendee rating</span>
+                </div>
+                <div class="mt-2 flex items-baseline gap-1.5">
+                  <b class="font-heading text-[34px] font-extrabold leading-none tracking-tight">4.32</b>
+                  <span class="text-[14px] font-bold text-slate-400">/5</span>
+                </div>
+                <div class="mt-2"><span class="stars lg" data-rating="4.32"><span class="stars-base"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg></span><span class="stars-fill"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg></span></span></div>
+                <div class="mt-1.5 text-[12px] font-semibold text-slate-500">22 reviews</div>
+              </div>
+              <div class="flex flex-col justify-center gap-1.5">
+                <div class="flex items-center gap-2"><span class="w-[24px] text-right font-heading text-[11px] font-bold text-slate-500">5★</span><div class="h-[7px] flex-1 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full" style="width:50%;background:#f59e0b"></div></div><span class="w-[20px] text-right text-[11px] font-bold text-slate-500">11</span></div>
+                <div class="flex items-center gap-2"><span class="w-[24px] text-right font-heading text-[11px] font-bold text-slate-500">4★</span><div class="h-[7px] flex-1 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full" style="width:32%;background:#f59e0b"></div></div><span class="w-[20px] text-right text-[11px] font-bold text-slate-500">7</span></div>
+                <div class="flex items-center gap-2"><span class="w-[24px] text-right font-heading text-[11px] font-bold text-slate-500">3★</span><div class="h-[7px] flex-1 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full" style="width:14%;background:#f59e0b"></div></div><span class="w-[20px] text-right text-[11px] font-bold text-slate-500">3</span></div>
+                <div class="flex items-center gap-2"><span class="w-[24px] text-right font-heading text-[11px] font-bold text-slate-500">2★</span><div class="h-[7px] flex-1 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full" style="width:5%;background:#f59e0b"></div></div><span class="w-[20px] text-right text-[11px] font-bold text-slate-500">1</span></div>
+                <div class="flex items-center gap-2"><span class="w-[24px] text-right font-heading text-[11px] font-bold text-slate-500">1★</span><div class="h-[7px] flex-1 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full" style="width:0%;background:#f59e0b"></div></div><span class="w-[20px] text-right text-[11px] font-bold text-slate-500">0</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- review list -->
+        <div class="card p-6">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="text-[12.5px] text-slate-500">Showing 34 of 34 reviews</div>
+            <div class="flex flex-wrap items-center gap-3">
+              <div class="seg">
+                <button class="on">All (34)</button>
+                <button>Coaches (12)</button>
+                <button>Attendees (22)</button>
+              </div>
+              <button class="btn btn-ghost gap-1.5 px-3.5 py-1.5 text-[12.5px]" style="font-family:Inter;font-weight:600">
+                Most recent
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- verified coach review -->
+          <article class="mt-4 rounded-2xl border p-5" style="border-color:#fecaca;background:linear-gradient(180deg,#fffbfb,#fff)">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <span class="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-slate-200 font-heading text-[14px] font-extrabold text-slate-500">MT</span>
+                <div>
+                  <div class="flex flex-wrap items-center gap-2">
+                    <span class="font-heading text-[14.5px] font-bold">Marcus T.</span>
+                    <span class="rounded px-2 py-0.5 font-heading text-[9.5px] font-extrabold uppercase tracking-[.1em] text-white" style="background:var(--accent)">Guru Review</span>
+                    <span class="rounded-full border border-red-200 bg-red-50 px-2 py-0.5 font-heading text-[9.5px] font-extrabold uppercase tracking-[.1em] text-red-700">Coach</span>
+                  </div>
+                  <div class="mt-1 flex items-center gap-2">
+                    <span class="stars sm" data-rating="5"><span class="stars-base"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg></span><span class="stars-fill"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg></span></span>
+                    <span class="text-[12px] text-slate-400">·</span>
+                    <span class="text-[12px] font-medium text-slate-500">Attended the 2025 edition</span>
+                  </div>
+                </div>
+              </div>
+              <span class="text-[12px] font-medium text-slate-400">Jul 2, 2026</span>
+            </div>
+            <p class="mt-3 text-[14px] leading-[1.65] text-slate-600">Ran our U12 squad here last spring
+            and it's the best-organized cup in Central Texas. Schedule held all weekend, refs were
+            consistent across both tiers, and the staff moved our semifinal indoors-adjacent when the
+            storm cell rolled in without losing a slot. Communication before the event was excellent.</p>
+            <div class="mt-3.5 flex items-center gap-2.5">
+              <button class="btn btn-ghost gap-1.5 px-3 py-1.5 text-[12px]" style="font-family:Inter;font-weight:600">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10v12"/><path d="M15 5.88L14 10h5.83a2 2 0 011.92 2.56l-2.33 8A2 2 0 0117.5 22H4a2 2 0 01-2-2v-8a2 2 0 012-2h2.76a2 2 0 001.79-1.11L12 2a3.13 3.13 0 013 3.88z"/></svg>
+                Helpful (24)
+              </button>
+              <button class="btn btn-ghost px-3 py-1.5 text-[12px] text-slate-500" style="font-family:Inter;font-weight:600">Flag</button>
+            </div>
+          </article>
+
+          <!-- attendee review -->
+          <article class="mt-3.5 rounded-2xl border border-slate-200 p-5">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <span class="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-amber-100 font-heading text-[14px] font-extrabold text-amber-700">RP</span>
+                <div>
+                  <div class="flex flex-wrap items-center gap-2">
+                    <span class="font-heading text-[14.5px] font-bold">Rachel P.</span>
+                    <span class="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 font-heading text-[9.5px] font-extrabold uppercase tracking-[.1em] text-amber-700">Attendee</span>
+                  </div>
+                  <div class="mt-1 flex items-center gap-2">
+                    <span class="stars sm" data-rating="4"><span class="stars-base"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg></span><span class="stars-fill"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg></span></span>
+                    <span class="text-[12px] text-slate-400">·</span>
+                    <span class="text-[12px] font-medium text-slate-500">Team parent</span>
+                  </div>
+                </div>
+              </div>
+              <span class="text-[12px] font-medium text-slate-400">Jun 18, 2026</span>
+            </div>
+            <p class="mt-3 text-[14px] leading-[1.65] text-slate-600">Great weekend for the girls. Parking
+            was genuinely free and close, the shaded bleachers saved us on Sunday, and concessions had
+            real food. Only gripe: the Saturday 8am slot meant a very early drive from San Antonio.</p>
+            <div class="mt-3.5 flex items-center gap-2.5">
+              <button class="btn btn-ghost gap-1.5 px-3 py-1.5 text-[12px]" style="font-family:Inter;font-weight:600">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10v12"/><path d="M15 5.88L14 10h5.83a2 2 0 011.92 2.56l-2.33 8A2 2 0 0117.5 22H4a2 2 0 01-2-2v-8a2 2 0 012-2h2.76a2 2 0 001.79-1.11L12 2a3.13 3.13 0 013 3.88z"/></svg>
+                Helpful (11)
+              </button>
+              <button class="btn btn-ghost px-3 py-1.5 text-[12px] text-slate-500" style="font-family:Inter;font-weight:600">Flag</button>
+            </div>
+          </article>
+
+          <div class="mt-5 text-center">
+            <button class="btn btn-ghost px-5 py-2.5 text-[13px]">Show all 34 reviews</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- PAST EVENTS · refined event card -->
+      <section>
+        <h2 class="font-heading text-[22px] font-extrabold tracking-tight">Past events from this tournament</h2>
+        <div class="mt-4 grid gap-5 md:grid-cols-2">
+
+          <!-- refined card · photo state -->
+          <article class="card card-hover group cursor-pointer overflow-hidden">
+            <div class="relative h-44 overflow-hidden bg-slate-200">
+              <img src="https://picsum.photos/seed/tg-past25/720/400" alt="" class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]">
+              <span class="pill pill-concluded absolute left-3 top-3 bg-white/95 backdrop-blur"><span class="dot"></span>Concluded</span>
+              <button class="btn btn-icon absolute right-3 top-3 h-9 w-9 bg-white/95 backdrop-blur" aria-label="Save to favorites">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+              </button>
+              <span class="absolute bottom-3 left-3 inline-flex items-baseline gap-1.5 rounded-full bg-white/95 px-3 py-1.5 backdrop-blur"
+                    style="border:1px solid rgba(15,23,42,.08)">
+                <span class="font-heading text-[10.5px] font-extrabold uppercase tracking-[.1em] text-accent">May</span>
+                <span class="font-heading text-[12.5px] font-extrabold tracking-tight">3–5, 2025</span>
+              </span>
+            </div>
+            <div class="p-5">
+              <h3 class="entity-link font-heading text-[17px] font-extrabold tracking-tight group-hover:text-accent">Spring Kickoff Cup — 2025 Edition</h3>
+              <div class="mt-1 flex items-center gap-1.5 text-[12.5px] font-medium text-slate-500">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-400"><path d="M12 22s7-7.58 7-13a7 7 0 10-14 0c0 5.42 7 13 7 13z"/><circle cx="12" cy="9" r="2.5"/></svg>
+                Austin, TX
+              </div>
+              <div class="mt-3 flex flex-wrap gap-1.5">
+                <span class="tag">24 teams</span><span class="tag">U9–U12</span><span class="tag">Girls</span><span class="tag">Grass</span><span class="tag">+1</span>
+              </div>
+              <div class="hairline mt-4"></div>
+              <div class="mt-3.5 flex items-center justify-between">
+                <div class="flex items-center gap-5">
+                  <div>
+                    <div class="eyebrow" style="color:#dc2626;font-size:9.5px">Coach</div>
+                    <div class="mt-0.5 flex items-baseline gap-1">
+                      <b class="font-heading text-[15px] font-extrabold tracking-tight">4.41</b>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="#f59e0b" class="translate-y-[1px]"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg>
+                      <span class="text-[11.5px] font-semibold text-slate-400">(9)</span>
+                    </div>
+                  </div>
+                  <div>
+                    <div class="eyebrow" style="color:#b45309;font-size:9.5px">Attendee</div>
+                    <div class="mt-0.5 flex items-baseline gap-1">
+                      <b class="font-heading text-[15px] font-extrabold tracking-tight">4.18</b>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="#f59e0b" class="translate-y-[1px]"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg>
+                      <span class="text-[11.5px] font-semibold text-slate-400">(26)</span>
+                    </div>
+                  </div>
+                </div>
+                <span class="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-400 transition-colors group-hover:border-red-200 group-hover:text-accent">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+                </span>
+              </div>
+            </div>
+          </article>
+
+          <!-- refined card · logo state -->
+          <article class="card card-hover group cursor-pointer overflow-hidden">
+            <div class="relative flex h-44 items-center justify-center overflow-hidden"
+                 style="background:radial-gradient(120% 100% at 50% 0%,#ffffff 0%,#f4f7fb 55%,#e9eef5 100%)">
+              <span aria-hidden class="absolute inset-0 flex items-center justify-center" style="font-size:120px;opacity:.05">⚽</span>
+              <span class="relative flex h-[76px] w-[76px] items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-white" style="box-shadow:0 12px 28px -14px rgba(15,23,42,.25)">
+                <img src="https://picsum.photos/seed/tg-orglogo/160/160" alt="" class="h-full w-full object-cover">
+              </span>
+              <span class="pill pill-concluded absolute left-3 top-3 bg-white/95 backdrop-blur"><span class="dot"></span>Concluded</span>
+              <button class="btn btn-icon absolute right-3 top-3 h-9 w-9 bg-white/95 backdrop-blur" aria-label="Save to favorites">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+              </button>
+              <span class="absolute bottom-3 left-3 inline-flex items-baseline gap-1.5 rounded-full bg-white/95 px-3 py-1.5 backdrop-blur"
+                    style="border:1px solid rgba(15,23,42,.08)">
+                <span class="font-heading text-[10.5px] font-extrabold uppercase tracking-[.1em] text-accent">May</span>
+                <span class="font-heading text-[12.5px] font-extrabold tracking-tight">4–6, 2024</span>
+              </span>
+            </div>
+            <div class="p-5">
+              <h3 class="entity-link font-heading text-[17px] font-extrabold tracking-tight group-hover:text-accent">Spring Kickoff Cup — 2024 Edition</h3>
+              <div class="mt-1 flex items-center gap-1.5 text-[12.5px] font-medium text-slate-500">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-400"><path d="M12 22s7-7.58 7-13a7 7 0 10-14 0c0 5.42 7 13 7 13z"/><circle cx="12" cy="9" r="2.5"/></svg>
+                Round Rock, TX
+              </div>
+              <div class="mt-3 flex flex-wrap gap-1.5">
+                <span class="tag">20 teams</span><span class="tag">U9–U12</span><span class="tag">Girls</span><span class="tag">Turf</span><span class="tag">+1</span>
+              </div>
+              <div class="hairline mt-4"></div>
+              <div class="mt-3.5 flex items-center justify-between">
+                <div class="flex items-center gap-5">
+                  <div>
+                    <div class="eyebrow" style="color:#dc2626;font-size:9.5px">Coach</div>
+                    <div class="mt-0.5 flex items-baseline gap-1">
+                      <b class="font-heading text-[15px] font-extrabold tracking-tight">4.05</b>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="#f59e0b" class="translate-y-[1px]"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg>
+                      <span class="text-[11.5px] font-semibold text-slate-400">(7)</span>
+                    </div>
+                  </div>
+                  <div>
+                    <div class="eyebrow" style="color:#b45309;font-size:9.5px">Attendee</div>
+                    <div class="mt-0.5 flex items-baseline gap-1">
+                      <b class="font-heading text-[15px] font-extrabold tracking-tight">3.92</b>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="#f59e0b" class="translate-y-[1px]"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg>
+                      <span class="text-[11.5px] font-semibold text-slate-400">(19)</span>
+                    </div>
+                  </div>
+                </div>
+                <span class="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-400 transition-colors group-hover:border-red-200 group-hover:text-accent">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+                </span>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <!-- SPONSORS · tidy, not stretched -->
+      <section class="card p-6">
+        <h2 class="font-heading text-[18px] font-extrabold tracking-tight">Sponsors</h2>
+        <div class="mt-4 flex flex-wrap gap-3">
+          <a href="#" class="card card-hover flex w-[264px] items-center gap-3.5 rounded-2xl p-3.5" style="text-decoration:none">
+            <span class="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-100 bg-slate-50">
+              <img src="https://picsum.photos/seed/tg-spons1/120/120" alt="" class="h-full w-full object-cover">
+            </span>
+            <span class="min-w-0">
+              <span class="block truncate font-heading text-[14.5px] font-bold tracking-tight">Round Rock Athletics</span>
+              <span class="mt-0.5 flex items-center gap-1 text-[12px] font-semibold" style="color:#0d9488">Visit website
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6"/><path d="M10 14L20 4"/></svg>
+              </span>
+            </span>
+          </a>
+          <a href="#" class="card card-hover flex w-[264px] items-center gap-3.5 rounded-2xl p-3.5" style="text-decoration:none">
+            <span class="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-100 bg-slate-50">
+              <img src="https://picsum.photos/seed/tg-spons2/120/120" alt="" class="h-full w-full object-cover">
+            </span>
+            <span class="min-w-0">
+              <span class="block truncate font-heading text-[14.5px] font-bold tracking-tight">Whataburger</span>
+              <span class="mt-0.5 flex items-center gap-1 text-[12px] font-semibold" style="color:#0d9488">Visit website
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6"/><path d="M10 14L20 4"/></svg>
+              </span>
+            </span>
+          </a>
+          <a href="#" class="card card-hover flex w-[264px] items-center gap-3.5 rounded-2xl p-3.5" style="text-decoration:none">
+            <span class="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-100 bg-slate-50">
+              <img src="https://picsum.photos/seed/tg-spons3/120/120" alt="" class="h-full w-full object-cover">
+            </span>
+            <span class="min-w-0">
+              <span class="block truncate font-heading text-[14.5px] font-bold tracking-tight">H-E-B Sports</span>
+              <span class="mt-0.5 flex items-center gap-1 text-[12px] font-semibold" style="color:#0d9488">Visit website
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6"/><path d="M10 14L20 4"/></svg>
+              </span>
+            </span>
+          </a>
+        </div>
+      </section>
+    </div>
+
+    <!-- ─────────── sticky right rail ─────────── -->
+    <aside class="min-w-0">
+      <div class="flex flex-col gap-4 lg:sticky" style="top:96px">
+
+        <!-- CONTACT PANEL · no price/dates · description leads · Call + Email -->
+        <div class="card p-6" style="box-shadow:0 24px 60px -30px rgba(15,23,42,.28),0 4px 12px -6px rgba(15,23,42,.10)">
+          <div class="flex items-center gap-3.5">
+            <span class="h-[52px] w-[52px] shrink-0 overflow-hidden rounded-full border border-slate-200">
+              <img src="https://picsum.photos/seed/tg-orglogo/120/120" alt="" class="h-full w-full object-cover">
+            </span>
+            <div class="min-w-0">
+              <div class="eyebrow">Hosted by</div>
+              <a href="#" class="entity-link mt-0.5 block truncate font-heading text-[17px] font-extrabold tracking-tight">Lone Star Youth Sports</a>
+              <div class="mt-0.5 truncate text-[12.5px] font-medium text-slate-500">Event Director · Amber Reeves</div>
+            </div>
+          </div>
+
+          <div class="mt-3 flex flex-wrap items-center gap-2 text-[13.5px]">
+            <span class="stars sm" data-rating="4.5"><span class="stars-base"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg></span><span class="stars-fill"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg></span></span>
+            <b class="font-heading text-[14.5px] font-extrabold tracking-tight">4.5</b>
+            <span class="font-medium text-slate-500">(41 reviews)</span>
+            <span class="text-slate-300">·</span>
+            <span class="font-medium text-slate-500">6 events</span>
+          </div>
+
+          <!-- org description leads -->
+          <p class="mt-3.5 text-[14px] leading-[1.65] text-slate-600">Family-run youth soccer club running
+          Central Texas cups since 2018. Known for tight schedules, fair brackets and a weekend-long
+          player experience — most teams come back year after year.</p>
+
+          <!-- call + email -->
+          <div class="mt-4 flex flex-col gap-2.5">
+            <a href="#" class="group flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50/60 px-3.5 py-3 no-underline transition-colors hover:border-slate-200 hover:bg-slate-50">
+              <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.79 19.79 0 012.12 4.18 2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+              </span>
+              <span class="min-w-0">
+                <span class="eyebrow block" style="font-size:9.5px">Call</span>
+                <span class="block truncate text-[14.5px] font-semibold text-slate-800">(512) 555-0184</span>
+              </span>
+            </a>
+            <a href="#" class="group flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50/60 px-3.5 py-3 no-underline transition-colors hover:border-slate-200 hover:bg-slate-50">
+              <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
+              </span>
+              <span class="min-w-0">
+                <span class="eyebrow block" style="font-size:9.5px">Email</span>
+                <span class="block truncate text-[14.5px] font-semibold text-slate-800">events@lonestarys.com</span>
+              </span>
+            </a>
+          </div>
+
+          <!-- actions -->
+          <div class="mt-4 flex flex-col gap-2.5">
+            <a href="#" class="btn btn-red px-5 py-3.5 text-[14.5px]">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
+              Contact host
+            </a>
+            <a href="#" class="btn btn-ghost px-4 py-3 text-[13.5px]">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6"/><path d="M10 14L20 4"/><path d="M20 14v6H4V4h6"/></svg>
+              Visit Tournament Website
+            </a>
+            <a href="#" class="btn btn-ghost px-4 py-3 text-[13.5px]">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6"/><path d="M10 14L20 4"/><path d="M20 14v6H4V4h6"/></svg>
+              Visit Organization Website
+            </a>
+          </div>
+        </div>
+
+        <!-- SHARE -->
+        <div class="card p-5">
+          <div class="eyebrow">Share with your team</div>
+          <div class="mt-3 grid grid-cols-4 gap-2">
+            <button class="share-tile" id="copy-tile" onclick="copyLink()">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+              <span id="copy-label">Copy link</span>
+            </button>
+            <button class="share-tile">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
+              Email
+            </button>
+            <button class="share-tile">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M17.53 3H20.5l-6.5 7.44L21.5 21h-6.02l-4.7-6.14L5.4 21H2.44l6.96-7.96L2 3h6.16l4.25 5.62L17.53 3zm-1.05 16.2h1.67L7.6 4.7H5.83L16.48 19.2z"/></svg>
+              X
+            </button>
+            <button class="share-tile">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20.5 3.5A11 11 0 003.6 17l-1.1 4.4 4.5-1.1a11 11 0 0013.5-16.8zM12 20a8 8 0 01-4.1-1.1l-.3-.2-2.7.7.7-2.6-.2-.3A8 8 0 1120 12a8 8 0 01-8 8zm4.4-6c-.2-.1-1.4-.7-1.6-.8-.2-.1-.4-.1-.5.1-.2.2-.6.8-.8 1-.1.1-.3.1-.5 0-.2-.1-1-.4-2-1.3-.7-.6-1.2-1.4-1.4-1.7-.1-.2 0-.4.1-.5l.4-.4c.1-.2.2-.3.2-.5 0-.2-.4-1.2-.6-1.6-.1-.4-.3-.4-.5-.4h-.4c-.2 0-.4.1-.6.3-.2.2-.9.8-.9 2 0 1.2.9 2.3 1 2.5.1.2 1.7 2.6 4.1 3.7.6.2 1 .4 1.4.5.6.2 1.1.2 1.5.1.5-.1 1.4-.6 1.6-1.1.2-.5.2-1 .1-1.1-.1-.1-.2-.2-.4-.2z"/></svg>
+              WhatsApp
+            </button>
+          </div>
+        </div>
+
+        <!-- COMPACT · more events by this org -->
+        <div class="card p-5">
+          <div class="flex items-baseline justify-between gap-2">
+            <h3 class="font-heading text-[15px] font-extrabold tracking-tight">More from Lone Star Youth Sports</h3>
+          </div>
+          <div class="mt-2 flex flex-col">
+            <a href="#" class="mini-ev">
+              <span class="h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-slate-100">
+                <img src="https://picsum.photos/seed/tg-mini1/100/100" alt="" class="h-full w-full object-cover">
+              </span>
+              <span class="min-w-0 flex-1">
+                <span class="mini-title block truncate font-heading text-[13.5px] font-bold tracking-tight transition-colors">Summer Classic — U14 Boys</span>
+                <span class="mt-0.5 flex items-center gap-1.5 text-[12px] font-medium text-slate-500">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="#f59e0b"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg>
+                  <b class="font-heading font-extrabold text-slate-700">4.11</b>
+                  <span>· 3 ratings</span><span class="text-slate-300">·</span><span>Jun 6–8, 2026</span>
+                </span>
+              </span>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="shrink-0 text-slate-300"><path d="M9 6l6 6-6 6"/></svg>
+            </a>
+            <div class="hairline"></div>
+            <a href="#" class="mini-ev">
+              <span class="h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-slate-100">
+                <img src="https://picsum.photos/seed/tg-mini2/100/100" alt="" class="h-full w-full object-cover">
+              </span>
+              <span class="min-w-0 flex-1">
+                <span class="mini-title block truncate font-heading text-[13.5px] font-bold tracking-tight transition-colors">Fall Finale — U11 Coed</span>
+                <span class="mt-0.5 flex items-center gap-1.5 text-[12px] font-medium text-slate-500">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="#f59e0b"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg>
+                  <b class="font-heading font-extrabold text-slate-700">4.80</b>
+                  <span>· 17 ratings</span><span class="text-slate-300">·</span><span>Oct 10–12, 2026</span>
+                </span>
+              </span>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="shrink-0 text-slate-300"><path d="M9 6l6 6-6 6"/></svg>
+            </a>
+            <div class="hairline"></div>
+            <a href="#" class="mini-ev">
+              <span class="h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-slate-100">
+                <img src="https://picsum.photos/seed/tg-mini3/100/100" alt="" class="h-full w-full object-cover">
+              </span>
+              <span class="min-w-0 flex-1">
+                <span class="mini-title block truncate font-heading text-[13.5px] font-bold tracking-tight transition-colors">Winter Showcase — U13 Girls</span>
+                <span class="mt-0.5 flex items-center gap-1.5 text-[12px] font-medium text-slate-500">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="#f59e0b"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg>
+                  <b class="font-heading font-extrabold text-slate-700">4.23</b>
+                  <span>· 9 ratings</span><span class="text-slate-300">·</span><span>Jan 16–18, 2027</span>
+                </span>
+              </span>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="shrink-0 text-slate-300"><path d="M9 6l6 6-6 6"/></svg>
+            </a>
+          </div>
+          <a href="#" class="mt-2 inline-flex items-center gap-1 text-[12.5px] font-semibold text-slate-600 transition-colors hover:text-accent" style="text-decoration:none">
+            View all 6 events
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+          </a>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <p class="mt-14 text-center text-[11.5px] font-medium text-slate-400">
+    Design mockup · event details redesign · not wired to the app
+  </p>
+</div>
+
+<script>
+  // fractional star fill
+  document.querySelectorAll('.stars[data-rating]').forEach(el => {
+    const r = parseFloat(el.dataset.rating) || 0;
+    el.querySelector('.stars-fill').style.width = (Math.max(0, Math.min(5, r)) / 5 * 100) + '%';
+  });
+
+  // mockup gallery-state toggle
+  function setGallery(state) {
+    document.getElementById('gal-photos').classList.toggle('hidden', state !== 'photos');
+    document.getElementById('gal-logo').classList.toggle('hidden', state !== 'logo');
+    document.getElementById('tgl-photos').classList.toggle('on', state === 'photos');
+    document.getElementById('tgl-logo').classList.toggle('on', state === 'logo');
+  }
+
+  // About: clamped teaser ↔ full text
+  function toggleClamp(btn) {
+    const body = document.getElementById(btn.dataset.target);
+    const open = body.classList.toggle('open');
+    btn.classList.toggle('open', open);
+    btn.querySelector('.disclose-label').textContent = open ? 'Show less' : 'Show more';
+  }
+
+  // Pricing: summary row ↔ full grid
+  function toggleReveal(btn) {
+    const body = document.getElementById(btn.dataset.target);
+    const open = body.classList.toggle('hidden') === false;
+    btn.classList.toggle('open', open);
+    btn.querySelector('.disclose-label').textContent = open ? 'Hide pricing' : 'Show all pricing';
+  }
+
+  // share: copy feedback
+  function copyLink() {
+    const label = document.getElementById('copy-label');
+    label.textContent = 'Copied!';
+    setTimeout(() => { label.textContent = 'Copy link'; }, 1500);
+  }
+
+  // open with #no-photos to land on the logo gallery state
+  if (location.hash === '#no-photos') setGallery('logo');
+
+  // review filter pills: visual selection only (mockup)
+  document.querySelectorAll('.seg button').forEach(b => {
+    if (b.id) return; // gallery toggle handled above
+    b.addEventListener('click', () => {
+      b.parentElement.querySelectorAll('button').forEach(x => x.classList.remove('on'));
+      b.classList.add('on');
+    });
+  });
+</script>
+</body>
+</html>
