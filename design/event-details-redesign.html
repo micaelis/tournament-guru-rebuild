@@ -47,6 +47,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
   :root{
     --ink:#0f172a; --body:#475569; --muted:#64748b; --faint:#94a3b8;
@@ -69,10 +71,10 @@
     text-decoration:none;border:1px solid transparent;
     transition:background .15s ease-out,border-color .15s ease-out,color .15s ease-out,
       box-shadow .15s ease-out,transform .15s ease-out}
-  .btn-red{background:var(--accent);color:#fff;font-weight:800;
-    box-shadow:0 10px 22px -8px rgba(220,38,38,.5)}
-  .btn-red:hover{background:var(--accent-dark);transform:translateY(-1px);
-    box-shadow:0 14px 26px -8px rgba(220,38,38,.55)}
+  .btn-ink{background:var(--ink);color:#fff;font-weight:800;
+    box-shadow:0 10px 24px -10px rgba(15,23,42,.45)}
+  .btn-ink:hover{background:#1e293b;transform:translateY(-1px);
+    box-shadow:0 14px 28px -10px rgba(15,23,42,.5)}
   .btn-ghost{background:#fff;color:var(--ink);border-color:var(--line)}
   .btn-ghost:hover{border-color:#94a3b8;background:#fafbfd}
   .btn-icon{width:40px;height:40px;padding:0;border-radius:9999px;background:#fff;
@@ -147,10 +149,12 @@
   .share-tile:hover{border-color:#94a3b8;transform:translateY(-1px);
     box-shadow:0 8px 18px -10px rgba(15,23,42,.18)}
 
-  /* ── map pin pulse ── */
-  @keyframes tg-pulse{0%{transform:scale(.6);opacity:.55}70%{transform:scale(1.6);opacity:0}
-    100%{transform:scale(1.6);opacity:0}}
-  .pin-pulse{animation:tg-pulse 2.2s ease-out infinite}
+  /* ── map marker: red soccer-ball disc (Leaflet divIcon) ── */
+  .tg-ball-pin{width:46px;height:46px;border-radius:9999px;background:var(--accent);
+    border:3px solid #fff;display:flex;align-items:center;justify-content:center;
+    box-shadow:0 10px 22px -8px rgba(220,38,38,.55),0 2px 6px rgba(15,23,42,.25)}
+  #venue-map{z-index:0}
+  #venue-map .leaflet-control-attribution{font-size:10px}
 
   /* ── compact org-events rows ── */
   .mini-ev{display:flex;align-items:center;gap:12px;padding:11px 6px;border-radius:12px;
@@ -280,32 +284,32 @@
       </div>
 
       <div class="min-w-0">
-        <!-- hosted by · larger, pill AFTER -->
-        <div class="mb-2 flex flex-wrap items-center gap-2.5">
-          <span class="text-[14.5px] font-medium text-slate-500">Hosted by
+        <!-- hosted by · pill AFTER · location on the same line -->
+        <div class="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+          <span class="text-[15px] font-medium text-slate-500">Hosted by
             <a href="#" class="entity-link font-heading text-[16px] font-extrabold tracking-tight">Lone Star Youth Sports</a>
           </span>
           <span class="pill pill-open"><span class="dot"></span>Open</span>
+          <span aria-hidden class="hidden h-4 w-px bg-slate-300/80 sm:block"></span>
+          <span class="inline-flex items-center gap-1.5 text-[15px] font-medium text-slate-600">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-400"><path d="M12 22s7-7.58 7-13a7 7 0 10-14 0c0 5.42 7 13 7 13z"/><circle cx="12" cy="9" r="2.5"/></svg>
+            Austin, TX
+          </span>
         </div>
 
         <h1 class="font-heading font-extrabold" style="font-size:clamp(28px,4.4vw,44px);letter-spacing:-.03em;line-height:1.05;text-wrap:balance">
           Spring Kickoff Cup — U12 Girls
         </h1>
 
-        <!-- location · larger -->
-        <div class="mt-2.5 flex items-center gap-2 text-[15.5px] font-medium text-slate-600">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-400"><path d="M12 22s7-7.58 7-13a7 7 0 10-14 0c0 5.42 7 13 7 13z"/><circle cx="12" cy="9" r="2.5"/></svg>
-          Austin, TX
-        </div>
-
-        <!-- prominent event ratings: ATTENDEE + COACH (premium) + would-attend pill -->
-        <div class="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3">
+        <!-- prominent event ratings: one anchored strip — ATTENDEE · COACH · would-attend (premium) -->
+        <div class="mt-5 inline-flex flex-wrap items-stretch gap-x-5 gap-y-3 rounded-2xl border border-slate-200/90 bg-white/85 px-5 py-4"
+             style="backdrop-filter:blur(4px);box-shadow:0 12px 32px -22px rgba(15,23,42,.25)">
           <div class="flex items-center gap-3">
             <span class="flex h-10 w-10 items-center justify-center rounded-xl" style="background:#fffbeb;color:#b45309">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M4 20c0-3.6 3.6-5.6 8-5.6s8 2 8 5.6"/></svg>
             </span>
             <div>
-              <div class="eyebrow" style="color:#b45309">Attendee</div>
+              <div class="eyebrow">Attendee</div>
               <div class="mt-0.5 flex items-baseline gap-2">
                 <b class="font-heading text-[22px] font-extrabold leading-none tracking-tight">4.32</b>
                 <span class="stars" data-rating="4.32">
@@ -317,14 +321,14 @@
             </div>
           </div>
 
-          <span aria-hidden class="hidden h-9 w-px bg-slate-200 sm:block"></span>
+          <span aria-hidden class="hidden w-px self-stretch bg-slate-200 sm:block"></span>
 
           <div class="flex items-center gap-3">
             <span class="flex h-10 w-10 items-center justify-center rounded-xl" style="background:#fef2f2;color:#dc2626">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8v4a4 4 0 11-8 0V4z"/><path d="M4 6h4M20 6h-4M12 12v4M8 20h8"/></svg>
             </span>
             <div>
-              <div class="eyebrow" style="color:#dc2626">Coach</div>
+              <div class="eyebrow">Coach</div>
               <div class="mt-0.5 flex items-baseline gap-2">
                 <b class="font-heading text-[22px] font-extrabold leading-none tracking-tight">4.58</b>
                 <span class="stars" data-rating="4.58">
@@ -336,12 +340,20 @@
             </div>
           </div>
 
-          <span class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-extrabold"
-                style="background:#fff7ed;border-color:#fed7aa;color:#9a3412"
-                title="86% of verified reviewers would attend again">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 019-9 9 9 0 016.7 3"/><path d="M21 3v6h-6"/><path d="M21 12a9 9 0 01-9 9 9 9 0 01-6.7-3"/><path d="M3 21v-6h6"/></svg>
-            86% would attend again
-          </span>
+          <span aria-hidden class="hidden w-px self-stretch bg-slate-200 sm:block"></span>
+
+          <div class="flex items-center gap-3">
+            <span class="flex h-10 w-10 items-center justify-center rounded-xl" style="background:#ecfdf5;color:#16a34a">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 019-9 9 9 0 016.7 3"/><path d="M21 3v6h-6"/><path d="M21 12a9 9 0 01-9 9 9 9 0 01-6.7-3"/><path d="M3 21v-6h6"/></svg>
+            </span>
+            <div>
+              <div class="eyebrow">Would attend again</div>
+              <div class="mt-0.5 flex items-baseline gap-1.5">
+                <b class="font-heading text-[22px] font-extrabold leading-none tracking-tight">86%</b>
+              </div>
+              <div class="mt-0.5 text-[12px] font-semibold text-slate-500">of verified reviewers</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -470,75 +482,32 @@
         </div>
       </section>
 
-      <!-- LOCATION · one map, one pin + premium facility features -->
+      <!-- LOCATION · map left, venue details + premium facility features right -->
       <section class="card p-6">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-          <h2 class="font-heading text-[18px] font-extrabold tracking-tight">Location</h2>
-          <div class="text-[13.5px] font-medium text-slate-500">Onion Creek Soccer Complex · 5600 E William Cannon Dr, Austin, TX</div>
-        </div>
+        <h2 class="font-heading text-[18px] font-extrabold tracking-tight">Location</h2>
 
-        <div class="relative mt-4 overflow-hidden rounded-2xl border border-slate-200" style="height:300px">
-          <!-- stylized map -->
-          <svg viewBox="0 0 900 360" preserveAspectRatio="xMidYMid slice" class="absolute inset-0 h-full w-full" aria-hidden="true">
-            <rect width="900" height="360" fill="#edf2f6"/>
-            <ellipse cx="150" cy="70" rx="150" ry="95" fill="#e2efe2"/>
-            <ellipse cx="700" cy="330" rx="190" ry="110" fill="#e2efe2"/>
-            <ellipse cx="452" cy="180" rx="120" ry="86" fill="#dcebdc"/>
-            <path d="M900 60 C790 95 740 180 770 360 L900 360 Z" fill="#d8e6f5"/>
-            <path d="M0 260 C120 250 210 300 260 360 L0 360 Z" fill="#e7edf2"/>
-            <g stroke="#d7dfe7" fill="none" stroke-linecap="round">
-              <path d="M-20 130 C180 110 420 150 920 90" stroke-width="13"/>
-              <path d="M240 -20 C250 120 220 260 300 380" stroke-width="13"/>
-              <path d="M-20 300 C240 270 500 300 920 240" stroke-width="10"/>
-              <path d="M600 -20 C580 120 640 260 610 380" stroke-width="10"/>
-            </g>
-            <g stroke="#ffffff" fill="none" stroke-linecap="round">
-              <path d="M-20 130 C180 110 420 150 920 90" stroke-width="8"/>
-              <path d="M240 -20 C250 120 220 260 300 380" stroke-width="8"/>
-              <path d="M-20 300 C240 270 500 300 920 240" stroke-width="6"/>
-              <path d="M600 -20 C580 120 640 260 610 380" stroke-width="6"/>
-              <path d="M60 -20 C90 80 60 200 110 380" stroke-width="4"/>
-              <path d="M-20 210 C200 200 380 230 920 170" stroke-width="4"/>
-              <path d="M780 -20 C760 100 820 240 790 380" stroke-width="4"/>
-            </g>
-            <path d="M-20 40 C260 60 560 20 920 46" stroke="#fde68a" stroke-width="7" fill="none" stroke-linecap="round"/>
-            <g fill="#e3eaf0">
-              <rect x="330" y="70" width="52" height="34" rx="4"/>
-              <rect x="520" y="120" width="44" height="30" rx="4"/>
-              <rect x="140" y="180" width="58" height="36" rx="4"/>
-              <rect x="680" y="70" width="48" height="30" rx="4"/>
-              <rect x="380" y="250" width="50" height="32" rx="4"/>
-            </g>
-          </svg>
-
-          <!-- pin + pulse + venue label -->
-          <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-            <div class="relative flex flex-col items-center">
-              <span class="pin-pulse absolute -top-1 h-12 w-12 rounded-full" style="background:rgba(220,38,38,.28)"></span>
-              <svg width="40" height="40" viewBox="0 0 24 24" class="relative" style="filter:drop-shadow(0 6px 10px rgba(220,38,38,.4))">
-                <path d="M12 22s7-7.58 7-13a7 7 0 10-14 0c0 5.42 7 13 7 13z" fill="#dc2626"/>
-                <circle cx="12" cy="9" r="2.6" fill="#fff"/>
-              </svg>
-              <span class="mt-1.5 whitespace-nowrap rounded-full border border-slate-200 bg-white/95 px-3.5 py-1.5 font-heading text-[12.5px] font-bold tracking-tight shadow-sm">
-                Onion Creek Soccer Complex
-              </span>
-            </div>
+        <div class="mt-4 grid gap-6 lg:grid-cols-[1.2fr_1fr]">
+          <!-- real map: Leaflet + OpenStreetMap, single pin -->
+          <div id="venue-map" class="h-[300px] overflow-hidden rounded-2xl border border-slate-200 lg:h-full lg:min-h-[400px]">
           </div>
 
-          <a href="#" class="btn absolute bottom-3.5 right-3.5 gap-1.5 bg-white/95 px-3.5 py-2 text-[12.5px]"
-             style="border:1px solid rgba(15,23,42,.10);box-shadow:0 6px 18px -6px rgba(15,23,42,.25)">
-            Open in Google Maps
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6"/><path d="M10 14L20 4"/><path d="M20 14v6H4V4h6"/></svg>
-          </a>
-        </div>
+          <!-- venue details + premium facility features -->
+          <div class="min-w-0">
+            <div class="font-heading text-[16px] font-extrabold tracking-tight">Onion Creek Soccer Complex</div>
+            <div class="mt-1 text-[14px] leading-relaxed text-slate-600">5600 E William Cannon Dr<br>Austin, TX 78744</div>
+            <a href="#" class="btn btn-ghost mt-3.5 gap-1.5 px-3.5 py-2 text-[12.5px]">
+              Open in Google Maps
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6"/><path d="M10 14L20 4"/><path d="M20 14v6H4V4h6"/></svg>
+            </a>
 
-        <!-- premium facility features -->
-        <div class="mt-5 flex flex-wrap items-center gap-2.5">
-          <h3 class="font-heading text-[15px] font-bold tracking-tight">Facility features</h3>
-          <span class="rounded-full px-2.5 py-1 font-heading text-[9.5px] font-extrabold uppercase tracking-[.12em] text-white" style="background:var(--accent)">Premium</span>
-          <span class="text-[12px] font-medium text-slate-400">added by the event director</span>
-        </div>
-        <div class="mt-3 grid gap-x-6 gap-y-2.5 sm:grid-cols-2">
+            <div class="hairline my-5"></div>
+
+            <div class="flex flex-wrap items-center gap-2.5">
+              <h3 class="font-heading text-[15px] font-bold tracking-tight">Facility features</h3>
+              <span class="rounded-full px-2.5 py-1 font-heading text-[9.5px] font-extrabold uppercase tracking-[.12em] text-white" style="background:var(--accent)">Premium</span>
+            </div>
+            <div class="mt-1 text-[12px] font-medium text-slate-400">added by the event director</div>
+            <div class="mt-3.5 grid gap-2.5">
           <div class="flex items-center gap-3 text-[14px] font-medium text-slate-700">
             <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg" style="background:#ecfdf5;color:#16a34a"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-11"/></svg></span>
             Free on-site parking
@@ -570,6 +539,8 @@
           <div class="flex items-center gap-3 text-[14px] font-medium text-slate-700">
             <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg" style="background:#ecfdf5;color:#16a34a"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-11"/></svg></span>
             Team warm-up zones
+          </div>
+            </div>
           </div>
         </div>
       </section>
@@ -850,41 +821,32 @@
         </div>
       </section>
 
-      <!-- SPONSORS · tidy, not stretched -->
+      <!-- SPONSORS · even monogram-logo wall, equal cards -->
       <section class="card p-6">
-        <h2 class="font-heading text-[18px] font-extrabold tracking-tight">Sponsors</h2>
-        <div class="mt-4 flex flex-wrap gap-3">
-          <a href="#" class="card card-hover flex w-[264px] items-center gap-3.5 rounded-2xl p-3.5" style="text-decoration:none">
-            <span class="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-100 bg-slate-50">
-              <img src="https://picsum.photos/seed/tg-spons1/120/120" alt="" class="h-full w-full object-cover">
-            </span>
-            <span class="min-w-0">
-              <span class="block truncate font-heading text-[14.5px] font-bold tracking-tight">Round Rock Athletics</span>
-              <span class="mt-0.5 flex items-center gap-1 text-[12px] font-semibold" style="color:#0d9488">Visit website
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6"/><path d="M10 14L20 4"/></svg>
-              </span>
-            </span>
-          </a>
-          <a href="#" class="card card-hover flex w-[264px] items-center gap-3.5 rounded-2xl p-3.5" style="text-decoration:none">
-            <span class="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-100 bg-slate-50">
-              <img src="https://picsum.photos/seed/tg-spons2/120/120" alt="" class="h-full w-full object-cover">
-            </span>
-            <span class="min-w-0">
-              <span class="block truncate font-heading text-[14.5px] font-bold tracking-tight">Whataburger</span>
-              <span class="mt-0.5 flex items-center gap-1 text-[12px] font-semibold" style="color:#0d9488">Visit website
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6"/><path d="M10 14L20 4"/></svg>
-              </span>
+        <div class="flex items-baseline justify-between gap-3">
+          <h2 class="font-heading text-[18px] font-extrabold tracking-tight">Sponsors</h2>
+          <span class="text-[12.5px] font-medium text-slate-400">Supporting the 2026 edition</span>
+        </div>
+        <div class="mt-4 grid gap-3" style="grid-template-columns:repeat(auto-fill,minmax(190px,1fr));max-width:640px">
+          <a href="#" class="card card-hover flex flex-col items-center gap-2.5 rounded-2xl px-4 py-6 text-center" style="text-decoration:none">
+            <span class="flex h-14 w-14 items-center justify-center rounded-2xl font-heading text-[18px] font-extrabold" style="background:#eef2ff;color:#4338ca">RA</span>
+            <span class="font-heading text-[14.5px] font-bold leading-tight tracking-tight">Round Rock Athletics</span>
+            <span class="inline-flex items-center gap-1 text-[12px] font-semibold" style="color:#0d9488">Visit website
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6"/><path d="M10 14L20 4"/></svg>
             </span>
           </a>
-          <a href="#" class="card card-hover flex w-[264px] items-center gap-3.5 rounded-2xl p-3.5" style="text-decoration:none">
-            <span class="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-100 bg-slate-50">
-              <img src="https://picsum.photos/seed/tg-spons3/120/120" alt="" class="h-full w-full object-cover">
+          <a href="#" class="card card-hover flex flex-col items-center gap-2.5 rounded-2xl px-4 py-6 text-center" style="text-decoration:none">
+            <span class="flex h-14 w-14 items-center justify-center rounded-2xl font-heading text-[18px] font-extrabold" style="background:#fff7ed;color:#ea580c">W</span>
+            <span class="font-heading text-[14.5px] font-bold leading-tight tracking-tight">Whataburger</span>
+            <span class="inline-flex items-center gap-1 text-[12px] font-semibold" style="color:#0d9488">Visit website
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6"/><path d="M10 14L20 4"/></svg>
             </span>
-            <span class="min-w-0">
-              <span class="block truncate font-heading text-[14.5px] font-bold tracking-tight">H-E-B Sports</span>
-              <span class="mt-0.5 flex items-center gap-1 text-[12px] font-semibold" style="color:#0d9488">Visit website
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6"/><path d="M10 14L20 4"/></svg>
-              </span>
+          </a>
+          <a href="#" class="card card-hover flex flex-col items-center gap-2.5 rounded-2xl px-4 py-6 text-center" style="text-decoration:none">
+            <span class="flex h-14 w-14 items-center justify-center rounded-2xl font-heading text-[18px] font-extrabold" style="background:#fef2f2;color:#dc2626">HEB</span>
+            <span class="font-heading text-[14.5px] font-bold leading-tight tracking-tight">H-E-B Sports</span>
+            <span class="inline-flex items-center gap-1 text-[12px] font-semibold" style="color:#0d9488">Visit website
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6"/><path d="M10 14L20 4"/></svg>
             </span>
           </a>
         </div>
@@ -908,9 +870,9 @@
             </div>
           </div>
 
-          <div class="mt-3 flex flex-wrap items-center gap-2 text-[13.5px]">
-            <span class="stars sm" data-rating="4.5"><span class="stars-base"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg></span><span class="stars-fill"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg></span></span>
-            <b class="font-heading text-[14.5px] font-extrabold tracking-tight">4.5</b>
+          <div class="mt-3.5 flex flex-wrap items-center gap-2 text-[14px]">
+            <span class="stars lg" data-rating="4.5"><span class="stars-base"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg></span><span class="stars-fill"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg></span></span>
+            <b class="font-heading text-[16.5px] font-extrabold tracking-tight">4.5</b>
             <span class="font-medium text-slate-500">(41 reviews)</span>
             <span class="text-slate-300">·</span>
             <span class="font-medium text-slate-500">6 events</span>
@@ -921,31 +883,31 @@
           Central Texas cups since 2018. Known for tight schedules, fair brackets and a weekend-long
           player experience — most teams come back year after year.</p>
 
-          <!-- call + email -->
-          <div class="mt-4 flex flex-col gap-2.5">
-            <a href="#" class="group flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50/60 px-3.5 py-3 no-underline transition-colors hover:border-slate-200 hover:bg-slate-50">
-              <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.79 19.79 0 012.12 4.18 2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+          <!-- call + email · soft icon tile, big value, no boxed rows -->
+          <div class="mt-5 flex flex-col gap-4">
+            <a href="#" class="group flex items-center gap-4 no-underline">
+              <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600 transition-colors group-hover:bg-slate-200">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.79 19.79 0 012.12 4.18 2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
               </span>
               <span class="min-w-0">
-                <span class="eyebrow block" style="font-size:9.5px">Call</span>
-                <span class="block truncate text-[14.5px] font-semibold text-slate-800">(512) 555-0184</span>
+                <span class="eyebrow block" style="font-size:10px;color:#94a3b8">Call</span>
+                <span class="mt-0.5 block truncate text-[16.5px] font-bold tracking-tight text-slate-900">(512) 555-0184</span>
               </span>
             </a>
-            <a href="#" class="group flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50/60 px-3.5 py-3 no-underline transition-colors hover:border-slate-200 hover:bg-slate-50">
-              <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
+            <a href="#" class="group flex items-center gap-4 no-underline">
+              <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600 transition-colors group-hover:bg-slate-200">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
               </span>
               <span class="min-w-0">
-                <span class="eyebrow block" style="font-size:9.5px">Email</span>
-                <span class="block truncate text-[14.5px] font-semibold text-slate-800">events@lonestarys.com</span>
+                <span class="eyebrow block" style="font-size:10px;color:#94a3b8">Email</span>
+                <span class="mt-0.5 block truncate text-[16.5px] font-bold tracking-tight text-slate-900">events@lonestarys.com</span>
               </span>
             </a>
           </div>
 
           <!-- actions -->
           <div class="mt-4 flex flex-col gap-2.5">
-            <a href="#" class="btn btn-red px-5 py-3.5 text-[14.5px]">
+            <a href="#" class="btn btn-ink px-5 py-3.5 text-[14.5px]">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
               Contact host
             </a>
@@ -1048,6 +1010,59 @@
   </p>
 </div>
 
+<!-- ═══════════════ site footer (mirrors app/components/Footer.tsx) ═══════════════ -->
+<footer style="background:#0f172a;color:#94a3b8">
+  <div class="mx-auto max-w-[1280px]" style="padding:46px 24px 28px">
+    <div class="flex flex-wrap justify-between gap-10">
+      <div style="max-width:300px">
+        <div class="flex items-center gap-2.5">
+          <span class="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/10">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="#dc2626"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg>
+          </span>
+          <span class="font-heading text-[17px] font-extrabold tracking-tight text-white">Tournament <span style="color:#f87171">Guru</span></span>
+        </div>
+        <p class="mb-0 mt-3.5 text-[13.5px]" style="line-height:1.6">Every tournament, reviewed by the coaches and parents who actually showed up.</p>
+        <div class="mt-4 flex gap-2.5">
+          <a href="#" aria-label="Website" class="inline-flex h-[34px] w-[34px] items-center justify-center rounded-full transition-colors hover:text-white" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#cbd5e1">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 010 20M12 2a15 15 0 000 20"/></svg>
+          </a>
+          <a href="#" aria-label="Email" class="inline-flex h-[34px] w-[34px] items-center justify-center rounded-full transition-colors hover:text-white" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#cbd5e1">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16v12H4zM4 7l8 6 8-6"/></svg>
+          </a>
+          <a href="#" aria-label="Contact" class="inline-flex h-[34px] w-[34px] items-center justify-center rounded-full transition-colors hover:text-white" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#cbd5e1">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+          </a>
+        </div>
+      </div>
+      <div class="flex flex-wrap gap-14">
+        <div>
+          <div class="mb-3.5 text-[13px] font-bold text-white" style="letter-spacing:.02em">Explore</div>
+          <div class="flex flex-col gap-2.5">
+            <a href="#" class="text-[13px] no-underline transition-colors hover:text-white" style="color:#94a3b8">Find events</a>
+            <a href="#" class="text-[13px] no-underline transition-colors hover:text-white" style="color:#94a3b8">Host an event</a>
+            <a href="#" class="text-[13px] no-underline transition-colors hover:text-white" style="color:#94a3b8">Reviews</a>
+          </div>
+        </div>
+        <div>
+          <div class="mb-3.5 text-[13px] font-bold text-white" style="letter-spacing:.02em">Company</div>
+          <div class="flex flex-col gap-2.5">
+            <a href="#" class="text-[13px] no-underline transition-colors hover:text-white" style="color:#94a3b8">About us</a>
+            <a href="#" class="text-[13px] no-underline transition-colors hover:text-white" style="color:#94a3b8">Contact</a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="mt-10 flex flex-wrap items-center justify-between gap-3 pt-5" style="border-top:1px solid rgba(255,255,255,.1);font-size:12.5px">
+      <span>&copy; 2026 Tournament Guru. All rights reserved.</span>
+      <div class="flex gap-4">
+        <a href="#" class="no-underline transition-colors hover:text-white" style="color:#94a3b8">Privacy</a>
+        <a href="#" class="no-underline transition-colors hover:text-white" style="color:#94a3b8">Legal</a>
+        <a href="#" class="no-underline transition-colors hover:text-white" style="color:#94a3b8">Cookies</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
 <script>
   // fractional star fill
   document.querySelectorAll('.stars[data-rating]').forEach(el => {
@@ -1088,6 +1103,30 @@
 
   // open with #no-photos to land on the logo gallery state
   if (location.hash === '#no-photos') setGallery('logo');
+
+  // venue map — Leaflet + OpenStreetMap, single pin (red soccer-ball disc)
+  if (window.L) {
+    const VENUE = [30.1875, -97.742]; // Onion Creek Soccer Complex, Austin TX
+    const map = L.map('venue-map', { scrollWheelZoom: false }).setView(VENUE, 14);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+    const ballSvg =
+      '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.5" stroke-linejoin="round">' +
+      '<circle cx="12" cy="12" r="9"/>' +
+      '<path d="M12 8l3.8 2.76-1.45 4.48h-4.7L8.2 10.76z" fill="#fff" stroke="none"/>' +
+      '<path d="M12 8V3M15.8 10.76l4.76-1.54M14.35 15.24l2.94 4.04M9.65 15.24l-2.94 4.04M8.2 10.76L3.44 9.22"/>' +
+      '</svg>';
+    L.marker(VENUE, {
+      icon: L.divIcon({
+        className: '',
+        html: '<div class="tg-ball-pin">' + ballSvg + '</div>',
+        iconSize: [46, 46],
+        iconAnchor: [23, 23]
+      })
+    }).addTo(map);
+    setTimeout(() => map.invalidateSize(), 300);
+  }
 
   // review filter pills: visual selection only (mockup)
   document.querySelectorAll('.seg button').forEach(b => {

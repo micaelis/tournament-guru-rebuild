@@ -19,11 +19,14 @@ of what was explored).
   CTAs. Still design-only — do not implement into `app/` until Danny signs off.
 - `event-details-redesign.html` — redesigned public event-details page (Danny's
   2026-07-24 brief), shown on a premium example ("Spring Kickoff Cup — U12 Girls").
-  Status pill after "Hosted by"; prominent ATTENDEE + COACH header ratings +
-  "% would attend again" pill; tinted icon facts row (Format derived from age groups);
-  About + Age groups & pricing collapsed by default; single-pin map + premium
-  facility-features checklist (no Key Dates, no airports); right rail without
-  price/dates (org description leads, Call + Email tiles); share tiles; compact
-  "More from this org" list; refined past-event cards; tidy sponsors. The gallery
-  mocks both states — switch with the floating toggle (or open with `#no-photos`).
-  Design-only — do not implement into `app/` until Danny signs off.
+  Host + status pill + location on one line over the title; ATTENDEE + COACH +
+  "would attend again" unified in one white ratings strip (green %, no amber pill);
+  tinted icon facts row (Format derived from age groups); About + Age groups &
+  pricing collapsed by default; Location = two columns — real Leaflet/OSM map with
+  a red soccer-ball marker left, venue details + premium facility features right
+  (no Key Dates, no airports); right rail without price/dates (bigger org-rating
+  stars, description leads, reference-style Call + Email rows, ink Contact host);
+  share tiles; compact "More from this org" list; refined past-event cards;
+  monogram sponsor wall; real site footer (mirrors `app/components/Footer.tsx`).
+  The gallery mocks both states — switch with the floating toggle (or open with
+  `#no-photos`). Design-only — do not implement into `app/` until Danny signs off.
