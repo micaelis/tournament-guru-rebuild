@@ -19,10 +19,10 @@ of what was explored).
   CTAs. Still design-only — do not implement into `app/` until Danny signs off.
 - `event-details-redesign.html` — redesigned public event-details page (Danny's
   2026-07-24 brief), shown on a premium example ("Spring Kickoff Cup — U12 Girls").
-  Host + status pill + location + fav/share buttons on one line over the title;
-  ATTENDEE + COACH + "would attend again" as a flat compact cluster ON the title
-  line (right-aligned, no box; wraps under the title on narrow screens; green %,
-  no amber pill);
+  Host + status pill + location on one line over the title; ATTENDEE + COACH as a
+  flat cluster with big stars UNDER the title; "would attend again" (green %, no
+  amber pill) boxed together with the fav + Share buttons as one section on the
+  header's right edge;
   tinted icon facts row (Format derived from age groups); About + Age groups &
   pricing collapsed by default; Location = two columns — real Leaflet/OSM map with
   a red soccer-ball marker left, venue details + premium facility features right
