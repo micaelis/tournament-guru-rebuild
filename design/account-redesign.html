@@ -63,6 +63,14 @@
   .chip:hover{border-color:#94a3b8}
   .chip.on,.chip.on:hover{background:#0f172a;border-color:#0f172a;color:#fff}
   .chip-round{border-radius:9999px}
+  /* D: selected state distinct from the dark CTA — soft red tint per the badge language */
+  .chip-alt.on,.chip-alt.on:hover{background:#fef2f2;border-color:#dc2626;color:#b91c1c}
+
+  /* empty-field placeholder row in the profile preview card */
+  .tg-link-add{font-weight:600;color:#94a3b8;text-decoration:underline dashed;
+    text-decoration-color:#cbd5e1;text-underline-offset:3px;cursor:pointer;
+    transition:color .15s ease,text-decoration-color .15s ease}
+  .tg-link-add:hover{color:#dc2626;text-decoration-color:#dc2626}
 
   /* buttons */
   .btn-primary{display:inline-flex;align-items:center;gap:8px;border-radius:10px;background:#0f172a;
@@ -146,7 +154,7 @@
 <!-- ============================================================
      DIRECTION A · INK RAIL
      ============================================================ -->
-<section data-direction="a" class="min-h-screen bg-slate-50">
+<section data-direction="a" class="min-h-screen bg-slate-50" hidden>
   <div class="mx-auto flex max-w-[1440px]">
 
     <!-- Sidebar — dark ink, icons, red active bar, org identity at bottom -->
@@ -805,12 +813,273 @@
   </div>
 </section>
 
+<!-- ============================================================
+     DIRECTION D · BLEND  (A shell + B premium card + C preview card)
+     ============================================================ -->
+<section data-direction="d" class="min-h-screen bg-slate-50">
+  <div class="mx-auto flex max-w-[1440px]">
+
+    <!-- Sidebar — A's ink rail + B's Premium listings card above the org card -->
+    <aside class="sticky top-0 hidden h-screen w-[264px] shrink-0 flex-col bg-ink md:flex">
+      <div class="flex items-center px-5 py-7">
+        <a href="#" class="flex items-center gap-2.5">
+          <span class="grid h-8 w-8 place-items-center rounded-lg bg-white/10 text-sm font-extrabold text-white">TG</span>
+          <span class="font-heading text-[15px] font-extrabold text-white">Tournament Guru</span>
+        </a>
+      </div>
+      <nav class="flex-1 space-y-7 overflow-y-auto px-3 pb-6">
+        <div>
+          <p class="mb-2.5 px-3 text-[10.5px] font-bold uppercase tracking-[0.16em] text-white/30">Manage</p>
+          <ul class="space-y-0.5">
+            <li><a href="#" class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold text-white/55 transition-colors hover:bg-white/[0.06] hover:text-white/90"><i data-icon="calendar" class="h-4 w-4 opacity-70"></i>Events</a></li>
+            <li><a href="#" class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold text-white/55 transition-colors hover:bg-white/[0.06] hover:text-white/90"><i data-icon="star" class="h-4 w-4 opacity-70"></i>Reviews</a></li>
+            <li><a href="#" class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold text-white/55 transition-colors hover:bg-white/[0.06] hover:text-white/90"><i data-icon="inbox" class="h-4 w-4 opacity-70"></i>Claim Requests</a></li>
+            <li><a href="#" class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold text-white/55 transition-colors hover:bg-white/[0.06] hover:text-white/90"><i data-icon="tag" class="h-4 w-4 opacity-70"></i>Promo Codes</a></li>
+          </ul>
+        </div>
+        <div>
+          <p class="mb-2.5 px-3 text-[10.5px] font-bold uppercase tracking-[0.16em] text-white/30">Browse</p>
+          <ul class="space-y-0.5">
+            <li><a href="#" class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold text-white/55 transition-colors hover:bg-white/[0.06] hover:text-white/90"><i data-icon="search" class="h-4 w-4 opacity-70"></i>Search Events</a></li>
+          </ul>
+        </div>
+        <div>
+          <p class="mb-2.5 px-3 text-[10.5px] font-bold uppercase tracking-[0.16em] text-white/30">You</p>
+          <ul class="space-y-0.5">
+            <li><a href="#" class="relative flex items-center gap-3 rounded-xl bg-white/[0.1] px-3 py-2.5 text-[13.5px] font-semibold text-white">
+              <span class="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-full bg-accent"></span>
+              <i data-icon="user" class="h-4 w-4"></i>Account</a></li>
+            <li><a href="#" class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold text-white/55 transition-colors hover:bg-white/[0.06] hover:text-white/90"><i data-icon="help" class="h-4 w-4 opacity-70"></i>FAQ</a></li>
+            <li><a href="#" class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold text-white/55 transition-colors hover:bg-white/[0.06] hover:text-white/90"><i data-icon="lifebuoy" class="h-4 w-4 opacity-70"></i>Support</a></li>
+          </ul>
+        </div>
+      </nav>
+      <div class="space-y-3 border-t border-white/[0.08] px-4 py-5">
+        <div class="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3.5 py-3.5">
+          <p class="text-[12.5px] font-bold text-white">Premium listings</p>
+          <p class="mt-1 text-xs leading-relaxed text-white/45">Feature your events in Spotlight and search-top placements.</p>
+          <span class="mt-2 inline-block cursor-pointer text-[12.5px] font-semibold text-red-400 transition-colors hover:text-red-300 hover:underline">Learn more</span>
+        </div>
+        <div class="flex items-center gap-3 rounded-xl border border-white/[0.08] bg-white/[0.06] px-3 py-3">
+          <span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-white font-heading text-[15px] font-extrabold text-ink"><span>A<span class="text-accent">.</span></span></span>
+          <div class="min-w-0">
+            <p class="truncate text-[12.5px] font-bold text-white">Apex Youth Sports</p>
+            <p class="truncate text-[11px] font-medium text-white/40">Organization</p>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <div class="min-w-0 flex-1">
+      <!-- header — same as A -->
+      <header class="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
+        <div class="flex h-16 items-center justify-between px-6 md:px-10">
+          <div class="flex items-center gap-2 text-[13px]">
+            <span class="font-medium text-slate-400">Dashboard</span>
+            <i data-icon="chevron-right" class="h-3.5 w-3.5 text-slate-300"></i>
+            <span class="font-semibold text-ink">Account</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <button type="button" aria-label="Notifications" class="relative grid h-9 w-9 place-items-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-ink">
+              <i data-icon="bell" class="h-[17px] w-[17px]"></i>
+              <span class="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-accent"></span>
+            </button>
+            <span class="mx-1 h-6 w-px bg-slate-200"></span>
+            <div data-menu>
+              <button type="button" data-menu-btn aria-haspopup="menu" aria-expanded="false"
+                class="flex items-center gap-3 rounded-full py-1.5 pl-1.5 pr-3 transition-colors hover:bg-slate-100">
+                <span class="grid h-8 w-8 place-items-center rounded-full bg-slate-700 text-[11px] font-bold text-white">MW</span>
+                <span class="hidden text-left sm:block">
+                  <span class="block text-[13px] font-bold leading-tight text-ink">Marcus Whitfield</span>
+                  <span class="block text-[11px] font-medium leading-tight text-slate-500">Event Director</span>
+                </span>
+                <i data-icon="chevron-down" class="h-4 w-4 text-slate-400"></i>
+              </button>
+              <div class="tg-menu" role="menu">
+                <div class="px-3 py-2.5">
+                  <p class="text-[13px] font-bold text-ink">Marcus Whitfield</p>
+                  <p class="mt-0.5 truncate text-xs text-slate-500">marcus@apexyouthsports.com</p>
+                </div>
+                <div class="mx-1.5 h-px bg-slate-100"></div>
+                <a href="#" class="tg-menu-item" role="menuitem"><i data-icon="user"></i>Account</a>
+                <div class="mx-1.5 h-px bg-slate-100"></div>
+                <a href="#" class="tg-menu-item danger" role="menuitem"><i data-icon="logout"></i>Log out</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main class="px-6 py-10 md:px-10">
+        <div class="mx-auto max-w-[1140px]">
+          <p class="text-[10.5px] font-extrabold uppercase tracking-[0.14em] text-slate-400">Settings</p>
+          <h1 class="mt-1.5 font-heading text-[30px] font-extrabold tracking-[-0.02em] text-ink">Account</h1>
+          <p class="mt-1.5 text-sm text-slate-500">Manage your profile, your organization, and how attendees reach you.</p>
+
+          <div class="tabs-a mt-7" role="tablist">
+            <button type="button" data-tab="profile" data-on>Profile</button>
+            <button type="button" data-tab="security">Security</button>
+            <button type="button" data-tab="preferences">Preferences</button>
+            <button type="button" data-tab="notifications">Notifications</button>
+          </div>
+
+          <div data-panel="profile" class="mt-7">
+            <div class="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
+
+              <!-- A's split-section settings card -->
+              <div class="rounded-2xl border border-slate-200 bg-white">
+                <div class="divide-y divide-slate-100">
+
+                  <!-- Identity -->
+                  <div class="grid gap-6 p-7 md:grid-cols-[190px_minmax(0,1fr)] md:gap-9">
+                    <div>
+                      <h3 class="font-heading text-[15px] font-bold text-ink">Identity</h3>
+                      <p class="mt-1.5 text-[12.5px] leading-relaxed text-slate-500">Your name and photo, shown alongside replies you post as a director.</p>
+                    </div>
+                    <div class="space-y-5">
+                      <div class="grid gap-4 sm:grid-cols-2">
+                        <div><label class="lbl" for="d-first">First name</label><input id="d-first" class="ctl" value="Marcus" placeholder="Your first name"></div>
+                        <div><label class="lbl" for="d-last">Last name</label><input id="d-last" class="ctl" value="Whitfield" placeholder="Your last name"></div>
+                      </div>
+                      <div>
+                        <span class="lbl">Profile photo</span>
+                        <div class="flex items-center gap-4">
+                          <span class="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-slate-700 text-[16px] font-bold text-white">MW</span>
+                          <div>
+                            <div class="flex items-center gap-3">
+                              <button type="button" class="btn-ghost"><i data-icon="upload" class="h-3.5 w-3.5 text-slate-400"></i>Upload</button>
+                              <span class="tg-link text-[12.5px]">Remove</span>
+                            </div>
+                            <p class="hint">PNG or JPG, up to 5 MB — or paste a hosted URL.</p>
+                          </div>
+                        </div>
+                      </div>
+                      <div>
+                        <span class="lbl">Gender</span>
+                        <div class="flex flex-wrap gap-3">
+                          <button type="button" class="chip chip-alt on">Male</button>
+                          <button type="button" class="chip chip-alt">Female</button>
+                          <button type="button" class="chip chip-alt">Prefer not to say</button>
+                        </div>
+                      </div>
+                      <div>
+                        <label class="lbl" for="d-loc">Location</label>
+                        <input id="d-loc" class="ctl" value="Charlotte, NC, USA" placeholder="City, state — start typing to search">
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Organization -->
+                  <div class="grid gap-6 p-7 md:grid-cols-[190px_minmax(0,1fr)] md:gap-9">
+                    <div>
+                      <h3 class="font-heading text-[15px] font-bold text-ink">Organization</h3>
+                      <p class="mt-1.5 text-[12.5px] leading-relaxed text-slate-500">How your organization appears on every event page you own.</p>
+                    </div>
+                    <div class="space-y-5">
+                      <div>
+                        <label class="lbl" for="d-org">Organization title</label>
+                        <input id="d-org" class="ctl" value="Apex Youth Sports" placeholder="Your organization name">
+                      </div>
+                      <div>
+                        <label class="lbl" for="d-desc">Organization description</label>
+                        <textarea id="d-desc" rows="4" class="ctl resize-none" placeholder="What attendees should know about your events…">Apex Youth Sports produces competitive youth soccer tournaments and college showcases across the Carolinas — 14 events a year, 30,000+ athletes, and scout-attended finals. Known for smooth check-in, verified officials, and family-friendly venues.</textarea>
+                      </div>
+                      <div>
+                        <span class="lbl">Organization logo</span>
+                        <div class="grid h-36 place-items-center rounded-xl border border-slate-200 bg-slate-50">
+                          <span class="grid h-16 w-16 place-items-center rounded-2xl bg-white font-heading text-[26px] font-extrabold text-ink shadow-sm"><span>A<span class="text-accent">.</span></span></span>
+                        </div>
+                        <div class="mt-3 flex items-center gap-3">
+                          <button type="button" class="btn-ghost"><i data-icon="upload" class="h-3.5 w-3.5 text-slate-400"></i>Upload new</button>
+                          <span class="tg-link text-[12.5px]">Remove</span>
+                        </div>
+                        <p class="hint">PNG or JPG, up to 5 MB — or paste a hosted URL.</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Public contact -->
+                  <div class="grid gap-6 p-7 md:grid-cols-[190px_minmax(0,1fr)] md:gap-9">
+                    <div>
+                      <h3 class="font-heading text-[15px] font-bold text-ink">Public contact</h3>
+                      <p class="mt-1.5 text-[12.5px] leading-relaxed text-slate-500">Shown on your event pages — separate from your login email.</p>
+                    </div>
+                    <div class="space-y-5">
+                      <div>
+                        <label class="lbl" for="d-phone">Business phone</label>
+                        <input id="d-phone" type="tel" class="ctl" value="(704) 555-0182" placeholder="(555) 000-0000">
+                        <p class="hint">Shown publicly on your event pages.</p>
+                      </div>
+                      <div>
+                        <label class="lbl" for="d-email">Business email</label>
+                        <input id="d-email" type="email" class="ctl" value="events@apexyouthsports.com" placeholder="contact@yourorganization.com">
+                        <p class="hint">Public contact email — not your login email.</p>
+                      </div>
+                      <div>
+                        <label class="lbl" for="d-web">Business website</label>
+                        <input id="d-web" type="url" class="ctl" value="" placeholder="https://yourorganization.com">
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="flex items-center justify-between gap-4 rounded-b-2xl border-t border-slate-100 bg-slate-50/60 px-7 py-5">
+                  <p class="text-[12.5px] text-slate-500">Last saved Tue, Jul 22 — changes go live on your event pages immediately.</p>
+                  <div class="flex items-center gap-2.5">
+                    <button type="button" class="btn-ghost">Discard</button>
+                    <button type="button" class="btn-primary">Save changes</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- C's profile preview card; empty fields render as placeholders -->
+              <div class="rounded-2xl border border-slate-200 bg-white p-6 lg:sticky lg:top-24">
+                <div class="flex flex-col items-center text-center">
+                  <span class="grid h-[72px] w-[72px] place-items-center rounded-full bg-slate-700 text-[22px] font-bold text-white">MW</span>
+                  <p class="mt-3.5 font-heading text-[17px] font-bold text-ink">Marcus Whitfield</p>
+                  <p class="mt-1 text-[10.5px] font-extrabold uppercase tracking-[0.14em] text-accent">Event Director</p>
+                </div>
+                <div class="my-5 h-px bg-slate-100"></div>
+                <ul class="space-y-3 text-[13px] font-medium text-slate-600">
+                  <li class="flex items-center gap-3"><span class="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-slate-50 font-heading text-[11px] font-extrabold text-ink ring-1 ring-slate-200"><span>A<span class="text-accent">.</span></span></span>Apex Youth Sports</li>
+                  <li class="flex items-center gap-3"><i data-icon="pin" class="h-4 w-4 shrink-0 text-slate-400"></i>Charlotte, NC</li>
+                  <li class="flex items-center gap-3"><i data-icon="calendar" class="h-4 w-4 shrink-0 text-slate-400"></i>Member since March 2024</li>
+                  <li class="flex items-center gap-3"><i data-icon="globe" class="h-4 w-4 shrink-0 text-slate-400"></i><span class="tg-link-add text-[13px]">Add your website</span></li>
+                </ul>
+                <div class="my-5 h-px bg-slate-100"></div>
+                <div class="flex items-baseline justify-between">
+                  <p class="text-[10.5px] font-extrabold uppercase tracking-[0.12em] text-slate-400">Completeness</p>
+                  <p class="font-heading text-[16px] font-extrabold text-ink">60%</p>
+                </div>
+                <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100">
+                  <div class="h-full w-[60%] rounded-full bg-accent"></div>
+                </div>
+                <p class="mt-2.5 text-xs leading-relaxed text-slate-500">Add a profile photo and website to reach 100%.</p>
+                <button type="button" class="btn-ghost mt-4 w-full justify-center">See your public listings</button>
+              </div>
+            </div>
+          </div>
+
+          <div data-panel="stub" hidden class="mt-7">
+            <div class="grid place-items-center rounded-2xl border border-slate-200 bg-white px-8 py-16 text-center">
+              <span class="grid h-12 w-12 place-items-center rounded-full bg-slate-100 text-slate-400"><i data-icon="layout" class="h-5 w-5"></i></span>
+              <p class="mt-4 font-heading text-[15px] font-bold text-ink">Only the Profile tab is mocked up</p>
+              <p class="mt-1.5 max-w-sm text-[13px] leading-relaxed text-slate-500">The <span data-stub-name class="font-semibold text-slate-700">Security</span> tab keeps today’s structure, restyled to this direction once it’s chosen.</p>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+</section>
+
 <!-- direction switcher -->
 <div class="tg-sw" aria-label="Design direction">
   <span class="tg-sw-label">Direction</span>
-  <button type="button" data-switch="a" data-on title="Key 1">A · Ink Rail</button>
+  <button type="button" data-switch="a" title="Key 1">A · Ink Rail</button>
   <button type="button" data-switch="b" title="Key 2">B · Porcelain</button>
   <button type="button" data-switch="c" title="Key 3">C · Broadsheet</button>
+  <button type="button" data-switch="d" data-on title="Key 4">D · Blend</button>
 </div>
 
 <script>
@@ -906,9 +1175,10 @@
     if (e.key === '1') showDirection('a');
     if (e.key === '2') showDirection('b');
     if (e.key === '3') showDirection('c');
+    if (e.key === '4') showDirection('d');
   });
-  var initial = (location.hash || '#a').slice(1);
-  showDirection(['a', 'b', 'c'].indexOf(initial) !== -1 ? initial : 'a');
+  var initial = (location.hash || '#d').slice(1);
+  showDirection(['a', 'b', 'c', 'd'].indexOf(initial) !== -1 ? initial : 'd');
 
   // mock links shouldn't jump the page
   document.querySelectorAll('a[href="#"]').forEach(function (a) {
