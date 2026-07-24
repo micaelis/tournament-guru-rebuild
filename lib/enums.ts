@@ -45,6 +45,11 @@ export function rolesFor(userType: UserTypeValue) {
   return userType === "event_director" ? ED_ROLES : ATTENDEE_ROLES;
 }
 
+/** role_title → display label (admin has no role_title; label it "Admin" at the call site). */
+export const ROLE_LABELS: Record<RoleValue, string> = Object.fromEntries(
+  [...ATTENDEE_ROLES, ...ED_ROLES].map((r) => [r.value, r.label]),
+) as Record<RoleValue, string>;
+
 // role_title values that do NOT require organization_title.
 export const ORG_OPTIONAL_ROLES = new Set(["parent_spectator"]);
 

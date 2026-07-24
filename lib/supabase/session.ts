@@ -21,12 +21,13 @@ export type SessionProfile = {
   last_name: string | null;
   profile_photo_url: string | null;
   organization_title: string | null;
+  org_logo_url: string | null;
   onboarding_completed: boolean;
   blocked: boolean;
 };
 
 const PROFILE_COLUMNS =
-  "id, user_type, role_title, first_name, last_name, profile_photo_url, organization_title, onboarding_completed, blocked";
+  "id, user_type, role_title, first_name, last_name, profile_photo_url, organization_title, org_logo_url, onboarding_completed, blocked";
 
 /**
  * Server-only helper — fetch the auth user AND their app profile in one

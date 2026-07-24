@@ -18,7 +18,7 @@ export default async function AccountPage() {
     supabase
       .from("profiles")
       .select(
-        "id, user_type, role_title, first_name, last_name, dob, user_gender, organization_title, org_description, org_logo_url, profile_photo_url, business_phone, business_email, business_website, location_formatted, location_lat, location_lng, location_place_id, location_city, location_state_full, location_state_abbr, location_zip, distance_pref, email_review_replies, inapp_review_replies, email_review_likes, inapp_review_likes, email_comment_replies, inapp_comment_replies, email_event_reviews, inapp_event_reviews, email_favorited_events, inapp_favorited_events",
+        "id, user_type, role_title, created_at, first_name, last_name, dob, user_gender, organization_title, org_description, org_logo_url, profile_photo_url, business_phone, business_email, business_website, location_formatted, location_lat, location_lng, location_place_id, location_city, location_state_full, location_state_abbr, location_zip, distance_pref, email_review_replies, inapp_review_replies, email_review_likes, inapp_review_likes, email_comment_replies, inapp_comment_replies, email_event_reviews, inapp_event_reviews, email_favorited_events, inapp_favorited_events",
       )
       .eq("id", user.id)
       .maybeSingle()

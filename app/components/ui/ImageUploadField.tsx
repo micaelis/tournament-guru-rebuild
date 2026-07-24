@@ -5,6 +5,7 @@ import { safeImageSrc } from "@/lib/url";
 import { uploadImage, type ImageBucket } from "@/lib/storage/upload";
 import { SafeImg } from "./SafeImg";
 import { Button } from "./Button";
+import { cn } from "./cn";
 
 /**
  * Image field with BOTH real upload and paste-a-URL (SCOPE-uploads.md):
@@ -29,6 +30,7 @@ export function ImageUploadField({
   required,
   error,
   hint,
+  thumbSize = "md",
 }: {
   label: string;
   value: string;
@@ -38,6 +40,8 @@ export function ImageUploadField({
   required?: boolean;
   error?: string;
   hint?: string;
+  /** "md" = slim column-height thumb; "lg" = fixed square tile (org logos). */
+  thumbSize?: "md" | "lg";
 }) {
   const inputId = useId();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -70,8 +74,14 @@ export function ImageUploadField({
       </span>
 
       <div className="flex items-stretch gap-3.5">
-        {/* Stretches to the control column's height so the two edges align. */}
-        <div className="grid w-[88px] shrink-0 place-items-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+        {/* md stretches to the control column's height so the two edges
+            align; lg is a fixed square tile that never widens with the row. */}
+        <div
+          className={cn(
+            "grid shrink-0 place-items-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50",
+            thumbSize === "lg" ? "h-36 w-36" : "w-[88px]",
+          )}
+        >
           <SafeImg
             src={preview ?? undefined}
             alt=""

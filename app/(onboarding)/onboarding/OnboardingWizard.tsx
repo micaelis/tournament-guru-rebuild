@@ -200,7 +200,7 @@ function Chip({
       : "px-5 py-2.5 text-sm shadow-sm hover:shadow-md has-[input:checked]:shadow-lg has-[input:checked]:scale-[1.02]";
   return (
     <label
-      className={`cursor-pointer select-none rounded-full border text-center font-semibold transition-all duration-150 border-slate-200 bg-white text-slate-700 hover:border-slate-400 active:scale-95 has-[input:checked]:border-slate-900 has-[input:checked]:bg-slate-900 has-[input:checked]:text-white ${sizeCls}`}
+      className={`cursor-pointer select-none rounded-full border text-center font-semibold transition-all duration-150 border-slate-200 bg-white text-slate-700 hover:border-slate-400 active:scale-95 has-[input:checked]:border-red-600 has-[input:checked]:bg-red-50 has-[input:checked]:text-red-700 ${sizeCls}`}
     >
       <input
         type={type}

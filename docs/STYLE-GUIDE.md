@@ -121,8 +121,11 @@ Build screens from these; don't hand-roll equivalents.
   upload (pick a PNG/JPG → straight to the bucket via `lib/storage/upload`) and a paste-a-URL
   fallback in the same field. Shows a `SafeImg` thumbnail that falls back to a neutral "No
   image" tile, a soft non-blocking "couldn't load that image" warning on a dead URL, and a
-  Clear button. Pass `name` to submit the value in an uncontrolled `<form>`. Never build a
-  bare URL text input for a DB image again — use this.
+  Clear button. Pass `name` to submit the value in an uncontrolled `<form>`.
+  `thumbSize="lg"` renders the preview as a fixed **square tile** (`h-36 w-36`) instead of
+  the slim column-height thumb — use it for org logos and other hero-ish images that must
+  never stretch with the row. Never build a bare URL text input for a DB image again — use
+  this.
 - **TextLink** — the canonical inline text link (the signup page's "browse events"
   treatment): semibold slate-700 with a soft slate underline, warming to the red accent
   (text + decoration) on hover. Font-size inherits from the surrounding copy; pass a
@@ -148,6 +151,21 @@ Build screens from these; don't hand-roll equivalents.
   labelled Field-wrapped variant (onboarding DOB); `USDateText` is bare (filter drawer dates).
   User-facing date ENTRY goes through these; dashboard ED tooling may still use native pickers.
 - **Toast** — transient confirmations ("Link copied", "Downloaded", "Saved").
+- **Dashboard shell** (`app/dashboard/{Sidebar,Header,icons}.tsx`) — the ink rail +
+  top header pair. Sidebar: `#0f172a`, per-item stroke icons, active item = white/10
+  fill + 3px red left bar, section eyebrows, thin **slate-blue scrollbar**
+  (`.tg-scroll-dark`: `#334155` thumb, `#475569` hover — never the default gray);
+  bottom slot is role context (ED: Premium-listings pointer + org card; attendee:
+  club card; admin: none) — never session actions. Header: sticky white/95 blur,
+  breadcrumb left, user (Avatar + name + role) right; clicking the user opens the
+  account menu (name + email header, **Account**, **Log out**) — the only sign-out
+  surface in the dashboard. Icons come from the shared `Icon` lookup in
+  `app/dashboard/icons.tsx`; don't inline one-off SVGs in shell code.
+- **Choice chips (selected state)** — selectable blocks (user type, role, gender,
+  distance, flag reasons) mark the checked option with the **soft red tint**:
+  `border-red-600 bg-red-50 text-red-700`. NEVER solid ink — `bg-slate-900` is
+  reserved for primary CTAs, and a selection must not read as a button
+  (S12.3).
 - **Spinner** — the shared inline spinner (`tg-spin` keyframe, border-current circle,
   em-sized so it tracks the text scale, `currentColor` tint). Button/FormButton render it
   when pending; section loaders (like the search results' "Searching…" overlay pill)
@@ -211,4 +229,6 @@ Build screens from these; don't hand-roll equivalents.
 - **Do** keep Coach = red, Attendee = amber everywhere; **don't** swap or reassign those.
 - **Do** use selectable blocks for choices (user type, role, gender, distance, team fields);
   **don't** use dropdowns except the team Age list (the one intentional exception).
+- **Do** mark the checked choice with the red tint (`bg-red-50` / `border-red-600` /
+  `text-red-700`); **don't** fill selections with ink — solid `#0f172a` means "button".
 - **Do** use fixed-width action columns in tables so rows align; **don't** let action cells auto-size.

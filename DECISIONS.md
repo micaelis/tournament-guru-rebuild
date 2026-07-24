@@ -2371,3 +2371,42 @@ server actions (signup/reset/promo emails). Those resolve
 `origin`-header-first by design — a multi-domain deployment keeps the
 user on the host they signed up from — so folding them into the
 env-first helper would change behavior.
+
+### S12.2 · Dashboard shell redesign (Direction D): header user menu, role-scoped ink rail
+
+**What:** the dashboard gets a sticky top header (breadcrumb + user
+identity; clicking it opens the account menu with **Account** and **Log
+out**) and the sidebar is restyled per the approved "D · Blend" mockup
+(`design/account-redesign.html`): per-item icons, red active bar, thin
+slate-blue scrollbar (`.tg-scroll-dark`), and a role-scoped bottom slot
+(ED: Premium-listings pointer → `/dashboard/support` + org card;
+attendee: club card when set; admin: none). "Sign out" left the sidebar
+— the header menu is the only dashboard sign-out. The Account page's
+Profile tab became a split-section form card beside a sticky profile
+preview card with completeness meter and "Add your …" placeholder rows
+that focus the matching input; the org-logo uploader renders a fixed
+square tile (`ImageUploadField thumbSize="lg"`).
+
+**Why:** Danny picked direction D after a 3-way mockup review
+(2026-07-24) and asked for the wire-up across ED/admin/attendee with
+role-reflecting dashboards. Placeholder rows exist because an empty
+profile field must advertise itself, not vanish.
+
+**Alternatives rejected:** a notifications bell in the header (mockup
+had one; the app has no notifications feed — a dead bell is worse than
+none, revisit when in-app notifications ship) and an ED "public
+listings" button on the preview card (no public ED profile page
+exists).
+
+### S12.3 · Selected choice-chips are red-tinted, never ink (supersedes ink-checked chips)
+
+**What:** every selectable block's checked state is now
+`border-red-600 bg-red-50 text-red-700` — AccountClient (gender,
+distance), OnboardingWizard chips, FlagDialog reasons. Previously
+checked = solid `bg-slate-900`.
+
+**Why:** Danny (2026-07-24): "I don't like that the selections are
+black, the same color as the CTAs." A selection sharing the primary
+button's solid-ink fill reads as an action; the red tint keeps it in
+the badge family instead. Fixed as a class across all
+`has-[input:checked]` sites, not just the flagged Gender instance.

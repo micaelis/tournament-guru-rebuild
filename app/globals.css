@@ -354,6 +354,30 @@ body {
 .tg-hover:hover:not(:disabled) { filter: brightness(0.95); }
 .tg-hover:active:not(:disabled) { filter: brightness(0.92); }
 
+/* ── Dashboard shell ── */
+/* Dark-rail scrollbar — thin thumb, slightly lighter blue than the ink
+   bg (the default gray bar reads as a rendering glitch on #0f172a).
+   Standard properties cover Chrome/Firefox; the -webkit rules keep
+   Safari on the same look. */
+.tg-scroll-dark {
+  scrollbar-width: thin;
+  scrollbar-color: #334155 transparent;
+}
+.tg-scroll-dark::-webkit-scrollbar {
+  width: 8px;
+}
+.tg-scroll-dark::-webkit-scrollbar-track {
+  background: transparent;
+}
+.tg-scroll-dark::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 9999px;
+  border: 2px solid #0f172a;
+}
+.tg-scroll-dark::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
 /* Faded soccer-ball placeholder in event logo panels — gentle one-shot fade-in. */
 .tg-ball { animation: tgBallIn .8s ease-out both; }
 @keyframes tgBallIn {

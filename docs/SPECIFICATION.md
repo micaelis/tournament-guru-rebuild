@@ -553,11 +553,22 @@ the footer bottom bar (Privacy · Legal).
 
 ## 6. Event Director dashboard
 
+**Dashboard shell (all roles):** an ink sidebar (per-item icons, red
+active-indicator bar, thin slate-blue scrollbar) plus a sticky top header —
+breadcrumb (*Dashboard › section*) on the left and the signed-in user
+(avatar, name, role) on the right. Clicking the user opens the account menu:
+name + login email, **Account**, and **Log out** (returns to `/login`).
+Session actions live ONLY in that menu — the sidebar carries navigation and
+role context, never sign-out. The sidebar's bottom slot is role-scoped: EDs
+get a **Premium listings** pointer (links to Support) and their
+**organization card** (logo + title); attendees get a **club card** when a
+club affiliation is set; admins get neither.
+
 Sidebar (order per `app/dashboard/nav-items.ts`): Events · Reviews · Claim
 Requests · Promo Codes · Search Events · Transactions* · Add-on Pricing* ·
-Notifications* · Account · FAQ · Support · Log Out. Items marked * are
-**hidden this sprint** (Transactions, Add-on Pricing, Notifications). The
-default landing page is **Events**. Log Out returns to `/login`.
+Notifications* · Account · FAQ · Support. Items marked * are **hidden this
+sprint** (Transactions, Add-on Pricing, Notifications). The default landing
+page is **Events**.
 
 ### 6.1 Events
 
@@ -861,11 +872,12 @@ the "Requested" unclickable state, and the logged-out → ED auth variant.
 ### 6.5 Account (ED)
 
 Tabs: Profile, Security, Preferences, Notifications, Payment Methods. See §7.4
-for the shared Account behaviors (Security, Preferences, Notifications, deletion).
-The **ED Profile** shows profile photo, first name, last name, and a separate
-**Organization Settings** section: organization logo, **User Title** (ED role),
-**Organization Title**, **Organization Description** — with the same mandatory
-rules as onboarding. (Role remains locked post-onboarding.)
+for the shared Account behaviors (Security, Preferences, Notifications, deletion,
+and the profile preview card). The **ED Profile** is a split-section settings
+card — **Identity** (photo, first name, last name, location, gender),
+**Organization** (title, description, logo — the logo uploader shows a fixed
+square tile), and **Public contact** (business phone/email/website) — with the
+same mandatory rules as onboarding. (Role remains locked post-onboarding.)
 
 ### 6.6 Support
 
@@ -880,7 +892,7 @@ followed by the message in italics — and shows a confirmation popup.
 
 Sidebar (order per `app/dashboard/nav-items.ts`): Search Events · My Reviews ·
 Promo Codes · Favorites · Activity · Notifications* (hidden) · Account · FAQ ·
-Support · Log Out. Log Out returns to `/login`.
+Support. Sign-out is in the header user menu (see the §6 shell).
 
 ### 7.1 My Reviews
 
@@ -921,6 +933,16 @@ Each public event-page visit registers the event; the list is **capped at 50**
 Promo Codes. **Admin tabs**: Profile, Security only (admin profile = photo,
 first name, last name).
 
+**Profile preview card** (beside the profile form, sticky on wide screens):
+avatar, name, role eyebrow, then role-scoped facts — organization/club,
+location, member-since, and (ED) website. **An empty fact never disappears**:
+it renders as an *"Add your …"* placeholder that scrolls to and focuses the
+matching form input. Non-admins also get a **profile-completeness meter**
+(percent of the role's profile fields filled, with a hint naming what's
+missing); attendees get the **View public profile** link here (it moved out
+of the form). Every profile input carries placeholder text so empty fields
+are never blank boxes.
+
 > **Saves are partial.** Because the three roles render different field
 > sets inside one form, `updateProfile` writes only the columns whose
 > inputs were actually submitted — an unrendered field is left untouched
@@ -960,7 +982,8 @@ first name, last name).
 
 Sidebar (order per `app/dashboard/nav-items.ts`): Events · Reviews · Flagged ·
 Banned Words · FAQs · Users · Claim Requests · Promo Codes · Support Messages ·
-Search Events · Account · Log Out. Admin Events, Reviews, and
+Search Events · Account. Sign-out is in the header user menu (see the §6
+shell). Admin Events, Reviews, and
 Promo Codes are covered in §6 (with their admin-only differences); this section
 covers the admin-specific pages. Admins reach their dashboard through the shared
 auth screen via role-based redirect.

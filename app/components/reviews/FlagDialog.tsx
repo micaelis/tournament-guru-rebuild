@@ -88,7 +88,7 @@ export function FlagDialog({
           {REASONS.map((opt) => (
             <label
               key={opt.value}
-              className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 p-3 text-sm hover:border-slate-400 has-[input:checked]:border-slate-900 has-[input:checked]:bg-slate-900 has-[input:checked]:text-white"
+              className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 p-3 text-sm transition-colors hover:border-slate-400 has-[input:checked]:border-red-600 has-[input:checked]:bg-red-50 has-[input:checked]:text-red-700"
             >
               <input
                 type="radio"
