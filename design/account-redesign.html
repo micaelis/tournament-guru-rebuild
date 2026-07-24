@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<!--
+  Tournament Guru — dashboard redesign exploration (DESIGN ARTIFACT, not wired to the app).
+  Open this file directly in a browser. Switch directions with the floating pill (or keys 1/2/3).
+
+  Three directions of the Account page (ED role, Profile tab primary), all sharing the goals:
+    • NEW top header carrying avatar + name; clicking opens a menu with "Account" and "Log out"
+    • "Sign out" removed from the sidebar
+    • elevated header / sidebar / cards / inputs, per docs/STYLE-GUIDE.md tokens
+
+  A · Ink Rail    — dark ink sidebar refined (icons, red active bar, org card), white studio
+                    header with breadcrumb, single split-section settings card, underline tabs.
+  B · Porcelain   — all-light: floating white rail + card header with search, segmented pill
+                    tabs, two-column card layout, soft filled inputs, completeness side panel.
+  C · Broadsheet  — editorial: dark full-width header band, borderless text rail with counts,
+                    big Bricolage title, oversized tabs, sticky profile summary + form column.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>TG — Account redesign · 3 directions</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: { ink: "#0f172a", accent: "#dc2626" },
+        fontFamily: {
+          sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+          heading: ['"Bricolage Grotesque"', "Inter", "sans-serif"],
+        },
+      },
+    },
+  };
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ── shared form language (mirrors .tg-control in app/globals.css) ── */
+  .ctl{width:100%;border:1px solid #e2e8f0;border-radius:10px;background:#fff;color:#0f172a;
+    font-size:14.5px;line-height:1.4;padding:11px 14px;
+    transition:border-color .15s ease,box-shadow .15s ease,background .15s ease}
+  .ctl::placeholder{color:#94a3b8}
+  .ctl:hover:not(:focus){border-color:#cbd5e1}
+  .ctl:focus{outline:none;border-color:#dc2626;box-shadow:0 0 0 3px rgba(220,38,38,.12)}
+  /* Direction B: soft filled variant, ink focus */
+  .ctl-b{border-color:transparent;background:#f1f5f9}
+  .ctl-b:hover:not(:focus){border-color:#e2e8f0;background:#eef2f7}
+  .ctl-b:focus{background:#fff;border-color:#0f172a;box-shadow:0 0 0 3px rgba(15,23,42,.07)}
+
+  .lbl{display:block;margin-bottom:6px;font-size:13px;font-weight:600;color:#1e293b}
+  .lbl-c{display:block;margin-bottom:7px;font-size:11px;font-weight:800;letter-spacing:.08em;
+    text-transform:uppercase;color:#64748b}
+  .hint{margin-top:6px;font-size:12px;color:#64748b}
+
+  /* selectable choice chips (gender) — checked = ink block, per the app */
+  .chip{display:inline-flex;align-items:center;border:1px solid #e2e8f0;border-radius:12px;
+    background:#fff;padding:8px 16px;font-size:14px;font-weight:600;color:#1e293b;cursor:pointer;
+    transition:all .15s ease}
+  .chip:hover{border-color:#94a3b8}
+  .chip.on,.chip.on:hover{background:#0f172a;border-color:#0f172a;color:#fff}
+  .chip-round{border-radius:9999px}
+
+  /* buttons */
+  .btn-primary{display:inline-flex;align-items:center;gap:8px;border-radius:10px;background:#0f172a;
+    color:#fff;padding:10px 18px;font-size:13.5px;font-weight:600;cursor:pointer;
+    transition:all .15s ease}
+  .btn-primary:hover{transform:translateY(-1px);box-shadow:0 10px 22px -8px rgba(15,23,42,.45)}
+  .btn-primary:active{transform:none;box-shadow:none}
+  .btn-ghost{display:inline-flex;align-items:center;gap:8px;border-radius:10px;background:#fff;
+    border:1px solid #e2e8f0;color:#334155;padding:9px 15px;font-size:13px;font-weight:600;
+    cursor:pointer;transition:all .15s ease}
+  .btn-ghost:hover{border-color:#94a3b8;color:#0f172a}
+
+  /* canonical TextLink treatment */
+  .tg-link{font-weight:600;color:#334155;text-decoration:underline;text-decoration-color:#cbd5e1;
+    text-underline-offset:3px;transition:color .15s ease,text-decoration-color .15s ease;cursor:pointer}
+  .tg-link:hover{color:#dc2626;text-decoration-color:#dc2626}
+
+  /* ── user menu (shared, opens on click) ── */
+  [data-menu]{position:relative}
+  .tg-menu{position:absolute;right:0;top:calc(100% + 10px);width:248px;display:none;z-index:50;
+    background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:6px;
+    box-shadow:0 18px 40px -12px rgba(15,23,42,.25)}
+  [data-menu][data-open] .tg-menu{display:block;animation:tg-pop .16s cubic-bezier(.2,.7,.2,1) both}
+  @keyframes tg-pop{from{opacity:0;transform:translateY(6px) scale(.98)}to{opacity:1;transform:none}}
+  .tg-menu-item{display:flex;align-items:center;gap:10px;border-radius:9px;padding:9px 11px;
+    font-size:13px;font-weight:600;color:#334155;transition:all .13s ease;cursor:pointer}
+  .tg-menu-item:hover{background:#f1f5f9;color:#0f172a}
+  .tg-menu-item.danger:hover{background:#fef2f2;color:#b91c1c}
+  .tg-menu-item i{width:15px;height:15px;color:#94a3b8;flex:none}
+  .tg-menu-item:hover i{color:currentColor}
+
+  /* ── tab variants ── */
+  .tabs-a{display:flex;gap:26px;border-bottom:1px solid #e2e8f0}
+  .tabs-a [data-tab]{position:relative;padding:0 2px 12px;font-size:13.5px;font-weight:600;
+    color:#64748b;cursor:pointer;transition:color .15s ease;background:none;border:none}
+  .tabs-a [data-tab]:hover{color:#0f172a}
+  .tabs-a [data-tab][data-on]{color:#0f172a}
+  .tabs-a [data-tab][data-on]::after{content:"";position:absolute;left:0;right:0;bottom:-1px;
+    height:2px;border-radius:2px;background:#dc2626}
+
+  .tabs-b{display:inline-flex;gap:4px;padding:4px;border-radius:9999px;background:#f1f5f9;
+    border:1px solid #e2e8f0}
+  .tabs-b [data-tab]{border-radius:9999px;padding:7px 16px;font-size:13px;font-weight:600;
+    color:#475569;cursor:pointer;border:1px solid transparent;background:none;
+    transition:all .15s ease}
+  .tabs-b [data-tab]:hover{color:#0f172a}
+  .tabs-b [data-tab][data-on]{background:#fff;color:#0f172a;border-color:#e2e8f0;
+    box-shadow:0 1px 2px rgba(15,23,42,.06)}
+
+  .tabs-c{display:flex;gap:28px;border-bottom:1px solid #e2e8f0}
+  .tabs-c [data-tab]{font-family:"Bricolage Grotesque",Inter,sans-serif;font-size:15px;
+    font-weight:700;letter-spacing:-.01em;color:#94a3b8;padding:0 1px 13px;margin-bottom:-1px;
+    border:none;border-bottom:2px solid transparent;background:none;cursor:pointer;
+    transition:color .15s ease,border-color .15s ease}
+  .tabs-c [data-tab]:hover{color:#475569}
+  .tabs-c [data-tab][data-on]{color:#0f172a;border-bottom-color:#dc2626}
+
+  /* ── direction switcher ── */
+  .tg-sw{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:80;display:flex;
+    align-items:center;gap:4px;padding:5px;background:rgba(15,23,42,.94);
+    border:1px solid rgba(255,255,255,.12);border-radius:9999px;backdrop-filter:blur(6px);
+    box-shadow:0 18px 44px -12px rgba(15,23,42,.55)}
+  .tg-sw-label{padding:0 8px 0 13px;font-size:10.5px;font-weight:800;letter-spacing:.13em;
+    text-transform:uppercase;color:rgba(255,255,255,.4)}
+  .tg-sw button{border:none;background:none;border-radius:9999px;padding:8px 15px;
+    font-size:12.5px;font-weight:700;color:rgba(255,255,255,.62);cursor:pointer;
+    transition:all .15s ease}
+  .tg-sw button:hover{color:#fff}
+  .tg-sw button[data-on]{background:#fff;color:#0f172a}
+
+  [data-icon]{display:inline-block;flex:none}
+  [data-icon] svg{display:block;width:100%;height:100%}
+
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+  }
+</style>
+</head>
+<body class="bg-slate-50 font-sans text-ink antialiased">
+
+<!-- ============================================================
+     DIRECTION A · INK RAIL
+     ============================================================ -->
+<section data-direction="a" class="min-h-screen bg-slate-50">
+  <div class="mx-auto flex max-w-[1440px]">
+
+    <!-- Sidebar — dark ink, icons, red active bar, org identity at bottom -->
+    <aside class="sticky top-0 hidden h-screen w-[264px] shrink-0 flex-col bg-ink md:flex">
+      <div class="flex items-center px-5 py-7">
+        <a href="#" class="flex items-center gap-2.5">
+          <span class="grid h-8 w-8 place-items-center rounded-lg bg-white/10 text-sm font-extrabold text-white">TG</span>
+          <span class="font-heading text-[15px] font-extrabold text-white">Tournament Guru</span>
+        </a>
+      </div>
+      <nav class="flex-1 space-y-7 overflow-y-auto px-3 pb-6">
+        <div>
+          <p class="mb-2.5 px-3 text-[10.5px] font-bold uppercase tracking-[0.16em] text-white/30">Manage</p>
+          <ul class="space-y-0.5">
+            <li><a href="#" class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold text-white/55 transition-colors hover:bg-white/[0.06] hover:text-white/90"><i data-icon="calendar" class="h-4 w-4 opacity-70"></i>Events</a></li>
+            <li><a href="#" class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold text-white/55 transition-colors hover:bg-white/[0.06] hover:text-white/90"><i data-icon="star" class="h-4 w-4 opacity-70"></i>Reviews</a></li>
+            <li><a href="#" class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold text-white/55 transition-colors hover:bg-white/[0.06] hover:text-white/90"><i data-icon="inbox" class="h-4 w-4 opacity-70"></i>Claim Requests</a></li>
+            <li><a href="#" class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold text-white/55 transition-colors hover:bg-white/[0.06] hover:text-white/90"><i data-icon="tag" class="h-4 w-4 opacity-70"></i>Promo Codes</a></li>
+          </ul>
+        </div>
+        <div>
+          <p class="mb-2.5 px-3 text-[10.5px] font-bold uppercase tracking-[0.16em] text-white/30">Browse</p>
+          <ul class="space-y-0.5">
+            <li><a href="#" class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold text-white/55 transition-colors hover:bg-white/[0.06] hover:text-white/90"><i data-icon="search" class="h-4 w-4 opacity-70"></i>Search Events</a></li>
+          </ul>
+        </div>
+        <div>
+          <p class="mb-2.5 px-3 text-[10.5px] font-bold uppercase tracking-[0.16em] text-white/30">You</p>
+          <ul class="space-y-0.5">
+            <li><a href="#" class="relative flex items-center gap-3 rounded-xl bg-white/[0.1] px-3 py-2.5 text-[13.5px] font-semibold text-white">
+              <span class="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-full bg-accent"></span>
+              <i data-icon="user" class="h-4 w-4"></i>Account</a></li>
+            <li><a href="#" class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold text-white/55 transition-colors hover:bg-white/[0.06] hover:text-white/90"><i data-icon="help" class="h-4 w-4 opacity-70"></i>FAQ</a></li>
+            <li><a href="#" class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold text-white/55 transition-colors hover:bg-white/[0.06] hover:text-white/90"><i data-icon="lifebuoy" class="h-4 w-4 opacity-70"></i>Support</a></li>
+          </ul>
+        </div>
+      </nav>
+      <!-- org identity replaces the old user card (user + sign-out moved to the header) -->
+      <div class="border-t border-white/[0.08] px-4 py-5">
+        <div class="flex items-center gap-3 rounded-xl border border-white/[0.08] bg-white/[0.06] px-3 py-3">
+          <span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-white font-heading text-[15px] font-extrabold text-ink"><span>A<span class="text-accent">.</span></span></span>
+          <div class="min-w-0">
+            <p class="truncate text-[12.5px] font-bold text-white">Apex Youth Sports</p>
+            <p class="truncate text-[11px] font-medium text-white/40">Organization</p>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <div class="min-w-0 flex-1">
+      <!-- NEW top header: breadcrumb + bell + user menu -->
+      <header class="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
+        <div class="flex h-16 items-center justify-between px-6 md:px-10">
+          <div class="flex items-center gap-2 text-[13px]">
+            <span class="font-medium text-slate-400">Dashboard</span>
+            <i data-icon="chevron-right" class="h-3.5 w-3.5 text-slate-300"></i>
+            <span class="font-semibold text-ink">Account</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <button type="button" aria-label="Notifications" class="relative grid h-9 w-9 place-items-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-ink">
+              <i data-icon="bell" class="h-[17px] w-[17px]"></i>
+              <span class="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-accent"></span>
+            </button>
+            <span class="mx-1 h-6 w-px bg-slate-200"></span>
+            <div data-menu>
+              <button type="button" data-menu-btn aria-haspopup="menu" aria-expanded="false"
+                class="flex items-center gap-3 rounded-full py-1.5 pl-1.5 pr-3 transition-colors hover:bg-slate-100">
+                <span class="grid h-8 w-8 place-items-center rounded-full bg-slate-700 text-[11px] font-bold text-white">MW</span>
+                <span class="hidden text-left sm:block">
+                  <span class="block text-[13px] font-bold leading-tight text-ink">Marcus Whitfield</span>
+                  <span class="block text-[11px] font-medium leading-tight text-slate-500">Event Director</span>
+                </span>
+                <i data-icon="chevron-down" class="h-4 w-4 text-slate-400"></i>
+              </button>
+              <div class="tg-menu" role="menu">
+                <div class="px-3 py-2.5">
+                  <p class="text-[13px] font-bold text-ink">Marcus Whitfield</p>
+                  <p class="mt-0.5 truncate text-xs text-slate-500">marcus@apexyouthsports.com</p>
+                </div>
+                <div class="mx-1.5 h-px bg-slate-100"></div>
+                <a href="#" class="tg-menu-item" role="menuitem"><i data-icon="user"></i>Account</a>
+                <div class="mx-1.5 h-px bg-slate-100"></div>
+                <a href="#" class="tg-menu-item danger" role="menuitem"><i data-icon="logout"></i>Log out</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main class="px-6 py-10 md:px-10">
+        <div class="mx-auto max-w-[960px]">
+          <p class="text-[10.5px] font-extrabold uppercase tracking-[0.14em] text-slate-400">Settings</p>
+          <h1 class="mt-1.5 font-heading text-[30px] font-extrabold tracking-[-0.02em] text-ink">Account</h1>
+          <p class="mt-1.5 text-sm text-slate-500">Manage your profile, your organization, and how attendees reach you.</p>
+
+          <div class="tabs-a mt-7" role="tablist">
+            <button type="button" data-tab="profile" data-on>Profile</button>
+            <button type="button" data-tab="security">Security</button>
+            <button type="button" data-tab="preferences">Preferences</button>
+            <button type="button" data-tab="notifications">Notifications</button>
+          </div>
+
+          <div data-panel="profile" class="mt-7">
+            <div class="rounded-2xl border border-slate-200 bg-white">
+              <div class="divide-y divide-slate-100">
+
+                <!-- Identity -->
+                <div class="grid gap-6 p-7 md:grid-cols-[200px_minmax(0,1fr)] md:gap-10">
+                  <div>
+                    <h3 class="font-heading text-[15px] font-bold text-ink">Identity</h3>
+                    <p class="mt-1.5 text-[12.5px] leading-relaxed text-slate-500">Your name and photo, shown alongside replies you post as a director.</p>
+                  </div>
+                  <div class="space-y-5">
+                    <div class="grid gap-4 sm:grid-cols-2">
+                      <div><label class="lbl" for="a-first">First name</label><input id="a-first" class="ctl" value="Marcus"></div>
+                      <div><label class="lbl" for="a-last">Last name</label><input id="a-last" class="ctl" value="Whitfield"></div>
+                    </div>
+                    <div>
+                      <span class="lbl">Profile photo</span>
+                      <div class="flex items-center gap-4">
+                        <span class="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-slate-700 text-[16px] font-bold text-white">MW</span>
+                        <div>
+                          <div class="flex items-center gap-3">
+                            <button type="button" class="btn-ghost"><i data-icon="upload" class="h-3.5 w-3.5 text-slate-400"></i>Upload</button>
+                            <span class="tg-link text-[12.5px]">Remove</span>
+                          </div>
+                          <p class="hint">PNG or JPG, up to 5 MB — or paste a hosted URL.</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <span class="lbl">Gender</span>
+                      <div class="flex flex-wrap gap-3">
+                        <button type="button" class="chip on">Male</button>
+                        <button type="button" class="chip">Female</button>
+                        <button type="button" class="chip">Prefer not to say</button>
+                      </div>
+                    </div>
+                    <div>
+                      <label class="lbl" for="a-loc">Location</label>
+                      <input id="a-loc" class="ctl" value="Charlotte, NC, USA">
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Organization -->
+                <div class="grid gap-6 p-7 md:grid-cols-[200px_minmax(0,1fr)] md:gap-10">
+                  <div>
+                    <h3 class="font-heading text-[15px] font-bold text-ink">Organization</h3>
+                    <p class="mt-1.5 text-[12.5px] leading-relaxed text-slate-500">How your organization appears on every event page you own.</p>
+                  </div>
+                  <div class="space-y-5">
+                    <div>
+                      <label class="lbl" for="a-org">Organization title</label>
+                      <input id="a-org" class="ctl" value="Apex Youth Sports">
+                    </div>
+                    <div>
+                      <label class="lbl" for="a-desc">Organization description</label>
+                      <textarea id="a-desc" rows="4" class="ctl resize-none">Apex Youth Sports produces competitive youth soccer tournaments and college showcases across the Carolinas — 14 events a year, 30,000+ athletes, and scout-attended finals. Known for smooth check-in, verified officials, and family-friendly venues.</textarea>
+                    </div>
+                    <div>
+                      <span class="lbl">Organization logo</span>
+                      <div class="flex items-center gap-4">
+                        <span class="grid h-14 w-14 shrink-0 place-items-center rounded-xl border border-slate-200 bg-slate-50 font-heading text-[19px] font-extrabold text-ink"><span>A<span class="text-accent">.</span></span></span>
+                        <div>
+                          <div class="flex items-center gap-3">
+                            <button type="button" class="btn-ghost"><i data-icon="upload" class="h-3.5 w-3.5 text-slate-400"></i>Upload</button>
+                            <span class="tg-link text-[12.5px]">Remove</span>
+                          </div>
+                          <p class="hint">PNG or JPG, up to 5 MB — or paste a hosted URL.</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Public contact -->
+                <div class="grid gap-6 p-7 md:grid-cols-[200px_minmax(0,1fr)] md:gap-10">
+                  <div>
+                    <h3 class="font-heading text-[15px] font-bold text-ink">Public contact</h3>
+                    <p class="mt-1.5 text-[12.5px] leading-relaxed text-slate-500">Shown on your event pages — separate from your login email.</p>
+                  </div>
+                  <div class="space-y-5">
+                    <div>
+                      <label class="lbl" for="a-phone">Business phone</label>
+                      <input id="a-phone" type="tel" class="ctl" value="(704) 555-0182">
+                      <p class="hint">Shown publicly on your event pages.</p>
+                    </div>
+                    <div>
+                      <label class="lbl" for="a-email">Business email</label>
+                      <input id="a-email" type="email" class="ctl" value="events@apexyouthsports.com">
+                      <p class="hint">Public contact email — not your login email.</p>
+                    </div>
+                    <div>
+                      <label class="lbl" for="a-web">Business website</label>
+                      <input id="a-web" type="url" class="ctl" value="https://apexyouthsports.com">
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex items-center justify-between gap-4 rounded-b-2xl border-t border-slate-100 bg-slate-50/60 px-7 py-5">
+                <p class="text-[12.5px] text-slate-500">Last saved Tue, Jul 22 — changes go live on your event pages immediately.</p>
+                <div class="flex items-center gap-2.5">
+                  <button type="button" class="btn-ghost">Discard</button>
+                  <button type="button" class="btn-primary">Save changes</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div data-panel="stub" hidden class="mt-7">
+            <div class="grid place-items-center rounded-2xl border border-slate-200 bg-white px-8 py-16 text-center">
+              <span class="grid h-12 w-12 place-items-center rounded-full bg-slate-100 text-slate-400"><i data-icon="layout" class="h-5 w-5"></i></span>
+              <p class="mt-4 font-heading text-[15px] font-bold text-ink">Only the Profile tab is mocked up</p>
+              <p class="mt-1.5 max-w-sm text-[13px] leading-relaxed text-slate-500">The <span data-stub-name class="font-semibold text-slate-700">Security</span> tab keeps today’s structure, restyled to this direction once it’s chosen.</p>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     DIRECTION B · PORCELAIN
+     ============================================================ -->
+<section data-direction="b" class="min-h-screen bg-slate-50" hidden>
+  <div class="mx-auto flex max-w-[1480px] items-start gap-5 p-5">
+
+    <!-- Floating light rail -->
+    <aside class="sticky top-5 hidden h-[calc(100vh-40px)] w-[264px] shrink-0 flex-col rounded-2xl border border-slate-200 bg-white md:flex">
+      <div class="flex items-center px-5 pb-5 pt-6">
+        <a href="#" class="flex items-center gap-2.5">
+          <span class="grid h-8 w-8 place-items-center rounded-lg bg-ink text-sm font-extrabold text-white">TG</span>
+          <span class="font-heading text-[15px] font-extrabold text-ink">Tournament Guru<span class="text-accent">.</span></span>
+        </a>
+      </div>
+      <nav class="flex-1 space-y-6 overflow-y-auto px-3 pb-4">
+        <div>
+          <p class="mb-2 px-3 text-[10.5px] font-bold uppercase tracking-[0.16em] text-slate-400">Manage</p>
+          <ul class="space-y-0.5">
+            <li><a href="#" class="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold text-slate-600 transition-colors hover:bg-slate-100 hover:text-ink"><i data-icon="calendar" class="h-4 w-4 text-slate-400 transition-colors group-hover:text-slate-600"></i>Events</a></li>
+            <li><a href="#" class="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold text-slate-600 transition-colors hover:bg-slate-100 hover:text-ink"><i data-icon="star" class="h-4 w-4 text-slate-400 transition-colors group-hover:text-slate-600"></i>Reviews</a></li>
+            <li><a href="#" class="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold text-slate-600 transition-colors hover:bg-slate-100 hover:text-ink"><i data-icon="inbox" class="h-4 w-4 text-slate-400 transition-colors group-hover:text-slate-600"></i>Claim Requests</a></li>
+            <li><a href="#" class="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold text-slate-600 transition-colors hover:bg-slate-100 hover:text-ink"><i data-icon="tag" class="h-4 w-4 text-slate-400 transition-colors group-hover:text-slate-600"></i>Promo Codes</a></li>
+          </ul>
+        </div>
+        <div>
+          <p class="mb-2 px-3 text-[10.5px] font-bold uppercase tracking-[0.16em] text-slate-400">Browse</p>
+          <ul class="space-y-0.5">
+            <li><a href="#" class="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold text-slate-600 transition-colors hover:bg-slate-100 hover:text-ink"><i data-icon="search" class="h-4 w-4 text-slate-400 transition-colors group-hover:text-slate-600"></i>Search Events</a></li>
+          </ul>
+        </div>
+        <div>
+          <p class="mb-2 px-3 text-[10.5px] font-bold uppercase tracking-[0.16em] text-slate-400">You</p>
+          <ul class="space-y-0.5">
+            <li><a href="#" class="flex items-center gap-3 rounded-xl bg-ink px-3 py-2.5 text-[13.5px] font-semibold text-white shadow-sm"><i data-icon="user" class="h-4 w-4 text-white/80"></i>Account</a></li>
+            <li><a href="#" class="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold text-slate-600 transition-colors hover:bg-slate-100 hover:text-ink"><i data-icon="help" class="h-4 w-4 text-slate-400 transition-colors group-hover:text-slate-600"></i>FAQ</a></li>
+            <li><a href="#" class="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold text-slate-600 transition-colors hover:bg-slate-100 hover:text-ink"><i data-icon="lifebuoy" class="h-4 w-4 text-slate-400 transition-colors group-hover:text-slate-600"></i>Support</a></li>
+          </ul>
+        </div>
+      </nav>
+      <div class="mx-3 mb-4 rounded-xl border border-slate-200 bg-slate-50 p-3.5">
+        <p class="text-[12.5px] font-bold text-slate-800">Premium listings</p>
+        <p class="mt-1 text-xs leading-relaxed text-slate-500">Feature your events in Spotlight and search-top placements.</p>
+        <span class="tg-link mt-2 inline-block text-[12.5px]">Learn more</span>
+      </div>
+    </aside>
+
+    <div class="flex min-w-0 flex-1 flex-col gap-5">
+      <!-- NEW card header: search + bell + user menu -->
+      <header class="sticky top-5 z-30 flex h-14 items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4">
+        <div class="flex h-9 max-w-md flex-1 items-center gap-2.5 rounded-xl border border-transparent bg-slate-100/80 px-3 text-slate-400 transition-colors focus-within:border-slate-300 focus-within:bg-white">
+          <i data-icon="search" class="h-4 w-4"></i>
+          <input class="w-full bg-transparent text-[13px] text-ink outline-none placeholder:text-slate-400" placeholder="Search your events, reviews, codes…">
+          <span class="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 font-mono text-[10px] font-semibold text-slate-400">⌘K</span>
+        </div>
+        <div class="ml-auto flex items-center gap-1.5">
+          <button type="button" aria-label="Notifications" class="relative grid h-9 w-9 place-items-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-ink">
+            <i data-icon="bell" class="h-[17px] w-[17px]"></i>
+            <span class="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-accent"></span>
+          </button>
+          <div data-menu>
+            <button type="button" data-menu-btn aria-haspopup="menu" aria-expanded="false"
+              class="flex items-center gap-2.5 rounded-full py-1.5 pl-1.5 pr-2.5 transition-colors hover:bg-slate-100">
+              <span class="grid h-[30px] w-[30px] place-items-center rounded-full bg-slate-700 text-[11px] font-bold text-white">MW</span>
+              <span class="hidden text-[13px] font-bold text-ink sm:block">Marcus</span>
+              <i data-icon="chevron-down" class="h-4 w-4 text-slate-400"></i>
+            </button>
+            <div class="tg-menu" role="menu">
+              <div class="px-3 py-2.5">
+                <p class="text-[13px] font-bold text-ink">Marcus Whitfield</p>
+                <p class="mt-0.5 truncate text-xs text-slate-500">marcus@apexyouthsports.com</p>
+              </div>
+              <div class="mx-1.5 h-px bg-slate-100"></div>
+              <a href="#" class="tg-menu-item" role="menuitem"><i data-icon="user"></i>Account</a>
+              <div class="mx-1.5 h-px bg-slate-100"></div>
+              <a href="#" class="tg-menu-item danger" role="menuitem"><i data-icon="logout"></i>Log out</a>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main class="pb-14">
+        <div class="mx-auto w-full max-w-[1080px] pt-3">
+          <div class="flex flex-wrap items-end justify-between gap-4 px-1">
+            <div>
+              <h1 class="font-heading text-[28px] font-extrabold tracking-[-0.02em] text-ink">Account</h1>
+              <p class="mt-1 text-sm text-slate-500">Your profile, organization, and public contact details.</p>
+            </div>
+            <div class="tabs-b" role="tablist">
+              <button type="button" data-tab="profile" data-on>Profile</button>
+              <button type="button" data-tab="security">Security</button>
+              <button type="button" data-tab="preferences">Preferences</button>
+              <button type="button" data-tab="notifications">Notifications</button>
+            </div>
+          </div>
+
+          <div data-panel="profile">
+            <div class="mt-6 grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+              <div class="space-y-5">
+
+                <!-- identity hero -->
+                <div class="flex flex-wrap items-center gap-5 rounded-2xl border border-slate-200 bg-white p-6">
+                  <span class="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-slate-700 text-[19px] font-bold text-white ring-4 ring-slate-50">MW</span>
+                  <div class="min-w-0 flex-1">
+                    <p class="font-heading text-[19px] font-bold tracking-[-0.01em] text-ink">Marcus Whitfield</p>
+                    <div class="mt-1.5 flex flex-wrap items-center gap-2">
+                      <span class="rounded-full border border-[#fecaca] bg-[#fef2f2] px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.08em] text-[#b91c1c]">Event Director</span>
+                      <span class="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.08em] text-slate-500">Charlotte, NC</span>
+                    </div>
+                  </div>
+                  <button type="button" class="btn-ghost"><i data-icon="upload" class="h-3.5 w-3.5 text-slate-400"></i>Change photo</button>
+                </div>
+
+                <!-- profile -->
+                <div class="rounded-2xl border border-slate-200 bg-white p-6">
+                  <h3 class="font-heading text-[15px] font-bold text-ink">Profile</h3>
+                  <div class="mt-5 space-y-5">
+                    <div class="grid gap-4 sm:grid-cols-2">
+                      <div><label class="lbl" for="b-first">First name</label><input id="b-first" class="ctl ctl-b" value="Marcus"></div>
+                      <div><label class="lbl" for="b-last">Last name</label><input id="b-last" class="ctl ctl-b" value="Whitfield"></div>
+                    </div>
+                    <div>
+                      <span class="lbl">Gender</span>
+                      <div class="flex flex-wrap gap-2.5">
+                        <button type="button" class="chip chip-round on">Male</button>
+                        <button type="button" class="chip chip-round">Female</button>
+                        <button type="button" class="chip chip-round">Prefer not to say</button>
+                      </div>
+                    </div>
+                    <div>
+                      <label class="lbl" for="b-loc">Location</label>
+                      <input id="b-loc" class="ctl ctl-b" value="Charlotte, NC, USA">
+                    </div>
+                  </div>
+                </div>
+
+                <!-- organization -->
+                <div class="rounded-2xl border border-slate-200 bg-white p-6">
+                  <h3 class="font-heading text-[15px] font-bold text-ink">Organization</h3>
+                  <p class="mt-1 text-[12.5px] text-slate-500">Shown on every event page you own.</p>
+                  <div class="mt-5 space-y-5">
+                    <div>
+                      <label class="lbl" for="b-org">Organization title</label>
+                      <input id="b-org" class="ctl ctl-b" value="Apex Youth Sports">
+                    </div>
+                    <div>
+                      <label class="lbl" for="b-desc">Description</label>
+                      <textarea id="b-desc" rows="4" class="ctl ctl-b resize-none">Apex Youth Sports produces competitive youth soccer tournaments and college showcases across the Carolinas — 14 events a year, 30,000+ athletes, and scout-attended finals. Known for smooth check-in, verified officials, and family-friendly venues.</textarea>
+                    </div>
+                    <div class="grid gap-4 sm:grid-cols-2">
+                      <div>
+                        <label class="lbl" for="b-phone">Business phone</label>
+                        <input id="b-phone" type="tel" class="ctl ctl-b" value="(704) 555-0182">
+                      </div>
+                      <div>
+                        <label class="lbl" for="b-email">Business email</label>
+                        <input id="b-email" type="email" class="ctl ctl-b" value="events@apexyouthsports.com">
+                      </div>
+                    </div>
+                    <div>
+                      <label class="lbl" for="b-web">Business website</label>
+                      <input id="b-web" type="url" class="ctl ctl-b" value="https://apexyouthsports.com">
+                      <p class="hint">Public contact — not your login email.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- save bar -->
+                <div class="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-4 pl-5">
+                  <p class="text-[12.5px] text-slate-500">Changes publish to your event pages immediately.</p>
+                  <div class="flex items-center gap-2.5">
+                    <button type="button" class="btn-ghost">Discard</button>
+                    <button type="button" class="btn-primary">Save changes</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- side column -->
+              <div class="space-y-5">
+                <div class="rounded-2xl border border-slate-200 bg-white p-5">
+                  <p class="text-[13px] font-bold text-slate-800">Organization logo</p>
+                  <div class="mt-3 grid h-36 place-items-center rounded-xl border border-slate-200 bg-slate-50">
+                    <span class="grid h-16 w-16 place-items-center rounded-2xl bg-white font-heading text-[26px] font-extrabold text-ink shadow-sm"><span>A<span class="text-accent">.</span></span></span>
+                  </div>
+                  <button type="button" class="btn-ghost mt-3 w-full justify-center"><i data-icon="upload" class="h-3.5 w-3.5 text-slate-400"></i>Upload new</button>
+                  <p class="hint">PNG or JPG, up to 5 MB — or paste a hosted URL.</p>
+                </div>
+
+                <div class="rounded-2xl border border-slate-200 bg-white p-5">
+                  <div class="flex items-baseline justify-between">
+                    <p class="text-[13px] font-bold text-slate-800">Profile completeness</p>
+                    <p class="font-heading text-[17px] font-extrabold text-ink">80%</p>
+                  </div>
+                  <div class="mt-2.5 h-1.5 overflow-hidden rounded-full bg-slate-100">
+                    <div class="h-full w-[80%] rounded-full bg-accent"></div>
+                  </div>
+                  <ul class="mt-4 space-y-2.5 text-[12.5px] font-medium text-slate-600">
+                    <li class="flex items-center gap-2.5"><i data-icon="check" class="h-3.5 w-3.5 text-[#16a34a]"></i>Basic info</li>
+                    <li class="flex items-center gap-2.5"><i data-icon="check" class="h-3.5 w-3.5 text-[#16a34a]"></i>Organization details</li>
+                    <li class="flex items-center gap-2.5"><i data-icon="check" class="h-3.5 w-3.5 text-[#16a34a]"></i>Public contact</li>
+                    <li class="flex items-center gap-2.5"><i data-icon="check" class="h-3.5 w-3.5 text-[#16a34a]"></i>Organization logo</li>
+                    <li class="flex items-center gap-2.5 text-slate-400"><span class="inline-block h-3.5 w-3.5 rounded-full border-[1.5px] border-slate-300"></span>Profile photo</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div data-panel="stub" hidden>
+            <div class="mt-6 grid place-items-center rounded-2xl border border-slate-200 bg-white px-8 py-16 text-center">
+              <span class="grid h-12 w-12 place-items-center rounded-full bg-slate-100 text-slate-400"><i data-icon="layout" class="h-5 w-5"></i></span>
+              <p class="mt-4 font-heading text-[15px] font-bold text-ink">Only the Profile tab is mocked up</p>
+              <p class="mt-1.5 max-w-sm text-[13px] leading-relaxed text-slate-500">The <span data-stub-name class="font-semibold text-slate-700">Security</span> tab keeps today’s structure, restyled to this direction once it’s chosen.</p>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     DIRECTION C · BROADSHEET
+     ============================================================ -->
+<section data-direction="c" class="min-h-screen bg-[#fafbfc]" hidden>
+  <!-- NEW dark header band -->
+  <header class="sticky top-0 z-30 bg-ink">
+    <div class="mx-auto flex h-16 max-w-[1280px] items-center justify-between px-6">
+      <div class="flex min-w-0 items-center gap-4">
+        <a href="#" class="flex shrink-0 items-center gap-2.5">
+          <svg viewBox="0 0 24 24" class="h-[18px] w-[18px]" fill="#dc2626" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          <span class="font-heading text-[15px] font-extrabold text-white">Tournament Guru</span>
+        </a>
+        <span class="hidden h-6 w-px bg-white/10 sm:block"></span>
+        <div class="hidden min-w-0 items-center gap-2 text-[13px] sm:flex">
+          <span class="font-medium text-white/45">Dashboard</span>
+          <i data-icon="chevron-right" class="h-3.5 w-3.5 text-white/25"></i>
+          <span class="font-semibold text-white/90">Account</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button type="button" aria-label="Notifications" class="relative grid h-9 w-9 place-items-center rounded-full text-white/60 transition-colors hover:bg-white/10 hover:text-white">
+          <i data-icon="bell" class="h-[17px] w-[17px]"></i>
+          <span class="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-accent"></span>
+        </button>
+        <div data-menu>
+          <button type="button" data-menu-btn aria-haspopup="menu" aria-expanded="false"
+            class="flex items-center gap-2.5 rounded-full py-1.5 pl-1.5 pr-2.5 transition-colors hover:bg-white/10">
+            <span class="grid h-[30px] w-[30px] place-items-center rounded-full bg-white/15 text-[11px] font-bold text-white ring-2 ring-white/20">MW</span>
+            <span class="hidden text-[13px] font-bold text-white sm:block">Marcus Whitfield</span>
+            <i data-icon="chevron-down" class="h-4 w-4 text-white/50"></i>
+          </button>
+          <div class="tg-menu" role="menu">
+            <div class="px-3 py-2.5">
+              <p class="text-[13px] font-bold text-ink">Marcus Whitfield</p>
+              <p class="mt-0.5 truncate text-xs text-slate-500">marcus@apexyouthsports.com</p>
+            </div>
+            <div class="mx-1.5 h-px bg-slate-100"></div>
+            <a href="#" class="tg-menu-item" role="menuitem"><i data-icon="user"></i>Account</a>
+            <div class="mx-1.5 h-px bg-slate-100"></div>
+            <a href="#" class="tg-menu-item danger" role="menuitem"><i data-icon="logout"></i>Log out</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="mx-auto max-w-[1280px] px-6 py-10">
+    <div class="flex items-start gap-10">
+
+      <!-- borderless editorial rail with counts -->
+      <aside class="sticky top-24 hidden w-[212px] shrink-0 self-start border-r border-slate-200 pr-8 md:block">
+        <div class="space-y-8">
+          <div>
+            <p class="mb-3 text-[10.5px] font-extrabold uppercase tracking-[0.16em] text-slate-400">Manage</p>
+            <ul class="space-y-0.5">
+              <li><a href="#" class="flex items-center justify-between py-2 text-[13.5px] font-bold text-slate-500 transition-colors hover:text-ink"><span class="flex items-center gap-2.5"><span class="h-1.5 w-1.5 rounded-full bg-transparent"></span>Events</span><span class="text-[11px] font-semibold tabular-nums text-slate-400">14</span></a></li>
+              <li><a href="#" class="flex items-center justify-between py-2 text-[13.5px] font-bold text-slate-500 transition-colors hover:text-ink"><span class="flex items-center gap-2.5"><span class="h-1.5 w-1.5 rounded-full bg-transparent"></span>Reviews</span><span class="text-[11px] font-semibold tabular-nums text-slate-400">236</span></a></li>
+              <li><a href="#" class="flex items-center justify-between py-2 text-[13.5px] font-bold text-slate-500 transition-colors hover:text-ink"><span class="flex items-center gap-2.5"><span class="h-1.5 w-1.5 rounded-full bg-transparent"></span>Claim Requests</span><span class="text-[11px] font-semibold tabular-nums text-slate-400">2</span></a></li>
+              <li><a href="#" class="flex items-center justify-between py-2 text-[13.5px] font-bold text-slate-500 transition-colors hover:text-ink"><span class="flex items-center gap-2.5"><span class="h-1.5 w-1.5 rounded-full bg-transparent"></span>Promo Codes</span><span class="text-[11px] font-semibold tabular-nums text-slate-400">8</span></a></li>
+            </ul>
+          </div>
+          <div>
+            <p class="mb-3 text-[10.5px] font-extrabold uppercase tracking-[0.16em] text-slate-400">Browse</p>
+            <ul class="space-y-0.5">
+              <li><a href="#" class="flex items-center gap-2.5 py-2 text-[13.5px] font-bold text-slate-500 transition-colors hover:text-ink"><span class="h-1.5 w-1.5 rounded-full bg-transparent"></span>Search Events</a></li>
+            </ul>
+          </div>
+          <div>
+            <p class="mb-3 text-[10.5px] font-extrabold uppercase tracking-[0.16em] text-slate-400">You</p>
+            <ul class="space-y-0.5">
+              <li><a href="#" class="flex items-center gap-2.5 py-2 text-[13.5px] font-bold text-ink"><span class="h-1.5 w-1.5 rounded-full bg-accent"></span>Account</a></li>
+              <li><a href="#" class="flex items-center gap-2.5 py-2 text-[13.5px] font-bold text-slate-500 transition-colors hover:text-ink"><span class="h-1.5 w-1.5 rounded-full bg-transparent"></span>FAQ</a></li>
+              <li><a href="#" class="flex items-center gap-2.5 py-2 text-[13.5px] font-bold text-slate-500 transition-colors hover:text-ink"><span class="h-1.5 w-1.5 rounded-full bg-transparent"></span>Support</a></li>
+            </ul>
+          </div>
+        </div>
+      </aside>
+
+      <main class="min-w-0 flex-1">
+        <h1 class="font-heading text-[34px] font-extrabold tracking-[-0.02em] text-ink">Account</h1>
+        <p class="mt-1.5 text-[13px] text-slate-500">Marcus Whitfield&ensp;·&ensp;Apex Youth Sports&ensp;·&ensp;Event Director</p>
+
+        <div class="tabs-c mt-7" role="tablist">
+          <button type="button" data-tab="profile" data-on>Profile</button>
+          <button type="button" data-tab="security">Security</button>
+          <button type="button" data-tab="preferences">Preferences</button>
+          <button type="button" data-tab="notifications">Notifications</button>
+        </div>
+
+        <div data-panel="profile">
+          <div class="mt-7 grid items-start gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
+
+            <!-- sticky summary card -->
+            <div class="rounded-2xl border border-slate-200 bg-white p-6 lg:sticky lg:top-24">
+              <div class="flex flex-col items-center text-center">
+                <span class="grid h-[72px] w-[72px] place-items-center rounded-full bg-slate-700 text-[22px] font-bold text-white">MW</span>
+                <p class="mt-3.5 font-heading text-[17px] font-bold text-ink">Marcus Whitfield</p>
+                <p class="mt-1 text-[10.5px] font-extrabold uppercase tracking-[0.14em] text-accent">Event Director</p>
+              </div>
+              <div class="my-5 h-px bg-slate-100"></div>
+              <ul class="space-y-3 text-[13px] font-medium text-slate-600">
+                <li class="flex items-center gap-3"><span class="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-slate-50 font-heading text-[11px] font-extrabold text-ink ring-1 ring-slate-200"><span>A<span class="text-accent">.</span></span></span>Apex Youth Sports</li>
+                <li class="flex items-center gap-3"><i data-icon="pin" class="h-4 w-4 shrink-0 text-slate-400"></i>Charlotte, NC</li>
+                <li class="flex items-center gap-3"><i data-icon="calendar" class="h-4 w-4 shrink-0 text-slate-400"></i>Member since March 2024</li>
+                <li class="flex items-center gap-3"><i data-icon="globe" class="h-4 w-4 shrink-0 text-slate-400"></i><span class="tg-link text-[13px]">apexyouthsports.com</span></li>
+              </ul>
+              <div class="my-5 h-px bg-slate-100"></div>
+              <div class="flex items-baseline justify-between">
+                <p class="text-[10.5px] font-extrabold uppercase tracking-[0.12em] text-slate-400">Completeness</p>
+                <p class="font-heading text-[16px] font-extrabold text-ink">80%</p>
+              </div>
+              <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100">
+                <div class="h-full w-[80%] rounded-full bg-accent"></div>
+              </div>
+              <button type="button" class="btn-ghost mt-5 w-full justify-center">See your public listings</button>
+            </div>
+
+            <!-- form column -->
+            <div class="rounded-2xl border border-slate-200 bg-white">
+              <div class="divide-y divide-slate-100">
+                <div class="p-7">
+                  <p class="text-[11px] font-extrabold uppercase tracking-[0.12em] text-slate-400">Identity</p>
+                  <div class="mt-5 space-y-5">
+                    <div class="grid gap-4 sm:grid-cols-2">
+                      <div><label class="lbl-c" for="c-first">First name</label><input id="c-first" class="ctl" value="Marcus"></div>
+                      <div><label class="lbl-c" for="c-last">Last name</label><input id="c-last" class="ctl" value="Whitfield"></div>
+                    </div>
+                    <div>
+                      <span class="lbl-c">Profile photo</span>
+                      <div class="flex items-center gap-4">
+                        <span class="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-slate-700 text-[14px] font-bold text-white">MW</span>
+                        <button type="button" class="btn-ghost"><i data-icon="upload" class="h-3.5 w-3.5 text-slate-400"></i>Upload</button>
+                        <span class="tg-link text-[12.5px]">Remove</span>
+                      </div>
+                      <p class="hint">PNG or JPG, up to 5 MB — or paste a hosted URL.</p>
+                    </div>
+                    <div>
+                      <span class="lbl-c">Gender</span>
+                      <div class="flex flex-wrap gap-3">
+                        <button type="button" class="chip on">Male</button>
+                        <button type="button" class="chip">Female</button>
+                        <button type="button" class="chip">Prefer not to say</button>
+                      </div>
+                    </div>
+                    <div>
+                      <label class="lbl-c" for="c-loc">Location</label>
+                      <input id="c-loc" class="ctl" value="Charlotte, NC, USA">
+                    </div>
+                  </div>
+                </div>
+
+                <div class="p-7">
+                  <p class="text-[11px] font-extrabold uppercase tracking-[0.12em] text-slate-400">Organization</p>
+                  <div class="mt-5 space-y-5">
+                    <div>
+                      <label class="lbl-c" for="c-org">Organization title</label>
+                      <input id="c-org" class="ctl" value="Apex Youth Sports">
+                    </div>
+                    <div>
+                      <label class="lbl-c" for="c-desc">Description</label>
+                      <textarea id="c-desc" rows="4" class="ctl resize-none">Apex Youth Sports produces competitive youth soccer tournaments and college showcases across the Carolinas — 14 events a year, 30,000+ athletes, and scout-attended finals. Known for smooth check-in, verified officials, and family-friendly venues.</textarea>
+                    </div>
+                    <div>
+                      <span class="lbl-c">Organization logo</span>
+                      <div class="flex items-center gap-4">
+                        <span class="grid h-12 w-12 shrink-0 place-items-center rounded-xl border border-slate-200 bg-slate-50 font-heading text-[17px] font-extrabold text-ink"><span>A<span class="text-accent">.</span></span></span>
+                        <button type="button" class="btn-ghost"><i data-icon="upload" class="h-3.5 w-3.5 text-slate-400"></i>Upload</button>
+                        <span class="tg-link text-[12.5px]">Remove</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="p-7">
+                  <p class="text-[11px] font-extrabold uppercase tracking-[0.12em] text-slate-400">Public contact</p>
+                  <div class="mt-5 space-y-5">
+                    <div class="grid gap-4 sm:grid-cols-2">
+                      <div>
+                        <label class="lbl-c" for="c-phone">Business phone</label>
+                        <input id="c-phone" type="tel" class="ctl" value="(704) 555-0182">
+                      </div>
+                      <div>
+                        <label class="lbl-c" for="c-email">Business email</label>
+                        <input id="c-email" type="email" class="ctl" value="events@apexyouthsports.com">
+                      </div>
+                    </div>
+                    <div>
+                      <label class="lbl-c" for="c-web">Business website</label>
+                      <input id="c-web" type="url" class="ctl" value="https://apexyouthsports.com">
+                      <p class="hint">Shown on your event pages — not your login email.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="flex items-center justify-end gap-2.5 rounded-b-2xl border-t border-slate-100 bg-slate-50/50 px-7 py-5">
+                <button type="button" class="btn-ghost">Discard</button>
+                <button type="button" class="btn-primary">Save changes</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div data-panel="stub" hidden>
+          <div class="mt-7 grid place-items-center rounded-2xl border border-slate-200 bg-white px-8 py-16 text-center">
+            <span class="grid h-12 w-12 place-items-center rounded-full bg-slate-100 text-slate-400"><i data-icon="layout" class="h-5 w-5"></i></span>
+            <p class="mt-4 font-heading text-[15px] font-bold text-ink">Only the Profile tab is mocked up</p>
+            <p class="mt-1.5 max-w-sm text-[13px] leading-relaxed text-slate-500">The <span data-stub-name class="font-semibold text-slate-700">Security</span> tab keeps today’s structure, restyled to this direction once it’s chosen.</p>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+</section>
+
+<!-- direction switcher -->
+<div class="tg-sw" aria-label="Design direction">
+  <span class="tg-sw-label">Direction</span>
+  <button type="button" data-switch="a" data-on title="Key 1">A · Ink Rail</button>
+  <button type="button" data-switch="b" title="Key 2">B · Porcelain</button>
+  <button type="button" data-switch="c" title="Key 3">C · Broadsheet</button>
+</div>
+
+<script>
+  // ── inline icon set (lucide-style strokes) ──
+  var ICONS = {
+    calendar: '<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
+    star: '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
+    inbox: '<polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
+    tag: '<path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/>',
+    search: '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
+    user: '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+    help: '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+    lifebuoy: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="4.93" y1="4.93" x2="9.17" y2="9.17"/><line x1="14.83" y1="14.83" x2="19.07" y2="19.07"/><line x1="14.83" y1="9.17" x2="19.07" y2="4.93"/><line x1="4.93" y1="19.07" x2="9.17" y2="14.83"/>',
+    bell: '<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>',
+    'chevron-down': '<polyline points="6 9 12 15 18 9"/>',
+    'chevron-right': '<polyline points="9 18 15 12 9 6"/>',
+    logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>',
+    upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>',
+    check: '<polyline points="20 6 9 17 4 12"/>',
+    pin: '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>',
+    globe: '<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>',
+    layout: '<rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/>'
+  };
+  document.querySelectorAll('[data-icon]').forEach(function (el) {
+    var inner = ICONS[el.getAttribute('data-icon')];
+    if (!inner) return;
+    el.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + inner + '</svg>';
+  });
+
+  // ── user menus: open on click, close on outside click / Escape ──
+  var menus = Array.prototype.slice.call(document.querySelectorAll('[data-menu]'));
+  function closeMenus(except) {
+    menus.forEach(function (m) {
+      if (m === except) return;
+      m.removeAttribute('data-open');
+      m.querySelector('[data-menu-btn]').setAttribute('aria-expanded', 'false');
+    });
+  }
+  menus.forEach(function (m) {
+    var btn = m.querySelector('[data-menu-btn]');
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var isOpen = m.hasAttribute('data-open');
+      closeMenus();
+      if (!isOpen) {
+        m.setAttribute('data-open', '');
+        btn.setAttribute('aria-expanded', 'true');
+      }
+    });
+  });
+  document.addEventListener('click', function (e) {
+    if (!e.target.closest('[data-menu]')) closeMenus();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeMenus();
+  });
+
+  // ── tabs: Profile renders; other tabs show the stub panel ──
+  document.querySelectorAll('[data-direction]').forEach(function (sec) {
+    var tabs = Array.prototype.slice.call(sec.querySelectorAll('[data-tab]'));
+    tabs.forEach(function (t) {
+      t.addEventListener('click', function () {
+        tabs.forEach(function (x) { x.removeAttribute('data-on'); });
+        t.setAttribute('data-on', '');
+        var isProfile = t.getAttribute('data-tab') === 'profile';
+        sec.querySelectorAll('[data-panel="profile"]').forEach(function (p) { p.hidden = !isProfile; });
+        sec.querySelectorAll('[data-panel="stub"]').forEach(function (p) {
+          p.hidden = isProfile;
+          if (!isProfile) p.querySelector('[data-stub-name]').textContent = t.textContent.trim();
+        });
+      });
+    });
+  });
+
+  // ── direction switcher (buttons or keys 1/2/3) ──
+  var dirs = Array.prototype.slice.call(document.querySelectorAll('[data-direction]'));
+  var switches = Array.prototype.slice.call(document.querySelectorAll('[data-switch]'));
+  function showDirection(key) {
+    dirs.forEach(function (d) { d.hidden = d.getAttribute('data-direction') !== key; });
+    switches.forEach(function (b) {
+      if (b.getAttribute('data-switch') === key) b.setAttribute('data-on', '');
+      else b.removeAttribute('data-on');
+    });
+    closeMenus();
+    window.scrollTo(0, 0);
+    try { history.replaceState(null, '', '#' + key); } catch (e) { /* some browsers block this on file:// */ }
+  }
+  switches.forEach(function (b) {
+    b.addEventListener('click', function () { showDirection(b.getAttribute('data-switch')); });
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.target.closest('input,textarea')) return;
+    if (e.key === '1') showDirection('a');
+    if (e.key === '2') showDirection('b');
+    if (e.key === '3') showDirection('c');
+  });
+  var initial = (location.hash || '#a').slice(1);
+  showDirection(['a', 'b', 'c'].indexOf(initial) !== -1 ? initial : 'a');
+
+  // mock links shouldn't jump the page
+  document.querySelectorAll('a[href="#"]').forEach(function (a) {
+    a.addEventListener('click', function (e) { e.preventDefault(); });
+  });
+</script>
+</body>
+</html>
