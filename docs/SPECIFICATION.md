@@ -952,9 +952,13 @@ location, member-since, and (ED) website. **An empty fact never disappears**:
 it renders as an *"Add your …"* placeholder that scrolls to and focuses the
 matching form input. Non-admins also get a **profile-completeness meter**
 (percent of the role's profile fields filled, with a hint naming what's
-missing); attendees get the **View public profile** link here (it moved out
-of the form). Every profile input carries placeholder text so empty fields
-are never blank boxes.
+missing); **at 100% the meter disappears** — no bar, no percentage — replaced
+by a quiet "Profile complete" note with a next-step link (ED → *Add an event*,
+attendee → *Find your next event*). Attendees get the **View public profile**
+link here (it moved out of the form). Every profile input carries placeholder
+text so empty fields are never blank boxes. The profile photo previews as a
+**circle** (matching how it renders everywhere), and DOB shows as a labelled
+read-only field (lock icon, "never shown publicly" hint).
 
 > **Saves are partial.** Because the three roles render different field
 > sets inside one form, `updateProfile` writes only the columns whose
@@ -969,18 +973,26 @@ are never blank boxes.
   (**x Reviews | x Comments | x Favorited**). Editable: photo, first name, last
   name, location, org name, gender, and the coach/parent question. **Role is
   locked post-onboarding**; **team info is edited in Preferences, not here.**
-- **Security** (all types): update email or password. A **password update
-  triggers an email confirmation first** (and, per the security-review gate,
-  re-authentication before the change); either update shows a success alert.
-  EDs and Attendees can **delete their account** after a confirm popup (deletion
-  behavior in §9.3).
-- **Preferences** (Attendee/ED): manage **team information** (the single home for
-  team editing).
-- **Notifications** (context only — not built this sprint beyond key emails):
-  **defaults off**. Three sections × two channels (In-App + Email) = **6
-  settings**, enabled channels shown as chips. Attendee sections: **Review
-  Replies, Review Likes, Comment Replies**. ED sections: **Event Reviews,
-  Favorited Events**.
+- **Security** (all types): one card, two label-column sections — **Login email**
+  (current address with a *Verified* badge once confirmed; changing it emails a
+  confirmation link to both addresses) and **Password** (show/hide toggle +
+  requirement pills mirroring the server policy). A **password update triggers an
+  email confirmation first** (and, per the security-review gate, re-authentication
+  before the change); either update shows a success alert. EDs and Attendees can
+  **delete their account** after a password-confirmed popup; the card and dialog
+  copy state the §9.3 true-delete consequences **per role** (ED: reviews +
+  comments permanently deleted, created events/tournaments removed, claimed-only
+  listings returned for re-claim; attendee: reviews + comments permanently
+  deleted, event ratings recomputed).
+- **Preferences** (Attendee/ED): travel-distance choice chips + **team
+  information** (the single home for team editing) — per team: Age dropdown (the
+  one allowed select), gender + competition-level **choice chips**; unused slots
+  collapse into an "Add a … team" affordance.
+- **Notifications** (Attendee/ED): a **switch matrix** — one row per section
+  with **In-App + Email** switch columns, **defaults off**. Attendee sections:
+  **Review Replies, Review Likes, Comment Replies**. ED adds: **Event Reviews,
+  Favorited Events**. Saves are partial per the `section:` marker rule, and the
+  switches always reflect the **saved** state after submit (S12.10).
 - **Attendee Promo Codes**: a table of this user's promos — **Code** (pretty code
   chip), **Code status**, **Event** (logo + title → public page), **From** (the
   submitting ED), **Review Status** (Draft/Published). If the user already

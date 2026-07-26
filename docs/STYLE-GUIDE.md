@@ -102,6 +102,18 @@ Build screens from these; don't hand-roll equivalents.
   container for tournaments, events, reviews, panels.
 - **Chip** — small pill: `count` (slate, neutral), `prem` (red, "Premium"), `spons` (violet,
   "Spotlight"), role/eyebrow variants. Uppercase, 10px, weight 800.
+- **Switch** — the binary on/off toggle (notification channels). Controlled only, and
+  deliberately **button-backed** (`role="switch"` + `aria-checked`), not a checkbox:
+  React's automatic post-action form reset reverts checkbox DOM state to the page-load
+  attribute, so a just-saved "off" rendered as "on" (S12.10) — buttons and the
+  state-derived hidden input (`name=on` only while checked, Checkbox's wire format) are
+  immune. Track = ink when on (the Checkbox fill rule), never red — the accent marks
+  *choices*, not on/off state. Use for settings matrices; Checkbox stays for consent and
+  inline confirmations.
+- **Alert** (auth `parts.tsx`) — form-level messages on auth screens and dashboard forms.
+  `error` = the red-tinted block; `info`/success = a **white surface card with a small
+  green-check disc** — green lives only in the icon, so the note sits calmly on the gray
+  dashboard bg and the white auth cards alike (S12.9). Never a flat green slab.
 - **StatusPill** — the event lifecycle pill; one color per status (see §6).
 - **StarRating** — gold filled stars (`#f59e0b`) on `#e2e8f0` empty, 0.5 step, with the numeric
   value in Bricolage bold and optional `(x reviews)` count. The canonical rating display —
@@ -130,8 +142,9 @@ Build screens from these; don't hand-roll equivalents.
   the far edge of the row.
   `thumbSize="lg"` renders the preview as a fixed **square tile** (`h-36 w-36`) instead of
   the slim column-height thumb — use it for org logos and other hero-ish images that must
-  never stretch with the row. Never build a bare URL text input for a DB image again — use
-  this.
+  never stretch with the row. `thumbShape="circle"` renders a fixed **circular** thumb
+  (`h-24 w-24`) — the form-side mirror of Avatar's circle rule; use it for profile photos
+  (S12.9). Never build a bare URL text input for a DB image again — use this.
 - **TextLink** — the canonical inline text link (the signup page's "browse events"
   treatment): semibold slate-700 with a soft slate underline, warming to the red accent
   (text + decoration) on hover. Font-size inherits from the surrounding copy; pass a

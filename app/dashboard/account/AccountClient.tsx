@@ -2,18 +2,19 @@
 
 import type { ReactNode } from "react";
 import { useActionState, useState } from "react";
-import { Alert, Field } from "@/app/(auth)/parts";
+import { Alert, Field, PasswordField } from "@/app/(auth)/parts";
 import { LocationAutocomplete } from "@/app/components/LocationAutocomplete";
 import {
   Avatar,
   Button,
-  Checkbox,
   FormButton,
   ImageUploadField,
   SafeImg,
+  Switch,
   TextLink,
   useToast,
 } from "@/app/components/ui";
+import { usFromIso } from "@/app/components/ui/USDateInput";
 import { useLiveValidation } from "@/app/components/ui/useLiveValidation";
 import { useSubmittedValues } from "@/app/components/ui/useSubmittedValues";
 import { validateEmail, validatePassword } from "@/lib/validation";
@@ -38,6 +39,7 @@ import {
   updateTeams,
   type AccountState,
 } from "./actions";
+import type { NotifField } from "./notif-fields";
 
 type Tab = "profile" | "security" | "preferences" | "notifications";
 
@@ -91,11 +93,13 @@ export type AccountTeam = {
 
 export function AccountClient({
   email,
+  emailVerified,
   profile,
   teams,
   userType,
 }: {
   email: string;
+  emailVerified: boolean;
   profile: AccountProfile;
   teams: AccountTeam[];
   userType: "attendee" | "event_director" | "admin";
@@ -112,6 +116,9 @@ export function AccountClient({
         <h1 className="font-[var(--font-heading)] text-2xl font-extrabold text-slate-900">
           Account
         </h1>
+        <p className="mt-1 text-[13.5px] text-slate-500">
+          Your profile, sign-in details, and how Tournament Guru reaches you.
+        </p>
       </div>
       <div className="flex gap-6 border-b border-slate-200" role="tablist">
         {(
@@ -149,13 +156,18 @@ export function AccountClient({
         <ProfileTab profile={profile} isEd={isEd} isAdmin={isAdmin} />
       )}
       {tab === "security" && (
-        <SecurityTab email={email} canDelete={!isAdmin} />
+        <SecurityTab
+          email={email}
+          emailVerified={emailVerified}
+          canDelete={!isAdmin}
+          isEd={isEd}
+        />
       )}
       {tab === "preferences" && showPrefs && (
         <PreferencesTab profile={profile} teams={teams} />
       )}
       {tab === "notifications" && showNotif && (
-        <NotificationsTab profile={profile} isEd={isEd} />
+        <NotificationsTab profile={profile} isEd={isEd} email={email} />
       )}
     </div>
   );
@@ -184,215 +196,238 @@ function ProfileTab({
     );
   return (
     <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
-      <form
-        action={(fd) => {
-          capture(fd);
-          formAction(fd);
-        }}
-        className="rounded-2xl border border-slate-200 bg-white"
-      >
-        <div className="divide-y divide-slate-100">
-          {(state.error || state.info) && (
-            <div className="space-y-3 p-6 md:px-7">
-              {state.error && <Alert kind="error">{state.error}</Alert>}
-              {state.info && <Alert kind="info">{state.info}</Alert>}
-            </div>
-          )}
+      <div className="min-w-0 space-y-4">
+        {(state.error || state.info) && (
+          <div className="space-y-3">
+            {state.error && <Alert kind="error">{state.error}</Alert>}
+            {state.info && <Alert kind="info">{state.info}</Alert>}
+          </div>
+        )}
 
-          <FormSection
-            title="Identity"
-            description={
-              isAdmin
-                ? "Your name and photo across the admin tools."
-                : isEd
-                  ? "Your name and photo, shown alongside replies you post as a director."
-                  : "Your name and photo, shown next to your reviews."
-            }
-          >
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Field
-                label="First name"
-                name="first_name"
-                placeholder="Your first name"
-                defaultValue={values.first_name ?? profile.first_name ?? ""}
-                required
-                validate={(v) => (v.trim() ? null : "First name is required.")}
-                error={state.fieldErrors?.first_name}
-              />
-              <Field
-                label="Last name"
-                name="last_name"
-                placeholder="Your last name"
-                defaultValue={values.last_name ?? profile.last_name ?? ""}
-                required
-                validate={(v) => (v.trim() ? null : "Last name is required.")}
-                error={state.fieldErrors?.last_name}
-              />
-            </div>
-            <ImageUploadField
-              label="Profile photo"
-              name="profile_photo_url"
-              bucket="org-logos"
-              value={profilePhotoUrl}
-              onChange={setProfilePhotoUrl}
-              hint="PNG or JPG, up to 5 MB — or paste a hosted URL."
-            />
-            {!isAdmin && (
-              <>
-                <LocationAutocomplete
-                  label="Location"
-                  name="location_formatted"
-                  fieldPrefix="location"
-                  placeholder="City or ZIP — start typing to search"
-                  defaultValue={profile.location_formatted ?? ""}
-                  defaultGeo={{
-                    lat: profile.location_lat != null ? String(profile.location_lat) : "",
-                    lng: profile.location_lng != null ? String(profile.location_lng) : "",
-                    place_id: profile.location_place_id ?? "",
-                    city: profile.location_city ?? "",
-                    state_full: profile.location_state_full ?? "",
-                    state_abbr: profile.location_state_abbr ?? "",
-                    zip: profile.location_zip ?? "",
-                  }}
-                />
-                <fieldset>
-                  <legend className="mb-2 text-[13px] font-semibold text-slate-800">
-                    Gender
-                  </legend>
-                  <div className="flex gap-3">
-                    {USER_GENDERS.map((g) => (
-                      <label
-                        key={g.value}
-                        className="cursor-pointer rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-800 transition-colors hover:border-slate-400 has-[input:checked]:border-red-600 has-[input:checked]:bg-red-50 has-[input:checked]:text-red-700"
-                      >
-                        <input
-                          type="radio"
-                          name="user_gender"
-                          value={g.value}
-                          defaultChecked={
-                            values.user_gender
-                              ? values.user_gender === g.value
-                              : profile.user_gender === g.value
-                          }
-                          onChange={(e) => revalidateGender(e.currentTarget)}
-                          className="sr-only"
-                        />
-                        {g.label}
-                      </label>
-                    ))}
-                  </div>
-                  {genderError && (
-                    <p className="mt-1 text-xs font-medium text-red-600">
-                      {genderError}
-                    </p>
-                  )}
-                </fieldset>
-                {profile.dob && (
-                  <p className="text-xs text-slate-500">
-                    DOB on file: {profile.dob} (not displayed anywhere public).
-                  </p>
-                )}
-              </>
-            )}
-          </FormSection>
-
-          {!isEd && !isAdmin && (
+        <form
+          action={(fd) => {
+            capture(fd);
+            formAction(fd);
+          }}
+          className="rounded-2xl border border-slate-200 bg-white"
+        >
+          <div className="divide-y divide-slate-100">
             <FormSection
-              title="Affiliation"
-              description="Your club, shown next to your name on reviews."
+              title="Identity"
+              description={
+                isAdmin
+                  ? "Your name and photo across the admin tools."
+                  : isEd
+                    ? "Your name and photo, shown alongside replies you post as a director."
+                    : "Your name and photo, shown next to your reviews."
+              }
             >
-              <Field
-                label="Club affiliation"
-                name="organization_title"
-                placeholder="Your club or team name"
-                defaultValue={values.organization_title ?? profile.organization_title ?? ""}
-                hint={
-                  ORG_OPTIONAL_ROLES.has(profile.role_title)
-                    ? "Optional for parents / spectators."
-                    : undefined
-                }
-              />
-            </FormSection>
-          )}
-
-          {isEd && (
-            <FormSection
-              title="Organization"
-              description="How your organization appears on every event page you own."
-            >
-              <Field
-                label="Organization title"
-                name="organization_title"
-                placeholder="Your organization name"
-                defaultValue={values.organization_title ?? profile.organization_title ?? ""}
-              />
-              <label className="block">
-                <span className="mb-1.5 block text-[13px] font-semibold text-slate-800">
-                  Organization description
-                </span>
-                <textarea
-                  name="org_description"
-                  rows={4}
-                  placeholder="What attendees should know about your events…"
-                  defaultValue={values.org_description ?? profile.org_description ?? ""}
-                  className="tg-control resize-none"
-                />
-              </label>
               <ImageUploadField
-                label="Organization logo"
-                name="org_logo_url"
+                label="Profile photo"
+                name="profile_photo_url"
                 bucket="org-logos"
-                value={orgLogoUrl}
-                onChange={setOrgLogoUrl}
-                thumbSize="lg"
-                hint="PNG or JPG, up to 5 MB — or paste a hosted URL."
+                value={profilePhotoUrl}
+                onChange={setProfilePhotoUrl}
+                thumbShape="circle"
+                hint="PNG or JPG, up to 5 MB — shown as a circle everywhere it appears."
               />
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <Field
+                  label="First name"
+                  name="first_name"
+                  placeholder="Your first name"
+                  defaultValue={values.first_name ?? profile.first_name ?? ""}
+                  required
+                  validate={(v) => (v.trim() ? null : "First name is required.")}
+                  error={state.fieldErrors?.first_name}
+                />
+                <Field
+                  label="Last name"
+                  name="last_name"
+                  placeholder="Your last name"
+                  defaultValue={values.last_name ?? profile.last_name ?? ""}
+                  required
+                  validate={(v) => (v.trim() ? null : "Last name is required.")}
+                  error={state.fieldErrors?.last_name}
+                />
+              </div>
+              {!isAdmin && (
+                <>
+                  <LocationAutocomplete
+                    label="Location"
+                    name="location_formatted"
+                    fieldPrefix="location"
+                    placeholder="City or ZIP — start typing to search"
+                    defaultValue={profile.location_formatted ?? ""}
+                    defaultGeo={{
+                      lat: profile.location_lat != null ? String(profile.location_lat) : "",
+                      lng: profile.location_lng != null ? String(profile.location_lng) : "",
+                      place_id: profile.location_place_id ?? "",
+                      city: profile.location_city ?? "",
+                      state_full: profile.location_state_full ?? "",
+                      state_abbr: profile.location_state_abbr ?? "",
+                      zip: profile.location_zip ?? "",
+                    }}
+                  />
+                  <fieldset>
+                    <legend className="mb-2 text-[13px] font-semibold text-slate-800">
+                      Gender
+                    </legend>
+                    <div className="flex gap-3">
+                      {USER_GENDERS.map((g) => (
+                        <label
+                          key={g.value}
+                          className="cursor-pointer rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-800 transition-colors hover:border-slate-400 has-[input:checked]:border-red-600 has-[input:checked]:bg-red-50 has-[input:checked]:text-red-700"
+                        >
+                          <input
+                            type="radio"
+                            name="user_gender"
+                            value={g.value}
+                            defaultChecked={
+                              values.user_gender
+                                ? values.user_gender === g.value
+                                : profile.user_gender === g.value
+                            }
+                            onChange={(e) => revalidateGender(e.currentTarget)}
+                            className="sr-only"
+                          />
+                          {g.label}
+                        </label>
+                      ))}
+                    </div>
+                    {genderError && (
+                      <p className="mt-1 text-xs font-medium text-red-600">
+                        {genderError}
+                      </p>
+                    )}
+                  </fieldset>
+                  {profile.dob && (
+                    <label className="block">
+                      <span className="mb-1.5 block text-[13px] font-semibold text-slate-800">
+                        Date of birth
+                      </span>
+                      <span className="relative block">
+                        <input
+                          className="tg-control pr-11 read-only:bg-slate-50 read-only:text-slate-700 focus:border-[var(--color-border)] focus:shadow-none"
+                          value={usFromIso(profile.dob) || profile.dob}
+                          readOnly
+                        />
+                        <Icon
+                          name="lock"
+                          className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+                        />
+                      </span>
+                      <span className="mt-1 block text-xs text-slate-500">
+                        Used at signup to confirm you&apos;re 18+. Never shown
+                        publicly.
+                      </span>
+                    </label>
+                  )}
+                </>
+              )}
             </FormSection>
-          )}
 
-          {isEd && (
-            <FormSection
-              title="Public contact"
-              description="Shown on your event pages — separate from your login email."
-            >
-              <Field
-                label="Business phone"
-                name="business_phone"
-                type="tel"
-                placeholder="(555) 000-0000"
-                defaultValue={values.business_phone ?? profile.business_phone ?? ""}
-                hint="Shown publicly on your event pages."
-              />
-              <Field
-                label="Business email"
-                name="business_email"
-                type="email"
-                placeholder="contact@yourorganization.com"
-                defaultValue={values.business_email ?? profile.business_email ?? ""}
-                hint="Public contact email — not your login email."
-              />
-              <Field
-                label="Business website"
-                name="business_website"
-                type="url"
-                placeholder="https://yourorganization.com"
-                defaultValue={values.business_website ?? profile.business_website ?? ""}
-              />
-            </FormSection>
-          )}
-        </div>
+            {!isEd && !isAdmin && (
+              <FormSection
+                title="Affiliation"
+                description="Your club, shown next to your name on reviews."
+              >
+                <Field
+                  label="Club affiliation"
+                  name="organization_title"
+                  placeholder="Your club or team name"
+                  defaultValue={values.organization_title ?? profile.organization_title ?? ""}
+                  hint={
+                    ORG_OPTIONAL_ROLES.has(profile.role_title)
+                      ? "Optional for parents / spectators."
+                      : undefined
+                  }
+                />
+              </FormSection>
+            )}
 
-        <div className="flex justify-end rounded-b-2xl border-t border-slate-100 bg-slate-50/60 px-6 py-4 md:px-7">
-          <FormButton pendingLabel="Saving…">Save changes</FormButton>
-        </div>
-      </form>
+            {isEd && (
+              <FormSection
+                title="Organization"
+                description="How your organization appears on every event page you own."
+              >
+                <Field
+                  label="Organization title"
+                  name="organization_title"
+                  placeholder="Your organization name"
+                  defaultValue={values.organization_title ?? profile.organization_title ?? ""}
+                />
+                <label className="block">
+                  <span className="mb-1.5 block text-[13px] font-semibold text-slate-800">
+                    Organization description
+                  </span>
+                  <textarea
+                    name="org_description"
+                    rows={4}
+                    placeholder="What attendees should know about your events…"
+                    defaultValue={values.org_description ?? profile.org_description ?? ""}
+                    className="tg-control resize-none"
+                  />
+                </label>
+                <ImageUploadField
+                  label="Organization logo"
+                  name="org_logo_url"
+                  bucket="org-logos"
+                  value={orgLogoUrl}
+                  onChange={setOrgLogoUrl}
+                  thumbSize="lg"
+                  hint="PNG or JPG, up to 5 MB — or paste a hosted URL."
+                />
+              </FormSection>
+            )}
+
+            {isEd && (
+              <FormSection
+                title="Public contact"
+                description="Shown on your event pages so coaches and parents can reach you — kept separate from the email you sign in with."
+              >
+                <Field
+                  label="Business phone"
+                  name="business_phone"
+                  type="tel"
+                  placeholder="(555) 000-0000"
+                  defaultValue={values.business_phone ?? profile.business_phone ?? ""}
+                  hint="Shown publicly on your event pages."
+                />
+                <Field
+                  label="Business email"
+                  name="business_email"
+                  type="email"
+                  placeholder="contact@yourorganization.com"
+                  defaultValue={values.business_email ?? profile.business_email ?? ""}
+                  hint="Public contact email — not your login email."
+                />
+                <Field
+                  label="Business website"
+                  name="business_website"
+                  type="url"
+                  placeholder="https://yourorganization.com"
+                  defaultValue={values.business_website ?? profile.business_website ?? ""}
+                />
+              </FormSection>
+            )}
+          </div>
+
+          <div className="flex justify-end rounded-b-2xl border-t border-slate-100 bg-slate-50/60 px-6 py-4 md:px-7">
+            <FormButton pendingLabel="Saving…">Save changes</FormButton>
+          </div>
+        </form>
+      </div>
 
       <ProfilePreviewCard profile={profile} isEd={isEd} isAdmin={isAdmin} />
     </div>
   );
 }
 
-/** Left label column + fields column, one per settings topic. */
+/** Left label column + fields column, one per settings topic. The label
+ * column is fixed-width so titles and descriptions wrap cleanly beneath
+ * each other; both columns take min-w-0 so long content never squeezes
+ * the header sideways (collapses to stacked below md). */
 function FormSection({
   title,
   description,
@@ -403,8 +438,8 @@ function FormSection({
   children: ReactNode;
 }) {
   return (
-    <div className="grid gap-6 p-6 md:grid-cols-[180px_minmax(0,1fr)] md:gap-8 md:p-7">
-      <div>
+    <div className="grid gap-6 p-6 md:grid-cols-[210px_minmax(0,1fr)] md:gap-8 md:p-7">
+      <div className="min-w-0">
         <h3 className="font-[var(--font-heading)] text-[15px] font-bold text-slate-900">
           {title}
         </h3>
@@ -414,7 +449,7 @@ function FormSection({
           </p>
         )}
       </div>
-      <div className="space-y-5">{children}</div>
+      <div className="min-w-0 space-y-5">{children}</div>
     </div>
   );
 }
@@ -422,7 +457,8 @@ function FormSection({
 /**
  * Live summary of how the profile reads to others. Empty fields never
  * vanish — they render as "Add your …" placeholders that jump focus to
- * the matching input in the form.
+ * the matching input in the form. At 100% the meter disappears in favor
+ * of a quiet "profile complete" note with a next-step link (S12.9 #3).
  */
 function ProfilePreviewCard({
   profile,
@@ -470,6 +506,9 @@ function ProfilePreviewCard({
     ? Math.round((done / checklist.length) * 100)
     : 0;
   const missing = checklist.filter((c) => !c.filled).map((c) => c.noun);
+  const completeCopy = isEd
+    ? "Everything's filled in — attendees see the full picture. Put it to work with your next listing."
+    : "Everything's filled in — your reviews now carry your full profile.";
 
   return (
     <aside className="rounded-2xl border border-slate-200 bg-white p-6 lg:sticky lg:top-24">
@@ -554,24 +593,51 @@ function ProfilePreviewCard({
       {!isAdmin && (
         <>
           <div className="my-5 h-px bg-slate-100" />
-          <div className="flex items-baseline justify-between">
-            <p className="text-[10.5px] font-extrabold uppercase tracking-[0.12em] text-slate-400">
-              Completeness
-            </p>
-            <p className="font-[var(--font-heading)] text-[16px] font-extrabold text-slate-900">
-              {pct}%
-            </p>
-          </div>
-          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100">
-            <div
-              className="h-full rounded-full bg-red-600"
-              style={{ width: `${pct}%` }}
-            />
-          </div>
-          {missing.length > 0 && (
-            <p className="mt-2.5 text-xs leading-relaxed text-slate-500">
-              Add {missing.slice(0, 2).join(" and ")} to get to 100%.
-            </p>
+          {pct === 100 ? (
+            <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-4">
+              <div className="flex items-center gap-2">
+                <span className="grid h-[18px] w-[18px] flex-none place-items-center rounded-full bg-emerald-50 ring-1 ring-emerald-200">
+                  <Icon
+                    name="check"
+                    className="h-2.5 w-2.5 text-emerald-600"
+                  />
+                </span>
+                <p className="text-[10.5px] font-extrabold uppercase tracking-[0.12em] text-slate-500">
+                  Profile complete
+                </p>
+              </div>
+              <p className="mt-2 text-xs leading-relaxed text-slate-500">
+                {completeCopy}
+              </p>
+              <TextLink
+                href={isEd ? "/dashboard/events/new" : "/events"}
+                className="mt-2 inline-block text-[12.5px]"
+              >
+                {isEd ? "Add an event →" : "Find your next event →"}
+              </TextLink>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-baseline justify-between">
+                <p className="text-[10.5px] font-extrabold uppercase tracking-[0.12em] text-slate-400">
+                  Completeness
+                </p>
+                <p className="font-[var(--font-heading)] text-[16px] font-extrabold text-slate-900">
+                  {pct}%
+                </p>
+              </div>
+              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100">
+                <div
+                  className="h-full rounded-full bg-red-600"
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+              {missing.length > 0 && (
+                <p className="mt-2.5 text-xs leading-relaxed text-slate-500">
+                  Add {missing.slice(0, 2).join(" and ")} to get to 100%.
+                </p>
+              )}
+            </>
           )}
         </>
       )}
@@ -605,91 +671,139 @@ function AddFieldLink({ noun, field }: { noun: string; field: string }) {
 
 function SecurityTab({
   email,
+  emailVerified,
   canDelete,
+  isEd,
 }: {
   email: string;
+  emailVerified: boolean;
   canDelete: boolean;
+  isEd: boolean;
 }) {
   const [emailState, emailAction] = useActionState(updateEmail, INITIAL);
   const [pwState, pwAction] = useActionState(updatePassword, INITIAL);
   const { values: emailValues, capture: captureEmail } = useSubmittedValues();
-  const { values: pwValues, capture: capturePw } = useSubmittedValues();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deletePassword, setDeletePassword] = useState("");
   const [deletePending, setDeletePending] = useState(false);
   const [deleteError, setDeleteError] = useState<string | undefined>();
   const { push } = useToast();
 
-  return (
-    <div className="max-w-xl space-y-6">
-      <form
-        action={(fd) => {
-          captureEmail(fd);
-          emailAction(fd);
-        }}
-        className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6"
-      >
-        <h3 className="font-[var(--font-heading)] text-lg font-extrabold text-slate-900">
-          Update email
-        </h3>
-        {emailState.error && <Alert kind="error">{emailState.error}</Alert>}
-        {emailState.info && <Alert kind="info">{emailState.info}</Alert>}
-        <Field
-          label="Email"
-          name="email"
-          type="email"
-          defaultValue={emailValues.email ?? email}
-          validate={validateEmail}
-          error={emailState.fieldErrors?.email}
-        />
-        <FormButton pendingLabel="Sending…">Send confirmation link</FormButton>
-      </form>
+  // #6 — this copy states what delete_ed_account / soft_delete_attendee
+  // actually do (S11.9 true-delete): content is removed, not anonymized.
+  const deleteSummary = isEd
+    ? "Permanently deletes your reviews and comments. Events and tournaments you created are removed; listings you only claimed return to Tournament Guru for re-claim. This can't be undone."
+    : "Permanently deletes your reviews and comments — the affected events' ratings are recalculated without them. This can't be undone.";
+  const deleteDialogBody = isEd
+    ? "This is permanent. Your reviews and comments are deleted for good; events and tournaments you created are removed, and listings you only claimed return to Tournament Guru for re-claim."
+    : "This is permanent. Your reviews and comments are deleted for good, and the affected events' ratings are recalculated without them.";
 
-      <form
-        action={(fd) => {
-          capturePw(fd);
-          pwAction(fd);
-        }}
-        className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6"
-      >
-        <h3 className="font-[var(--font-heading)] text-lg font-extrabold text-slate-900">
-          Change password
-        </h3>
-        {pwState.error && <Alert kind="error">{pwState.error}</Alert>}
-        {pwState.info && <Alert kind="info">{pwState.info}</Alert>}
-        <Field
-          label="New password"
-          name="password"
-          type="password"
-          defaultValue={pwValues.password ?? ""}
-          validate={validatePassword}
-          error={pwState.fieldErrors?.password}
-        />
-        <FormButton pendingLabel="Updating…">Update password</FormButton>
-      </form>
+  const anyAlert =
+    emailState.error || emailState.info || pwState.error || pwState.info;
+
+  return (
+    <div className="max-w-2xl space-y-4">
+      {anyAlert && (
+        <div className="space-y-3">
+          {emailState.error && <Alert kind="error">{emailState.error}</Alert>}
+          {emailState.info && <Alert kind="info">{emailState.info}</Alert>}
+          {pwState.error && <Alert kind="error">{pwState.error}</Alert>}
+          {pwState.info && <Alert kind="info">{pwState.info}</Alert>}
+        </div>
+      )}
+
+      <div className="divide-y divide-slate-100 rounded-2xl border border-slate-200 bg-white">
+        <form
+          action={(fd) => {
+            captureEmail(fd);
+            emailAction(fd);
+          }}
+        >
+          <FormSection
+            title="Login email"
+            description="The address you sign in with. Confirmation links and account notices go here."
+          >
+            <Field
+              label="Email"
+              name="email"
+              type="email"
+              defaultValue={emailValues.email ?? email}
+              validate={validateEmail}
+              error={emailState.fieldErrors?.email}
+              hint="Changing it emails a confirmation link to both addresses — the switch happens once confirmed."
+              labelAccessory={
+                emailVerified ? (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.08em] text-emerald-700 ring-1 ring-emerald-200">
+                    <span
+                      aria-hidden="true"
+                      className="h-1.5 w-1.5 rounded-full bg-emerald-500"
+                    />
+                    Verified
+                  </span>
+                ) : undefined
+              }
+            />
+            <div className="flex justify-end">
+              <FormButton variant="ghost" pendingLabel="Sending…">
+                Send confirmation link
+              </FormButton>
+            </div>
+          </FormSection>
+        </form>
+
+        <form action={pwAction}>
+          <FormSection
+            title="Password"
+            description="Protects your account. You'll stay signed in on this device after a change."
+          >
+            <div>
+              <PasswordField
+                label="New password"
+                name="password"
+                autoComplete="new-password"
+                placeholder="At least 8 characters"
+                validate={validatePassword}
+                error={pwState.fieldErrors?.password}
+              />
+              <div className="mt-2.5 flex flex-wrap gap-1.5">
+                {["8+ characters", "1 uppercase", "1 number"].map((rule) => (
+                  <span
+                    key={rule}
+                    className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-500"
+                  >
+                    {rule}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div className="flex justify-end">
+              <FormButton pendingLabel="Updating…">Update password</FormButton>
+            </div>
+          </FormSection>
+        </form>
+      </div>
 
       {canDelete && (
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-6">
-          <h3 className="font-[var(--font-heading)] text-lg font-extrabold text-red-900">
-            Delete account
-          </h3>
-          <p className="mt-2 text-sm text-red-800">
-            Your reviews and comments become anonymous but stay
-            available. Events you own get returned to the admin for
-            re-claim.
-          </p>
-          <div className="mt-3">
-            <Button
-              variant="danger"
-              onClick={() => {
-                setDeletePassword("");
-                setDeleteError(undefined);
-                setConfirmDelete(true);
-              }}
-            >
-              Delete my account
-            </Button>
+        <div className="flex flex-col gap-4 rounded-2xl border border-red-200 bg-white p-6 sm:flex-row sm:items-center md:p-7">
+          <div className="min-w-0 flex-1">
+            <h3 className="font-[var(--font-heading)] text-[15px] font-bold text-red-700">
+              Delete account
+            </h3>
+            <p className="mt-1.5 text-[12.5px] leading-relaxed text-slate-500">
+              {deleteSummary}
+            </p>
           </div>
+          <Button
+            variant="danger"
+            className="flex-none"
+            onClick={() => {
+              setDeletePassword("");
+              setDeleteError(undefined);
+              setConfirmDelete(true);
+            }}
+          >
+            Delete my account…
+          </Button>
         </div>
       )}
       {confirmDelete && (
@@ -707,11 +821,7 @@ function SecurityTab({
             <h3 className="font-[var(--font-heading)] text-lg font-extrabold text-slate-900">
               Delete your account?
             </h3>
-            <p className="mt-2 text-sm text-slate-600">
-              This action is permanent. Reviews + comments stay under
-              &quot;Former member&quot;; owned tournaments + created events get
-              removed; claimed-only events revert to the admin.
-            </p>
+            <p className="mt-2 text-sm text-slate-600">{deleteDialogBody}</p>
             <p className="mt-4 text-sm text-slate-700">
               Enter your current password to confirm.
             </p>
@@ -783,8 +893,10 @@ function PreferencesTab({
         ? null
         : "Invalid distance option.",
     );
+  const maxSlots = profile.role_title === "parent_spectator" ? 1 : 3;
+  // Controlled team fields: chips + selects read from this state, so a
+  // save (or a failed submit) never resets what's on screen.
   const [localTeams, setLocalTeams] = useState<AccountTeam[]>(() => {
-    const maxSlots = profile.role_title === "parent_spectator" ? 1 : 3;
     const list: AccountTeam[] = [];
     for (let i = 1; i <= maxSlots; i++) {
       const existing = teams.find((t) => t.slot === i);
@@ -800,114 +912,158 @@ function PreferencesTab({
     }
     return list;
   });
+  // Slot 1 is always editable; later slots start collapsed into an
+  // "Add a … team" affordance until they hold data or get opened.
+  const [openSlots, setOpenSlots] = useState<Set<number>>(() => {
+    const open = new Set<number>([1]);
+    for (const t of localTeams) {
+      if (t.team_gender || t.age || t.competition_level) open.add(t.slot);
+    }
+    return open;
+  });
+
+  const updateSlot = (index: number, patch: Partial<AccountTeam>) => {
+    setLocalTeams((prev) =>
+      prev.map((t, i) => (i === index ? { ...t, ...patch } : t)),
+    );
+  };
+  const clearSlot = (index: number, slot: number) => {
+    updateSlot(index, { team_gender: null, age: null, competition_level: null });
+    if (slot > 1) {
+      setOpenSlots((prev) => {
+        const next = new Set(prev);
+        next.delete(slot);
+        return next;
+      });
+    }
+  };
+
   return (
-    <form
-      action={(fd) => {
-        capture(fd);
-        formAction(fd);
-      }}
-      className="max-w-2xl space-y-5 rounded-2xl border border-slate-200 bg-white p-6"
-    >
-      {state.error && <Alert kind="error">{state.error}</Alert>}
-      {state.info && <Alert kind="info">{state.info}</Alert>}
-      <fieldset>
-        <legend className="mb-2 text-[13px] font-semibold text-slate-800">
-          Distance preference
-        </legend>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {DISTANCE_PREFS.map((d) => (
-            <label
-              key={d.value}
-              className="cursor-pointer rounded-xl border border-slate-200 bg-white p-3 text-center text-sm font-semibold text-slate-800 transition-colors hover:border-slate-400 has-[input:checked]:border-red-600 has-[input:checked]:bg-red-50 has-[input:checked]:text-red-700"
-            >
-              <input
-                type="radio"
-                name="distance_pref"
-                value={d.value}
-                defaultChecked={
-                  values.distance_pref
-                    ? values.distance_pref === d.value
-                    : profile.distance_pref === d.value
-                }
-                onChange={(e) => revalidateDistance(e.currentTarget)}
-                className="sr-only"
-              />
-              {d.label}
-            </label>
-          ))}
+    <div className="max-w-3xl space-y-4">
+      {(state.error || state.info) && (
+        <div className="space-y-3">
+          {state.error && <Alert kind="error">{state.error}</Alert>}
+          {state.info && <Alert kind="info">{state.info}</Alert>}
         </div>
-        {distanceError && (
-          <p className="mt-1 text-xs font-medium text-red-600">
-            {distanceError}
-          </p>
-        )}
-      </fieldset>
-      <div className="space-y-3">
-        {localTeams.map((t, i) => (
-          <TeamSlot
-            key={t.slot}
-            slot={t.slot}
-            team={t}
-            values={values}
-            onChange={(next) => {
-              const copy = [...localTeams];
-              copy[i] = { ...t, ...next };
-              setLocalTeams(copy);
-            }}
-          />
-        ))}
-      </div>
-      <FormButton pendingLabel="Saving…">Save preferences</FormButton>
-    </form>
+      )}
+
+      <form
+        action={(fd) => {
+          capture(fd);
+          formAction(fd);
+        }}
+        className="rounded-2xl border border-slate-200 bg-white"
+      >
+        <div className="divide-y divide-slate-100">
+          <FormSection
+            title="Travel distance"
+            description="How far you'd go for the right event. We use it to rank search results near you."
+          >
+            <fieldset>
+              <legend className="sr-only">Distance preference</legend>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {DISTANCE_PREFS.map((d) => (
+                  <label
+                    key={d.value}
+                    className="cursor-pointer rounded-xl border border-slate-200 bg-white p-3 text-center text-sm font-semibold text-slate-800 transition-colors hover:border-slate-400 has-[input:checked]:border-red-600 has-[input:checked]:bg-red-50 has-[input:checked]:text-red-700"
+                  >
+                    <input
+                      type="radio"
+                      name="distance_pref"
+                      value={d.value}
+                      defaultChecked={
+                        values.distance_pref
+                          ? values.distance_pref === d.value
+                          : profile.distance_pref === d.value
+                      }
+                      onChange={(e) => revalidateDistance(e.currentTarget)}
+                      className="sr-only"
+                    />
+                    {d.label}
+                  </label>
+                ))}
+              </div>
+              {distanceError && (
+                <p className="mt-1 text-xs font-medium text-red-600">
+                  {distanceError}
+                </p>
+              )}
+            </fieldset>
+          </FormSection>
+
+          <FormSection
+            title="Your teams"
+            description={
+              maxSlots === 1
+                ? "Your team's age group and level tailor search filters and recommendations."
+                : "Up to three teams. Search filters and recommendations start from these age groups and levels."
+            }
+          >
+            {localTeams.map((t, i) =>
+              openSlots.has(t.slot) ? (
+                <TeamSlotCard
+                  key={t.slot}
+                  team={t}
+                  onChange={(patch) => updateSlot(i, patch)}
+                  onClear={() => clearSlot(i, t.slot)}
+                />
+              ) : (
+                <button
+                  key={t.slot}
+                  type="button"
+                  onClick={() =>
+                    setOpenSlots((prev) => new Set(prev).add(t.slot))
+                  }
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-white/60 px-4 py-5 text-[13px] font-semibold text-slate-500 transition-colors hover:border-slate-400 hover:text-slate-700"
+                >
+                  + Add a {t.slot === 2 ? "second" : "third"} team
+                </button>
+              ),
+            )}
+          </FormSection>
+        </div>
+        <div className="flex justify-end rounded-b-2xl border-t border-slate-100 bg-slate-50/60 px-6 py-4 md:px-7">
+          <FormButton pendingLabel="Saving…">Save preferences</FormButton>
+        </div>
+      </form>
+    </div>
   );
 }
 
-function TeamSlot({
-  slot,
+/** One editable team: Age stays a dropdown (the style guide's single
+ * allowed select); gender + level are choice chips. Fully controlled so
+ * Clear/Remove and post-save renders stay truthful. */
+function TeamSlotCard({
   team,
-  values,
   onChange,
+  onClear,
 }: {
-  slot: number;
   team: AccountTeam;
-  values: Record<string, string>;
-  onChange: (next: Partial<AccountTeam>) => void;
+  onChange: (patch: Partial<AccountTeam>) => void;
+  onClear: () => void;
 }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
-      <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-500">
-        Team {slot}
-      </p>
-      <div className="grid grid-cols-3 gap-3">
-        <label>
-          <span className="mb-1 block text-xs font-semibold text-slate-700">
-            Gender
-          </span>
-          {/* key: select defaultValue applies only at mount — remount on the
-              captured value so a failed submit keeps the chosen option. */}
-          <select
-            name={`team_${slot}_gender`}
-            key={values[`team_${slot}_gender`] ?? "unset"}
-            defaultValue={values[`team_${slot}_gender`] ?? team.team_gender ?? ""}
-            onChange={(e) => onChange({ team_gender: e.target.value || null })}
-            className="tg-control tg-select"
-          >
-            <option value="">—</option>
-            {TEAM_GENDERS.map((g) => (
-              <option key={g.value} value={g.value}>
-                {g.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          <span className="mb-1 block text-xs font-semibold text-slate-700">
-            Age
+    <div className="rounded-xl border border-slate-200 bg-white p-4 md:p-5">
+      <div className="flex items-center justify-between">
+        <p className="text-[10.5px] font-extrabold uppercase tracking-[0.14em] text-slate-400">
+          Team {team.slot}
+        </p>
+        <button
+          type="button"
+          onClick={onClear}
+          className="text-[11.5px] font-semibold text-slate-400 transition-colors hover:text-red-600"
+        >
+          {team.slot === 1 ? "Clear" : "Remove"}
+        </button>
+      </div>
+      <div className="mt-3.5 grid gap-4 sm:grid-cols-[8.5rem_minmax(0,1fr)]">
+        <label className="block">
+          <span className="mb-1.5 block text-xs font-semibold text-slate-700">
+            Age group
           </span>
           <select
-            name={`team_${slot}_age`}
-            key={values[`team_${slot}_age`] ?? "unset"}
-            defaultValue={values[`team_${slot}_age`] ?? team.age ?? ""}
+            name={`team_${team.slot}_age`}
+            value={team.age ?? ""}
             onChange={(e) => onChange({ age: e.target.value || null })}
             className="tg-control tg-select"
           >
@@ -919,139 +1075,278 @@ function TeamSlot({
             ))}
           </select>
         </label>
-        <label>
-          <span className="mb-1 block text-xs font-semibold text-slate-700">
-            Level
-          </span>
-          <select
-            name={`team_${slot}_level`}
-            key={values[`team_${slot}_level`] ?? "unset"}
-            defaultValue={values[`team_${slot}_level`] ?? team.competition_level ?? ""}
-            onChange={(e) => onChange({ competition_level: e.target.value || null })}
-            className="tg-control tg-select"
-          >
-            <option value="">—</option>
-            {COMPETITION_LEVELS.map((c) => (
-              <option key={c.value} value={c.value}>
-                {c.label}
-              </option>
+        <fieldset className="min-w-0">
+          <legend className="mb-1.5 block text-xs font-semibold text-slate-700">
+            Gender
+          </legend>
+          <div className="flex flex-wrap gap-2">
+            {TEAM_GENDERS.map((g) => (
+              <ChipRadio
+                key={g.value}
+                name={`team_${team.slot}_gender`}
+                value={g.value}
+                label={g.label}
+                checked={team.team_gender === g.value}
+                onChange={() => onChange({ team_gender: g.value })}
+              />
             ))}
-          </select>
-        </label>
+          </div>
+        </fieldset>
       </div>
+      <fieldset className="mt-4">
+        <legend className="mb-1.5 block text-xs font-semibold text-slate-700">
+          Competition level
+        </legend>
+        <div className="flex flex-wrap gap-2">
+          {COMPETITION_LEVELS.map((c) => (
+            <ChipRadio
+              key={c.value}
+              name={`team_${team.slot}_level`}
+              value={c.value}
+              label={c.label}
+              checked={team.competition_level === c.value}
+              onChange={() => onChange({ competition_level: c.value })}
+            />
+          ))}
+        </div>
+      </fieldset>
     </div>
   );
 }
 
+/** Choice chip backed by a radio — checked = soft red tint (S12.3). */
+function ChipRadio({
+  name,
+  value,
+  label,
+  checked,
+  onChange,
+}: {
+  name: string;
+  value: string;
+  label: string;
+  checked: boolean;
+  onChange: () => void;
+}) {
+  return (
+    <label className="cursor-pointer rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-[13px] font-semibold text-slate-800 transition-colors hover:border-slate-400 has-[input:checked]:border-red-600 has-[input:checked]:bg-red-50 has-[input:checked]:text-red-700">
+      <input
+        type="radio"
+        name={name}
+        value={value}
+        checked={checked}
+        onChange={onChange}
+        className="sr-only"
+      />
+      {label}
+    </label>
+  );
+}
+
+const NOTIF_ROWS: {
+  section: string;
+  title: string;
+  subtitle: string;
+  inapp: NotifField;
+  email: NotifField;
+  edOnly?: boolean;
+}[] = [
+  {
+    section: "review_replies",
+    title: "Review replies",
+    subtitle: "Someone replies to one of your published reviews.",
+    inapp: "inapp_review_replies",
+    email: "email_review_replies",
+  },
+  {
+    section: "review_likes",
+    title: "Review likes",
+    subtitle: "Someone likes one of your published reviews.",
+    inapp: "inapp_review_likes",
+    email: "email_review_likes",
+  },
+  {
+    section: "comment_replies",
+    title: "Comment replies",
+    subtitle: "Someone replies to one of your event comments.",
+    inapp: "inapp_comment_replies",
+    email: "email_comment_replies",
+  },
+  {
+    section: "event_reviews",
+    title: "Event reviews",
+    subtitle: "A new review is published on one of your events.",
+    inapp: "inapp_event_reviews",
+    email: "email_event_reviews",
+    edOnly: true,
+  },
+  {
+    section: "favorited_events",
+    title: "Favorited events",
+    subtitle: "Someone favorites one of your events.",
+    inapp: "inapp_favorited_events",
+    email: "email_favorited_events",
+    edOnly: true,
+  },
+];
+
 function NotificationsTab({
   profile,
   isEd,
+  email,
 }: {
   profile: AccountProfile;
   isEd: boolean;
+  email: string;
 }) {
   const [state, formAction] = useActionState(updateNotificationPrefs, INITIAL);
+  // #2 fix (S12.10): CONTROLLED switches. React resets uncontrolled form
+  // fields to their defaults after a server action, and the defaults come
+  // from the page-load profile prop — so a saved "off" used to snap back
+  // to "on". Controlled state survives the reset and, being what was just
+  // submitted, always shows the saved values.
+  const [prefs, setPrefs] = useState<Record<NotifField, boolean>>(() => ({
+    email_review_replies: profile.email_review_replies,
+    inapp_review_replies: profile.inapp_review_replies,
+    email_review_likes: profile.email_review_likes,
+    inapp_review_likes: profile.inapp_review_likes,
+    email_comment_replies: profile.email_comment_replies,
+    inapp_comment_replies: profile.inapp_comment_replies,
+    email_event_reviews: profile.email_event_reviews,
+    inapp_event_reviews: profile.inapp_event_reviews,
+    email_favorited_events: profile.email_favorited_events,
+    inapp_favorited_events: profile.inapp_favorited_events,
+  }));
+  const toggle = (field: NotifField, checked: boolean) =>
+    setPrefs((prev) => ({ ...prev, [field]: checked }));
+
+  const activityRows = NOTIF_ROWS.filter((r) => !r.edOnly);
+  const eventRows = isEd ? NOTIF_ROWS.filter((r) => r.edOnly) : [];
+
   return (
-    <form
-      action={formAction}
-      className="max-w-2xl space-y-4 rounded-2xl border border-slate-200 bg-white p-6"
-    >
-      {state.error && <Alert kind="error">{state.error}</Alert>}
-      {state.info && <Alert kind="info">{state.info}</Alert>}
-      <h3 className="font-[var(--font-heading)] text-lg font-extrabold text-slate-900">
-        Notifications
-      </h3>
-      <NotifRow
-        section="review_replies"
-        title="Review replies"
-        subtitle="Replies you receive on your published event reviews."
-        defaults={{
-          inapp: profile.inapp_review_replies,
-          email: profile.email_review_replies,
-        }}
-        namePair={["inapp_review_replies", "email_review_replies"]}
-      />
-      <NotifRow
-        section="review_likes"
-        title="Review likes"
-        subtitle="Likes you receive on your published event reviews."
-        defaults={{
-          inapp: profile.inapp_review_likes,
-          email: profile.email_review_likes,
-        }}
-        namePair={["inapp_review_likes", "email_review_likes"]}
-      />
-      <NotifRow
-        section="comment_replies"
-        title="Comment replies"
-        subtitle="Replies you receive on your published event comments."
-        defaults={{
-          inapp: profile.inapp_comment_replies,
-          email: profile.email_comment_replies,
-        }}
-        namePair={["inapp_comment_replies", "email_comment_replies"]}
-      />
-      {isEd && (
+    <div className="max-w-3xl space-y-4">
+      {(state.error || state.info) && (
+        <div className="space-y-3">
+          {state.error && <Alert kind="error">{state.error}</Alert>}
+          {state.info && <Alert kind="info">{state.info}</Alert>}
+        </div>
+      )}
+
+      <form
+        action={formAction}
+        className="rounded-2xl border border-slate-200 bg-white"
+      >
+        <div className="border-b border-slate-100 p-6 md:px-7">
+          <h3 className="font-[var(--font-heading)] text-[17px] font-bold text-slate-900">
+            Notifications
+          </h3>
+          <p className="mt-1.5 text-[12.5px] leading-relaxed text-slate-500">
+            Choose where each alert reaches you. In-app shows in your
+            dashboard; email goes to{" "}
+            <span className="font-semibold text-slate-700">{email}</span>.
+          </p>
+        </div>
+
+        <div className="px-6 pb-2 md:px-7">
+          <NotifGroupHeader label="Your activity" withColumns />
+          <div className="divide-y divide-slate-100">
+            {activityRows.map((row) => (
+              <NotifRow
+                key={row.section}
+                row={row}
+                values={prefs}
+                onToggle={toggle}
+              />
+            ))}
+          </div>
+          {eventRows.length > 0 && (
+            <>
+              <NotifGroupHeader label="Your events" />
+              <div className="divide-y divide-slate-100">
+                {eventRows.map((row) => (
+                  <NotifRow
+                    key={row.section}
+                    row={row}
+                    values={prefs}
+                    onToggle={toggle}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className="flex justify-end rounded-b-2xl border-t border-slate-100 bg-slate-50/60 px-6 py-4 md:px-7">
+          <FormButton pendingLabel="Saving…">Save</FormButton>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function NotifGroupHeader({
+  label,
+  withColumns,
+}: {
+  label: string;
+  withColumns?: boolean;
+}) {
+  const colClass =
+    "w-14 text-center text-[10px] font-extrabold uppercase tracking-[0.1em] text-slate-400";
+  return (
+    <div className="flex items-center gap-4 pb-2 pt-6">
+      <p className="min-w-0 flex-1 text-[10.5px] font-extrabold uppercase tracking-[0.14em] text-slate-400">
+        {label}
+      </p>
+      {withColumns ? (
         <>
-          <NotifRow
-            section="event_reviews"
-            title="Event reviews"
-            subtitle="New reviews on your published events."
-            defaults={{
-              inapp: profile.inapp_event_reviews,
-              email: profile.email_event_reviews,
-            }}
-            namePair={["inapp_event_reviews", "email_event_reviews"]}
-          />
-          <NotifRow
-            section="favorited_events"
-            title="Favorited events"
-            subtitle="When your events are favorited."
-            defaults={{
-              inapp: profile.inapp_favorited_events,
-              email: profile.email_favorited_events,
-            }}
-            namePair={["inapp_favorited_events", "email_favorited_events"]}
-          />
+          <p className={colClass}>In-app</p>
+          <p className={colClass}>Email</p>
+        </>
+      ) : (
+        <>
+          <span className="w-14" />
+          <span className="w-14" />
         </>
       )}
-      <FormButton pendingLabel="Saving…">Save</FormButton>
-    </form>
+    </div>
   );
 }
 
 function NotifRow({
-  section,
-  title,
-  subtitle,
-  defaults,
-  namePair,
+  row,
+  values,
+  onToggle,
 }: {
-  section: string;
-  title: string;
-  subtitle: string;
-  defaults: { inapp: boolean; email: boolean };
-  namePair: [string, string];
+  row: (typeof NOTIF_ROWS)[number];
+  values: Record<NotifField, boolean>;
+  onToggle: (field: NotifField, checked: boolean) => void;
 }) {
   return (
-    <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-4">
-      <p className="text-[13px] font-bold text-slate-800">{title}</p>
-      <p className="mt-1 text-xs text-slate-500">{subtitle}</p>
-      <div className="mt-2 flex flex-wrap gap-3">
-        <Checkbox
-          size="sm"
-          name={namePair[0]}
-          defaultChecked={defaults.inapp}
-          label="In-app"
-        />
-        <Checkbox
-          size="sm"
-          name={namePair[1]}
-          defaultChecked={defaults.email}
-          label="Email"
+    <div className="flex items-center gap-4 py-4">
+      <div className="min-w-0 flex-1">
+        <p className="text-[13.5px] font-bold text-slate-800">{row.title}</p>
+        <p className="mt-0.5 text-xs leading-relaxed text-slate-500">
+          {row.subtitle}
+        </p>
+      </div>
+      <div className="grid w-14 place-items-center">
+        <Switch
+          name={row.inapp}
+          checked={values[row.inapp]}
+          onChange={(checked) => onToggle(row.inapp, checked)}
+          aria-label={`${row.title} (in-app)`}
         />
       </div>
-      <input type="hidden" name={`section:${section}`} value="1" />
+      <div className="grid w-14 place-items-center">
+        <Switch
+          name={row.email}
+          checked={values[row.email]}
+          onChange={(checked) => onToggle(row.email, checked)}
+          aria-label={`${row.title} (email)`}
+        />
+      </div>
+      <input type="hidden" name={`section:${row.section}`} value="1" />
     </div>
   );
 }

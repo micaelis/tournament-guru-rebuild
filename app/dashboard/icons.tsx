@@ -22,6 +22,8 @@ export type IconName =
   | "activity"
   | "pin"
   | "globe"
+  | "lock"
+  | "check"
   | "chevron-down"
   | "chevron-right"
   | "logout";
@@ -112,6 +114,13 @@ const PATHS: Record<IconName, ReactNode> = {
       <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
     </>
   ),
+  lock: (
+    <>
+      <rect x="3" y="11" width="18" height="11" rx="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </>
+  ),
+  check: <path d="M5 12l5 5L20 7" />,
   "chevron-down": <polyline points="6 9 12 15 18 9" />,
   "chevron-right": <polyline points="9 18 15 12 9 6" />,
   logout: (

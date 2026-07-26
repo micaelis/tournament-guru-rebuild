@@ -31,6 +31,7 @@ export function ImageUploadField({
   error,
   hint,
   thumbSize = "md",
+  thumbShape = "square",
   onRemove,
 }: {
   label: string;
@@ -43,6 +44,12 @@ export function ImageUploadField({
   hint?: string;
   /** "md" = slim column-height thumb; "lg" = fixed square tile (org logos). */
   thumbSize?: "md" | "lg";
+  /**
+   * "circle" renders the preview as a fixed circular thumb (profile
+   * photos) — the form-side mirror of Avatar's circle-fill rule.
+   * Overrides `thumbSize`.
+   */
+  thumbShape?: "square" | "circle";
   /**
    * Row-removal callback for list usages (event images): renders a
    * "Remove" button right next to Upload so the pair reads as one
@@ -86,8 +93,10 @@ export function ImageUploadField({
             align; lg is a fixed square tile that never widens with the row. */}
         <div
           className={cn(
-            "grid shrink-0 place-items-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50",
-            thumbSize === "lg" ? "h-36 w-36" : "w-[88px]",
+            "grid shrink-0 place-items-center overflow-hidden border border-slate-200 bg-slate-50",
+            thumbShape === "circle"
+              ? "h-24 w-24 rounded-full"
+              : cn("rounded-xl", thumbSize === "lg" ? "h-36 w-36" : "w-[88px]"),
           )}
         >
           <SafeImg
@@ -97,7 +106,7 @@ export function ImageUploadField({
             onError={() => setLoadWarning(true)}
             fallback={
               <span className="text-[10px] font-medium text-slate-400">
-                No image
+                {thumbShape === "circle" ? "No photo" : "No image"}
               </span>
             }
           />

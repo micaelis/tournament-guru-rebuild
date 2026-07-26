@@ -39,6 +39,7 @@ export function Field({
   error,
   hint,
   validate,
+  labelAccessory,
   children,
   ...rest
 }: {
@@ -47,13 +48,18 @@ export function Field({
   error?: string;
   hint?: string;
   validate?: (value: string) => string | null;
+  /** Renders on the label row's right edge (e.g. a status pill). */
+  labelAccessory?: ReactNode;
   children?: ReactNode;
 } & InputHTMLAttributes<HTMLInputElement>) {
   const { shownError, revalidate } = useLiveValidation(error, validate);
   return (
     <label className="block">
-      <span className="mb-1.5 block text-[13px] font-semibold text-slate-800">
-        {label}
+      <span className="mb-1.5 flex items-center justify-between gap-2">
+        <span className="text-[13px] font-semibold text-slate-800">
+          {label}
+        </span>
+        {labelAccessory}
       </span>
       {children ?? (
         <input
@@ -210,7 +216,12 @@ export function SubmitButton({
   );
 }
 
-/** Inline alert block for form-level errors + confirmation banners. */
+/**
+ * Inline alert block for form-level errors + confirmation banners.
+ * Success/info renders as a white surface card with a small green-check
+ * disc — green lives only in the icon, so the note sits calmly on both
+ * the gray dashboard bg and the white auth cards (S12.9).
+ */
 export function Alert({
   kind,
   children,
@@ -218,17 +229,42 @@ export function Alert({
   kind: "error" | "info";
   children: ReactNode;
 }) {
-  const isError = kind === "error";
+  if (kind === "error") {
+    return (
+      <div
+        role="alert"
+        className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+      >
+        {children}
+      </div>
+    );
+  }
   return (
     <div
-      role={isError ? "alert" : "status"}
-      className={`rounded-xl border px-4 py-3 text-sm ${
-        isError
-          ? "border-red-200 bg-red-50 text-red-800"
-          : "border-emerald-200 bg-emerald-50 text-emerald-800"
-      }`}
+      role="status"
+      className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(15,23,42,.04)]"
     >
-      {children}
+      <span
+        aria-hidden="true"
+        className="mt-0.5 grid h-5 w-5 flex-none place-items-center rounded-full bg-emerald-50 ring-1 ring-emerald-200"
+      >
+        <svg
+          width="12"
+          height="12"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="text-emerald-600"
+        >
+          <path d="M5 12l5 5L20 7" />
+        </svg>
+      </span>
+      <div className="min-w-0 text-[13.5px] font-medium leading-relaxed text-slate-800">
+        {children}
+      </div>
     </div>
   );
 }

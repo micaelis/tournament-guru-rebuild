@@ -14,6 +14,7 @@ import {
 import { safeExternalUrl, safeImageSrc } from "@/lib/url";
 import { parseGeoFields } from "@/lib/geo";
 import { validateEmail, validatePassword } from "@/lib/validation";
+import { buildNotifPatch } from "./notif-fields";
 import type { Database } from "@/lib/database.types";
 
 export type AccountState = {
@@ -123,7 +124,7 @@ export async function updateEmail(
   const { error } = await supabase.auth.updateUser({ email });
   if (error) return { error: error.message };
   return {
-    info: "Check both your old and new inbox — Supabase sends a confirmation link before the change takes effect.",
+    info: "Check both your old and new inbox — the change takes effect once you confirm the links we just sent.",
   };
 }
 
@@ -290,19 +291,6 @@ export async function updateTeams(
   return { info: "Team info updated." };
 }
 
-const NOTIF_FIELDS = [
-  "email_review_replies",
-  "inapp_review_replies",
-  "email_review_likes",
-  "inapp_review_likes",
-  "email_comment_replies",
-  "inapp_comment_replies",
-  "email_event_reviews",
-  "inapp_event_reviews",
-  "email_favorited_events",
-  "inapp_favorited_events",
-] as const;
-
 export async function updateNotificationPrefs(
   _prev: AccountState,
   formData: FormData,
@@ -312,22 +300,20 @@ export async function updateNotificationPrefs(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
-  // Same partial-update rule as updateProfile: the ED-only rows aren't
-  // rendered for attendees, and an unchecked box is absent from the
-  // FormData just like an unrendered one — so presence of the row's
-  // `section:<name>` marker is what says "this pair was on screen".
-  // Each row names its inputs `inapp_<section>` / `email_<section>`.
-  const patch: Partial<Record<(typeof NOTIF_FIELDS)[number], boolean>> = {};
-  for (const field of NOTIF_FIELDS) {
-    const section = field.replace(/^(email|inapp)_/, "");
-    if (!formData.has(`section:${section}`)) continue;
-    patch[field] = formData.get(field) === "on";
-  }
+  // Partial-update rule + FormData contract live in notif-fields.ts
+  // (shared with the unit test): only sections whose marker was
+  // submitted are written, absent switch = false.
+  const patch = buildNotifPatch(formData);
   if (Object.keys(patch).length === 0) {
     return { info: "Notification preferences updated." };
   }
   const { error } = await supabase.from("profiles").update(patch).eq("id", user.id);
   if (error) return { error: error.message };
+  // Keep the server-rendered props honest — without this, a client-side
+  // return to the page re-renders the switches from stale prefetch data
+  // (the S12.10 save-reset bug's server half; the client half is the
+  // controlled switches in AccountClient).
+  revalidatePath("/dashboard/account");
   return { info: "Notification preferences updated." };
 }
 

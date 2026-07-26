@@ -34,6 +34,7 @@ export default async function AccountPage() {
   return (
     <AccountClient
       email={user.email ?? ""}
+      emailVerified={Boolean(user.emailConfirmedAt)}
       profile={fullProfile as unknown as AccountProfile}
       teams={teams as unknown as AccountTeam[]}
       userType={profile.user_type}

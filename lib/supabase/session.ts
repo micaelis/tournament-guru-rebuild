@@ -29,13 +29,21 @@ export type SessionProfile = {
 const PROFILE_COLUMNS =
   "id, user_type, role_title, first_name, last_name, profile_photo_url, organization_title, org_logo_url, onboarding_completed, blocked";
 
+/** Auth-side projection: identity + the email-confirmation timestamp
+ * (drives the account page's "Verified" affordance). */
+export type SessionUser = {
+  id: string;
+  email: string | null;
+  emailConfirmedAt: string | null;
+};
+
 /**
  * Server-only helper — fetch the auth user AND their app profile in one
  * place. Returns null when either is missing so callers can decide what
  * to do (middleware handles the common cases; this is the last-mile net).
  */
 export async function getSessionAndProfile(): Promise<
-  { user: { id: string; email: string | null }; profile: SessionProfile } | null
+  { user: SessionUser; profile: SessionProfile } | null
 > {
   const supabase = await createServerAuthClient();
   const {
@@ -50,7 +58,14 @@ export async function getSessionAndProfile(): Promise<
     .maybeSingle<SessionProfile>();
 
   if (!profile) return null;
-  return { user: { id: user.id, email: user.email ?? null }, profile };
+  return {
+    user: {
+      id: user.id,
+      email: user.email ?? null,
+      emailConfirmedAt: user.email_confirmed_at ?? null,
+    },
+    profile,
+  };
 }
 
 /**
@@ -60,7 +75,7 @@ export async function getSessionAndProfile(): Promise<
  * - Incomplete profile  → /onboarding
  */
 export async function requireSessionAndProfile(): Promise<{
-  user: { id: string; email: string | null };
+  user: SessionUser;
   profile: SessionProfile;
 }> {
   const result = await getSessionAndProfile();

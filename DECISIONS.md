@@ -2495,3 +2495,80 @@ dd/mm/yyyy (or day-first text dates) abroad.
 **Why:** Danny's rule — US format everywhere, never dd/mm/yyyy; the
 audience is US youth sports. The fix is the class (input primitive +
 explicit locale), not the instances.
+
+### S12.9 · Account page redesign implemented (approved mockup → app)
+
+**What:** the approved `design/account-redesign.html` direction landed
+in `app/dashboard/account/`. Security / Preferences / Notifications
+rebuilt on the Profile tab's card language: one white card per tab,
+label-column sections (`FormSection`, widened to 210px with `min-w-0`
+both sides so headers + descriptions wrap cleanly), slate footer
+action bar. Security = Login-email section (Verified badge off
+`email_confirmed_at`, surfaced through `SessionUser`) + Password
+section (the shared `PasswordField` eye + requirement pills), with the
+danger zone as a white card + red hairline instead of a red slab.
+Preferences = travel-distance block chips + per-team cards (Age stays
+the one allowed dropdown; gender/level became choice chips per the
+§9 Do/Don't, now controlled so Clear/Remove and saves stay truthful;
+unused slots collapse into "Add a … team", mirroring onboarding).
+Notifications = grouped In-app/Email switch matrix (new `Switch`
+primitive). Profile kept its structure with the approved fixes:
+circular photo preview (`ImageUploadField thumbShape="circle"`),
+DOB as a labelled read-only field (lock icon + hint, `usFromIso`),
+success alerts restyled app-wide (white surface + green-check disc —
+the emerald slab fought the gray bg), and at 100% completeness the
+meter is replaced by a soft "Profile complete → Add an event / Find
+your next event" prompt. Same fields, same Server Actions, same
+validation throughout.
+
+**Why:** the three thin tabs read as unfinished next to the redesigned
+Profile tab; Danny approved the mockup on 2026-07-26. Behavior was
+deliberately frozen so the diff is reviewable as presentation +
+the two bug fixes below.
+
+### S12.10 · Notification prefs: reset-proof switches + shared FormData contract
+
+**What:** saving Notifications snapped the toggles back to their
+page-load state. Root cause: React's automatic post-action form reset
+reverts checkbox DOM state to the initial `checked` attribute, and a
+controlled input whose React state didn't change is never re-written —
+so the DOM lied (and with `updateNotificationPrefs` not revalidating,
+a later visit could too). Fix is the class: the new `Switch` is
+BUTTON-backed (`role="switch"` + `aria-checked`) with a state-derived
+hidden input (`name=on` only while checked) — buttons and hidden
+inputs are immune to form resets; the action now calls
+`revalidatePath`; and the patch builder moved to `notif-fields.ts`
+(pure, unit-tested: rendered-but-unchecked → `false`, unrendered
+section → untouched). Covered by the `notif-prefs` unit test + the
+`notifications-save` E2E (both mutation-verified; the E2E's UI assert
+failed against the genuine desync before the button-backed fix).
+
+**Why:** a settings screen that shows unsaved state destroys trust in
+every other save button. The checkbox-based fix (controlled inputs
+alone) provably did NOT survive React 19's reset — the E2E caught it —
+hence the button-backed primitive rather than a state workaround.
+**Alternative rejected:** key-remounting the rows after each action
+(fixes the symptom, leaves every future checkbox form exposed to the
+same trap without a reusable primitive).
+
+### S12.11 · Delete-account copy tells the S11.9 truth
+
+**What:** the Security tab's delete card + confirm dialog claimed
+reviews/comments "become anonymous but stay available" — the S6.1
+model that S11.9's true-delete replaced. Copy now states what
+`delete_ed_account` / `soft_delete_attendee` actually do, per role:
+ED — reviews + comments permanently deleted, events/tournaments you
+CREATED removed, claimed-only listings returned to Tournament Guru for
+re-claim; attendee — reviews + comments permanently deleted, affected
+events' ratings recalculated. Card and dialog say the same thing.
+Class-fixed, not instance-fixed: the ADMIN's delete-user dialog
+(`UsersTable.tsx`) carried the same stale "stay as 'Former member'"
+claim — `admin_delete_user` routes to the same RPCs — and was
+corrected in the same pass. The remaining "Former member" strings are
+display fallbacks for scrubbed/missing author profiles, not deletion
+copy.
+
+**Why:** consent copy on a destructive action must match the RPCs —
+telling a user their reviews survive when the RPC deletes them is the
+kind of inaccuracy that becomes a support incident (or worse, a
+complaint that we deleted data "without warning").

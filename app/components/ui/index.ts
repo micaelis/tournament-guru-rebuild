@@ -1,5 +1,6 @@
 export { Button } from "./Button";
 export { Checkbox } from "./Checkbox";
+export { Switch } from "./Switch";
 export { Card } from "./Card";
 export { ConfirmDialog } from "./ConfirmDialog";
 export { EmptyState } from "./EmptyState";

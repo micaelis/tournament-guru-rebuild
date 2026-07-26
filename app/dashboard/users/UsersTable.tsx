@@ -201,7 +201,7 @@ export function UsersTable({
       <ConfirmDialog
         open={confirmDelete !== null}
         title="Delete this user?"
-        body="Their reviews + comments stay as 'Former member'. ED-owned tournaments/events created by them are removed; claimed-only events revert to the admin."
+        body="Their reviews and comments are permanently deleted and the affected events' ratings are recalculated. Tournaments/events they created are removed; claimed-only listings revert to the admin."
         confirmLabel="Delete"
         onClose={() => setConfirmDelete(null)}
         onConfirm={async () => {
