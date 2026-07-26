@@ -16,14 +16,20 @@ import { createServerClient } from "@supabase/ssr";
  */
 const EMAIL_CHANGE = "/email-change";
 
+// `next` is attacker-influenceable (it rides the emailed link's query), so
+// it must never steer the redirect off-origin. Prefix checks are not
+// enough: WHATWG URL parsing treats "\" as "/" for http(s), so
+// new URL("/\\evil.com", origin) resolves to https://evil.com/ even though
+// the string passes startsWith("/") && !startsWith("//"). Exact-match
+// against the routes our own emails actually use; anything else falls
+// back to "/" (the role-routing default).
+const NEXT_ALLOW = new Set<string>([EMAIL_CHANGE, "/reset/update"]);
+
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
   const code = searchParams.get("code");
   const nextParam = searchParams.get("next");
-  const next =
-    nextParam && nextParam.startsWith("/") && !nextParam.startsWith("//")
-      ? nextParam
-      : "/";
+  const next = nextParam && NEXT_ALLOW.has(nextParam) ? nextParam : "/";
 
   if (!code) {
     if (next === EMAIL_CHANGE) {

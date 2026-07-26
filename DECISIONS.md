@@ -2645,3 +2645,25 @@ beside it (per `design/account-redesign.html`).
 — the rail treatment needs selective fills, which only an inline SVG can
 do. Cropped to the mark because the file's baked-in wordmark rows would
 double with the HTML wordmark text.
+
+### S12.15 · /auth/callback `next` is an exact allow-list, not a prefix check
+
+**What:** the callback's redirect target guard
+(`startsWith("/") && !startsWith("//")`) was replaced with an exact
+allow-list of the two targets our own emails send (`/email-change`,
+`/reset/update`); anything else falls back to `/` role routing. The old
+check had an open redirect: WHATWG URL parsing treats `\` as `/` for
+http(s), so `next=/\evil.com` passes both prefix tests yet
+`new URL("/\\evil.com", origin)` resolves to `https://evil.com/` — an
+attacker pairing their own valid code with a hostile `next` could send a
+victim off-site from a legitimate-looking link. Probes in
+`email-change-flow.test.ts` pin four hostile shapes on-origin
+(mutation-checked: reverting to the prefix guard flips the two backslash
+cases red) plus the allow-listed reset leg.
+
+**Why:** `next` rides an emailed link's query string, so it is
+attacker-influenceable; for a value that feeds `new URL(next, origin)`,
+enumerating the known-good targets is strictly safer than trying to
+out-parse WHATWG normalization. Cost: any future email leg that adds a
+`next` target must also add it to `NEXT_ALLOW` — a loud, greppable
+one-liner.

@@ -135,6 +135,47 @@ describe("/auth/callback email-change routing", () => {
   });
 });
 
+describe("/auth/callback next-param hardening (open redirect)", () => {
+  // WHATWG URL parsing treats "\" as "/" for http(s), so all of these
+  // resolve OFF-ORIGIN when fed to new URL(next, origin) — including the
+  // backslash forms, which pass a naive startsWith("/") && !"//" guard.
+  const HOSTILE_NEXT = [
+    "/\\evil.com",
+    "/\\/evil.com",
+    "//evil.com",
+    "https://evil.com",
+  ];
+
+  function qs(params: Record<string, string>): string {
+    return `?${new URLSearchParams(params).toString()}`;
+  }
+
+  for (const next of HOSTILE_NEXT) {
+    it(`ignores hostile next=${JSON.stringify(next)} and stays on-origin`, async () => {
+      // Attacker pairs their own valid code with a hostile next: the
+      // exchange succeeds, but next must fall back to "/" role routing.
+      ctl.user = { id: "u1" };
+      ctl.profile = { onboarding_completed: true, user_type: "attendee" };
+      const dest = await callbackDest(qs({ next, code: "abc123" }));
+      expect(dest).toBe("http://localhost:3000/events");
+      expect(new URL(dest).origin).toBe("http://localhost:3000");
+    });
+  }
+
+  it("ignores a hostile next on the code-less leg too", async () => {
+    const dest = await callbackDest(
+      qs({ next: "//evil.com", message: "Confirmation link accepted" }),
+    );
+    expect(dest).toBe("http://localhost:3000/login?error=callback");
+  });
+
+  it("still honors the allow-listed reset leg (next=/reset/update)", async () => {
+    ctl.user = { id: "u1" };
+    const dest = await callbackDest(qs({ next: "/reset/update", code: "abc123" }));
+    expect(dest).toBe("http://localhost:3000/reset/update");
+  });
+});
+
 describe("updateEmail action", () => {
   function form(email: string): FormData {
     const fd = new FormData();
