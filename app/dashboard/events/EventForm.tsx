@@ -282,6 +282,7 @@ export function EventForm({ defaults }: { defaults: EventFormDefaults }) {
             <USDateText
               id="start_date"
               name="start_date"
+              calendar
               className="tg-control"
               defaultIso={values.start_date ?? defaults.base.start_date}
               aria-invalid={startDateError ? true : undefined}
@@ -299,6 +300,7 @@ export function EventForm({ defaults }: { defaults: EventFormDefaults }) {
             <USDateText
               id="end_date"
               name="end_date"
+              calendar
               className="tg-control"
               defaultIso={values.end_date ?? defaults.base.end_date}
               aria-invalid={endDateError ? true : undefined}
@@ -314,6 +316,7 @@ export function EventForm({ defaults }: { defaults: EventFormDefaults }) {
             <USDateText
               id="registration_deadline"
               name="registration_deadline"
+              calendar
               className="tg-control"
               defaultIso={
                 values.registration_deadline ??
@@ -980,6 +983,7 @@ function MilestonesEditor({
           <LabeledField label="Date" htmlFor={`ms_d_${i}`}>
             <USDateText
               id={`ms_d_${i}`}
+              calendar
               className="tg-control"
               iso={row.milestone_date}
               onIsoChange={(iso) =>

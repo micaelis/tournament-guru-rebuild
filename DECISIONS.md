@@ -2780,3 +2780,24 @@ matching every other choice chip.
 **Why:** S12.3 — a selection must not read as a button; ink fills are
 reserved for primary CTAs. This closes the one straggler rather than
 leaving two selected-state languages in the same form.
+
+### S12.22 · Date fields gain an in-house calendar popover (mask stays)
+
+**What:** `USDateText` gained an opt-in `calendar` prop (default ON for
+the Field-wrapped `USDateField`): a calendar glyph inside the input
+opens a hand-rolled popover — month/year selects + ‹ › paging, a
+Sunday-first day grid from the pure `monthGrid()`/`isoOfDate()` helpers
+(whole weeks padded with neighbor days, local-time ISO stamping), the
+picked day in the S12.3 red tint, Escape/outside-click to close. The
+event form's four date fields enable it; the filter drawer's bare
+embeds stay typing-only (their custom borderless shells clip a
+popover). The masked mm/dd/yyyy input is untouched — the calendar is an
+addition, never a replacement, and the native `type="date"` picker
+stays banned (locale-dependent placeholder).
+
+**Why:** typing-only date entry is fine for a known DOB but slow for
+"what Saturday does this end on"; a popover needs no dependency (the
+grid is ~20 lines of local-Date math, unit-tested incl. leap February
+and UTC-shift-free stamping). Month/year selects — not just arrows —
+keep the DOB use (decades back) navigable. Opt-in on the bare variant
+so embeds that own their layout never get a surprise toggle glyph.

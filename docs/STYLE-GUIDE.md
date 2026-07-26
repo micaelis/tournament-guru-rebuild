@@ -189,7 +189,13 @@ Build screens from these; don't hand-roll equivalents.
   localizes its placeholder to the browser, not the app). Visible text is always US format;
   forms/callers receive ISO `yyyy-mm-dd` (hidden input or `onIsoChange`). `USDateField` is the
   labelled Field-wrapped variant (onboarding DOB); `USDateText` is bare (filter drawer +
-  event form dates). ALL date entry goes through these — never native `type="date"` — and
+  event form dates). The `calendar` prop (S12.22; default ON for `USDateField`, opt-in on
+  `USDateText` — the event form's date fields pass it) adds the **in-house calendar
+  popover**: a glyph toggle inside the input opens a Sunday-first month grid with
+  month/year selects and ‹ › paging; the picked day wears the S12.3 red tint; the masked
+  input stays first-class (the calendar is an addition, never a replacement, and never the
+  native picker). Bare embeds with their own shells (filter drawer) stay typing-only.
+  ALL date entry goes through these — never native `type="date"` — and
   rendered dates always pass an explicit `"en-US"` locale, never `undefined` (CLAUDE.md
   "Dates" convention: mm/dd/yyyy everywhere, dd/mm/yyyy nowhere).
 - **Toast** — transient confirmations ("Link copied", "Downloaded", "Saved").

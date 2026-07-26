@@ -628,6 +628,10 @@ and **Event Images** (≤ 3 free).
   placeholder on load failure (DECISIONS S10.4/S10.6).
 - **Website inputs** show a link-icon container; numeric inputs show a `#` icon
   container.
+- **Date fields** (start / end / registration deadline / key-date milestones) are the
+  masked mm/dd/yyyy inputs with the in-house **calendar popover** (S12.22): a calendar
+  glyph inside the input opens a month grid to pick from; typing the date stays fully
+  supported and the native browser picker is never used.
 - **Free image cap = 3.** On a saved non-premium event the edit form leads with an
   **upgrade prompt in the form header** (white surface, red upgrade accent + star
   disc, "Upgrade this event" CTA — S12.18); the images section notes the free-tier
