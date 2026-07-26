@@ -928,23 +928,32 @@ Support. Sign-out is in the header user menu (see the §6 shell).
 
 The attendee's version of the Reviews list (§6.2), with these differences:
 
-- The heading carries a **total-count chip** of this user's reviews.
+- The heading carries a **total-count chip** of this user's reviews; the
+  **sort dropdown sits on the header row's right side**.
 - **Sort by**: Newest, Oldest, Best-to-worst, Worst-to-best (by overall across
   the six categories); default **Newest**.
 - **Location filter**: the state codes this user reviewed, with per-state counts;
-  disabled if none.
-- Each card shows event info (logo, title, org name) and the category ratings,
-  helpful count, and comments count. A **status chip (Draft / Published)** is
-  shown **only on the attendee dashboard**.
-- The 30-day edit window applies (with the soft-nudge reason when expired).
+  hidden if none. State comes from the **live events join** (snapshots are only
+  stamped at event-deletion detach, so detached rows fall back to the snapshot
+  location's trailing state code).
+- Each card shows event info and the category ratings **with 5-star icons**,
+  plus **icon chips** for the helpful count (thumbs-up) and comments count
+  (speech bubble). A **status chip (Draft / Published)** is shown **only on the
+  attendee dashboard**.
+- Card actions are **icon buttons with a background tint**: pencil = Edit
+  (slate), trash = Delete (red, confirm dialog — allowed any time; deletion
+  cascades the review's comments). Save/publish from the write form confirms
+  via the success toast ("Draft saved…" / "Your review has been published").
+- The 30-day edit window applies: past it the Edit button renders **disabled
+  with a tooltip** explaining that the event ended more than 30 days ago.
 - If the **owner ED commented** on the review, that comment shows here; other
   comments open in a popup on click.
 - Empty state: a placeholder with a **Find Events** CTA → Search Events.
 
 ### 7.2 Favorites
 
-*"These are the events you have favorited, and that you will receive notification
-updates for."* Listed **newest-favorited first**. Each card has **Unfollow Event**
+Subtitle: *"Events you've saved, all in one place — so they're easy to find
+when it's time to plan."* Listed **newest-favorited first**. Each card has **Unfollow Event**
 and **Visit Event Page**. Unfollow confirms first: *"Are you sure you want to
 unfollow this event? You will no longer receive update notifications from this
 event."* → removes it. Favouriting anywhere **requires an account** — anon users

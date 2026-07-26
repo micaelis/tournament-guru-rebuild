@@ -48,6 +48,15 @@ export type ReviewCardRow = {
     profile_photo_url: string | null;
   } | null;
   promo_pretty_code: string | null;
+  /** Live event fields — populated only by listReviewsRaw (My Reviews).
+   * Snapshots are stamped at event-deletion detach, so live rows carry
+   * NULL snapshots; the card + 30-day lock + state filter read the join
+   * first and fall back to the snapshot for detached rows. */
+  event?: {
+    title: string | null;
+    end_date: string | null;
+    location_state_abbr: string | null;
+  } | null;
 };
 
 export type CommentRow = {
@@ -188,6 +197,7 @@ export async function listReviewsRaw({
     .from("reviews")
     .select(
       REVIEW_BASE_COLUMNS +
+        ", event:events!reviews_event_id_fkey(title, end_date, location_state_abbr)" +
         ", author:profiles!reviews_author_id_fkey(first_name, last_name, organization_title, profile_photo_url)",
     );
   if (authorId) q = q.eq("author_id", authorId);
@@ -251,6 +261,27 @@ export async function listCommentsForReview(reviewId: string): Promise<CommentRo
   if (error) throw new Error(error.message);
   const raw = (data ?? []) as unknown as Omit<CommentRow, "author">[];
   return attachPublicCommentAuthors(raw);
+}
+
+/** Comment totals per review, for the My Reviews card chips. Returns a
+ * plain object (serializes into client-component props). The id list is
+ * unbounded, so it batches per the in-chunks convention. */
+export async function countCommentsForReviews(
+  reviewIds: string[],
+): Promise<Record<string, number>> {
+  if (reviewIds.length === 0) return {};
+  const supabase = await createServerAuthClient();
+  const rows = (await fetchInChunks(reviewIds, async (chunk) => {
+    const { data, error } = await supabase
+      .from("comments")
+      .select("review_id")
+      .in("review_id", chunk);
+    if (error) throw new Error(`countCommentsForReviews: ${error.message}`);
+    return (data ?? []) as { review_id: string }[];
+  })) as { review_id: string }[];
+  const counts: Record<string, number> = {};
+  for (const r of rows) counts[r.review_id] = (counts[r.review_id] ?? 0) + 1;
+  return counts;
 }
 
 /** Which reviews has the current user marked helpful? Used by the

@@ -10,8 +10,7 @@ import { HelpfulButton } from "./HelpfulButton";
 import { FlagDialog } from "./FlagDialog";
 import { CommentTree } from "./CommentTree";
 import type { CommentRow, ReviewCardRow } from "@/lib/reviews/queries";
-import { roleDisplayLabel } from "@/lib/reviews/shared";
-import { REVIEW_CATEGORIES, formatRating } from "@/lib/reviews/shared";
+import { REVIEW_CATEGORIES, roleDisplayLabel } from "@/lib/reviews/shared";
 
 /**
  * Public review card. Renders the reviewer identity (with GURU badge
@@ -172,12 +171,13 @@ export function ReviewCard({
         {REVIEW_CATEGORIES.map((c) => (
           <div
             key={c.key}
-            className="flex items-center justify-between"
+            className="flex items-center justify-between gap-2"
           >
             <span className="text-slate-500">{c.label}</span>
-            <span className="font-bold text-slate-800">
-              {formatRating(review[c.key] as number | null)}
-            </span>
+            <StarRating
+              value={(review[c.key] as number | null) ?? 0}
+              size={11}
+            />
           </div>
         ))}
         {review.would_return !== null && (

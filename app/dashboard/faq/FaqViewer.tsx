@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { FaqViewRow } from "./page";
-import { EmptyState } from "@/app/components/ui";
+import { EmptyState, SearchInput } from "@/app/components/ui";
 
 export function FaqViewer({ rows }: { rows: FaqViewRow[] }) {
   const [search, setSearch] = useState("");
@@ -17,12 +17,12 @@ export function FaqViewer({ rows }: { rows: FaqViewRow[] }) {
 
   return (
     <div className="space-y-4">
-      <input
-        type="search"
+      <SearchInput
         placeholder="Search FAQ…"
+        aria-label="Search FAQ"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        className="tg-control max-w-sm"
+        className="max-w-sm"
       />
       {visible.length === 0 ? (
         <EmptyState

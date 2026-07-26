@@ -6,46 +6,56 @@ import { useMemo, useState } from "react";
 import {
   Button,
   Card,
+  ConfirmDialog,
   EmptyState,
   StarRating,
   StatusPill,
+  useToast,
 } from "@/app/components/ui";
+import { Icon } from "../icons";
+import { deleteReview } from "@/lib/reviews/actions";
 import type { ReviewCardRow } from "@/lib/reviews/queries";
-import { REVIEW_CATEGORIES, formatRating, isReviewStillEditable } from "@/lib/reviews/shared";
+import { REVIEW_CATEGORIES, REVIEW_EDIT_WINDOW_DAYS, isReviewStillEditable } from "@/lib/reviews/shared";
 
 type SortKey = "newest" | "oldest" | "best" | "worst";
 
+/** State code for a review's event: the live join when the event still
+ * exists, else the trailing "…, XX" of the detached snapshot location. */
+export function reviewStateAbbr(row: ReviewCardRow): string | null {
+  if (row.event?.location_state_abbr) return row.event.location_state_abbr;
+  const tail = row.snapshot_event_location?.slice(-2);
+  return tail && /^[A-Z]{2}$/.test(tail) ? tail : null;
+}
+
 /**
- * Attendee "My Reviews" page. Sort by newest/oldest/best/worst overall,
- * filter by state (only states the user has reviewed in — spec).
- * Edit CTA hidden when past the 30-day window; a soft nudge explains
- * why (spec).
+ * Attendee "My Reviews" page. Header row carries the title + count and
+ * the sort control; sort by newest/oldest/best/worst overall, filter by
+ * state (only states the user has reviewed in — spec). Past the 30-day
+ * window the Edit action disables with a tooltip explaining why.
  */
-export function AttendeeReviews({ rows }: { rows: ReviewCardRow[] }) {
+export function AttendeeReviews({
+  rows,
+  commentCounts,
+}: {
+  rows: ReviewCardRow[];
+  commentCounts: Record<string, number>;
+}) {
   const [sort, setSort] = useState<SortKey>("newest");
   const [state, setState] = useState<string>("");
 
-  // Attendee list doesn't join event state; the location filter uses
-  // the review's snapshot fields (if the event was deleted) or an
-  // on-demand lookup by event_id. Snapshot covers detached rows;
-  // for live rows we defer the state lookup to a follow-up if the
-  // spec requires it — the list still filters by the snapshot value
-  // when present.
   const availableStates = useMemo(() => {
     return Array.from(
       new Set(
         rows
-          .map((r) => r.snapshot_event_location?.slice(-2))
-          .filter((v): v is string => Boolean(v && /^[A-Z]{2}$/.test(v))),
+          .map(reviewStateAbbr)
+          .filter((v): v is string => Boolean(v)),
       ),
     ).sort();
   }, [rows]);
 
   const filtered = useMemo(() => {
     if (!state) return rows;
-    return rows.filter(
-      (r) => r.snapshot_event_location?.slice(-2) === state,
-    );
+    return rows.filter((r) => reviewStateAbbr(r) === state);
   }, [rows, state]);
 
   const sorted = useMemo(() => {
@@ -69,33 +79,44 @@ export function AttendeeReviews({ rows }: { rows: ReviewCardRow[] }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center gap-3">
-        <select
-          value={sort}
-          onChange={(e) => setSort(e.target.value as SortKey)}
-          aria-label="Sort reviews"
-          className="tg-control tg-select w-auto min-w-[200px]"
-        >
-          <option value="newest">Newest</option>
-          <option value="oldest">Oldest</option>
-          <option value="best">Best to worst</option>
-          <option value="worst">Worst to best</option>
-        </select>
-        {availableStates.length > 0 && (
-          <select
-            value={state}
-            onChange={(e) => setState(e.target.value)}
-            aria-label="Filter by state"
-            className="tg-control tg-select w-auto min-w-[160px]"
-            disabled={availableStates.length === 0}
-          >
-            <option value="">All states</option>
-            {availableStates.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <h1 className="font-[var(--font-heading)] text-2xl font-extrabold text-slate-900">
+            My Reviews
+          </h1>
+          <span className="rounded-full border border-slate-200 bg-white px-2.5 py-0.5 text-[11px] font-bold text-slate-500">
+            {rows.length}
+          </span>
+        </div>
+        {rows.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
+            {availableStates.length > 0 && (
+              <select
+                value={state}
+                onChange={(e) => setState(e.target.value)}
+                aria-label="Filter by state"
+                className="tg-control tg-select w-auto min-w-[130px]"
+              >
+                <option value="">All states</option>
+                {availableStates.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            )}
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value as SortKey)}
+              aria-label="Sort reviews"
+              className="tg-control tg-select w-auto min-w-[180px]"
+            >
+              <option value="newest">Newest</option>
+              <option value="oldest">Oldest</option>
+              <option value="best">Best to worst</option>
+              <option value="worst">Worst to best</option>
+            </select>
+          </div>
         )}
       </div>
 
@@ -113,13 +134,17 @@ export function AttendeeReviews({ rows }: { rows: ReviewCardRow[] }) {
         ) : (
           <EmptyState
             title="No reviews match your filters"
-            body="Try adjusting the state filter above."
+            body="Try adjusting the filters above."
           />
         )
       ) : (
         <div className="space-y-4">
           {sorted.map((r) => (
-            <MyReviewCard key={r.id} row={r} />
+            <MyReviewCard
+              key={r.id}
+              row={r}
+              commentCount={commentCounts[r.id] ?? 0}
+            />
           ))}
         </div>
       )}
@@ -127,9 +152,20 @@ export function AttendeeReviews({ rows }: { rows: ReviewCardRow[] }) {
   );
 }
 
-function MyReviewCard({ row }: { row: ReviewCardRow }) {
-  const eventTitle = row.snapshot_event_title || "Event";
-  const editable = isReviewStillEditable(row.snapshot_event_end ?? null);
+function MyReviewCard({
+  row,
+  commentCount,
+}: {
+  row: ReviewCardRow;
+  commentCount: number;
+}) {
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const { push } = useToast();
+  const eventTitle =
+    row.event?.title ?? row.snapshot_event_title ?? "Event";
+  const editable = isReviewStillEditable(
+    row.event?.end_date ?? row.snapshot_event_end ?? null,
+  );
   return (
     <Card className="p-5">
       <header className="flex flex-wrap items-start justify-between gap-3">
@@ -169,31 +205,129 @@ function MyReviewCard({ row }: { row: ReviewCardRow }) {
         </p>
       )}
 
-      <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-slate-500 md:grid-cols-3">
+      <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs text-slate-500 md:grid-cols-3">
         {REVIEW_CATEGORIES.map((c) => (
-          <span key={c.key} className="flex items-center justify-between">
+          <span key={c.key} className="flex items-center justify-between gap-2">
             <span>{c.label}</span>
-            <span className="font-bold text-slate-800">
-              {formatRating(row[c.key] as number | null)}
-            </span>
+            <StarRating
+              value={(row[c.key] as number | null) ?? 0}
+              size={11}
+            />
           </span>
         ))}
       </div>
 
-      <footer className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs">
-        <p className="text-slate-500">
-          {row.helpful_count} helpful
-        </p>
-        {row.event_id && editable ? (
-          <Link href={`/events/${row.event_id}/review` as Route}>
-            <Button size="sm">Edit review</Button>
-          </Link>
-        ) : row.event_id && row.status === "published" ? (
-          <p className="text-[11px] text-slate-500">
-            Editing is locked — the event ended more than 30 days ago.
-          </p>
-        ) : null}
+      <footer className="mt-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <CountChip
+            icon="thumb"
+            count={row.helpful_count}
+            label={`${row.helpful_count} people found this review helpful`}
+          />
+          <CountChip
+            icon="comment"
+            count={commentCount}
+            label={`${commentCount} comments on this review`}
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          {row.event_id &&
+            (editable ? (
+              <Link
+                href={`/events/${row.event_id}/review` as Route}
+                aria-label="Edit review"
+                title="Edit review"
+                className="grid h-8 w-8 place-items-center rounded-lg bg-slate-100 text-slate-600 transition-colors hover:bg-slate-200 hover:text-slate-900"
+              >
+                <Icon name="edit" className="h-4 w-4" />
+              </Link>
+            ) : (
+              <span className="group relative inline-flex">
+                <button
+                  type="button"
+                  disabled
+                  aria-label="Edit review (locked)"
+                  className="grid h-8 w-8 cursor-not-allowed place-items-center rounded-lg bg-slate-100 text-slate-300"
+                >
+                  <Icon name="edit" className="h-4 w-4" />
+                </button>
+                <span
+                  role="tooltip"
+                  className="pointer-events-none absolute bottom-full right-0 z-10 mb-2 w-60 rounded-lg bg-slate-900 px-3 py-2 text-left text-[11px] font-medium leading-relaxed text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100"
+                >
+                  This event ended more than {REVIEW_EDIT_WINDOW_DAYS} days
+                  ago, so this review can no longer be edited or published.
+                </span>
+              </span>
+            ))}
+          <button
+            type="button"
+            aria-label="Delete review"
+            title="Delete review"
+            onClick={() => setConfirmOpen(true)}
+            className="grid h-8 w-8 place-items-center rounded-lg bg-red-50 text-red-600 transition-colors hover:bg-red-100 hover:text-red-700"
+          >
+            <Icon name="trash" className="h-4 w-4" />
+          </button>
+        </div>
       </footer>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Delete this review?"
+        body="This permanently removes your review and its comments. It can't be undone."
+        confirmLabel="Delete review"
+        onConfirm={async () => {
+          const res = await deleteReview(row.id);
+          if (res.error) {
+            push("error", res.error);
+            return;
+          }
+          setConfirmOpen(false);
+          push("success", "Your review has been deleted.");
+        }}
+        onClose={() => setConfirmOpen(false)}
+      />
     </Card>
+  );
+}
+
+function CountChip({
+  icon,
+  count,
+  label,
+}: {
+  icon: "thumb" | "comment";
+  count: number;
+  label: string;
+}) {
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[12px] font-semibold text-slate-600"
+      title={label}
+      aria-label={label}
+    >
+      <svg
+        width="13"
+        height="13"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        {icon === "thumb" ? (
+          <>
+            <path d="M7 22V11" />
+            <path d="M15 22H9a2 2 0 0 1-2-2V11a2 2 0 0 1 2-2h1.5l3-6a1.5 1.5 0 0 1 3 1v6h4a2 2 0 0 1 2 2l-2 8a3 3 0 0 1-3 2z" />
+          </>
+        ) : (
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        )}
+      </svg>
+      {count}
+    </span>
   );
 }

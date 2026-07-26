@@ -15,5 +15,6 @@ export { TextLink, textLinkClass } from "./TextLink";
 export { FlashToast, ToastProvider, useToast } from "./Toast";
 export { Avatar } from "./Avatar";
 export { SafeImg } from "./SafeImg";
+export { SearchInput } from "./SearchInput";
 export { ImageUploadField } from "./ImageUploadField";
 export { cn } from "./cn";

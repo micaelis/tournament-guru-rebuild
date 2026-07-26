@@ -2867,3 +2867,28 @@ one visible confirmation channel (STYLE-GUIDE: every successful action
 a Toast). A single placeholder treatment ends the dashboard-vs-public
 mismatch where the same user rendered slate in one surface and a random
 palette color in the other.
+
+### S12.26 · My Reviews reads the live events join — snapshots were NULL for live rows
+
+**What:** the attendee My Reviews list rendered entirely off the
+`snapshot_event_*` columns, but those are stamped only by
+`delete_event`'s detach path — every live review carries NULL snapshots.
+In practice the page titled every card "Event", never triggered the
+30-day edit lock (null end date reads as editable), and the state filter
+never appeared (no state derivable). `listReviewsRaw` now joins
+`events(title, end_date, location_state_abbr)` (its one caller is the
+attendee page); the card, lock, and state filter read the join first and
+fall back to the snapshot for detached rows. Alongside: card actions are
+tinted icon buttons (pencil edit / trash delete with confirm — authors
+could always delete per p_reviews_delete, the UI just never offered it),
+helpful + comment counts render as icon chips (comment totals batched
+via in-chunks), category ratings show the 5-star display, the sort
+dropdown moved onto the header row, the locked Edit shows a tooltip
+instead of the inline nudge, and save/publish confirms via distinct
+flash messages. New `SearchInput` primitive gives every plain dashboard
+search box the magnifying-glass treatment.
+
+**Why (join, not backfill):** stamping snapshots at insert would fix new
+rows only and duplicate live data that can drift (event titles get
+edited); the join is always-true for live rows and the snapshot remains
+exactly what it was designed to be — a tombstone for deleted events.

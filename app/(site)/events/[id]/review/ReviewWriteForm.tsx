@@ -110,9 +110,13 @@ export function ReviewWriteForm({
 
   useEffect(() => {
     if (state.savedId) {
-      router.push(`/events/${eventId}?flash=success:Review saved`);
+      const message =
+        intent === "publish"
+          ? "Your review has been published"
+          : "Draft saved — finish it anytime";
+      router.push(`/events/${eventId}?flash=success:${message}`);
     }
-  }, [state.savedId, router, eventId]);
+  }, [state.savedId, router, eventId, intent]);
 
   const canPublish =
     REVIEW_CATEGORIES.every((c) => ratings[c.key] !== null) &&

@@ -9,6 +9,7 @@ import {
   Checkbox,
   ConfirmDialog,
   EmptyState,
+  SearchInput,
   StarRating,
   StatusPill,
   Table,
@@ -172,8 +173,7 @@ export function ReviewsTable({
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center gap-3">
-        <input
-          type="search"
+        <SearchInput
           value={search}
           onChange={(e) => {
             setSearch(e.target.value);
@@ -181,7 +181,7 @@ export function ReviewsTable({
           }}
           placeholder="Search by user name…"
           aria-label="Search reviews"
-          className="tg-control min-w-[240px] flex-1"
+          className="min-w-[240px] flex-1"
         />
         <select
           value={promoFilter}

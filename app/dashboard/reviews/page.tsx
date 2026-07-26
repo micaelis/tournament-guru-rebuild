@@ -1,11 +1,8 @@
-import Link from "next/link";
-import type { Route } from "next";
 import { requireSessionAndProfile } from "@/lib/supabase/session";
-import { EmptyState, Button } from "@/app/components/ui";
 import { listDashboardReviews } from "./queries";
 import { ReviewsTable } from "./ReviewsTable";
 import { AttendeeReviews } from "./AttendeeReviews";
-import { listReviewsRaw } from "@/lib/reviews/queries";
+import { countCommentsForReviews, listReviewsRaw } from "@/lib/reviews/queries";
 
 type SearchParams = { [key: string]: string | string[] | undefined };
 
@@ -27,31 +24,8 @@ export default async function ReviewsDashboardPage({
 
   if (profile.user_type === "attendee") {
     const rows = await listReviewsRaw({ authorId: user.id });
-    return (
-      <div className="space-y-8">
-        <div className="flex items-center gap-3">
-          <h1 className="font-[var(--font-heading)] text-2xl font-extrabold text-slate-900">
-            My Reviews
-          </h1>
-          <span className="rounded-full border border-slate-200 bg-white px-2.5 py-0.5 text-[11px] font-bold text-slate-500">
-            {rows.length}
-          </span>
-        </div>
-        {rows.length === 0 ? (
-          <EmptyState
-            title="You haven't written any reviews yet"
-            body="Attend an event, then come back to share what you thought."
-            action={
-              <Link href={"/events" as Route}>
-                <Button>Find events</Button>
-              </Link>
-            }
-          />
-        ) : (
-          <AttendeeReviews rows={rows} />
-        )}
-      </div>
-    );
+    const commentCounts = await countCommentsForReviews(rows.map((r) => r.id));
+    return <AttendeeReviews rows={rows} commentCounts={commentCounts} />;
   }
 
   const scope: "own" | "all" = profile.user_type === "admin" ? "all" : "own";

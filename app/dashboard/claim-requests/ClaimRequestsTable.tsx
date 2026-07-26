@@ -8,6 +8,7 @@ import {
   Button,
   ConfirmDialog,
   EmptyState,
+  SearchInput,
   StatusPill,
   Table,
   TD,
@@ -72,13 +73,12 @@ export function ClaimRequestsTable({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
-        <input
-          type="search"
+        <SearchInput
           placeholder="Search by event or organization…"
           aria-label="Search claim requests"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="tg-control min-w-[240px] flex-1"
+          className="min-w-[240px] flex-1"
         />
         <select
           value={status}

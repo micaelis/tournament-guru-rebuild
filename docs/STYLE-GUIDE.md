@@ -162,6 +162,12 @@ Build screens from these; don't hand-roll equivalents.
   renders a fixed **circular** thumb
   (`h-24 w-24`) — the form-side mirror of Avatar's circle rule; use it for profile photos
   (S12.9). Never build a bare URL text input for a DB image again — use this.
+- **SearchInput** — the one text-search treatment app-wide: a `tg-control`
+  `type="search"` input with the magnifying-glass glyph inset left. `className`
+  styles the wrapper (widths / flex); everything else spreads onto the input.
+  Every plain search box (dashboard tables, FAQ, users) renders through it —
+  never a bare `tg-control` search input again. The bespoke marketing search
+  bars (hero, overlay, header) keep their own styled glyphs.
 - **RemoveIconButton** — the row-removal control for editable lists (age groups,
   sponsors, milestones, gallery images): a trash glyph on the soft red tint
   (`bg-red-50` / `text-red-600`, red-100 border), `md` (40px, aligns with control rows)

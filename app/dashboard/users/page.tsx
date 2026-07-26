@@ -4,7 +4,7 @@ import { createServerAuthClient } from "@/lib/supabase/server";
 import { unwrapRows } from "@/lib/supabase/unwrap";
 import { fetchInChunks } from "@/lib/supabase/in-chunks";
 import { UsersTable, type UserRow } from "./UsersTable";
-import { Button } from "@/app/components/ui";
+import { Button, SearchInput } from "@/app/components/ui";
 
 type SearchParams = { [key: string]: string | string[] | undefined };
 
@@ -139,13 +139,12 @@ export default async function AdminUsersPage({
       </div>
       <form method="get" className="flex max-w-md gap-2">
         <input type="hidden" name="tab" value={tab} />
-        <input
-          type="search"
+        <SearchInput
           name="search"
           defaultValue={search}
           aria-label="Search users"
           placeholder="Search by name, email, or organization…"
-          className="tg-control"
+          className="flex-1"
         />
         <Button type="submit" variant="ghost" className="shrink-0">
           Search

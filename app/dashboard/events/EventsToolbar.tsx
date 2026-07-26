@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
-import { Button } from "@/app/components/ui";
+import { Button, SearchInput } from "@/app/components/ui";
 import {
   CreateTournamentDialog,
   AddFirstEventPrompt,
@@ -68,20 +68,17 @@ export function EventsToolbar({
   return (
     <>
       <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[240px]">
-          <input
-            type="search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") pushParam("q", search);
-            }}
-            onBlur={() => pushParam("q", search)}
-            placeholder="Search tournaments…"
-            aria-label="Search tournaments"
-            className="tg-control"
-          />
-        </div>
+        <SearchInput
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") pushParam("q", search);
+          }}
+          onBlur={() => pushParam("q", search)}
+          placeholder="Search tournaments…"
+          aria-label="Search tournaments"
+          className="flex-1 min-w-[240px]"
+        />
         <select
           defaultValue={initialSort}
           onChange={(e) => pushParam("sort", e.target.value)}
