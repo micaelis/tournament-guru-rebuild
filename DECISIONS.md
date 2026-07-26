@@ -3001,3 +3001,32 @@ solid-red Premium and violet Spotlight.
 cards — the status read as decoration. One register deeper keeps the
 same hue family, passes AA, and needs no per-call changes since every
 status pill rides the shared tone map.
+
+### S12.33 · ED event-details page rebuilt to the approved redesign
+
+**What:** `/dashboard/events/[id]` goes from the flat field table to
+the approved design (`design/ed-event-details-redesign.html`): hero
+(logo crest + pills + meta + "View public page", action column),
+dark summary band (overall/coach/attendee, would-return, price range,
+teams — invite state at zero reviews), sectioned body (About, Age
+groups & pricing, Media for premium, Sponsors, Reviews) and a
+Location + Listing-record rail. All existing wiring preserved:
+duplicate/cancel/delete/upgrade server actions, shared dialogs
+(exported from EventActions), admin-only QR (menu affordance mirrors
+the admin-gated route), GeneralAdToggle, RLS-driven `canManage`.
+Notable calls:
+- **Delete from the details page navigates to `/dashboard/events`** —
+  the old `router.refresh()` refreshed a just-deleted route into a 404.
+- **`derivePriceRange`/`formatPrice` extracted to `lib/format-price`**
+  (public parts.tsx imports it too) — the band and the public page must
+  compute the identical string.
+- **Reviews section keeps the MetricStrip** — the mockup's review cards
+  are a placeholder for the shared public reviews component; unifying
+  that is a separate task (TODO in page).
+- **No "Share your event" rail card** — its QR content is admin-only
+  (the qr route 403s EDs), so sharing lives in the hero's Share menu
+  where items can be role-scoped; the rail keeps Location + Listing
+  record.
+- Per-section "Edit …" links all target the one-page editor (it has no
+  step anchors); date range renders with collapsed month/year and a
+  local-time parse so a date-only ISO never shifts a day west of UTC.

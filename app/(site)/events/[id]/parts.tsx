@@ -23,6 +23,7 @@ import type {
   DirectorProfile,
 } from "@/app/components/types";
 import { safeExternalUrl, safeImageSrc } from "@/lib/url";
+import { derivePriceRange, formatPrice } from "@/lib/format-price";
 import { SafeImg } from "@/app/components/ui/SafeImg";
 
 /* ───────────────────────────────────────────────────────────────────
@@ -2213,18 +2214,6 @@ function ContactPanel({
   );
 }
 
-function derivePriceRange(rows: EventAgeGroupRow[]): string | null {
-  const prices = rows
-    .map((r) => (r.price == null ? null : Number(r.price)))
-    .filter((n): n is number => n != null && Number.isFinite(n) && n > 0);
-  if (prices.length === 0) return null;
-  const lo = Math.min(...prices);
-  const hi = Math.max(...prices);
-  return lo === hi
-    ? `$${formatPrice(lo)}`
-    : `$${formatPrice(lo)}–$${formatPrice(hi)}`;
-}
-
 function PanelStat({
   label,
   value,
@@ -2895,10 +2884,6 @@ function ageIndex(v: string): number {
 
 function capitalize(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1);
-}
-
-function formatPrice(v: number): string {
-  return v.toLocaleString("en-US", { maximumFractionDigits: 0 });
 }
 
 function avgRating(reviews: ReviewCardRow[]): number {

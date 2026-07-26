@@ -1,9 +1,11 @@
 import type { ReactNode } from "react";
 
 /**
- * Inline stroke icons for the dashboard shell (sidebar nav, header user
- * menu, account preview card). Kept as a single lookup so every icon
- * shares the same stroke geometry; size via className (`h-4 w-4`).
+ * Inline stroke icons for the dashboard — shell (sidebar nav, header
+ * user menu, account preview card) and interior pages (event details
+ * meta rows, section chips, action menus). Kept as a single lookup so
+ * every icon shares the same stroke geometry; size via className
+ * (`h-4 w-4`).
  */
 export type IconName =
   | "calendar"
@@ -28,7 +30,18 @@ export type IconName =
   | "chevron-right"
   | "edit"
   | "trash"
-  | "logout";
+  | "logout"
+  | "clock"
+  | "copy"
+  | "external"
+  | "qr"
+  | "link"
+  | "download"
+  | "ban"
+  | "info"
+  | "plus"
+  | "image"
+  | "award";
 
 const PATHS: Record<IconName, ReactNode> = {
   calendar: (
@@ -145,6 +158,79 @@ const PATHS: Record<IconName, ReactNode> = {
       <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
       <polyline points="16 17 21 12 16 7" />
       <line x1="21" y1="12" x2="9" y2="12" />
+    </>
+  ),
+  clock: (
+    <>
+      <circle cx="12" cy="12" r="10" />
+      <polyline points="12 6 12 12 16 14" />
+    </>
+  ),
+  copy: (
+    <>
+      <rect x="9" y="9" width="13" height="13" rx="2" />
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    </>
+  ),
+  external: (
+    <>
+      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+      <polyline points="15 3 21 3 21 9" />
+      <line x1="10" y1="14" x2="21" y2="3" />
+    </>
+  ),
+  qr: (
+    <>
+      <rect x="3" y="3" width="7" height="7" rx="1" />
+      <rect x="14" y="3" width="7" height="7" rx="1" />
+      <rect x="3" y="14" width="7" height="7" rx="1" />
+      <path d="M14 14h3v3h-3z" />
+      <path d="M21 14v.01M14 21v.01M21 18v3h-3" />
+    </>
+  ),
+  link: (
+    <>
+      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+    </>
+  ),
+  download: (
+    <>
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="7 10 12 15 17 10" />
+      <line x1="12" y1="15" x2="12" y2="3" />
+    </>
+  ),
+  ban: (
+    <>
+      <circle cx="12" cy="12" r="10" />
+      <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+    </>
+  ),
+  info: (
+    <>
+      <circle cx="12" cy="12" r="10" />
+      <line x1="12" y1="16" x2="12" y2="12" />
+      <line x1="12" y1="8" x2="12.01" y2="8" />
+    </>
+  ),
+  plus: (
+    <>
+      <line x1="12" y1="5" x2="12" y2="19" />
+      <line x1="5" y1="12" x2="19" y2="12" />
+    </>
+  ),
+  image: (
+    <>
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <circle cx="8.5" cy="8.5" r="1.5" />
+      <path d="M21 15l-5-5L5 21" />
+    </>
+  ),
+  award: (
+    <>
+      <circle cx="12" cy="8" r="7" />
+      <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88" />
     </>
   ),
 };

@@ -15,6 +15,13 @@ import {
 } from "./event-actions";
 
 /**
+ * One sentence, shared by every delete-event confirm (row bar + details
+ * page) so the review-retention explanation can't drift between them.
+ */
+export const DELETE_EVENT_DIALOG_BODY =
+  "This action is permanent. Deleting this event won't remove the reviews people wrote for it — they're kept and stay visible on the reviewers' profiles.";
+
+/**
  * Action bar for one event: Edit / Duplicate / Copy link / Upgrade
  * plus the destructive Cancel + Delete (behind confirmation modals).
  * Callers pass `canManage` — attendees never see this, and admins are
@@ -102,7 +109,7 @@ export function EventActions({
       <ConfirmDialog
         open={confirmDelete}
         title={`Delete "${eventTitle}"?`}
-        body="This action is permanent. Deleting this event won't remove the reviews people wrote for it — they're kept and stay visible on the reviewers' profiles."
+        body={DELETE_EVENT_DIALOG_BODY}
         confirmLabel="Delete event"
         onClose={() => setConfirmDelete(false)}
         onConfirm={async () => {
@@ -138,7 +145,7 @@ export function EventActions({
  * PNG + PDF variants and requires a "confirming the QR image has been
  * downloaded" alert — the browser's own download UI covers that.
  */
-function QRDialog({
+export function QRDialog({
   open,
   eventId,
   eventTitle,
@@ -223,7 +230,7 @@ function CopyLinkButton({ eventId }: { eventId: string }) {
  * the public event details page. Kept as a small component so the row
  * layer doesn't own the cancel state.
  */
-function CancelEventDialog({
+export function CancelEventDialog({
   open,
   eventId,
   onClose,

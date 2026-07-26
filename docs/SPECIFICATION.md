@@ -662,9 +662,33 @@ event is assigned to the tournament under which it was initiated, dates are
 stored so search filters work, and status derives from the dates (§2.3).
 Temporary age-groups/sponsors/milestones added and deleted in the same session
 are not persisted. On success — draft, publish, or update alike — redirect to the
-**internal event details page** (created + last-modified timestamps, status,
-edit/delete) with a confirmation toast ("Draft saved" / "Event published" /
-"Changes saved"); the user is never left silently on the form. While the save
+**internal event details page** with a confirmation toast ("Draft saved" /
+"Event published" / "Changes saved"); the user is never left silently on the
+form.
+
+**Internal event details page** (`/dashboard/events/[id]`) — the ED's/admin's
+management surface for one listing. **Hero**: event logo (red-crest initials
+fallback), "Hosted by" org, status pill + Premium/Spotlight badges (admins also
+get the General-Ads toggle), title, a dates · venue · season · registration-
+deadline meta row (upcoming events add a "starts in N days" note), and a "View
+public page" link. The hero's **action column**: Edit event (primary),
+Duplicate, a Share menu (Copy public link for everyone; View/Download QR
+PNG+PDF admin-only — the QR route itself is admin-gated), "Upgrade to premium"
+on free events, and the red-tinted **Cancel event / Delete** danger pair
+(existing dialogs; deleting from this page returns to the events list).
+**Summary band** (dark): overall / coach / attendee ratings, would-return %,
+price range (derived from age-group prices) and this-year teams; with zero
+reviews the rating zone becomes a review-invite block (copies the public link)
+while the price + teams facts remain. **Sections**, each with an Edit link into
+the editor: About & key info (description, season, region, website,
+registration deadline, competition levels, surfaces, premium features), Age
+groups & pricing (per-division cards, per-team prices), Media (premium only:
+video link-out + photo gallery with an "Add photos" slot tile), Sponsors
+(logo + domain + Visit), and Reviews (overall + the 6-category strip; the full
+shared reviews component is a later unification). **Right rail**: Location
+(venue + Open in Google Maps) and the Listing record (Published/Draft/Canceled,
+created + last-modified dates, copyable event ID). A canceled event shows its
+public cancel reason in a banner under the hero. While the save
 runs, only the clicked button shows the "Saving…" spinner — the sibling submit
 button merely disables. A save is **atomic**: the base
 row and every child collection (age groups, sponsors, competition levels,
