@@ -23,12 +23,16 @@ of what was explored).
   flat cluster with big stars UNDER the title; "would attend again" (green %, no
   amber pill) boxed together with the fav + Share buttons as one section on the
   header's right edge;
-  tinted icon facts row (Format derived from age groups); About + Age groups &
-  pricing collapsed by default; Location = two columns — real Leaflet/OSM map with
-  a red soccer-ball marker left, venue details + premium facility features right
-  (no Key Dates, no airports); right rail without price/dates (bigger org-rating
-  stars, description leads, reference-style Call + Email rows, ink Contact host);
-  share tiles; compact "More from this org" list; refined past-event cards;
-  monogram sponsor wall; real site footer (mirrors `app/components/Footer.tsx`).
+  hero (gallery + header) sits on one white surface card; tinted icon facts row
+  (Format derived from age groups); About + Age groups & pricing collapsed by
+  default (colored age badges per division, per-team-pricing note as an InfoTip);
+  Location = two columns — real Leaflet/OSM map with a red soccer-ball marker
+  left, venue details + compact "What's included" checklist right (no Key Dates,
+  no airports); right rail without price/dates (bigger org-rating stars, compact
+  Call + Email rows with the org description below them, ink Contact host);
+  share tiles; "Other events by this organization" cards (age/gender chips,
+  location, premium card highlighted red); refined past-event cards; sponsor
+  cards = initial badge + green domain link; real site footer (mirrors
+  `app/components/Footer.tsx`).
   The gallery mocks both states — switch with the floating toggle (or open with
   `#no-photos`). Design-only — do not implement into `app/` until Danny signs off.

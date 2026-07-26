@@ -222,10 +222,12 @@
     </div>
   </div>
 
-  <!-- ═══════════════ HERO GALLERY — state 1: photos ═══════════════ -->
+  <!-- ═══════════════ HERO · gallery + header on one white surface card ═══════════════ -->
+  <section class="card p-5 sm:p-6">
+
+  <!-- gallery — state 1: photos -->
   <div id="gal-photos" class="relative overflow-hidden"
-       style="border-radius:20px;border:1px solid rgba(255,255,255,.7);
-              box-shadow:0 24px 60px -30px rgba(15,23,42,.28),0 4px 12px -6px rgba(15,23,42,.10)">
+       style="border-radius:16px;border:1px solid #e2e8f0">
     <div class="grid gap-1.5 bg-white" style="grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);min-height:380px">
       <div class="relative min-h-[380px] cursor-pointer overflow-hidden bg-slate-200">
         <img src="https://picsum.photos/seed/tg-pitch1/1100/760" alt="" class="absolute inset-0 h-full w-full object-cover">
@@ -249,11 +251,10 @@
     </button>
   </div>
 
-  <!-- ═══════════════ HERO GALLERY — state 2: no photos → logo, intentional ═══════════════ -->
+  <!-- gallery — state 2: no photos → logo, intentional -->
   <div id="gal-logo" class="relative hidden overflow-hidden"
-       style="border-radius:20px;border:1px solid rgba(255,255,255,.7);min-height:320px;
-              background:radial-gradient(120% 100% at 50% 0%,#ffffff 0%,#f4f7fb 55%,#e9eef5 100%);
-              box-shadow:0 24px 60px -30px rgba(15,23,42,.28),0 4px 12px -6px rgba(15,23,42,.10)">
+       style="border-radius:16px;border:1px solid #e2e8f0;min-height:320px;
+              background:radial-gradient(120% 100% at 50% 0%,#ffffff 0%,#f4f7fb 55%,#e9eef5 100%)">
     <span aria-hidden class="absolute inset-0 flex items-center justify-center" style="font-size:230px;opacity:.05">⚽</span>
     <span class="absolute left-3.5 top-3.5 inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 font-heading text-[10.5px] font-extrabold uppercase tracking-[.14em] text-white"
           style="background:linear-gradient(135deg,#dc2626,#b91c1c);box-shadow:0 6px 14px -4px rgba(220,38,38,.45)">
@@ -272,7 +273,7 @@
   </div>
 
   <!-- ═══════════════ HERO HEADER ═══════════════ -->
-  <div class="mt-7 flex min-w-0 flex-wrap items-start gap-5">
+  <div class="mt-6 flex min-w-0 flex-wrap items-start gap-5">
       <!-- calendar tile -->
       <div class="relative hidden shrink-0 flex-col items-stretch overflow-hidden rounded-xl border border-slate-200 bg-white text-center sm:inline-flex"
            style="min-width:84px;line-height:1;box-shadow:0 4px 10px -4px rgba(15,23,42,.15)">
@@ -341,8 +342,7 @@
       </div>
 
       <!-- premium summary + actions · boxed section beside the header -->
-      <div class="shrink-0 rounded-2xl border border-slate-200/90 bg-white/85 p-4"
-           style="backdrop-filter:blur(4px);box-shadow:0 12px 32px -22px rgba(15,23,42,.25)">
+      <div class="shrink-0 rounded-2xl border border-slate-200 p-4" style="background:#f8fafc">
         <div class="flex items-center gap-3">
           <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style="background:#ecfdf5;color:#16a34a">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 019-9 9 9 0 016.7 3"/><path d="M21 3v6h-6"/><path d="M21 12a9 9 0 01-9 9 9 9 0 01-6.7-3"/><path d="M3 21v-6h6"/></svg>
@@ -367,6 +367,7 @@
         </div>
       </div>
   </div>
+  </section>
 
   <!-- ═══════════════ MAIN GRID ═══════════════ -->
   <div class="page-grid mt-9">
@@ -451,33 +452,62 @@
         </div>
         <div id="pricing-body" class="hidden">
           <div class="mt-4 grid gap-2.5" style="grid-template-columns:repeat(auto-fit,minmax(230px,1fr))">
-            <div class="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50/60 px-4 py-3">
-              <div><div class="font-heading text-[15px] font-bold">U9</div><div class="mt-0.5 text-[11.5px] text-slate-500">Girls · 7v7</div></div>
+            <div class="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50/60 px-3.5 py-3">
+              <div class="flex items-center gap-3">
+                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg font-heading text-[12.5px] font-extrabold" style="background:#eef2ff;color:#4f46e5">U9</span>
+                <div class="text-[12px] font-medium text-slate-500">Girls · 7v7</div>
+              </div>
               <div class="font-heading text-[15.5px] font-extrabold tracking-tight">$495</div>
             </div>
-            <div class="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50/60 px-4 py-3">
-              <div><div class="font-heading text-[15px] font-bold">U10</div><div class="mt-0.5 text-[11.5px] text-slate-500">Girls · 7v7</div></div>
+            <div class="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50/60 px-3.5 py-3">
+              <div class="flex items-center gap-3">
+                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg font-heading text-[12.5px] font-extrabold" style="background:#fdf2f8;color:#db2777">U10</span>
+                <div class="text-[12px] font-medium text-slate-500">Girls · 7v7</div>
+              </div>
               <div class="font-heading text-[15.5px] font-extrabold tracking-tight">$495</div>
             </div>
-            <div class="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50/60 px-4 py-3">
-              <div><div class="font-heading text-[15px] font-bold">U11</div><div class="mt-0.5 text-[11.5px] text-slate-500">Girls · 9v9</div></div>
+            <div class="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50/60 px-3.5 py-3">
+              <div class="flex items-center gap-3">
+                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg font-heading text-[12.5px] font-extrabold" style="background:#f5f3ff;color:#7c3aed">U11</span>
+                <div class="text-[12px] font-medium text-slate-500">Girls · 9v9</div>
+              </div>
               <div class="font-heading text-[15.5px] font-extrabold tracking-tight">$545</div>
             </div>
-            <div class="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50/60 px-4 py-3">
-              <div><div class="font-heading text-[15px] font-bold">U11 Upper</div><div class="mt-0.5 text-[11.5px] text-slate-500">Girls · 9v9</div></div>
+            <div class="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50/60 px-3.5 py-3">
+              <div class="flex items-center gap-3">
+                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg font-heading text-[12.5px] font-extrabold" style="background:#ecfdf5;color:#16a34a">U11</span>
+                <div class="text-[12px] font-medium text-slate-500">Upper · Girls · 9v9</div>
+              </div>
               <div class="font-heading text-[15.5px] font-extrabold tracking-tight">$595</div>
             </div>
-            <div class="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50/60 px-4 py-3">
-              <div><div class="font-heading text-[15px] font-bold">U12</div><div class="mt-0.5 text-[11.5px] text-slate-500">Girls · 9v9</div></div>
+            <div class="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50/60 px-3.5 py-3">
+              <div class="flex items-center gap-3">
+                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg font-heading text-[12.5px] font-extrabold" style="background:#fffbeb;color:#d97706">U12</span>
+                <div class="text-[12px] font-medium text-slate-500">Girls · 9v9</div>
+              </div>
               <div class="font-heading text-[15.5px] font-extrabold tracking-tight">$545</div>
             </div>
-            <div class="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50/60 px-4 py-3">
-              <div><div class="font-heading text-[15px] font-bold">U12 Upper</div><div class="mt-0.5 text-[11.5px] text-slate-500">Girls · 9v9</div></div>
+            <div class="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50/60 px-3.5 py-3">
+              <div class="flex items-center gap-3">
+                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg font-heading text-[12.5px] font-extrabold" style="background:#ecfeff;color:#0891b2">U12</span>
+                <div class="text-[12px] font-medium text-slate-500">Upper · Girls · 9v9</div>
+              </div>
               <div class="font-heading text-[15.5px] font-extrabold tracking-tight">$595</div>
             </div>
           </div>
-          <p class="mt-3 text-[12.5px] leading-relaxed text-slate-500">Prices are per team. Age groups
-          may be assigned to different fields depending on registrations.</p>
+
+          <!-- infotip · mirrors the app's InfoTip pattern -->
+          <div class="relative mt-4 flex items-start gap-3 overflow-hidden rounded-xl px-3.5 py-3"
+               style="background:linear-gradient(135deg,#eef0ff 0%,#f6f7ff 55%,#ffffff 100%);border:1px solid #c7d2fe;color:#1e1b4b;box-shadow:inset 0 1px 0 rgba(255,255,255,.65),0 1px 2px rgba(15,23,42,.04)">
+            <span aria-hidden="true" class="absolute bottom-0 left-0 top-0" style="width:3px;background:linear-gradient(180deg,#6366f1 0%,#4f46e5 100%)"></span>
+            <span aria-hidden="true" class="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md"
+                  style="background:linear-gradient(135deg,#6366f1 0%,#4338ca 100%);color:#fff;box-shadow:0 3px 8px -3px rgba(79,70,229,.55),inset 0 1px 0 rgba(255,255,255,.30)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 4.75a1.25 1.25 0 110 2.5 1.25 1.25 0 010-2.5zM10.75 11h2.5v6.25h-2.5V11z"/></svg>
+            </span>
+            <div class="pt-px text-[12.75px] font-medium" style="line-height:1.55">
+              Prices are per team. Age groups may be assigned to different fields depending on registrations.
+            </div>
+          </div>
         </div>
       </section>
 
@@ -501,42 +531,38 @@
 
             <div class="hairline my-5"></div>
 
-            <div class="flex flex-wrap items-center gap-2.5">
-              <h3 class="font-heading text-[15px] font-bold tracking-tight">Facility features</h3>
-              <span class="rounded-full px-2.5 py-1 font-heading text-[9.5px] font-extrabold uppercase tracking-[.12em] text-white" style="background:var(--accent)">Premium</span>
-            </div>
-            <div class="mt-1 text-[12px] font-medium text-slate-400">added by the event director</div>
-            <div class="mt-3.5 grid gap-2.5">
-          <div class="flex items-center gap-3 text-[14px] font-medium text-slate-700">
-            <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg" style="background:#ecfdf5;color:#16a34a"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-11"/></svg></span>
+            <h3 class="font-heading text-[15px] font-bold tracking-tight">What&#39;s included</h3>
+            <div class="mt-3 grid gap-2">
+          <div class="flex items-center gap-2.5 text-[13.5px] font-medium text-slate-700">
+            <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full" style="background:#dcfce7;color:#15803d"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-11"/></svg></span>
             Free on-site parking
           </div>
-          <div class="flex items-center gap-3 text-[14px] font-medium text-slate-700">
-            <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg" style="background:#ecfdf5;color:#16a34a"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-11"/></svg></span>
+          <div class="flex items-center gap-2.5 text-[13.5px] font-medium text-slate-700">
+            <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full" style="background:#dcfce7;color:#15803d"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-11"/></svg></span>
             12 full-size grass fields
           </div>
-          <div class="flex items-center gap-3 text-[14px] font-medium text-slate-700">
-            <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg" style="background:#ecfdf5;color:#16a34a"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-11"/></svg></span>
+          <div class="flex items-center gap-2.5 text-[13.5px] font-medium text-slate-700">
+            <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full" style="background:#dcfce7;color:#15803d"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-11"/></svg></span>
             Restrooms &amp; changing rooms
           </div>
-          <div class="flex items-center gap-3 text-[14px] font-medium text-slate-700">
-            <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg" style="background:#ecfdf5;color:#16a34a"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-11"/></svg></span>
+          <div class="flex items-center gap-2.5 text-[13.5px] font-medium text-slate-700">
+            <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full" style="background:#dcfce7;color:#15803d"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-11"/></svg></span>
             Concessions &amp; food trucks
           </div>
-          <div class="flex items-center gap-3 text-[14px] font-medium text-slate-700">
-            <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg" style="background:#ecfdf5;color:#16a34a"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-11"/></svg></span>
+          <div class="flex items-center gap-2.5 text-[13.5px] font-medium text-slate-700">
+            <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full" style="background:#dcfce7;color:#15803d"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-11"/></svg></span>
             Shaded spectator seating
           </div>
-          <div class="flex items-center gap-3 text-[14px] font-medium text-slate-700">
-            <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg" style="background:#ecfdf5;color:#16a34a"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-11"/></svg></span>
+          <div class="flex items-center gap-2.5 text-[13.5px] font-medium text-slate-700">
+            <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full" style="background:#dcfce7;color:#15803d"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-11"/></svg></span>
             ADA accessible
           </div>
-          <div class="flex items-center gap-3 text-[14px] font-medium text-slate-700">
-            <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg" style="background:#ecfdf5;color:#16a34a"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-11"/></svg></span>
+          <div class="flex items-center gap-2.5 text-[13.5px] font-medium text-slate-700">
+            <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full" style="background:#dcfce7;color:#15803d"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-11"/></svg></span>
             Athletic trainer on site
           </div>
-          <div class="flex items-center gap-3 text-[14px] font-medium text-slate-700">
-            <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg" style="background:#ecfdf5;color:#16a34a"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-11"/></svg></span>
+          <div class="flex items-center gap-2.5 text-[13.5px] font-medium text-slate-700">
+            <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full" style="background:#dcfce7;color:#15803d"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-11"/></svg></span>
             Team warm-up zones
           </div>
             </div>
@@ -820,32 +846,38 @@
         </div>
       </section>
 
-      <!-- SPONSORS · even monogram-logo wall, equal cards -->
+      <!-- SPONSORS · initial badge + name + green domain link (per reference) -->
       <section class="card p-6">
         <div class="flex items-baseline justify-between gap-3">
           <h2 class="font-heading text-[18px] font-extrabold tracking-tight">Sponsors</h2>
           <span class="text-[12.5px] font-medium text-slate-400">Supporting the 2026 edition</span>
         </div>
-        <div class="mt-4 grid gap-3" style="grid-template-columns:repeat(auto-fill,minmax(190px,1fr));max-width:640px">
-          <a href="#" class="card card-hover flex flex-col items-center gap-2.5 rounded-2xl px-4 py-6 text-center" style="text-decoration:none">
-            <span class="flex h-14 w-14 items-center justify-center rounded-2xl font-heading text-[18px] font-extrabold" style="background:#eef2ff;color:#4338ca">RA</span>
-            <span class="font-heading text-[14.5px] font-bold leading-tight tracking-tight">Round Rock Athletics</span>
-            <span class="inline-flex items-center gap-1 text-[12px] font-semibold" style="color:#0d9488">Visit website
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6"/><path d="M10 14L20 4"/></svg>
+        <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <a href="#" class="card card-hover flex items-center gap-3.5 rounded-2xl p-4" style="text-decoration:none">
+            <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl font-heading text-[17px] font-extrabold" style="background:#eef2ff;color:#4338ca">RA</span>
+            <span class="min-w-0">
+              <span class="block truncate font-heading text-[15px] font-bold tracking-tight">Round Rock Athletics</span>
+              <span class="mt-0.5 flex items-center gap-1 text-[12.5px] font-semibold" style="color:#059669"><span class="truncate">roundrockathletics.com</span>
+                <svg class="shrink-0" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6"/><path d="M10 14L20 4"/></svg>
+              </span>
             </span>
           </a>
-          <a href="#" class="card card-hover flex flex-col items-center gap-2.5 rounded-2xl px-4 py-6 text-center" style="text-decoration:none">
-            <span class="flex h-14 w-14 items-center justify-center rounded-2xl font-heading text-[18px] font-extrabold" style="background:#fff7ed;color:#ea580c">W</span>
-            <span class="font-heading text-[14.5px] font-bold leading-tight tracking-tight">Whataburger</span>
-            <span class="inline-flex items-center gap-1 text-[12px] font-semibold" style="color:#0d9488">Visit website
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6"/><path d="M10 14L20 4"/></svg>
+          <a href="#" class="card card-hover flex items-center gap-3.5 rounded-2xl p-4" style="text-decoration:none">
+            <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl font-heading text-[17px] font-extrabold" style="background:#fff7ed;color:#ea580c">W</span>
+            <span class="min-w-0">
+              <span class="block truncate font-heading text-[15px] font-bold tracking-tight">Whataburger</span>
+              <span class="mt-0.5 flex items-center gap-1 text-[12.5px] font-semibold" style="color:#059669"><span class="truncate">whataburger.com</span>
+                <svg class="shrink-0" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6"/><path d="M10 14L20 4"/></svg>
+              </span>
             </span>
           </a>
-          <a href="#" class="card card-hover flex flex-col items-center gap-2.5 rounded-2xl px-4 py-6 text-center" style="text-decoration:none">
-            <span class="flex h-14 w-14 items-center justify-center rounded-2xl font-heading text-[18px] font-extrabold" style="background:#fef2f2;color:#dc2626">HEB</span>
-            <span class="font-heading text-[14.5px] font-bold leading-tight tracking-tight">H-E-B Sports</span>
-            <span class="inline-flex items-center gap-1 text-[12px] font-semibold" style="color:#0d9488">Visit website
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6"/><path d="M10 14L20 4"/></svg>
+          <a href="#" class="card card-hover flex items-center gap-3.5 rounded-2xl p-4" style="text-decoration:none">
+            <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl font-heading text-[17px] font-extrabold" style="background:#fef2f2;color:#dc2626">HEB</span>
+            <span class="min-w-0">
+              <span class="block truncate font-heading text-[15px] font-bold tracking-tight">H-E-B Sports</span>
+              <span class="mt-0.5 flex items-center gap-1 text-[12.5px] font-semibold" style="color:#059669"><span class="truncate">heb.com</span>
+                <svg class="shrink-0" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6"/><path d="M10 14L20 4"/></svg>
+              </span>
             </span>
           </a>
         </div>
@@ -877,32 +909,32 @@
             <span class="font-medium text-slate-500">6 events</span>
           </div>
 
-          <!-- org description leads -->
-          <p class="mt-3.5 text-[14px] leading-[1.65] text-slate-600">Family-run youth soccer club running
-          Central Texas cups since 2018. Known for tight schedules, fair brackets and a weekend-long
-          player experience — most teams come back year after year.</p>
-
-          <!-- call + email · soft icon tile, big value, no boxed rows -->
-          <div class="mt-5 flex flex-col gap-4">
-            <a href="#" class="group flex items-center gap-4 no-underline">
-              <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600 transition-colors group-hover:bg-slate-200">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.79 19.79 0 012.12 4.18 2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+          <!-- call + email · compact rows -->
+          <div class="mt-4 flex flex-col gap-3">
+            <a href="#" class="group flex items-center gap-3 no-underline">
+              <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600 transition-colors group-hover:bg-slate-200">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.79 19.79 0 012.12 4.18 2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
               </span>
               <span class="min-w-0">
-                <span class="eyebrow block" style="font-size:10px;color:#94a3b8">Call</span>
-                <span class="mt-0.5 block truncate text-[15px] font-semibold tracking-tight text-slate-900">(512) 555-0184</span>
+                <span class="eyebrow block" style="font-size:9.5px;color:#94a3b8">Call</span>
+                <span class="block truncate text-[14px] font-semibold tracking-tight text-slate-900">(512) 555-0184</span>
               </span>
             </a>
-            <a href="#" class="group flex items-center gap-4 no-underline">
-              <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600 transition-colors group-hover:bg-slate-200">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
+            <a href="#" class="group flex items-center gap-3 no-underline">
+              <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600 transition-colors group-hover:bg-slate-200">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
               </span>
               <span class="min-w-0">
-                <span class="eyebrow block" style="font-size:10px;color:#94a3b8">Email</span>
-                <span class="mt-0.5 block truncate text-[15px] font-semibold tracking-tight text-slate-900">events@lonestarys.com</span>
+                <span class="eyebrow block" style="font-size:9.5px;color:#94a3b8">Email</span>
+                <span class="block truncate text-[14px] font-semibold tracking-tight text-slate-900">events@lonestarys.com</span>
               </span>
             </a>
           </div>
+
+          <!-- org description · below contact details -->
+          <p class="mt-4 text-[13.5px] leading-[1.6] text-slate-600">Family-run youth soccer club running
+          Central Texas cups since 2018. Known for tight schedules, fair brackets and a weekend-long
+          player experience — most teams come back year after year.</p>
 
           <!-- actions -->
           <div class="mt-4 flex flex-col gap-2.5">
@@ -923,7 +955,7 @@
 
         <!-- SHARE -->
         <div class="card p-5">
-          <div class="eyebrow">Share with your team</div>
+          <h3 class="font-heading text-[15px] font-extrabold tracking-tight">Share with your team</h3>
           <div class="mt-3 grid grid-cols-4 gap-2">
             <button class="share-tile" id="copy-tile" onclick="copyLink()">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
@@ -944,59 +976,83 @@
           </div>
         </div>
 
-        <!-- COMPACT · more events by this org -->
+        <!-- COMPACT · other events by this organization -->
         <div class="card p-5">
-          <div class="flex items-baseline justify-between gap-2">
-            <h3 class="font-heading text-[15px] font-extrabold tracking-tight">More from Lone Star Youth Sports</h3>
-          </div>
-          <div class="mt-2 flex flex-col">
-            <a href="#" class="mini-ev">
+          <h3 class="font-heading text-[15px] font-extrabold tracking-tight">Other events by this organization</h3>
+          <div class="mt-2.5 flex flex-col gap-1.5">
+            <a href="#" class="mini-ev items-start">
               <span class="h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-slate-100">
                 <img src="https://picsum.photos/seed/tg-mini1/100/100" alt="" class="h-full w-full object-cover">
               </span>
               <span class="min-w-0 flex-1">
-                <span class="mini-title block truncate font-heading text-[13.5px] font-bold tracking-tight transition-colors">Summer Classic — U14 Boys</span>
-                <span class="mt-0.5 flex items-center gap-1.5 text-[12px] font-medium text-slate-500">
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="#f59e0b"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg>
-                  <b class="font-heading font-extrabold text-slate-700">4.11</b>
+                <span class="mini-title block truncate font-heading text-[13.5px] font-bold tracking-tight transition-colors">Summer Classic</span>
+                <span class="mt-1.5 flex flex-wrap items-center gap-1.5">
+                  <span class="tag" style="font-size:10.5px;padding:2px 8px">U14</span>
+                  <span class="tag" style="font-size:10.5px;padding:2px 8px">Boys</span>
+                  <span class="inline-flex items-center gap-1 text-[11.5px] font-medium text-slate-500">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-400"><path d="M12 22s7-7.58 7-13a7 7 0 10-14 0c0 5.42 7 13 7 13z"/><circle cx="12" cy="9" r="2.5"/></svg>
+                    Round Rock, TX
+                  </span>
+                </span>
+                <span class="mt-1.5 flex items-center gap-1.5 text-[12px] font-medium text-slate-500">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="#f59e0b"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg>
+                  <b class="font-heading text-[12.5px] font-extrabold text-slate-700">4.11</b>
                   <span>· 3 ratings</span><span class="text-slate-300">·</span><span>Jun 6–8, 2026</span>
                 </span>
               </span>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="shrink-0 text-slate-300"><path d="M9 6l6 6-6 6"/></svg>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="mt-1 shrink-0 text-slate-300"><path d="M9 6l6 6-6 6"/></svg>
             </a>
-            <div class="hairline"></div>
-            <a href="#" class="mini-ev">
-              <span class="h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-slate-100">
+            <!-- premium event → highlighted card -->
+            <a href="#" class="mini-ev items-start rounded-xl border border-red-200 px-2" style="background:#fef2f266">
+              <span class="h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-red-100">
                 <img src="https://picsum.photos/seed/tg-mini2/100/100" alt="" class="h-full w-full object-cover">
               </span>
               <span class="min-w-0 flex-1">
-                <span class="mini-title block truncate font-heading text-[13.5px] font-bold tracking-tight transition-colors">Fall Finale — U11 Coed</span>
-                <span class="mt-0.5 flex items-center gap-1.5 text-[12px] font-medium text-slate-500">
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="#f59e0b"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg>
-                  <b class="font-heading font-extrabold text-slate-700">4.80</b>
+                <span class="flex items-center gap-2">
+                  <span class="mini-title truncate font-heading text-[13.5px] font-bold tracking-tight transition-colors">Fall Finale</span>
+                  <span class="shrink-0 rounded px-1.5 py-0.5 font-heading text-[8.5px] font-extrabold uppercase tracking-[.1em] text-white" style="background:var(--accent)">Premium</span>
+                </span>
+                <span class="mt-1.5 flex flex-wrap items-center gap-1.5">
+                  <span class="tag" style="font-size:10.5px;padding:2px 8px">U11</span>
+                  <span class="tag" style="font-size:10.5px;padding:2px 8px">Coed</span>
+                  <span class="inline-flex items-center gap-1 text-[11.5px] font-medium text-slate-500">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-400"><path d="M12 22s7-7.58 7-13a7 7 0 10-14 0c0 5.42 7 13 7 13z"/><circle cx="12" cy="9" r="2.5"/></svg>
+                    Austin, TX
+                  </span>
+                </span>
+                <span class="mt-1.5 flex items-center gap-1.5 text-[12px] font-medium text-slate-500">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="#f59e0b"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg>
+                  <b class="font-heading text-[12.5px] font-extrabold text-slate-700">4.80</b>
                   <span>· 17 ratings</span><span class="text-slate-300">·</span><span>Oct 10–12, 2026</span>
                 </span>
               </span>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="shrink-0 text-slate-300"><path d="M9 6l6 6-6 6"/></svg>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="mt-1 shrink-0 text-slate-300"><path d="M9 6l6 6-6 6"/></svg>
             </a>
-            <div class="hairline"></div>
-            <a href="#" class="mini-ev">
+            <a href="#" class="mini-ev items-start">
               <span class="h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-slate-100">
                 <img src="https://picsum.photos/seed/tg-mini3/100/100" alt="" class="h-full w-full object-cover">
               </span>
               <span class="min-w-0 flex-1">
-                <span class="mini-title block truncate font-heading text-[13.5px] font-bold tracking-tight transition-colors">Winter Showcase — U13 Girls</span>
-                <span class="mt-0.5 flex items-center gap-1.5 text-[12px] font-medium text-slate-500">
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="#f59e0b"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg>
-                  <b class="font-heading font-extrabold text-slate-700">4.23</b>
+                <span class="mini-title block truncate font-heading text-[13.5px] font-bold tracking-tight transition-colors">Winter Showcase</span>
+                <span class="mt-1.5 flex flex-wrap items-center gap-1.5">
+                  <span class="tag" style="font-size:10.5px;padding:2px 8px">U13</span>
+                  <span class="tag" style="font-size:10.5px;padding:2px 8px">Girls</span>
+                  <span class="inline-flex items-center gap-1 text-[11.5px] font-medium text-slate-500">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-400"><path d="M12 22s7-7.58 7-13a7 7 0 10-14 0c0 5.42 7 13 7 13z"/><circle cx="12" cy="9" r="2.5"/></svg>
+                    San Marcos, TX
+                  </span>
+                </span>
+                <span class="mt-1.5 flex items-center gap-1.5 text-[12px] font-medium text-slate-500">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="#f59e0b"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg>
+                  <b class="font-heading text-[12.5px] font-extrabold text-slate-700">4.23</b>
                   <span>· 9 ratings</span><span class="text-slate-300">·</span><span>Jan 16–18, 2027</span>
                 </span>
               </span>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="shrink-0 text-slate-300"><path d="M9 6l6 6-6 6"/></svg>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="mt-1 shrink-0 text-slate-300"><path d="M9 6l6 6-6 6"/></svg>
             </a>
           </div>
-          <a href="#" class="mt-2 inline-flex items-center gap-1 text-[12.5px] font-semibold text-slate-600 transition-colors hover:text-accent" style="text-decoration:none">
-            View all 6 events
+          <a href="#" class="btn btn-ghost mt-3 w-full gap-1.5 py-2 text-[12.5px]">
+            See all 6 events
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
           </a>
         </div>
