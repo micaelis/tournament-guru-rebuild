@@ -132,9 +132,12 @@ export async function saveReview(
     targetId = existingReview.data?.id ?? "";
   }
 
-  const row: Database["public"]["Tables"]["reviews"]["Insert"] = {
-    event_id: eventId,
-    author_id: user.id,
+  // The author-editable payload mirrors the reviews UPDATE column
+  // grant exactly (status + ratings + text + would_return). The
+  // identity/snapshot columns below are INSERT-only — including them
+  // in an UPDATE's SET list fails the column-privilege check (42501)
+  // before RLS even runs, even when the values are unchanged.
+  const editable: Database["public"]["Tables"]["reviews"]["Update"] = {
     status: intent === "publish" ? "published" : "draft",
     review_title: values.review_title || null,
     review_body: values.review_body || null,
@@ -145,6 +148,12 @@ export async function saveReview(
     rating_competition: values.rating_competition,
     rating_diversity: values.rating_diversity,
     rating_cost_value: values.rating_cost_value,
+  };
+
+  const row: Database["public"]["Tables"]["reviews"]["Insert"] = {
+    ...editable,
+    event_id: eventId,
+    author_id: user.id,
     reviewer_user_type: profile.user_type,
     reviewer_role: profile.role_title,
   };
@@ -192,7 +201,7 @@ export async function saveReview(
 
   const { error: updateError } = await supabase
     .from("reviews")
-    .update(row)
+    .update(editable)
     .eq("id", targetId);
   if (updateError) return { error: updateError.message };
   if (promoId && intent === "publish") {

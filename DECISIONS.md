@@ -2801,3 +2801,26 @@ grid is ~20 lines of local-Date math, unit-tested incl. leap February
 and UTC-shift-free stamping). Month/year selects — not just arrows —
 keep the DOB use (decades back) navigable. Opt-in on the bare variant
 so embeds that own their layout never get a surprise toggle glyph.
+
+### S12.23 · Review save/publish: UPDATE payload narrowed to the column grant
+
+**What:** `saveReview` reused its full INSERT row on the UPDATE path, so
+editing an existing review — re-saving a draft or publishing it — put
+the INSERT-only identity columns (`event_id`, `author_id`,
+`reviewer_user_type`, `reviewer_role`) in the SET list. Postgres checks
+column privileges before RLS, and the reviews UPDATE grant deliberately
+omits those columns, so every edit failed with "permission denied for
+table reviews" (42501) even though the values were unchanged. The action
+now builds the author-editable payload (`status` + ratings + text +
+`would_return` — exactly the UPDATE grant) and spreads it into the
+INSERT row alongside the identity columns. New probe
+`review-save-publish` drives the real action and is mutation-verified.
+
+**Why (fixed at the app layer, not the DB):** the DB side is correct as
+designed — the narrow UPDATE grant IS the guru_review / promo_id /
+published_at protection, and `trg_reviews_write` already stamps
+`published_at` on the draft→published flip, so publishing needs no
+column grant. Widening the grant to fit the old payload would have
+reopened the columns the grant exists to protect; a SECURITY DEFINER
+save RPC was rejected as needless surface for a rule the grant +
+trigger already express.
