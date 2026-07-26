@@ -2767,3 +2767,16 @@ empty tiles stay identical across the app.
 glitch, not a designed empty state; the glyph gives the tile a shape at
 every thumb size. Icons are aria-hidden — the label still carries the
 meaning for screen readers.
+
+### S12.21 · Event-form multi-select pills join the S12.3 selected state
+
+**What:** `MultiSelectPills` (competition levels, fields/surfaces,
+premium features) still marked the checked pill with solid ink
+(`bg-slate-900 text-white`) — the last selectable surface predating the
+S12.3 rule. Checked pills now use the app-wide soft red tint
+(`border-red-600 bg-red-50 text-red-700`) and expose `aria-pressed`,
+matching every other choice chip.
+
+**Why:** S12.3 — a selection must not read as a button; ink fills are
+reserved for primary CTAs. This closes the one straggler rather than
+leaving two selected-state languages in the same form.

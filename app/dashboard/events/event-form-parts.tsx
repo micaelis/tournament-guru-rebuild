@@ -27,6 +27,7 @@ export function MultiSelectPills<T extends string>({
             <button
               key={opt.value}
               type="button"
+              aria-pressed={active}
               onClick={() =>
                 onChange(
                   active
@@ -35,9 +36,11 @@ export function MultiSelectPills<T extends string>({
                 )
               }
               className={cn(
+                // Checked = the app-wide soft red tint (S12.3) — solid
+                // ink is reserved for primary CTAs.
                 "rounded-full border px-3 py-1.5 text-[12.5px] font-semibold transition",
                 active
-                  ? "border-slate-900 bg-slate-900 text-white"
+                  ? "border-red-600 bg-red-50 text-red-700"
                   : "border-slate-200 bg-white text-slate-700 hover:border-slate-400",
               )}
             >
