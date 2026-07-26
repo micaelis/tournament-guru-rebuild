@@ -10,15 +10,15 @@ import { signIn } from "./helpers/auth";
 
 /**
  * Onboarding wizard E2E. Drives the multi-step flow the way a real user does
- * — each "Continue" runs a Server Action that revalidates /onboarding and the
- * page re-renders at the next step. Attendees finish in 3 steps → /events;
- * Event Directors in 4 → /dashboard/events.
+ * — each "Continue" runs a Server Action that saves and redirects to the next
+ * step's URL (so a revisited step can't pin the wizard in place). Attendees
+ * finish in 3 steps → /events; Event Directors in 4 → /dashboard/events.
+ * Steps 1 and 2 share the "Personal Information" heading, so steps are
+ * asserted via the "Step N of M" eyebrow.
  */
 
 async function completeStep1(page: Page, opts: { org: string }) {
-  await expect(
-    page.getByRole("heading", { name: "Personal Information" }),
-  ).toBeVisible();
+  await expect(page.getByText(/Step 1 of \d/)).toBeVisible();
   await page.getByLabel("First name").fill("Casey");
   await page.getByLabel("Last name").fill("Rivera");
   // Role radio is pre-selected from signup metadata; org field varies by type.
@@ -33,7 +33,7 @@ function usDate(iso: string): string {
 }
 
 async function completeStep2(page: Page, dob: string) {
-  await expect(page.getByRole("heading", { name: "About You" })).toBeVisible();
+  await expect(page.getByText(/Step 2 of \d/)).toBeVisible();
   await page.getByLabel("Location").fill("St. Louis, MO");
   await page.getByRole("radio", { name: "Female" }).check({ force: true });
   const dobBox = page.getByLabel("Date of birth");
@@ -74,9 +74,7 @@ test.describe("Onboarding — attendee", () => {
       await signIn(page, user.email, user.password);
       await completeStep1(page, { org: "Rivera SC" });
 
-      await expect(
-        page.getByRole("heading", { name: "About You" }),
-      ).toBeVisible();
+      await expect(page.getByText(/Step 2 of \d/)).toBeVisible();
       await page.getByLabel("Location").fill("St. Louis, MO");
       await page
         .getByRole("radio", { name: "Male", exact: true })
@@ -88,8 +86,38 @@ test.describe("Onboarding — attendee", () => {
         page.getByText("You must be at least 18 to use Tournament Guru."),
       ).toBeVisible();
       // Still on step 2 — not advanced.
+      await expect(page.getByText(/Step 2 of \d/)).toBeVisible();
+    } finally {
+      if (user) await deleteUser(user.id);
+    }
+  });
+
+  test("back-then-forward: Continue advances from revisited steps", async ({
+    page,
+  }) => {
+    let user: SeededUser | undefined;
+    try {
+      user = await createAttendee();
+      await signIn(page, user.email, user.password);
+      await completeStep1(page, { org: "Rivera SC" });
+      await completeStep2(page, "1990-06-15");
       await expect(
-        page.getByRole("heading", { name: "About You" }),
+        page.getByRole("heading", { name: "Preferred Event Criteria" }),
+      ).toBeVisible();
+
+      // Walk back twice: step 3 → 2 → 1. Saved values prefill each step.
+      await page.getByRole("link", { name: "Back" }).click();
+      await expect(page.getByText("Step 2 of 3")).toBeVisible();
+      await page.getByRole("link", { name: "Back" }).click();
+      await expect(page.getByText("Step 1 of 3")).toBeVisible();
+
+      // Forward again purely via Continue — the ?step pin must not stick
+      // the wizard on a revisited step (each save redirects onward).
+      await page.getByRole("button", { name: "Continue" }).click();
+      await expect(page.getByText("Step 2 of 3")).toBeVisible();
+      await page.getByRole("button", { name: "Continue" }).click();
+      await expect(
+        page.getByRole("heading", { name: "Preferred Event Criteria" }),
       ).toBeVisible();
     } finally {
       if (user) await deleteUser(user.id);

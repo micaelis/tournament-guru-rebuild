@@ -103,22 +103,31 @@ The "2nd auth version" for the verified-review flow. Accessible by anon + signed
 Same left/right chrome as the auth screens.
 - Guard: authed-only; if all mandatory fields present → dashboard; else → Screen 1 with saved
   data prefilled. Logout available → login.
-- **Screen 1 — Personal Information:** First name*, Last name*, role dropdown (type-scoped;
-  adjustable here, **locked after completion**), Organization Title* (required for all except
-  Parent/Spectator).
+- Step flow: each Continue saves via a Server Action and **redirects to the next step's URL**
+  (`/onboarding?step=N+1`); the Back link goes to `?step=N` (honored only for completed steps).
+  The redirect is what advances a revisited step — see DECISIONS S12.24.
+- **Screens 1 & 2 share the same heading:** "Personal Information" / "Tell us a little about
+  yourself."
+- **Screen 1:** First name*, Last name*, Organization Title* (required for all except
+  Parent/Spectator). Role is captured on the signup form, not here.
 - **Screen 2:** Location* (Google Places autocomplete, **mandatory**), Gender* (Female/Male as
-  selectable blocks, **mandatory**), Date of Birth* (masked mm/dd/yyyy text input — US format
-  regardless of browser locale; posts ISO via a hidden field; **under-18 blocked**).
-- **Screen 3 — Preferred Event Criteria (all optional):** Distance (No limit / <150 / <300 /
-  <450 mi); Team info (Parent/Spectator = 1 team, others = up to 3; each: gender Boys/Girls/Both,
-  age U4–U20 dropdown, competitive level Highest→Lowest).
+  selectable blocks, **mandatory**), Date of Birth* (masked mm/dd/yyyy text input with the
+  calendar popover — US format regardless of browser locale; posts ISO via a hidden field;
+  hint "You must be at least 18."; **under-18 blocked**).
+- **Screen 3 — Preferred Event Criteria (all optional):** subtitle "This information will make
+  your event searching faster, easier, and more aligned with your specific needs." Section
+  titles render as headings. "Distance from your location" (No limit / <150 / <300 / <450 mi
+  small chips; hint explains more distance = more events and links **Find Events**);
+  "Your Team's Info" (Parent/Spectator = 1 team, others = up to 3; each: gender Boys/Girls/Both,
+  age U4–U20 dropdown, competitive level Highest→Lowest). Attendees get a "Skip &amp; browse
+  events" TextLink (same treatment as signup's "Skip and search events").
 - **Screen 4 — Event Directors only:** Organization logo (PNG/JPG/JPEG, 5MB max), Organization
   description* (required).
 - Redirects: Attendee → Search Events; Event Director → dashboard.
 - **Success screen** (`/onboarding/success`): standalone celebration card (own logo +
   check icon + role-based CTAs) rendered OUTSIDE the auth shell — its route group opts
   out of the left/right chrome so the brand logo appears exactly once.
-- Role: adjustable during onboarding, locked once onboarding completes.
+- Role: chosen at signup, locked once onboarding completes.
 - Mandatory-to-complete set: first_name, last_name, role, dob, gender, location,
   organization_title (except Parent/Spectator), org_description (ED).
 

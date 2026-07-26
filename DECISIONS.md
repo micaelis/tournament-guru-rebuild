@@ -2824,3 +2824,22 @@ column grant. Widening the grant to fit the old payload would have
 reopened the columns the grant exists to protect; a SECURITY DEFINER
 save RPC was rejected as needless surface for a rule the grant +
 trigger already express.
+
+### S12.24 · Onboarding wizard: step saves redirect to the next step's URL
+
+**What:** completing a step used to `revalidatePath("/onboarding")` and
+return `{}` — fine on the happy path (bare `/onboarding` re-derives the
+first incomplete step) but a dead end after Back navigation: the Back
+link pins the URL to `/onboarding?step=N`, the page honors a requested
+step below the derived one, so a revisited step re-rendered itself
+after every successful save and Continue visibly "did nothing." Steps
+1–3 now end with `redirect("/onboarding?step=<n+1>")` (attendee step 3
+still exits to `/onboarding/success`), so Continue always advances and
+the URL never points at a stale step. E2E `onboarding.spec.ts` covers
+Back 3→2→1 then Continue×2 forward.
+
+**Why (redirect, not clamp removal):** dropping the `?step` clamp would
+forbid revisiting completed steps at all, and deriving "next" on the
+client would duplicate the server's completeness rules. The redirect
+reuses the page's existing derivation — a requested step is honored
+only when genuinely revisitable — and doubles as the URL-sync fix.

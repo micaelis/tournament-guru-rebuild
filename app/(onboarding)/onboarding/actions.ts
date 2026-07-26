@@ -73,7 +73,7 @@ export async function saveStep1(
   if (error) return { error: error.message };
 
   revalidatePath("/onboarding");
-  return {};
+  redirect("/onboarding?step=2");
 }
 
 /**
@@ -119,7 +119,7 @@ export async function saveStep2(
   if (error) return { error: error.message };
 
   revalidatePath("/onboarding");
-  return {};
+  redirect("/onboarding?step=3");
 }
 
 /**
@@ -226,7 +226,7 @@ export async function saveStep3(
   }
 
   revalidatePath("/onboarding");
-  return {};
+  redirect("/onboarding?step=4");
 }
 
 /**

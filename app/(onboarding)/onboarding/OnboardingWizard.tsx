@@ -4,7 +4,7 @@ import Link from "next/link";
 import type { Route } from "next";
 import { useActionState, useState } from "react";
 import { Alert, Field, SubmitButton } from "../../(auth)/parts";
-import { ImageUploadField, textLinkClass } from "@/app/components/ui";
+import { ImageUploadField, TextLink, textLinkClass } from "@/app/components/ui";
 import { USDateField } from "@/app/components/ui/USDateInput";
 import { LocationAutocomplete } from "@/app/components/LocationAutocomplete";
 import { useLiveValidation } from "@/app/components/ui/useLiveValidation";
@@ -95,14 +95,14 @@ function Footer() {
 function Header({ step, totalSteps }: { step: number; totalSteps: number }) {
   const labels = [
     "Personal Information",
-    "About You",
+    "Personal Information",
     "Preferred Event Criteria",
     "Your Organization",
   ];
   const subtitles = [
     "Tell us a little about yourself.",
-    "Where are you and when’s your birthday?",
-    "Help us match the right events for you. Everything here is optional — you can always adjust later.",
+    "Tell us a little about yourself.",
+    "This information will make your event searching faster, easier, and more aligned with your specific needs.",
     "Just a couple more details so attendees know who they’re seeing.",
   ];
   return (
@@ -220,13 +220,15 @@ function SectionLabel({
   hint,
 }: {
   label: string;
-  hint?: string;
+  hint?: React.ReactNode;
 }) {
   return (
     <div className="mb-3">
-      <p className="text-[13px] font-semibold text-slate-800">{label}</p>
+      <p className="font-[var(--font-heading)] text-lg font-extrabold text-slate-900">
+        {label}
+      </p>
       {hint && (
-        <p className="mt-0.5 text-xs text-slate-500">{hint}</p>
+        <p className="mt-1 text-xs text-slate-500">{hint}</p>
       )}
     </div>
   );
@@ -362,7 +364,7 @@ function Step2Form({ profile, back }: { profile: Profile; back?: number }) {
         name="dob"
         defaultIso={values.dob ?? profile.dob ?? ""}
         required
-        hint="mm/dd/yyyy — you must be at least 18."
+        hint="You must be at least 18."
         validate={(v) =>
           v && isAdultDob(v) ? null : "You must be at least 18."
         }
@@ -403,13 +405,25 @@ function Step3Form({
       {/* ── Distance ── */}
       <fieldset className="rounded-2xl border border-slate-200/80 bg-white/60 p-5 backdrop-blur-sm">
         <SectionLabel
-          label="Travel distance"
-          hint="How far are you willing to travel? You can always change this later."
+          label="Distance from your location"
+          hint={
+            <>
+              Please select the maximum distance your team prefers to travel
+              for events. Your event search results will always start within
+              the parameters you set here. More distance = more events, less
+              distance = less events. This can be adjusted on the{" "}
+              <TextLink href="/events" className="font-bold">
+                Find Events
+              </TextLink>{" "}
+              page.
+            </>
+          }
         />
         <div className="flex flex-wrap gap-2">
           {DISTANCE_PREFS.map((d) => (
             <Chip
               key={d.value}
+              size="sm"
               name="distance_pref"
               value={d.value}
               label={d.label}
@@ -426,7 +440,7 @@ function Step3Form({
       {/* ── Teams ── */}
       <div className="space-y-4">
         <SectionLabel
-          label="Team details"
+          label="Your Team's Info"
           hint={
             teamCount > 1
               ? "Add up to 3 teams — we'll tailor results to all of them."
@@ -454,17 +468,10 @@ function Step3Form({
           Everything on this page is optional — skip anything.
         </p>
         {userType !== "event_director" && (
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-white/50 px-5 py-4 text-center">
-            <p className="text-sm text-slate-500">
-              Want to look around first?
-            </p>
-            <Link
-              href={"/events" as Route}
-              className="mt-1 inline-block text-sm font-bold text-slate-800 underline decoration-slate-400 decoration-2 underline-offset-[3px] transition-colors hover:text-[var(--color-accent)] hover:decoration-[var(--color-accent)]"
-            >
-              Skip &amp; browse events
-            </Link>
-          </div>
+          <p className="text-center text-sm text-slate-500">
+            Want to look around first?{" "}
+            <TextLink href="/events">Skip &amp; browse events</TextLink>
+          </p>
         )}
       </div>
     </form>

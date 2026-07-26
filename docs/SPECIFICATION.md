@@ -342,27 +342,31 @@ have a 4th.** The completeness set that flips `onboarding_completed = true` is:
 `organization_title` (except `parent_spectator`), and `org_description` (ED).
 
 **Screen 1 — Personal Information** ("Tell us a little about yourself"):
-First name*, Last name*, a **role selector** (custom control scoped to the user's
-type — ED sees only ED roles, attendee only attendee roles), and **Organization
-Name*** (labelled Organization Title / Club Affiliation per role). All text
-fields are required; the role control is the only non-required control on this
-screen. **Role is adjustable here and locked once onboarding completes.**
+First name*, Last name*, and **Organization Name*** (labelled Organization
+Title / Club Affiliation per role). All fields are required. **Role is
+captured on the signup form (type-scoped) and locked once onboarding
+completes.**
 
-**Screen 2 — Location, Gender, DOB:**
+**Screen 2 — Location, Gender, DOB** (same "Personal Information" / "Tell us
+a little about yourself" heading as Screen 1):
 - **Location*** (placeholder "City, State, or Zip Code"), wired to Google Maps
   (keys already provisioned). **Mandatory.**
 - **Gender*** (Female / Male) as a selection, not a dropdown. **Mandatory.**
-- **Date of birth*** via an interactive calendar with easy year change. If the
+- **Date of birth*** via the masked mm/dd/yyyy input with the in-house
+  calendar popover (easy year change); hint "You must be at least 18." If the
   DOB indicates a **minor (under 18)**, show a simple warning and block
-  proceeding. *(The dated calendar-icon UI is being redesigned per feedback.)*
+  proceeding.
 
 > Both Gender and Location are **mandatory** (this resolves an earlier note that
 > implied they were optional).
 
-**Screen 3 — Preferred Event Criteria** (all selections optional):
+**Screen 3 — Preferred Event Criteria** (all selections optional; subtitle
+"This information will make your event searching faster, easier, and more
+aligned with your specific needs"):
 - **Distance from your location**: No limit / <150 miles / <300 miles /
-  <450 miles.
-- **Your Team's Information**: up to **3 teams** (**1 for `parent_spectator`**,
+  <450 miles. The hint explains more distance = more events and links the
+  **Find Events** page, where the radius can be adjusted any time.
+- **Your Team's Info**: up to **3 teams** (**1 for `parent_spectator`**,
   trigger-enforced). Each team: Gender (Boys/Girls/Both), **Age (U4–U20 —
   dropdown)**, Competition Level (Highest/Upper/Middle/Lower/Lowest) — one
   selection per dimension. Team info entered here is thereafter edited **only in
