@@ -2572,3 +2572,76 @@ copy.
 telling a user their reviews survive when the RPC deletes them is the
 kind of inaccuracy that becomes a support incident (or worse, a
 complaint that we deleted data "without warning").
+
+### S12.12 · Email-change confirmation gets a dedicated screen (never the homepage hash)
+
+**What:** the account email-change flow used `updateUser({ email })` with
+no `emailRedirectTo`, so GoTrue's verify redirect defaulted to the site
+root and the user landed on the homepage with a raw
+`?message=Confirmation+link+accepted…#message=…` URL and no idea what
+had happened. Now `updateEmail` validates the address (format + not the
+current email) and sends both mailed links with `emailRedirectTo →
+/auth/callback?next=/email-change`; the callback routes every leg to the
+new `/email-change` screen: first click (message, no code) →
+`?stage=partial`, expired/`error_*` or a failed exchange →
+`?stage=error`, successful exchange → the done state. A cross-device
+second click is special-cased: the exchange fails with
+`pkce_code_verifier_not_found` (the verifier cookie lives in the browser
+that requested the change), but GoTrue applied the change BEFORE issuing
+the code — so it routes to the done screen's signed-out variant
+("sign in with your new address"), not the error one. The screen strips
+GoTrue's leftover `#message=` fragment client-side (fragments survive
+302s). Covered by `tests/probes/email-change-flow.test.ts`.
+
+**Why:** secure email change is inherently two-step (both inboxes must
+confirm) and nothing in the old flow narrated that; the raw GoTrue
+message in the homepage URL read as a broken page. Alternative
+considered: token_hash links via custom email templates (`/auth/confirm`
+already handles them) — rejected for now because prod templates live in
+the Supabase Dashboard, not the repo, and the redirect-based flow needs
+no template surgery.
+
+### S12.13 · Navigation loading feedback: app-wide top bar + route-group skeletons
+
+**What:** internal navigation to server-rendered routes showed nothing
+until the server answered, reading as "stuck" for a couple of seconds.
+Two layers, no per-page code: `NavigationProgress` (root layout) — a
+2.5px accent top bar driven by a capture-phase click listener (same-origin
+anchors, new pathname/search only) + popstate, completed by a
+pathname/searchParams effect, with a 120ms show delay so prefetched
+navigations stay silent and a safety timeout for navigations that never
+commit; plus `loading.tsx` skeletons for `app/dashboard/` and
+`app/(site)/` so the changing segment swaps to an instant shimmer while
+the shell (rail/header/footer) persists.
+
+**Why:** loading.tsx alone doesn't cover un-prefetched or slow-network
+cases (the fallback itself arrives with the prefetch), and a progress
+bar alone leaves the old page frozen — the pair is the pattern the
+Next 16 navigation guide recommends. A dependency (nprogress et al.) was
+rejected: hooking App Router needs the same click/popstate listeners
+anyway, so the lib would add weight without capability.
+
+**E2E fallout, bisected:** the dashboard `loading.tsx` made the two
+file-input specs (`mutations` promo-CSV, `uploads` event logo) flaky —
+the page body now streams in a deferred Suspense chunk, so a `change`
+event dispatched by `setInputFiles` milliseconds after `goto` can land
+before React attaches the handler and is silently lost (base 5/5 green,
+with the skeleton ~2/5 red, skeleton-only removal 8/8 green). This is an
+automation artifact — a human's OS file-picker dwell time outlasts
+hydration — so the skeleton stays and the specs go through
+`e2e/helpers/hydration.setInputFilesHydrated`, which re-fires the pick
+until the UI reacts.
+
+### S12.14 · Sidebar brand: inline mark-only logo crop, not TGLogo's invert filter
+
+**What:** the dashboard rail's "TG" text placeholder became the real
+brand mark — the three mark paths from `public/logo.svg` inlined with
+`viewBox="0 0 295.82 141"` (wordmark rows cropped out), the G-swoosh
+filled white and the star + T keeping their own reds, wordmark as text
+beside it (per `design/account-redesign.html`).
+
+**Why:** `TGLogo variant="light"` inverts the whole file via CSS filter
+(`brightness(0) invert(1)`), which would flatten the brand reds to white
+— the rail treatment needs selective fills, which only an inline SVG can
+do. Cropped to the mark because the file's baked-in wordmark rows would
+double with the HTML wordmark text.

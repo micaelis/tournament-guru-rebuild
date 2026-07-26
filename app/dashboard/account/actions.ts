@@ -12,6 +12,7 @@ import {
   enumOrNull,
 } from "@/lib/enums";
 import { safeExternalUrl, safeImageSrc } from "@/lib/url";
+import { siteUrl } from "@/lib/site-url";
 import { parseGeoFields } from "@/lib/geo";
 import { validateEmail, validatePassword } from "@/lib/validation";
 import { buildNotifPatch } from "./notif-fields";
@@ -113,18 +114,41 @@ export async function updateProfile(
   return { info: "Profile updated." };
 }
 
-/** Update the caller's email via Supabase auth. Requires confirm. */
+/**
+ * Update the caller's email via Supabase auth. With secure email change
+ * on, Supabase mails a confirmation link to BOTH the current and the new
+ * address; the change applies only after both are clicked. The links
+ * carry `emailRedirectTo` pointing at /auth/callback?next=/email-change
+ * so every leg (first click, second click, expired link) lands on the
+ * dedicated /email-change screen instead of the homepage.
+ */
 export async function updateEmail(
   _prev: AccountState,
   formData: FormData,
 ): Promise<AccountState> {
   const supabase = await createServerAuthClient();
   const email = String(formData.get("email") ?? "").trim();
-  if (!email) return { fieldErrors: { email: "Enter a new email address." } };
-  const { error } = await supabase.auth.updateUser({ email });
+  const emailError = validateEmail(email);
+  if (emailError) return { fieldErrors: { email: emailError } };
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+  if (user.email && email.toLowerCase() === user.email.toLowerCase()) {
+    return {
+      fieldErrors: { email: "That's already your sign-in email." },
+    };
+  }
+
+  const site = await siteUrl();
+  const { error } = await supabase.auth.updateUser(
+    { email },
+    { emailRedirectTo: `${site}/auth/callback?next=/email-change` },
+  );
   if (error) return { error: error.message };
   return {
-    info: "Check both your old and new inbox — the change takes effect once you confirm the links we just sent.",
+    info: "Confirmation links are on their way to both your current and your new inbox — click the link in each to complete the change.",
   };
 }
 

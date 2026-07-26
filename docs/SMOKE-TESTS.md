@@ -225,6 +225,13 @@ seed for the permanent automated suite (BUILD-PLAN §2.5).
 - **[STATE] Attendee profile fields** — photo/name/city/state/dob("not displayed")/gender/role/org; team placeholder; 3 counts.
 - **[FLOW] Attendee profile edit** — photo/first/last/location/org/gender/role-question/teams. (Note: SCHEMA locks role post-onboarding; team info in Preferences.)
 - **[FLOW] Security email/password** — password update → email confirm first; alert on success. (SCHEMA adds re-auth before change — see Gate 1 M4.)
+- **[FLOW] Email change, mailed legs (S12.12 — manual, inbucket locally)** — Security →
+  new email → form alert says links went to BOTH inboxes; first link clicked →
+  `/email-change?stage=partial` ("one to go", clean URL, no `#message=` residue);
+  second link in the requesting browser → `/email-change` "Email updated" + new
+  address; second link in a fresh browser → "Email confirmed" sign-in variant; a
+  reused/expired link → `?stage=error`. Never lands on the homepage with a raw
+  `?message=…` query.
 - **[DATA] Account delete cascade** — reviews+comments deleted; affected event scores recompute.
 - **[DATA] ED delete + claimed-event revert** — claimed events owner→admin; only post-claim events/comments deleted; originally-created deleted (reviews detached).
 - **[FLOW] Preferences = team info.**

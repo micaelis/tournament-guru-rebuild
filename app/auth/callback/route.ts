@@ -2,10 +2,20 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 /**
- * Landing point for Supabase email links (confirmation + password reset).
- * Exchanges the `code` for a session, then routes the user by onboarding
- * status and role — attendees go to /events, EDs/admins to /dashboard.
+ * Landing point for Supabase email links (confirmation + password reset +
+ * email change). Exchanges the `code` for a session, then routes the user
+ * by onboarding status and role — attendees go to /events, EDs/admins to
+ * /dashboard.
+ *
+ * Email change (`next=/email-change`) is special: with secure email change
+ * on, Supabase mails BOTH addresses and only the second click returns a
+ * `code`. The first click lands here with just a "Confirmation link
+ * accepted" message, an expired link with `error_*` params — every leg is
+ * routed to the dedicated /email-change screen instead of leaking GoTrue's
+ * raw message into a page URL.
  */
+const EMAIL_CHANGE = "/email-change";
+
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
   const code = searchParams.get("code");
@@ -16,6 +26,15 @@ export async function GET(request: NextRequest) {
       : "/";
 
   if (!code) {
+    if (next === EMAIL_CHANGE) {
+      const failed =
+        searchParams.has("error") ||
+        searchParams.has("error_code") ||
+        searchParams.has("error_description");
+      return NextResponse.redirect(
+        new URL(failed ? `${EMAIL_CHANGE}?stage=error` : `${EMAIL_CHANGE}?stage=partial`, origin),
+      );
+    }
     return NextResponse.redirect(new URL("/login?error=callback", origin));
   }
 
@@ -45,6 +64,18 @@ export async function GET(request: NextRequest) {
 
   const { error } = await supabase.auth.exchangeCodeForSession(code);
   if (error) {
+    if (next === EMAIL_CHANGE) {
+      // GoTrue applied the change BEFORE issuing the code — the exchange
+      // only signs this browser in. A missing PKCE verifier just means
+      // the link was opened outside the browser that requested the change
+      // (phone mail app, other device); the screen's signed-out copy
+      // covers that. Anything else is a genuinely bad/expired code.
+      const dest =
+        error.code === "pkce_code_verifier_not_found"
+          ? EMAIL_CHANGE
+          : `${EMAIL_CHANGE}?stage=error`;
+      return NextResponse.redirect(new URL(dest, origin));
+    }
     return NextResponse.redirect(new URL("/login?error=callback", origin));
   }
 

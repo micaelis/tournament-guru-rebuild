@@ -974,16 +974,19 @@ read-only field (lock icon, "never shown publicly" hint).
   name, location, org name, gender, and the coach/parent question. **Role is
   locked post-onboarding**; **team info is edited in Preferences, not here.**
 - **Security** (all types): one card, two label-column sections — **Login email**
-  (current address with a *Verified* badge once confirmed; changing it emails a
-  confirmation link to both addresses) and **Password** (show/hide toggle +
-  requirement pills mirroring the server policy). A **password update triggers an
-  email confirmation first** (and, per the security-review gate, re-authentication
-  before the change); either update shows a success alert. EDs and Attendees can
-  **delete their account** after a password-confirmed popup; the card and dialog
-  copy state the §9.3 true-delete consequences **per role** (ED: reviews +
-  comments permanently deleted, created events/tournaments removed, claimed-only
-  listings returned for re-claim; attendee: reviews + comments permanently
-  deleted, event ratings recomputed).
+  (current address with a *Verified* badge once confirmed) and **Password**
+  (show/hide toggle + requirement pills mirroring the server policy). **Email
+  changes are two-step** (S12.12): Supabase mails confirmation links to both the
+  current and the new address; the action rejects an invalid or unchanged
+  address, and every mailed link lands on the dedicated `/email-change` screen
+  (partial → done → error states, AUTH-SCREENS §7), never on the homepage. A
+  **password update triggers an email confirmation first** (and, per the
+  security-review gate, re-authentication before the change); either update
+  shows a success alert. EDs and Attendees can **delete their account** after a
+  password-confirmed popup; the card and dialog copy state the §9.3 true-delete
+  consequences **per role** (ED: reviews + comments permanently deleted, created
+  events/tournaments removed, claimed-only listings returned for re-claim;
+  attendee: reviews + comments permanently deleted, event ratings recomputed).
 - **Preferences** (Attendee/ED): travel-distance choice chips + **team
   information** (the single home for team editing) — per team: Age dropdown (the
   one allowed select), gender + competition-level **choice chips**; unused slots

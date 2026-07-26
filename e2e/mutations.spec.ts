@@ -14,6 +14,7 @@ import {
   type SeededUser,
 } from "./helpers/db";
 import { signIn } from "./helpers/auth";
+import { setInputFilesHydrated } from "./helpers/hydration";
 
 /**
  * Dashboard write flows with accessible controls: an attendee editing their
@@ -151,12 +152,18 @@ test.describe("Event director — promo CSV", () => {
       await signIn(page, ed.email, ed.password);
       await page.goto("/dashboard/promo-codes"); // ED default tab = submit
 
-      await page.locator('input[type="file"]').setInputFiles({
-        name: "coaches.csv",
-        mimeType: "text/csv",
-        buffer: Buffer.from("email\ncoach1@example.com\ncoach2@example.com"),
-      });
-      await expect(page.getByText(/unique emails parsed/)).toBeVisible();
+      await setInputFilesHydrated(
+        page.locator('input[type="file"]'),
+        {
+          name: "coaches.csv",
+          mimeType: "text/csv",
+          buffer: Buffer.from("email\ncoach1@example.com\ncoach2@example.com"),
+        },
+        (timeout) =>
+          expect(page.getByText(/unique emails parsed/)).toBeVisible({
+            timeout,
+          }),
+      );
 
       await page
         .getByRole("button", { name: "Submit for review" })

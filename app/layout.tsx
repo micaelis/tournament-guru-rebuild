@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Bricolage_Grotesque } from "next/font/google";
+import { NavigationProgress } from "./components/NavigationProgress";
 import "./globals.css";
 
 const inter = Inter({
@@ -33,7 +34,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${inter.variable} ${bricolage.variable}`}>
-      <body className="min-h-dvh overflow-x-hidden antialiased">{children}</body>
+      <body className="min-h-dvh overflow-x-hidden antialiased">
+        <NavigationProgress />
+        {children}
+      </body>
     </html>
   );
 }

@@ -122,6 +122,31 @@ Same left/right chrome as the auth screens.
 - Mandatory-to-complete set: first_name, last_name, role, dob, gender, location,
   organization_title (except Parent/Spectator), org_description (ED).
 
+## 7. Email-change confirmation (`/email-change`)
+Landing screen for the account email-change links (started from Dashboard → Account →
+Security). With Supabase secure email change ON, confirmation links go to **both** the
+current and the new address and the change applies only after both are clicked. The
+`updateEmail` action sends every link with `emailRedirectTo →
+/auth/callback?next=/email-change`, and the callback routes each leg here instead of
+leaking GoTrue's raw `?message=…` onto the homepage (the pre-S12.12 bug). AuthShell
+chrome like `/signup/verify-email`; no personal data rides the URL except the done
+state's session-derived address; a tiny client effect strips GoTrue's leftover
+`#message=…` fragment (URL fragments survive the 302 hops).
+
+States (callback → screen):
+- **First link clicked** (message, no code) → `?stage=partial` — "One link down — one
+  to go": both-inboxes rule, 3-step list, back-to-site CTA (the user may still be
+  signed in, so no forced /login), spam-folder footer.
+- **Second link, same browser** (code exchange succeeds) → no stage, session present —
+  "Email updated" + the new address; CTA back to `/dashboard/account`.
+- **Second link, another device** (code present but the PKCE verifier lives in the
+  requesting browser — exchange fails with `pkce_code_verifier_not_found`) → no stage,
+  no session — "Email confirmed": the change already applied server-side, sign in with
+  the new address.
+- **Expired / reused / invalid link** (`error_*` params, or any other exchange failure)
+  → `?stage=error` — retry guidance ("if you clicked both links your email may already
+  be updated; otherwise request the change again from account settings").
+
 ## Notes on scope
 - **Google Places autocomplete** (Screen 2 location) is LIVE — wired via
   `LocationAutocomplete` on the client's Google Cloud project keys

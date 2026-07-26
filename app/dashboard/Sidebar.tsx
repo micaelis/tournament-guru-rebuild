@@ -59,13 +59,27 @@ export function Sidebar({
           open ? "translate-x-0" : "-translate-x-full",
         )}
       >
-        {/* Logo */}
-        <div className="flex items-center justify-between px-5 py-7">
-          <Link href={"/" as never} className="flex items-center gap-2.5">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-white/10 text-sm font-extrabold text-white">
-              TG
-            </span>
-            <span className="font-[var(--font-heading)] text-[15px] font-extrabold text-white">
+        {/* Logo — the real mark from public/logo.svg (wordmark rows cropped
+            out), swoosh inverted white for the ink rail, star + T keeping
+            the logo's own reds. Mirrors design/account-redesign.html. */}
+        <div className="flex items-center justify-between px-5 py-6">
+          <Link href={"/" as never} className="flex items-center gap-3">
+            {/* Decorative: the wordmark text beside it names the link. */}
+            <svg viewBox="0 0 295.82 141" className="h-8 w-auto" aria-hidden="true">
+              <path
+                fill="#ffffff"
+                d="M264.28,47.3c0.12,1.75,0.19,3.52,0.19,5.31c0,12.32-2.83,23.67-7.6,32.79c-1.13,2.38-2.56,4.66-4.24,6.82c-4.18,5.7-9.26,10.03-14.9,12.49c-9.69,5.44-21.84,8.69-35.04,8.69c-0.7,0-1.4-0.02-2.09-0.04c-0.69,0.02-1.39,0.04-2.09,0.04c-31.66,0-57.33-18.64-57.33-41.63c0-22.99,25.67-41.63,57.33-41.63h54.61h9.61c4.35-0.05,4.35-0.05,4.35-0.05c1.64-1.16,3.37-3.12,5.5-5.58l23.22-24.42H201.8c-51.93,0-94.02,31.93-94.02,71.33s42.09,71.33,94.02,71.33s94.02-31.93,94.02-71.33c0-2.7-0.22-5.36-0.61-7.99L264.28,47.3z"
+              />
+              <polygon
+                fill="#EC2027"
+                points="202.8,38.21 212.53,57.94 234.3,61.1 218.55,76.46 222.27,98.14 202.8,87.9 183.32,98.14 187.04,76.46 171.29,61.1 193.06,57.94"
+              />
+              <path
+                fill="#ED2024"
+                d="M149.52,0.09L94.2,0H64.14H0v30.06h62.2V140.5H94.2V71.42l0.1-10.16c0-0.03,0.03-1.86,0.03-1.89C94.99,41.57,112.28,10.5,149.52,0.09z"
+              />
+            </svg>
+            <span className="font-[var(--font-heading)] text-[15px] font-extrabold tracking-tight text-white">
               Tournament Guru
             </span>
           </Link>

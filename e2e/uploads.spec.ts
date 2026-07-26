@@ -7,6 +7,7 @@ import {
   type SeededUser,
 } from "./helpers/db";
 import { signIn } from "./helpers/auth";
+import { setInputFilesHydrated } from "./helpers/hydration";
 
 /**
  * Real browser → Supabase Storage upload, end to end. Picks a PNG in the
@@ -36,19 +37,20 @@ test("ED uploads an event logo to Storage from the add-event form", async ({
     await page.goto(`/dashboard/events/new?tournament=${tournamentId}`);
 
     // The ImageUploadField's file input is hidden with an accessible name.
-    await page
-      .getByLabel("Upload Event logo")
-      .setInputFiles({
-        name: "logo.png",
-        mimeType: "image/png",
-        buffer: PNG_1PX,
-      });
-
-    // On success the widget writes the public URL into the logo_url input.
+    // On success the widget writes the public URL into the logo_url input;
+    // the 1px PNG uploads to the local bucket well inside one attempt
+    // window, so a silent attempt means the change handler wasn't
+    // hydrated yet and the helper re-fires it.
     const logoInput = page.locator('input[name="logo_url"]');
-    await expect(logoInput).toHaveValue(
-      /\/storage\/v1\/object\/public\/event-images\//,
-      { timeout: 15_000 },
+    await setInputFilesHydrated(
+      page.getByLabel("Upload Event logo"),
+      { name: "logo.png", mimeType: "image/png", buffer: PNG_1PX },
+      (timeout) =>
+        expect(logoInput).toHaveValue(
+          /\/storage\/v1\/object\/public\/event-images\//,
+          { timeout },
+        ),
+      { attemptTimeoutMs: 5_000 },
     );
     // Keyed by the ED's own uid folder (owner-scoped path).
     await expect(logoInput).toHaveValue(new RegExp(`/event-images/${ed.id}/`));

@@ -173,7 +173,11 @@ Build screens from these; don't hand-roll equivalents.
   "Dates" convention: mm/dd/yyyy everywhere, dd/mm/yyyy nowhere).
 - **Toast** — transient confirmations ("Link copied", "Downloaded", "Saved").
 - **Dashboard shell** (`app/dashboard/{Sidebar,Header,icons}.tsx`) — the ink rail +
-  top header pair. Sidebar: `#0f172a`, per-item stroke icons, active item = white/10
+  top header pair. Sidebar: `#0f172a`, the **real brand mark** at the top (mark-only
+  crop of `public/logo.svg` inlined with the swoosh filled white and the star + T
+  keeping the logo's own reds, wordmark as text beside it — NOT the filter-inverted
+  `TGLogo variant="light"`, which would flatten the reds to white), per-item stroke
+  icons, active item = white/10
   fill + 3px red left bar, section eyebrows, thin **slate-blue scrollbar**
   (`.tg-scroll-dark`: `#334155` thumb, `#475569` hover — never the default gray);
   bottom slot is role context (ED: Premium-listings pointer + org card; attendee:
@@ -191,6 +195,15 @@ Build screens from these; don't hand-roll equivalents.
   em-sized so it tracks the text scale, `currentColor` tint). Button/FormButton render it
   when pending; section loaders (like the search results' "Searching…" overlay pill)
   compose it with their own copy.
+- **Navigation loading** (S12.13) — two app-wide affordances for server-rendered
+  navigations, no per-page code: **NavigationProgress**
+  (`app/components/NavigationProgress.tsx`, mounted once in the root layout) is a
+  2.5px accent top bar that starts on internal link clicks / back-forward, eases to
+  ~80%, snaps to 100% on route commit, and stays invisible for navigations faster
+  than ~120ms; plus route-group **`loading.tsx` skeletons** (`app/dashboard/`,
+  `app/(site)/`) — neutral `animate-pulse` slate blocks (`bg-slate-200/50–80`,
+  `rounded-2xl` cards) shown inside the persisting shell chrome. Skeletons stay
+  generic (title / stat strip / cards) — never mimic one specific page's layout.
 
 ---
 
