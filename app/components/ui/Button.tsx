@@ -8,14 +8,18 @@ type Size = "sm" | "md" | "lg";
 
 /**
  * The button variants used across the app. Primary = slate-900 filled
- * (the "commit" action) with a gentle lift on hover. Secondary = soft
- * slate fill — a real but subordinate action (Save as draft, add-row
- * CTAs) that must read as a button against white form cards, where the
- * bordered ghost disappears into the inputs around it. Accent = the
- * brand-red fill, reserved for premium/upgrade CTAs (the style guide's
- * "upgrade CTA" color) — never a general-purpose primary. Ghost = white
- * with border (tertiary/bail-out). Danger = red-tinted ghost for
- * destructive confirms. Link = the canonical inline text-link look.
+ * (the "commit" action) with a gentle lift on hover. Secondary = the
+ * crisp ink-outline: transparent surface, 1.5px mid-slate border, bold
+ * ink label — a real but subordinate action (Duplicate, Share, Save as
+ * draft, per-section Edit links). Never a white or gray slab: the
+ * legibility comes from the border weight, so it holds up on white
+ * cards and the slate page wash alike (client call, supersedes the
+ * S12.17 slate-fill tier). Accent = the brand-red fill, reserved for
+ * premium/upgrade CTAs (the style guide's "upgrade CTA" color) — never
+ * a general-purpose primary. Ghost = transparent with a soft border
+ * (tertiary/bail-out). Danger = the unified red-tint destructive
+ * treatment (red-50 fill, red-200 border — the RemoveIconButton
+ * palette). Link = the canonical inline text-link look.
  *
  * `loading` disables the button and swaps in the shared Spinner ahead
  * of the label — pass the pending flag from useActionState /
@@ -46,13 +50,13 @@ export function Button({
     primary:
       "bg-slate-900 text-white hover:bg-slate-700 hover:-translate-y-px hover:shadow-[0_6px_16px_-8px_rgba(15,23,42,.55)] active:translate-y-0 active:shadow-none disabled:hover:translate-y-0 disabled:hover:shadow-none focus-visible:ring-2 focus-visible:ring-slate-900/40",
     secondary:
-      "border border-slate-200 bg-slate-100 text-slate-900 hover:border-slate-300 hover:bg-slate-200 focus-visible:ring-2 focus-visible:ring-slate-900/20",
+      "border-[1.5px] border-slate-400 bg-transparent text-slate-900 hover:border-slate-900 hover:bg-slate-900/[0.045] focus-visible:ring-2 focus-visible:ring-slate-900/20",
     accent:
       "bg-red-600 text-white hover:bg-red-700 hover:-translate-y-px hover:shadow-[0_6px_16px_-8px_rgba(220,38,38,.55)] active:translate-y-0 active:shadow-none disabled:hover:translate-y-0 disabled:hover:shadow-none focus-visible:ring-2 focus-visible:ring-red-600/40",
     ghost:
-      "border border-slate-200 bg-white text-slate-800 hover:border-slate-400 hover:bg-slate-50",
+      "border border-slate-200 bg-transparent text-slate-800 hover:border-slate-400 hover:bg-slate-900/[0.03]",
     danger:
-      "border border-red-200 bg-white text-red-700 hover:bg-red-50 hover:border-red-400",
+      "border border-red-200 bg-red-50 text-red-700 hover:border-red-300 hover:bg-red-100 hover:text-red-800",
     link: textLinkClass,
   };
   return (

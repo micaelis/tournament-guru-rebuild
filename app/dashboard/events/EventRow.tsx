@@ -63,10 +63,10 @@ export function EventRow({
             </Link>
             <StatusPill tone={eventStatusTone(status)}>{status}</StatusPill>
             {event.is_premium && (
-              <StatusPill tone="warning">Premium</StatusPill>
+              <StatusPill tone="premium">Premium</StatusPill>
             )}
             {event.is_general_ad && (
-              <StatusPill tone="info">Spotlight</StatusPill>
+              <StatusPill tone="spotlight">Spotlight</StatusPill>
             )}
           </div>
           <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">

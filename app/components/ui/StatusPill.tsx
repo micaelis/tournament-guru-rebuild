@@ -6,7 +6,13 @@ import { cn } from "./cn";
  * concluded/canceled) each get a distinct tone; the neutral tones
  * (info/success/warning/danger) cover promo statuses, CSV statuses,
  * review status, and any future family that fits the same visual
- * grammar. One primitive, no per-family duplication.
+ * grammar; premium/spotlight are the style guide's event badge pair
+ * (solid red / violet outline). One primitive, no per-family
+ * duplication.
+ *
+ * The "live" green (ongoing/success) runs a register deeper than the
+ * other tints — emerald-100 wash, emerald-300 border — so a published/
+ * active state stays legible at pill size on white and slate surfaces.
  */
 export type PillTone =
   | "draft"
@@ -18,19 +24,23 @@ export type PillTone =
   | "success"
   | "warning"
   | "danger"
-  | "muted";
+  | "muted"
+  | "premium"
+  | "spotlight";
 
 const TONE_STYLES: Record<PillTone, string> = {
   draft: "bg-slate-100 text-slate-700 border-slate-200",
   upcoming: "bg-blue-50 text-blue-800 border-blue-200",
-  ongoing: "bg-emerald-50 text-emerald-800 border-emerald-200",
+  ongoing: "bg-emerald-100 text-emerald-800 border-emerald-300",
   concluded: "bg-slate-200/70 text-slate-700 border-slate-300",
   canceled: "bg-red-50 text-red-700 border-red-200",
   info: "bg-sky-50 text-sky-800 border-sky-200",
-  success: "bg-emerald-50 text-emerald-800 border-emerald-200",
+  success: "bg-emerald-100 text-emerald-800 border-emerald-300",
   warning: "bg-amber-50 text-amber-800 border-amber-200",
   danger: "bg-red-50 text-red-700 border-red-200",
   muted: "bg-slate-50 text-slate-500 border-slate-200",
+  premium: "bg-red-600 text-white border-red-600",
+  spotlight: "bg-violet-50 text-violet-600 border-violet-200",
 };
 
 /** Maps the DB's derived event display status text to a pill tone. */

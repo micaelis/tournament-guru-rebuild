@@ -2964,3 +2964,40 @@ only the register changed.
 **Why:** "detached snapshots" describes our tables, not the user's
 outcome. The question an ED is really asking at that dialog is "do the
 reviews disappear?" — the copy now answers exactly that.
+
+### S12.31 · Secondary/ghost/danger buttons go bordered/tinted — no white or gray fills
+
+**What:** `Button` variant restyle, app-wide. `secondary` drops the
+S12.17 slate-100 fill for the crisp ink-outline: transparent surface,
+1.5px slate-400 border, bold ink label, hover = ink border + a faint
+ink tint. `ghost` swaps its white fill for transparent (same soft
+border). `danger` unifies on the red tint (red-50 fill, red-200 border,
+red-700 text — the RemoveIconButton palette) instead of white-with-
+red-border. From the approved ED event-details mockup (rev 4): the
+client's standing call is that secondary buttons stay bordered/tinted,
+never a white or gray slab.
+
+**Why (supersedes "S12.17 · secondary button tier" fill choice):**
+S12.17 picked the slate fill so secondary CTAs wouldn't sink into
+white form cards; the client's later feedback picked the opposite
+mechanism — legibility from border weight (1.5px mid-slate + bold ink),
+which holds on white cards AND the slate page wash without introducing
+a filled slab that competes with primary. The tier itself (a register
+between primary and ghost) survives; only its clothing changed.
+
+### S12.32 · Status green deepened one register; Premium/Spotlight become StatusPill tones
+
+**What:** the "live" green pair (`ongoing`/`success` StatusPill tones)
+moves from emerald-50 bg / emerald-200 border to **emerald-100 /
+emerald-300** (text stays emerald-800) — the mockup's more-contrasty
+"Published" green, propagated system-wide through the shared pill.
+StatusPill also gains `premium` (solid red, white text) and `spotlight`
+(violet-50/violet-600 outline) tones; EventRow and the event details
+hero now use them instead of the semantically-wrong `warning`/`info`
+tones, matching the STYLE-GUIDE §6 badge table that always specified
+solid-red Premium and violet Spotlight.
+
+**Why:** emerald-50 under an 11px label was washing out against white
+cards — the status read as decoration. One register deeper keeps the
+same hue family, passes AA, and needs no per-call changes since every
+status pill rides the shared tone map.
