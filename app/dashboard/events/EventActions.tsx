@@ -102,7 +102,7 @@ export function EventActions({
       <ConfirmDialog
         open={confirmDelete}
         title={`Delete "${eventTitle}"?`}
-        body="This action is permanent. Reviews attached to this event stay in the database as detached snapshots — historical context is preserved."
+        body="This action is permanent. Deleting this event won't remove the reviews people wrote for it — they're kept and stay visible on the reviewers' profiles."
         confirmLabel="Delete event"
         onClose={() => setConfirmDelete(false)}
         onConfirm={async () => {

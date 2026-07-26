@@ -2949,3 +2949,18 @@ solid green toast would have fixed visibility but forked the language
 again; the check disc + high-contrast slate text is what makes it
 legible, and the shared treatment makes every confirmation read the
 same wherever it appears.
+
+### S12.30 · Delete-event dialog speaks user language, not schema language
+
+**What:** the delete-event confirm explained itself in implementation
+terms ("stay in the database as detached snapshots — historical context
+is preserved"). It now says what an ED actually needs to know:
+"Deleting this event won't remove the reviews people wrote for it —
+they're kept and stay visible on the reviewers' profiles." The
+delete-tournament dialog got the parallel wording for its cascade.
+Still accurate to delete_event's detach + snapshot behavior (§9.3);
+only the register changed.
+
+**Why:** "detached snapshots" describes our tables, not the user's
+outcome. The question an ED is really asking at that dialog is "do the
+reviews disappear?" — the copy now answers exactly that.

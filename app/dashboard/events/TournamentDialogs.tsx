@@ -255,7 +255,7 @@ export function DeleteTournamentButton({
       <ConfirmDialog
         open={open}
         title={`Delete "${tournamentTitle}"?`}
-        body="This action is permanent and will also delete all the events within this tournament. Reviews attached to those events stay in the database, detached, so historical context is preserved."
+        body="This action is permanent and will also delete all the events within this tournament. The reviews people wrote for those events won't be removed — they're kept and stay visible on the reviewers' profiles."
         confirmLabel={pending ? "Deleting…" : "Delete tournament"}
         onClose={() => (pending ? undefined : setOpen(false))}
         onConfirm={async () => {
