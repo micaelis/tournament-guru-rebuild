@@ -564,7 +564,7 @@ export function EventSearchOverlay({
                       </span>
                     </span>
                     <span
-                      className="font-heading shrink-0 rounded-full px-4 py-1.5 text-white transition-transform group-hover:-translate-y-0.5"
+                      className="font-heading shrink-0 rounded-full px-4 py-1.5 text-white transition-all duration-200 group-hover:-translate-y-0.5"
                       style={{
                         fontSize: 12.5,
                         fontWeight: 700,

@@ -89,7 +89,7 @@ export function GetNoticedIntro() {
 
         <Link
           href="/signup?type=event_director"
-          className="font-heading inline-flex cursor-pointer items-center justify-center gap-2 self-start rounded-full px-7 py-3 text-white no-underline transition-transform hover:-translate-y-0.5"
+          className="font-heading inline-flex cursor-pointer items-center justify-center gap-2 self-start rounded-full px-7 py-3 text-white no-underline transition-all duration-200 hover:-translate-y-0.5"
           style={{
             fontSize: 14.5,
             fontWeight: 700,

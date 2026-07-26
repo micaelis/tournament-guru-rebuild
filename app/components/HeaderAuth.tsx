@@ -58,7 +58,7 @@ export function HeaderAuth({ initialEmail }: { initialEmail: string | null }) {
         href={"/dashboard" as Route}
         aria-label="Your dashboard"
         title={`Your dashboard (${email})`}
-        className="inline-flex items-center justify-center rounded-full font-bold text-white transition-transform hover:-translate-y-0.5"
+        className="inline-flex items-center justify-center rounded-full font-bold text-white transition-all duration-200 hover:-translate-y-0.5"
         style={{
           width: 32,
           height: 32,

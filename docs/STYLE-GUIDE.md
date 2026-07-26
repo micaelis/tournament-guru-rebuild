@@ -82,7 +82,10 @@ recurs on rating pools, reviewer cards, and metric strips — keep it consistent
   defaults — icon inputs pad with `pl-12` (icon container `w-11`), toolbar selects size with
   `w-auto min-w-[…]`. Unlayered, the class silently beat every utility (DECISIONS S12.6).
 - **Hover motion:** interactive chips/primary buttons may lift `translateY(-1px)` with a soft
-  shadow; cards do not move.
+  shadow; cards do not move. Every lifting control transitions **transform AND shadow**
+  smoothly — use `transition-all duration-200` (or the global a/button transition), never
+  `transition-transform` alone: the Tailwind utility overrides the global rule's
+  box-shadow/color transition, so paired shadow or color changes snap (S12.28).
 
 ---
 

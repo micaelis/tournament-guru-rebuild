@@ -213,14 +213,14 @@ function SuccessCard() {
       <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
         <Link
           href="/events"
-          className="font-heading inline-flex items-center gap-1.5 rounded-xl no-underline transition-transform hover:-translate-y-0.5"
+          className="font-heading inline-flex items-center gap-1.5 rounded-xl no-underline transition-all duration-200 hover:-translate-y-0.5"
           style={{ padding: "11px 20px", fontSize: 14, fontWeight: 700, color: "#fff", background: "linear-gradient(135deg, #1e293b, #0f172a)", borderRadius: 12 }}
         >
           Browse events while you wait
         </Link>
         <Link
           href="/"
-          className="font-heading inline-flex items-center rounded-xl border bg-white no-underline transition-transform hover:-translate-y-0.5"
+          className="font-heading inline-flex items-center rounded-xl border bg-white no-underline transition-all duration-200 hover:-translate-y-0.5"
           style={{ padding: "11px 20px", fontSize: 14, fontWeight: 700, color: "var(--color-dark)", borderColor: "var(--color-border)", borderRadius: 12 }}
         >
           Back to home

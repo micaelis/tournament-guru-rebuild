@@ -202,7 +202,7 @@ export function ShareExperienceIntro() {
               <button
                 type="button"
                 onClick={() => setOpen(true)}
-                className="font-heading mt-4 inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-full px-6 py-3 text-white transition-transform hover:-translate-y-0.5"
+                className="font-heading mt-4 inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-full px-6 py-3 text-white transition-all duration-200 hover:-translate-y-0.5"
                 style={{
                   fontSize: 14.5,
                   fontWeight: 700,

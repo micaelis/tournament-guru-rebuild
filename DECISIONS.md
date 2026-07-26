@@ -2913,3 +2913,21 @@ filter from what the user has publicly reviewed — a draft-only state
 would advertise a location no one can see. But once a state is chosen,
 hiding the user's own drafts there would read as data loss, so the
 filter applies to the full list while the counts stay public-facing.
+
+### S12.28 · Hover-lift sweep: transition-all on every lifting control
+
+**What:** 14 lift sites (`hover:-translate-y-*`) across the marketing
+CTAs, header pills, search overlays, and auth follow-up screens carried
+`transition-transform` — which OVERRIDES the global a/button transition
+shorthand (globals.css), so those controls animated the lift but
+snapped any paired shadow or color change. All lifting controls now use
+`transition-all duration-200`, matching the EventCard / auth-submit /
+Button pattern. Static `-translate-y-1/2` centering transforms were
+left alone, as were scale-only icon hovers (they don't lift).
+
+**Why (transition-all, not transition-[transform,box-shadow]):** the
+codebase's established lifting pattern is `transition-all duration-200`
+(EventCard, FeaturedShowcase, AuthSubmit); matching it keeps one idiom,
+and animating incidental color shifts on these controls is desired
+behavior, not a side effect. Rule recorded in STYLE-GUIDE "Hover
+motion".

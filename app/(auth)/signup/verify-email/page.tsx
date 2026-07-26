@@ -79,7 +79,7 @@ export default function VerifyEmailPage() {
         <div className="mt-8">
           <Link
             href="/login"
-            className="inline-flex w-full items-center justify-center rounded-xl px-5 py-3 text-[14.5px] font-semibold text-white transition-transform hover:-translate-y-0.5"
+            className="inline-flex w-full items-center justify-center rounded-xl px-5 py-3 text-[14.5px] font-semibold text-white transition-all duration-200 hover:-translate-y-0.5"
             style={{ background: "var(--color-dark)" }}
           >
             Go to sign in

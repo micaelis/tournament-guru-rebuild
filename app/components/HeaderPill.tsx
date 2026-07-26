@@ -37,7 +37,7 @@ export function headerPillLook(
           boxShadow: "0 6px 16px -6px rgba(220,38,38,.5)",
         };
   return {
-    className: `inline-flex items-center gap-1.5 rounded-full font-semibold transition-transform hover:-translate-y-0.5 ${variantCls} ${sizeCls}`,
+    className: `inline-flex items-center gap-1.5 rounded-full font-semibold transition-all duration-200 hover:-translate-y-0.5 ${variantCls} ${sizeCls}`,
     style,
   };
 }

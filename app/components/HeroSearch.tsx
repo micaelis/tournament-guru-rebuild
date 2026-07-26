@@ -300,7 +300,7 @@ export function HeroSearch({
               </div>
               <button
                 type="submit"
-                className="font-heading shrink-0 cursor-pointer rounded-full px-7 py-3 text-[14px] font-bold text-white transition-transform hover:-translate-y-0.5"
+                className="font-heading shrink-0 cursor-pointer rounded-full px-7 py-3 text-[14px] font-bold text-white transition-all duration-200 hover:-translate-y-0.5"
                 style={{
                   background:
                     "linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-dark) 100%)",

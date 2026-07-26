@@ -217,7 +217,7 @@ export function FindTournamentIntro() {
                   />
                   <button
                     type="submit"
-                    className="font-heading shrink-0 cursor-pointer rounded-full px-5 py-2.5 text-white transition-transform hover:-translate-y-0.5"
+                    className="font-heading shrink-0 cursor-pointer rounded-full px-5 py-2.5 text-white transition-all duration-200 hover:-translate-y-0.5"
                     style={{
                       fontSize: 13,
                       fontWeight: 700,
