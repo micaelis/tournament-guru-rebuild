@@ -36,8 +36,9 @@ export default async function PromoCodesPage({
             Promo Codes
           </h1>
           <p className="mt-1.5 text-[13.5px] text-slate-500">
-            Every promo code sent to you. Use the &quot;Write review&quot; CTA to
-            land on the verified review form with your code pre-applied.
+            Promo codes event directors have sent you. Select &quot;Write
+            review&quot; to start your review — your code is applied
+            automatically.
           </p>
         </div>
         <AttendeePromoList rows={rows} />

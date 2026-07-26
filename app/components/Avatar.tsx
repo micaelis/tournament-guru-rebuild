@@ -1,16 +1,9 @@
 import { safeImageSrc } from "@/lib/url";
 import { SafeImg } from "@/app/components/ui/SafeImg";
 
-const PALETTE = [
-  "#0f766e",
-  "#1d4ed8",
-  "#7c2d12",
-  "#9333ea",
-  "#0e7490",
-  "#be123c",
-  "#15803d",
-];
-
+/** Sized variant of the avatar for public pages. The placeholder is the
+ * same red-bg treatment as app/components/ui/Avatar — one style
+ * app-wide, dashboard and public. */
 export function Avatar({
   name,
   size = 36,
@@ -28,16 +21,13 @@ export function Avatar({
     .join("")
     .toUpperCase();
 
-  const hash = [...(name || "")].reduce((a, c) => a + c.charCodeAt(0), 0);
-  const bg = PALETTE[hash % PALETTE.length];
-
   const initialsBadge = (
     <span
       className="inline-flex shrink-0 items-center justify-center rounded-full font-bold text-white"
       style={{
         width: size,
         height: size,
-        background: bg,
+        background: "var(--color-accent)",
         fontSize: Math.round(size * 0.4),
       }}
       aria-hidden="true"

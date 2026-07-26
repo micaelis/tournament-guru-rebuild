@@ -3,24 +3,23 @@ import { SafeImg } from "./SafeImg";
 import { cn } from "./cn";
 
 /**
- * User / organization avatar. Falls back to a neutral placeholder with
- * initials when no photo is set (spec: "display a nice neutral
- * placeholder icon for missing photos") — and when the photo URL fails
- * to load (SafeImg handles both post-hydration errors and fetches that
- * died before hydration). Size is a fixed CSS size so the placeholder
- * ring stays circular.
+ * User / organization avatar. Falls back to the brand-red placeholder
+ * with white initials when no photo is set — and when the photo URL
+ * fails to load (SafeImg handles both post-hydration errors and fetches
+ * that died before hydration). The red-bg treatment is the ONE
+ * placeholder style app-wide (dashboard + public — see
+ * app/components/Avatar.tsx). Size is a fixed CSS size so the
+ * placeholder ring stays circular.
  */
 export function Avatar({
   src,
   name,
   size = 36,
-  dark,
   className,
 }: {
   src?: string | null;
   name?: string | null;
   size?: number;
-  dark?: boolean;
   className?: string;
 }) {
   const safe = safeImageSrc(src);
@@ -28,10 +27,7 @@ export function Avatar({
   return (
     <span
       className={cn(
-        "inline-flex flex-none items-center justify-center overflow-hidden rounded-full text-[13px] font-bold",
-        dark
-          ? "bg-white/[0.12] text-white/70"
-          : "bg-slate-100 text-slate-600",
+        "inline-flex flex-none items-center justify-center overflow-hidden rounded-full bg-red-600 text-[13px] font-bold text-white",
         className,
       )}
       style={{ width: size, height: size }}

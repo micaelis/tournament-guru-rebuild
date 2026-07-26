@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { Alert, Field, PasswordField } from "@/app/(auth)/parts";
 import { LocationAutocomplete } from "@/app/components/LocationAutocomplete";
 import {
@@ -44,6 +44,16 @@ import type { NotifField } from "./notif-fields";
 type Tab = "profile" | "security" | "preferences" | "notifications";
 
 const INITIAL: AccountState = {};
+
+/** Fires the global toast when a save action reports success. Depends on
+ * the state OBJECT — useActionState returns a fresh one per completed
+ * action — so back-to-back saves with identical messages still re-fire. */
+function useSaveToast(state: AccountState) {
+  const { push } = useToast();
+  useEffect(() => {
+    if (state.info) push("success", state.info);
+  }, [state, push]);
+}
 
 export type AccountProfile = {
   id: string;
@@ -194,15 +204,11 @@ function ProfileTab({
     useLiveValidation(state.fieldErrors?.user_gender, (value) =>
       USER_GENDERS.some((g) => g.value === value) ? null : "Invalid gender.",
     );
+  useSaveToast(state);
   return (
     <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
       <div className="min-w-0 space-y-4">
-        {(state.error || state.info) && (
-          <div className="space-y-3">
-            {state.error && <Alert kind="error">{state.error}</Alert>}
-            {state.info && <Alert kind="info">{state.info}</Alert>}
-          </div>
-        )}
+        {state.error && <Alert kind="error">{state.error}</Alert>}
 
         <form
           action={(fd) => {
@@ -693,13 +699,16 @@ function SecurityTab({
   // actually do (S11.9 true-delete): content is removed, not anonymized.
   const deleteSummary = isEd
     ? "Permanently deletes your reviews and comments. Events and tournaments you created are removed; listings you only claimed return to Tournament Guru for re-claim. This can't be undone."
-    : "Permanently deletes your reviews and comments — the affected events' ratings are recalculated without them. This can't be undone.";
+    : "Permanently deletes your reviews and comments. This can't be undone.";
   const deleteDialogBody = isEd
     ? "This is permanent. Your reviews and comments are deleted for good; events and tournaments you created are removed, and listings you only claimed return to Tournament Guru for re-claim."
-    : "This is permanent. Your reviews and comments are deleted for good, and the affected events' ratings are recalculated without them.";
+    : "This is permanent. Your reviews and comments are deleted for good.";
 
-  const anyAlert =
-    emailState.error || emailState.info || pwState.error || pwState.info;
+  // Password success rides the toast; the email flow keeps its inline
+  // Alert — it's a stays-on-screen instruction (check both inboxes), not
+  // a completed save.
+  useSaveToast(pwState);
+  const anyAlert = emailState.error || emailState.info || pwState.error;
 
   return (
     <div className="max-w-2xl space-y-4">
@@ -708,7 +717,6 @@ function SecurityTab({
           {emailState.error && <Alert kind="error">{emailState.error}</Alert>}
           {emailState.info && <Alert kind="info">{emailState.info}</Alert>}
           {pwState.error && <Alert kind="error">{pwState.error}</Alert>}
-          {pwState.info && <Alert kind="info">{pwState.info}</Alert>}
         </div>
       )}
 
@@ -802,7 +810,7 @@ function SecurityTab({
               setConfirmDelete(true);
             }}
           >
-            Delete my account…
+            Delete my account
           </Button>
         </div>
       )}
@@ -937,15 +945,11 @@ function PreferencesTab({
       });
     }
   };
+  useSaveToast(state);
 
   return (
     <div className="max-w-3xl space-y-4">
-      {(state.error || state.info) && (
-        <div className="space-y-3">
-          {state.error && <Alert kind="error">{state.error}</Alert>}
-          {state.info && <Alert kind="info">{state.info}</Alert>}
-        </div>
-      )}
+      {state.error && <Alert kind="error">{state.error}</Alert>}
 
       <form
         action={(fd) => {
@@ -1222,15 +1226,11 @@ function NotificationsTab({
 
   const activityRows = NOTIF_ROWS.filter((r) => !r.edOnly);
   const eventRows = isEd ? NOTIF_ROWS.filter((r) => r.edOnly) : [];
+  useSaveToast(state);
 
   return (
     <div className="max-w-3xl space-y-4">
-      {(state.error || state.info) && (
-        <div className="space-y-3">
-          {state.error && <Alert kind="error">{state.error}</Alert>}
-          {state.info && <Alert kind="info">{state.info}</Alert>}
-        </div>
-      )}
+      {state.error && <Alert kind="error">{state.error}</Alert>}
 
       <form
         action={formAction}

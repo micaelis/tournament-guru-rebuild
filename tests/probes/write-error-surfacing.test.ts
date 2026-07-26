@@ -309,7 +309,7 @@ describe("write-error-surfacing · updateTeams distance_pref", () => {
     expect(teams).toHaveLength(1);
   });
 
-  it("a failed distance_pref write surfaces instead of reporting 'Team info updated.'", async () => {
+  it("a failed distance_pref write surfaces instead of reporting the preferences-saved info", async () => {
     ctl.breakTable = "profiles";
     ctl.breakVerb = "update";
     const result = await updateTeams({}, teamsForm());

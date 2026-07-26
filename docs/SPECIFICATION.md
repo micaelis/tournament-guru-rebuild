@@ -575,7 +575,9 @@ Session actions live ONLY in that menu — the sidebar carries navigation and
 role context, never sign-out. The sidebar's bottom slot is role-scoped: EDs
 get a **Premium listings** pointer (links to Support) and their
 **organization card** (logo + title); attendees get a **club card** when a
-club affiliation is set; admins get neither.
+club affiliation is set; admins get neither. Below that, every role gets the
+**legal footer row** — Privacy · Legal · Cookies, labels mirroring the public
+site footer.
 
 Sidebar (order per `app/dashboard/nav-items.ts`): Events · Reviews · Claim
 Requests · Promo Codes · Search Events · Transactions* · Add-on Pricing* ·
@@ -982,6 +984,11 @@ read-only field (lock icon, "never shown publicly" hint).
 > rule for notification prefs, keyed off each row's `section:` marker
 > (see S8.7).
 
+> **Save confirmations ride the global toast.** Profile, Password,
+> Preferences, and Notifications saves fire the success toast (S12.25);
+> errors stay inline. The email-change flow keeps its inline alert — a
+> stays-on-screen instruction (check both inboxes), not a completed save.
+
 - **Attendee Profile** shows: photo, name, city, state code, **DOB** (with a
   subtext noting *it is not displayed anywhere*), gender, role type, and org name
   (Club Affiliation); a team-info placeholder when none; and three counts
@@ -996,12 +1003,13 @@ read-only field (lock icon, "never shown publicly" hint).
   address, and every mailed link lands on the dedicated `/email-change` screen
   (partial → done → error states, AUTH-SCREENS §7), never on the homepage. A
   **password update triggers an email confirmation first** (and, per the
-  security-review gate, re-authentication before the change); either update
-  shows a success alert. EDs and Attendees can **delete their account** after a
-  password-confirmed popup; the card and dialog copy state the §9.3 true-delete
-  consequences **per role** (ED: reviews + comments permanently deleted, created
+  security-review gate, re-authentication before the change). EDs and Attendees
+  can **delete their account** after a password-confirmed popup; the card and
+  dialog copy state the §9.3 true-delete consequences **per role** in plain
+  language (ED: reviews + comments permanently deleted, created
   events/tournaments removed, claimed-only listings returned for re-claim;
-  attendee: reviews + comments permanently deleted, event ratings recomputed).
+  attendee: reviews + comments permanently deleted — the rating recompute
+  still happens but is an internal detail the copy no longer narrates).
 - **Preferences** (Attendee/ED): travel-distance choice chips + **team
   information** (the single home for team editing) — per team: Age dropdown (the
   one allowed select), gender + competition-level **choice chips**; unused slots

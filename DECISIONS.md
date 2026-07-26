@@ -2843,3 +2843,27 @@ forbid revisiting completed steps at all, and deriving "next" on the
 client would duplicate the server's completeness rules. The redirect
 reuses the page's existing derivation — a requested step is honored
 only when genuinely revisitable — and doubles as the URL-sync fix.
+
+### S12.25 · Account saves confirm via the global toast; one red-bg avatar placeholder
+
+**What:** the account tabs' success signal moved from the inline
+`Alert kind="info"` (a white card easy to miss below the heading) to the
+global success toast — Profile, Password, Preferences, and Notifications
+all fire `useToast().push("success", …)` off the action state object (a
+fresh object per completed action, so identical back-to-back messages
+still re-fire). Errors stay inline next to the form. The email-change
+flow keeps its inline alert: "check both inboxes" is a stays-on-screen
+instruction, not a completed save. Success copy was reworded
+user-first ("Your profile has been saved." etc.), the delete-account
+card dropped the ratings-recalculated clause + the button ellipsis, and
+the promo/favorites dashboard copy lost its internal-logic verbiage.
+Both avatar components now share the red-bg placeholder treatment
+(`--color-accent` bg + white initials); `components/Avatar`'s hashed
+7-color palette and `ui/Avatar`'s unused `dark` prop are gone.
+
+**Why:** the inline info card sat in-form and scrolled out of view —
+users reported saves as "nothing happened." The toast is the platform's
+one visible confirmation channel (STYLE-GUIDE: every successful action
+a Toast). A single placeholder treatment ends the dashboard-vs-public
+mismatch where the same user rendered slate in one surface and a random
+palette color in the other.

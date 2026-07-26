@@ -186,6 +186,28 @@ export function Sidebar({
             )}
           </div>
         )}
+
+        {/* Legal footer — labels mirror the public site footer. */}
+        <div className="flex items-center gap-2.5 border-t border-white/[0.08] px-5 py-4 text-[11px] font-medium text-white/35">
+          {(
+            [
+              ["Privacy", "/privacy"],
+              ["Legal", "/terms"],
+              ["Cookies", "/cookies"],
+            ] as const
+          ).map(([label, href], i) => (
+            <span key={href} className="flex items-center gap-2.5">
+              {i > 0 && <span aria-hidden="true">·</span>}
+              <Link
+                href={href as Route}
+                onClick={() => setOpen(false)}
+                className="transition-colors hover:text-white/70"
+              >
+                {label}
+              </Link>
+            </span>
+          ))}
+        </div>
       </aside>
     </>
   );

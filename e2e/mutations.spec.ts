@@ -37,7 +37,7 @@ test.describe("Account settings", () => {
 
       await page.getByLabel("First name").fill("Renamed");
       await page.getByRole("button", { name: "Save changes" }).click();
-      await expect(page.getByText("Profile updated.")).toBeVisible();
+      await expect(page.getByText("Your profile has been saved.")).toBeVisible();
     } finally {
       if (user) await deleteUser(user.id);
     }

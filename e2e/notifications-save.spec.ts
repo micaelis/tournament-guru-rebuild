@@ -43,7 +43,7 @@ test.describe("Account — notification prefs save", () => {
 
       await page.getByRole("button", { name: "Save", exact: true }).click();
       await expect(
-        page.getByText("Notification preferences updated."),
+        page.getByText("Your notification settings have been saved."),
       ).toBeVisible();
 
       // The regression: post-save the switch must show the SAVED state,

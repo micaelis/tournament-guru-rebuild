@@ -53,8 +53,8 @@ export default async function FavoritesPage() {
           Favorites
         </h1>
         <p className="mt-1.5 text-[13.5px] text-slate-500">
-          Events you&apos;ve favorited — where notification updates will land
-          once we ship them.
+          Events you&apos;ve saved, all in one place — so they&apos;re easy to
+          find when it&apos;s time to plan.
         </p>
       </div>
       {rows.length === 0 ? (

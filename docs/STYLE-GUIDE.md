@@ -129,11 +129,13 @@ Build screens from these; don't hand-roll equivalents.
   do not use `react-simple-star-rating`.
 - **MetricStrip** — the horizontal metric row (Overall / Coach / Attendee + the 6 categories);
   Coach value in red, Attendee in amber.
-- **Avatar** — circular element with a deterministic color from a fixed palette. Accepts an
-  optional `src` prop: when provided, renders an `<img>` with `object-fit: cover` filling the
-  circle (no padding, no `object-contain`); when absent — or when the URL fails to load —
-  renders initials. All circle avatars/logos (org logos, profile photos, reviewer avatars)
-  must go through Avatar so the fill rule applies uniformly.
+- **Avatar** — circular element whose placeholder is the **red-bg treatment**: brand accent
+  red (`--color-accent` / red-600) with white initials — the ONE placeholder style app-wide,
+  dashboard and public. Accepts an optional `src` prop: when provided, renders an `<img>` with
+  `object-fit: cover` filling the circle (no padding, no `object-contain`); when absent — or
+  when the URL fails to load — renders the red initials badge. All circle avatars/logos
+  (org logos, profile photos, reviewer avatars) must go through Avatar so the fill rule
+  applies uniformly.
 - **SafeImg** — `<img>` wrapper that swaps to a caller-supplied `fallback` (default: nothing)
   when the source is missing or fails to load. EVERY non-circular image whose URL comes from
   the DB or a remote host renders through it (event logos, photos, sponsor logos, portraits)
@@ -266,7 +268,7 @@ Build screens from these; don't hand-roll equivalents.
 - Every list has an **EmptyState**; every destructive action a **ConfirmDialog**; every
   irreversible/successful action a **Toast**.
 - **Missing media** degrades gracefully: logo-only event hero looks intentional; missing profile
-  photo → neutral placeholder icon.
+  photo → the red-bg initials placeholder (see Avatar).
 - Canceled events render **grayed out**; drafts are visible only on the owner's dashboard.
 - Copy-to-clipboard, downloads, and sends always give visible confirmation.
 

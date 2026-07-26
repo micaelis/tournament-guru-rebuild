@@ -134,7 +134,7 @@ export function AttendeePromoList({ rows }: { rows: PromoCoachRow[] }) {
     return (
       <EmptyState
         title="No promo codes yet"
-        body="You don't have any promo codes on your account yet. Event directors send them by email once their premium event is approved."
+        body="When an event director invites you to review one of their events, your promo code will appear here."
       />
     );
   }

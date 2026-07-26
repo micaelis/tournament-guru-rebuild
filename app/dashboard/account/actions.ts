@@ -111,7 +111,7 @@ export async function updateProfile(
     .eq("id", user.id);
   if (error) return { error: error.message };
   revalidatePath("/dashboard/account");
-  return { info: "Profile updated." };
+  return { info: "Your profile has been saved." };
 }
 
 /**
@@ -166,7 +166,7 @@ export async function updatePassword(
   }
   const { error } = await supabase.auth.updateUser({ password });
   if (error) return { error: error.message };
-  return { info: "Password updated." };
+  return { info: "Your password has been updated." };
 }
 
 /**
@@ -312,7 +312,7 @@ export async function updateTeams(
     if (error) return { error: error.message };
   }
   revalidatePath("/dashboard/account");
-  return { info: "Team info updated." };
+  return { info: "Your preferences have been saved." };
 }
 
 export async function updateNotificationPrefs(
@@ -329,7 +329,7 @@ export async function updateNotificationPrefs(
   // submitted are written, absent switch = false.
   const patch = buildNotifPatch(formData);
   if (Object.keys(patch).length === 0) {
-    return { info: "Notification preferences updated." };
+    return { info: "Your notification settings have been saved." };
   }
   const { error } = await supabase.from("profiles").update(patch).eq("id", user.id);
   if (error) return { error: error.message };
@@ -338,6 +338,6 @@ export async function updateNotificationPrefs(
   // (the S12.10 save-reset bug's server half; the client half is the
   // controlled switches in AccountClient).
   revalidatePath("/dashboard/account");
-  return { info: "Notification preferences updated." };
+  return { info: "Your notification settings have been saved." };
 }
 
