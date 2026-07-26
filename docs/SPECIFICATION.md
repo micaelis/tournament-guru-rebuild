@@ -628,7 +628,10 @@ and **Event Images** (≤ 3 free).
   placeholder on load failure (DECISIONS S10.4/S10.6).
 - **Website inputs** show a link-icon container; numeric inputs show a `#` icon
   container.
-- **Free image cap = 3.** A 4th slot shows an **upgrade placeholder**. Upgrading
+- **Free image cap = 3.** On a saved non-premium event the edit form leads with an
+  **upgrade prompt in the form header** (white surface, red upgrade accent + star
+  disc, "Upgrade this event" CTA — S12.18); the images section notes the free-tier
+  cap when it's hit. Upgrading
   (Stripe deferred — see §10) reveals a visually distinct **premium section**,
   scrolls to it, and shows a popup confirming the event is now premium and will
   appear in top searches. The premium section adds: **Teams** (this-year teams

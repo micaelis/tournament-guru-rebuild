@@ -93,7 +93,9 @@ Build screens from these; don't hand-roll equivalents.
 - **Button** — variants: `primary` (dark `#0f172a`, white text; lifts 1px with a soft
   shadow on hover), `secondary` (soft slate-100 fill, slate-900 text — a real but
   subordinate action: Save as draft, "+ Add row" CTAs, Upload; use it wherever a
-  bordered white button would sink into a white form card), `ghost` (white, bordered —
+  bordered white button would sink into a white form card), `accent` (brand-red fill —
+  RESERVED for premium/upgrade CTAs, the color table's "upgrade CTA" role; never a
+  general-purpose primary), `ghost` (white, bordered —
   tertiary/bail-out: Cancel, dialog dismiss), `danger` (red-tinted ghost
   for destructive confirms), `link` (the TextLink treatment). Sizes: `sm`, `md`, `lg`.
   All transitions run 150ms ease-out. `loading` disables the button and prepends the

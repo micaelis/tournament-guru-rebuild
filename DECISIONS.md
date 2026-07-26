@@ -2721,3 +2721,19 @@ tint on the remove control matches the app's destructive language
 (danger variant, flag chips) while an icon keeps rows compact.
 Alternative rejected: dashed "add" placeholders — EmptyState owns the
 dashed-placeholder look, and these are buttons, not empties.
+
+### S12.18 · Upgrade prompt: form-header placement, system colors, `accent` variant
+
+**What:** the non-premium edit form's upgrade prompt moved from the
+bottom of the images list (an amber slab with an `!bg-amber-900` button
+hack) to the top of the form: a white surface card with the red-tinted
+star disc, short copy, and an "Upgrade this event" CTA in the new
+`accent` Button variant (brand-red fill with the primary's hover lift,
+reserved for premium/upgrade CTAs per the style guide's color table).
+
+**Why:** the prompt is a listing-level offer, not an images feature —
+buried under the gallery it was invisible until the ED scrolled, and
+amber-on-amber read as a warning, colliding with the draft-status
+amber. Red is the system's designated upgrade accent; minting a proper
+variant kills the className override and keeps red fills governed (one
+sanctioned use, documented, instead of ad-hoc overrides).
