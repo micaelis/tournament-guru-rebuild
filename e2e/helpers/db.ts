@@ -187,7 +187,12 @@ export async function deleteTournamentByTitle(title: string): Promise<void> {
 /** A recently-concluded event owned by `ownerId` (+ its tournament). */
 export async function seedEvent(
   ownerId: string,
-  opts: { premium?: boolean; lifecycle?: "draft" | "active"; title?: string } = {},
+  opts: {
+    premium?: boolean;
+    lifecycle?: "draft" | "active";
+    title?: string;
+    state?: string;
+  } = {},
 ): Promise<{ tournamentId: string; eventId: string }> {
   const svc = service();
   const { data: t, error: tErr } = await svc
@@ -213,6 +218,7 @@ export async function seedEvent(
       is_premium: opts.premium ?? false,
       start_date: daysAgo(3),
       end_date: daysAgo(1),
+      ...(opts.state ? { location_state_abbr: opts.state } : {}),
     })
     .select("id")
     .single();

@@ -932,10 +932,14 @@ The attendee's version of the Reviews list (§6.2), with these differences:
   **sort dropdown sits on the header row's right side**.
 - **Sort by**: Newest, Oldest, Best-to-worst, Worst-to-best (by overall across
   the six categories); default **Newest**.
-- **Location filter**: the state codes this user reviewed, with per-state counts;
-  hidden if none. State comes from the **live events join** (snapshots are only
+- **Location filter**: a chip row under the header — an "All" chip plus one
+  chip per state the user has a **published** review in (2-letter code + that
+  count, A→Z; draft-only states get no chip; hidden when none). Selecting a
+  chip filters the whole list (drafts included) to that state; re-selecting
+  clears it. State comes from the **live events join** (snapshots are only
   stamped at event-deletion detach, so detached rows fall back to the snapshot
-  location's trailing state code).
+  location's trailing state code). Derivation is the pure
+  `deriveLocationChips` in `lib/reviews/shared.ts`.
 - Each card shows event info and the category ratings **with 5-star icons**,
   plus **icon chips** for the helpful count (thumbs-up) and comments count
   (speech bubble). A **status chip (Draft / Published)** is shown **only on the

@@ -51,6 +51,44 @@ export function formatRating(value: number | null | undefined): string {
   return value.toFixed(2);
 }
 
+/** Minimal row shape for the location-filter helpers — matches
+ * ReviewCardRow structurally without pulling the server-only queries
+ * module into client or test bundles. */
+export type ReviewLocationRow = {
+  status: "draft" | "published";
+  snapshot_event_location: string | null;
+  event?: { location_state_abbr: string | null } | null;
+};
+
+/** State code for a review's event: the live events join while the
+ * event exists, else the trailing "…, XX" of the detached snapshot
+ * location (snapshots are stamped only at event-deletion detach). */
+export function reviewStateAbbr(row: ReviewLocationRow): string | null {
+  if (row.event?.location_state_abbr) return row.event.location_state_abbr;
+  const tail = row.snapshot_event_location?.slice(-2);
+  return tail && /^[A-Z]{2}$/.test(tail) ? tail : null;
+}
+
+/**
+ * Chips for the My Reviews location filter: one per state the user has
+ * a PUBLISHED review in — 2-letter code plus the count of their
+ * published reviews there, A→Z. Draft-only states surface no chip;
+ * rows with no derivable state are skipped.
+ */
+export function deriveLocationChips(
+  rows: ReviewLocationRow[],
+): { state: string; count: number }[] {
+  const counts = new Map<string, number>();
+  for (const row of rows) {
+    if (row.status !== "published") continue;
+    const abbr = reviewStateAbbr(row);
+    if (abbr) counts.set(abbr, (counts.get(abbr) ?? 0) + 1);
+  }
+  return Array.from(counts, ([state, count]) => ({ state, count })).sort(
+    (a, b) => a.state.localeCompare(b.state),
+  );
+}
+
 /**
  * When would_return applies (coach + team_manager reviews). Parents /
  * spectators aren't asked; the DB column is nullable so their reviews

@@ -15,23 +15,22 @@ import {
 import { Icon } from "../icons";
 import { deleteReview } from "@/lib/reviews/actions";
 import type { ReviewCardRow } from "@/lib/reviews/queries";
-import { REVIEW_CATEGORIES, REVIEW_EDIT_WINDOW_DAYS, isReviewStillEditable } from "@/lib/reviews/shared";
+import {
+  REVIEW_CATEGORIES,
+  REVIEW_EDIT_WINDOW_DAYS,
+  deriveLocationChips,
+  isReviewStillEditable,
+  reviewStateAbbr,
+} from "@/lib/reviews/shared";
 
 type SortKey = "newest" | "oldest" | "best" | "worst";
 
-/** State code for a review's event: the live join when the event still
- * exists, else the trailing "…, XX" of the detached snapshot location. */
-export function reviewStateAbbr(row: ReviewCardRow): string | null {
-  if (row.event?.location_state_abbr) return row.event.location_state_abbr;
-  const tail = row.snapshot_event_location?.slice(-2);
-  return tail && /^[A-Z]{2}$/.test(tail) ? tail : null;
-}
-
 /**
  * Attendee "My Reviews" page. Header row carries the title + count and
- * the sort control; sort by newest/oldest/best/worst overall, filter by
- * state (only states the user has reviewed in — spec). Past the 30-day
- * window the Edit action disables with a tooltip explaining why.
+ * the sort control; below it, location chips — one per state the user
+ * has published a review in, with that count — filter the list. Past
+ * the 30-day window the Edit action disables with a tooltip explaining
+ * why.
  */
 export function AttendeeReviews({
   rows,
@@ -43,15 +42,7 @@ export function AttendeeReviews({
   const [sort, setSort] = useState<SortKey>("newest");
   const [state, setState] = useState<string>("");
 
-  const availableStates = useMemo(() => {
-    return Array.from(
-      new Set(
-        rows
-          .map(reviewStateAbbr)
-          .filter((v): v is string => Boolean(v)),
-      ),
-    ).sort();
-  }, [rows]);
+  const locationChips = useMemo(() => deriveLocationChips(rows), [rows]);
 
   const filtered = useMemo(() => {
     if (!state) return rows;
@@ -89,36 +80,47 @@ export function AttendeeReviews({
           </span>
         </div>
         {rows.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2">
-            {availableStates.length > 0 && (
-              <select
-                value={state}
-                onChange={(e) => setState(e.target.value)}
-                aria-label="Filter by state"
-                className="tg-control tg-select w-auto min-w-[130px]"
-              >
-                <option value="">All states</option>
-                {availableStates.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
-            )}
-            <select
-              value={sort}
-              onChange={(e) => setSort(e.target.value as SortKey)}
-              aria-label="Sort reviews"
-              className="tg-control tg-select w-auto min-w-[180px]"
-            >
-              <option value="newest">Newest</option>
-              <option value="oldest">Oldest</option>
-              <option value="best">Best to worst</option>
-              <option value="worst">Worst to best</option>
-            </select>
-          </div>
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value as SortKey)}
+            aria-label="Sort reviews"
+            className="tg-control tg-select w-auto min-w-[180px]"
+          >
+            <option value="newest">Newest</option>
+            <option value="oldest">Oldest</option>
+            <option value="best">Best to worst</option>
+            <option value="worst">Worst to best</option>
+          </select>
         )}
       </div>
+
+      {locationChips.length > 0 && (
+        <div
+          className="flex flex-wrap items-center gap-2"
+          role="group"
+          aria-label="Filter by location"
+        >
+          <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400">
+            Location
+          </span>
+          <LocationChip
+            active={state === ""}
+            onClick={() => setState("")}
+            label="All"
+          />
+          {locationChips.map((chip) => (
+            <LocationChip
+              key={chip.state}
+              active={state === chip.state}
+              onClick={() =>
+                setState((prev) => (prev === chip.state ? "" : chip.state))
+              }
+              label={chip.state}
+              count={chip.count}
+            />
+          ))}
+        </div>
+      )}
 
       {sorted.length === 0 ? (
         rows.length === 0 ? (
@@ -149,6 +151,39 @@ export function AttendeeReviews({
         </div>
       )}
     </div>
+  );
+}
+
+/** One location-filter chip. Selected = the S12.3 red-tint state. */
+function LocationChip({
+  active,
+  onClick,
+  label,
+  count,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  count?: number;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[12.5px] font-semibold transition-all duration-150 ${
+        active
+          ? "border-red-600 bg-red-50 text-red-700 shadow-sm"
+          : "border-slate-200 bg-white text-slate-700 hover:border-slate-400"
+      }`}
+    >
+      {label}
+      {typeof count === "number" && (
+        <span className={active ? "text-red-600/70" : "text-slate-400"}>
+          {count}
+        </span>
+      )}
+    </button>
   );
 }
 

@@ -294,3 +294,64 @@ test.describe("Dashboard reviews — reviewer details popup", () => {
     }
   });
 });
+
+test.describe("My Reviews — location filter", () => {
+  test("state chips show published counts and filter the list", async ({
+    page,
+  }) => {
+    let ed: SeededUser | undefined;
+    let author: SeededUser | undefined;
+    const seeds: { eventId: string; tournamentId: string }[] = [];
+    const reviewIds: string[] = [];
+    const stamp = Date.now();
+    try {
+      ed = await createEventDirector({ completeOnboarding: true });
+      author = await createAttendee({ completeOnboarding: true });
+      const mo = await seedEvent(ed.id, {
+        title: `E2E MO Event ${stamp}`,
+        state: "MO",
+      });
+      const il = await seedEvent(ed.id, {
+        title: `E2E IL Event ${stamp}`,
+        state: "IL",
+      });
+      seeds.push(mo, il);
+      reviewIds.push(
+        await seedReview(mo.eventId, author.id, `MO review ${stamp}`),
+      );
+      reviewIds.push(
+        await seedReview(il.eventId, author.id, `IL review ${stamp}`),
+      );
+
+      await signIn(page, author.email, author.password);
+      await page.goto("/dashboard/reviews");
+
+      // One chip per state with this user's published-review count.
+      const filterGroup = page.getByRole("group", {
+        name: "Filter by location",
+      });
+      const moChip = filterGroup.getByRole("button", { name: /^MO/ });
+      await expect(moChip).toContainText("1");
+      await expect(
+        filterGroup.getByRole("button", { name: /^IL/ }),
+      ).toContainText("1");
+      await expect(page.getByText(`MO review ${stamp}`)).toBeVisible();
+      await expect(page.getByText(`IL review ${stamp}`)).toBeVisible();
+
+      // Selecting a chip filters the list; toggling it off restores it.
+      await moChip.click();
+      await expect(page.getByText(`MO review ${stamp}`)).toBeVisible();
+      await expect(page.getByText(`IL review ${stamp}`)).toBeHidden();
+      await moChip.click();
+      await expect(page.getByText(`IL review ${stamp}`)).toBeVisible();
+    } finally {
+      for (const id of reviewIds) await deleteReview(id);
+      for (const s of seeds) {
+        await deleteEvent(s.eventId);
+        await deleteTournament(s.tournamentId);
+      }
+      if (author) await deleteUser(author.id);
+      if (ed) await deleteUser(ed.id);
+    }
+  });
+});

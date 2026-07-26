@@ -2892,3 +2892,24 @@ search box the magnifying-glass treatment.
 rows only and duplicate live data that can drift (event titles get
 edited); the join is always-true for live rows and the snapshot remains
 exactly what it was designed to be — a tombstone for deleted events.
+
+### S12.27 · My Reviews location filter: published-count state chips
+
+**What:** the state `<select>` on My Reviews (dead until S12.26 — it
+derived from always-NULL snapshots) became a chip row: "All" plus one
+chip per state the user has a PUBLISHED review in, showing the 2-letter
+code + that published count, A→Z, red-tint selected state (S12.3),
+toggle-off to clear. Selecting a chip filters the whole list — drafts
+included — to that state. Derivation is the pure `deriveLocationChips`
+/ `reviewStateAbbr` pair in `lib/reviews/shared.ts` (structural row
+type, so client + test bundles never import the server-only queries
+module). Unit-tested in `tests/review-location-chips.test.ts`;
+e2e-tested in `reviews.spec.ts` (seeded MO+IL reviews → chips with
+counts → click filters, re-click clears). `seedEvent` grew a `state`
+opt for the fixture.
+
+**Why (published-only chips, whole-list filter):** the spec derives the
+filter from what the user has publicly reviewed — a draft-only state
+would advertise a location no one can see. But once a state is chosen,
+hiding the user's own drafts there would read as data loss, so the
+filter applies to the full list while the counts stay public-facing.
