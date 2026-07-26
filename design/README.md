@@ -5,18 +5,27 @@ enters the Next build** — open the files directly in a browser. Once a directi
 approved, it gets implemented for real under `app/` (and these files stay as the record
 of what was explored).
 
-- `account-redesign.html` — four directions (A · Ink Rail, B · Porcelain,
-  C · Broadsheet, D · Blend) for the elevated dashboard redesign, shown on the ED
-  Account page (Profile tab). All add a top header with an avatar/name menu
-  ("Account" / "Log out") and remove "Sign out" from the sidebar. Switch directions
-  with the floating pill or keys 1–4. Uses Tailwind CDN + Google Fonts, so it needs
-  network to render styled.
-  **D · Blend is the current candidate** (default on load), built from Danny's
-  2026-07-24 feedback: A's shell + B's "Premium listings" sidebar card + C's profile
-  preview card beside the form; bigger org-logo uploader; empty fields always show
-  placeholders (inputs get `placeholder`, the preview card shows "Add your …" rows);
-  selected choice-chips are red-tinted, NOT ink/black, so selections never read as
-  CTAs. Still design-only — do not implement into `app/` until Danny signs off.
+- `account-redesign.html` — Account-page polish round (Danny's 2026-07-26 brief),
+  shown as a complete ED account (Rachel Donovan · Pacific Crest Youth Soccer) with
+  all four tabs clickable (or keys 1–4). Replaces the earlier 4-direction dashboard
+  exploration at this path — that direction (D · Blend) is implemented in `app/` and
+  the old file lives in git history (`1e1394f`). What it applies:
+  Security / Preferences / Notifications rebuilt on the Profile card language
+  (split label column + fields, slate footer action bar): Security = one card with
+  Login email (Verified badge) + Password (eye toggle, requirement pills) sections
+  and a white danger-zone card with a red hairline; Preferences = travel-distance
+  block chips + team cards using choice chips for gender/level (Age stays the one
+  allowed dropdown) with a quiet dashed add-state for the unused slot;
+  Notifications = a grouped In-app / Email switch matrix (ink switches, column
+  headers, "Your activity" / "Your events" groups). Success alerts restyled as
+  white surface cards with a small green check disc (no more emerald slab); at
+  100% completeness the preview card drops the progress bar for a soft "Profile
+  complete → Add an event" prompt; profile photo is a circle with upload/remove
+  beside it; DOB is a proper labelled read-only field (lock icon + hint); section
+  label column widened to 210px so headers + descriptions wrap cleanly. Uses the
+  real `public/logo.svg` mark (wordmark inverted white for the ink rail) — no "TG"
+  placeholder tile. Tailwind CDN + Google Fonts, so it needs network to render
+  styled. Design-only — do not implement into `app/` until Danny signs off.
 - `event-details-redesign.html` — redesigned public event-details page (Danny's
   2026-07-24 brief), shown on a premium example ("Spring Kickoff Cup — U12 Girls").
   Host + status pill + location on one line over the title; ATTENDEE + COACH as a
