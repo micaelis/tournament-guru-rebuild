@@ -2752,3 +2752,18 @@ renders it as a 40px rounded square); the form preview stretching with
 the row misrepresented the crop and made every entry tall. A third
 fixed-square size slots into the existing thumb API instead of a
 one-off style in the form.
+
+### S12.20 · ImageUploadField empty state is icon-led
+
+**What:** the field's empty thumbnail swapped its bare "No image" / "No
+photo" string for an icon-led tile — a stroke picture glyph (photo
+glyph on circle/profile fields) over the small label, slate-300 icon /
+slate-400 text. One change in the shared primitive restyles every call
+site at once (event logo, sponsor logos, gallery rows, org logo,
+onboarding + account profile photos) — deliberately, so the form-side
+empty tiles stay identical across the app.
+
+**Why:** a lone 10px string floating in a gray box read as a rendering
+glitch, not a designed empty state; the glyph gives the tile a shape at
+every thumb size. Icons are aria-hidden — the label still carries the
+meaning for screen readers.

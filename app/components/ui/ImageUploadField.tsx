@@ -22,6 +22,25 @@ import { cn } from "./cn";
  * failed load shows a soft, non-blocking warning (URLs can die later; this
  * is best-effort, never a hard gate).
  */
+function PictureGlyph() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="3" />
+      <circle cx="9" cy="9" r="2" />
+      <path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21" />
+    </svg>
+  );
+}
+
+function PhotoGlyph() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14.5 4h-5L7.2 6.8H4a2 2 0 0 0-2 2V18a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8.8a2 2 0 0 0-2-2h-3.2L14.5 4z" />
+      <circle cx="12" cy="13" r="3.2" />
+    </svg>
+  );
+}
+
 export function ImageUploadField({
   label,
   value,
@@ -113,8 +132,16 @@ export function ImageUploadField({
             className="h-full w-full object-cover"
             onError={() => setLoadWarning(true)}
             fallback={
-              <span className="text-[10px] font-medium text-slate-400">
-                {thumbShape === "circle" ? "No photo" : "No image"}
+              // Icon-led empty tile (photo glyph for circle/profile
+              // fields, picture glyph otherwise) — never a bare "No
+              // image" string floating in the box.
+              <span className="flex flex-col items-center justify-center gap-1 p-2 text-center text-slate-400">
+                <span aria-hidden="true" className="text-slate-300">
+                  {thumbShape === "circle" ? <PhotoGlyph /> : <PictureGlyph />}
+                </span>
+                <span className="text-[10px] font-medium">
+                  {thumbShape === "circle" ? "No photo" : "No image"}
+                </span>
               </span>
             }
           />

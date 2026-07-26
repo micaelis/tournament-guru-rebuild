@@ -143,8 +143,10 @@ Build screens from these; don't hand-roll equivalents.
 - **ImageUploadField** — the image input for every DB-backed logo/photo (event logo, sponsor
   logos, gallery, org logo, profile photo). Controlled (`value`/`onChange`), with BOTH a real
   upload (pick a PNG/JPG → straight to the bucket via `lib/storage/upload`) and a paste-a-URL
-  fallback in the same field. Shows a `SafeImg` thumbnail that falls back to a neutral "No
-  image" tile, a soft non-blocking "couldn't load that image" warning on a dead URL, and a
+  fallback in the same field. Shows a `SafeImg` thumbnail whose empty state is an
+  **icon-led tile** (picture glyph + "No image"; photo glyph + "No photo" on circle
+  fields — S12.20, never a bare text string), a soft non-blocking "couldn't load that
+  image" warning on a dead URL, and a
   Clear button. Pass `name` to submit the value in an uncontrolled `<form>`. In list rows
   (event images), pass `onRemove` — it renders a Remove button in the same cluster as
   Upload (replacing Clear) so the pair reads as one control — since S12.17 that Remove
