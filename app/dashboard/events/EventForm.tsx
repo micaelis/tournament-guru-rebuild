@@ -866,12 +866,16 @@ function SponsorsEditor({
 }) {
   return (
     <div className="space-y-3">
+      {/* Compact rows: eyebrow + remove up top, name/link on one line,
+          and the logo as a fixed SQUARE tile (thumbSize="sm") — sponsor
+          logos are square with rounded corners, never a stretchy
+          rectangle. */}
       {value.map((row, i) => (
         <div
           key={i}
-          className="rounded-xl border border-slate-200 bg-slate-50/60 p-4 transition-colors hover:border-slate-300"
+          className="rounded-xl border border-slate-200 bg-slate-50/60 p-3.5 transition-colors hover:border-slate-300"
         >
-          <div className="mb-3 flex items-center justify-between gap-3">
+          <div className="mb-2.5 flex items-center justify-between gap-3">
             <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">
               Sponsor {i + 1}
             </span>
@@ -881,7 +885,7 @@ function SponsorsEditor({
               onClick={() => onChange(value.filter((_, idx) => idx !== i))}
             />
           </div>
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2">
             <LabeledField label="Name" htmlFor={`sp_n_${i}`}>
               <input
                 id={`sp_n_${i}`}
@@ -914,10 +918,11 @@ function SponsorsEditor({
               />
             </LabeledField>
           </div>
-          <div className="mt-3">
+          <div className="mt-2.5">
             <ImageUploadField
               label="Logo"
               bucket="event-images"
+              thumbSize="sm"
               value={row.logo_url}
               onChange={(v) =>
                 onChange(

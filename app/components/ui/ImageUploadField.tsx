@@ -43,8 +43,10 @@ export function ImageUploadField({
   required?: boolean;
   error?: string;
   hint?: string;
-  /** "md" = slim column-height thumb; "lg" = fixed square tile (org logos). */
-  thumbSize?: "md" | "lg";
+  /** "md" = slim column-height thumb; "lg" = fixed square tile (org
+   * logos); "sm" = compact fixed square tile (sponsor logos in list
+   * rows — square with rounded corners, never a stretchy rectangle). */
+  thumbSize?: "sm" | "md" | "lg";
   /**
    * "circle" renders the preview as a fixed circular thumb (profile
    * photos) — the form-side mirror of Avatar's circle-fill rule.
@@ -97,7 +99,12 @@ export function ImageUploadField({
             "grid shrink-0 place-items-center overflow-hidden border border-slate-200 bg-slate-50",
             thumbShape === "circle"
               ? "h-24 w-24 rounded-full"
-              : cn("rounded-xl", thumbSize === "lg" ? "h-36 w-36" : "w-[88px]"),
+              : cn(
+                  "rounded-xl",
+                  thumbSize === "lg" && "h-36 w-36",
+                  thumbSize === "sm" && "h-20 w-20",
+                  thumbSize === "md" && "w-[88px]",
+                ),
           )}
         >
           <SafeImg

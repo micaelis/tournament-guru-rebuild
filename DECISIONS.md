@@ -2737,3 +2737,18 @@ amber-on-amber read as a warning, colliding with the draft-status
 amber. Red is the system's designated upgrade accent; minting a proper
 variant kills the className override and keeps red fills governed (one
 sanctioned use, documented, instead of ad-hoc overrides).
+
+### S12.19 · Sponsor entries: fixed-square logo thumb + compact rows
+
+**What:** ImageUploadField gained `thumbSize="sm"` — a compact fixed
+square tile (`h-20 w-20`, rounded-xl) — and the event form's sponsor
+rows use it for the logo, replacing the default column-height thumb
+that stretched into a tall rectangle as the row grew. The rows
+themselves tightened (p-3.5, 2.5 gaps) around the same structure:
+eyebrow + remove icon, name/link on one md line, logo field below.
+
+**Why:** a sponsor logo is a square mark (the public event page already
+renders it as a 40px rounded square); the form preview stretching with
+the row misrepresented the crop and made every entry tall. A third
+fixed-square size slots into the existing thumb API instead of a
+one-off style in the form.

@@ -152,7 +152,10 @@ Build screens from these; don't hand-roll equivalents.
   the far edge of the row.
   `thumbSize="lg"` renders the preview as a fixed **square tile** (`h-36 w-36`) instead of
   the slim column-height thumb — use it for org logos and other hero-ish images that must
-  never stretch with the row. `thumbShape="circle"` renders a fixed **circular** thumb
+  never stretch with the row. `thumbSize="sm"` is the compact fixed square (`h-20 w-20`,
+  rounded corners) for logos inside list rows — sponsor logos always use it; a sponsor
+  logo is a square tile, never a row-height rectangle (S12.19). `thumbShape="circle"`
+  renders a fixed **circular** thumb
   (`h-24 w-24`) — the form-side mirror of Avatar's circle rule; use it for profile photos
   (S12.9). Never build a bare URL text input for a DB image again — use this.
 - **RemoveIconButton** — the row-removal control for editable lists (age groups,
