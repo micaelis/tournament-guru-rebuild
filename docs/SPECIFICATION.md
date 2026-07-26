@@ -300,6 +300,12 @@ right place. All choice selections here use selectable blocks (Age excepted).
 - Requires **agreeing to the terms**: a checkbox "I agree to the Privacy Policy
   and Legal Terms" linking both pages (new tab). Validated **server-side** —
   without it signup returns a field error; the client `required` is UX only.
+- **Already-registered email**: signup tells the user — an `email` field error
+  ("An account with this email already exists. Try logging in, or reset your
+  password.") with Log in / Reset password links, instead of the verify-email
+  screen. Detected via Supabase's anti-enumeration signUp shape (user with an
+  empty `identities` array). Signup is the **only** flow that reveals account
+  existence; password reset stays generic (§4.5, DECISIONS S12.4).
 - A **"Skip registration"** CTA redirects to the Search Events page.
 - The header link **"Claim/List your event free"** (on the *For Event Directors*
   page) routes to signup with **Event Director pre-selected**. If a signed-in
@@ -377,7 +383,8 @@ Directors to the dashboard**.
 - Reset uses **Supabase's default reset emails** for now.
 - **Anti-enumeration**: whether or not an account exists for the submitted email,
   the user sees an **identical generic message**. The response must not reveal
-  whether the email is registered.
+  whether the email is registered. (Signup §4.1 is the deliberate, sole
+  exception — DECISIONS S12.4.)
 - **Rate limit**: **server-side**, 1 email per 30 seconds per requester (a second
   request within the window is rejected). This is enforced server-side, not by a
   client timer alone.

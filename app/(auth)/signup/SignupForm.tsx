@@ -48,17 +48,26 @@ export default function SignupForm({
       <div className="space-y-6">
         <input type="hidden" name="user_type" value={userType} />
 
-        <Field
-          label="Email"
-          name="email"
-          type="email"
-          autoComplete="email"
-          placeholder="you@club.com"
-          required
-          defaultValue={values.email}
-          error={state.fieldErrors?.email}
-          validate={validateEmail}
-        />
+        <div>
+          <Field
+            label="Email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            placeholder="you@club.com"
+            required
+            defaultValue={values.email}
+            error={state.fieldErrors?.email}
+            validate={validateEmail}
+          />
+          {state.code === "email_exists" && (
+            <p className="mt-1.5 text-xs text-slate-600">
+              <TextLink href="/login">Log in</TextLink>
+              {" · "}
+              <TextLink href="/reset">Reset password</TextLink>
+            </p>
+          )}
+        </div>
         <PasswordField
           label="Password"
           name="password"

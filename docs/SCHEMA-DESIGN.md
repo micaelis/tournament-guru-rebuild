@@ -399,7 +399,7 @@ Your files reflect the pre-chat state. These chat decisions **supersede** them (
 1. **Role lock**: role adjustable during onboarding, locked after completion (files say "editable in profile" — superseded).
 2. **Gender + location NOT mandatory** (files' Screen 2 implies mandatory — superseded).
 3. **Age dropdown exception** kept; all other selections = blocks.
-4. **Password reset**: generic anti-enumeration message (files say "tell them if email doesn't exist" — that's an enumeration vuln, superseded).
+4. **Password reset**: generic anti-enumeration message (files say "tell them if email doesn't exist" — that's an enumeration vuln, superseded). **Signup is the deliberate exception** (DECISIONS S12.4): an already-registered email gets an explicit "account already exists" field error (empty-`identities` detection) instead of the verify-email screen — UX over strict anti-enumeration there; reset alone stays generic.
 5. **Reset rate-limit**: server-side (files describe client timer only — insufficient).
 6. **Org Name = Organization Title** (one field, role-dependent label).
 7. **Team info edited in Preferences only** (removed from Attendee Profile).

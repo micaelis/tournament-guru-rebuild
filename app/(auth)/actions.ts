@@ -11,6 +11,9 @@ export type FormState = {
   error?: string;
   fieldErrors?: Record<string, string>;
   info?: string;
+  /** Machine-readable marker for states the form renders specially
+   * (signup dup-email → Log in / Reset password links under the field). */
+  code?: "email_exists";
 };
 
 /** login: email + password → session cookie. Blocked users are logged
@@ -113,6 +116,23 @@ export async function signupAction(
     },
   });
   if (error) return { error: error.message };
+
+  // With confirmations ON, Supabase answers a signUp for an EXISTING email
+  // with a user whose `identities` array is empty (no error, no session) —
+  // its anti-enumeration shape. We deliberately reveal it instead of
+  // dead-ending the user on verify-email; only signup discloses existence,
+  // the password-reset flow stays generic (DECISIONS S12.4). Local dev
+  // (confirmations off) surfaces Supabase's own "User already registered"
+  // error above, so this guard is the confirmations-on path.
+  if (data.user && (data.user.identities?.length ?? 0) === 0) {
+    return {
+      code: "email_exists",
+      fieldErrors: {
+        email:
+          "An account with this email already exists. Try logging in, or reset your password.",
+      },
+    };
+  }
 
   // Local dev has email confirmation off (see supabase/config.toml), so
   // signUp returns a session and the client can go straight to onboarding.

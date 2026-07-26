@@ -2410,3 +2410,30 @@ black, the same color as the CTAs." A selection sharing the primary
 button's solid-ink fill reads as an action; the red tint keeps it in
 the badge family instead. Fixed as a class across all
 `has-[input:checked]` sites, not just the flagged Gender instance.
+
+### S12.4 · Signup reveals an already-registered email (password reset stays generic)
+
+**What:** with email confirmations ON (prod), Supabase's `signUp`
+answers an already-registered email with a user carrying an **empty
+`identities` array** (no error, no session) — its anti-enumeration
+shape. `signupAction` previously ignored that and routed every such
+attempt to `/signup/verify-email`, so an existing user re-signing-up
+saw a confirm-email screen for a mail that never comes. The action now
+detects the empty-identities shape and returns an `email` field error
+("An account with this email already exists. Try logging in, or reset
+your password.") plus `code: "email_exists"`, which SignupForm renders
+as Log in / Reset password links under the field. No redirect. Local
+dev (confirmations off) already surfaced Supabase's own "User already
+registered" error and is unchanged; the `signup-verify-redirect` probe
+pins the guard (mutation-verified: removing it redirects the dup
+attempt to verify-email and fails the test).
+
+**Why:** Danny's call — UX over strict anti-enumeration, on signup
+only. The silent verify-email dead end gives the user no feedback and
+no email. **Password reset deliberately keeps the generic message**
+(SCHEMA-DESIGN §11.4): a reset probe is the classic enumeration vector
+and has no equivalent dead-end problem, so signup is the one flow that
+discloses account existence.
+
+**Alternative rejected:** revealing on reset too — worse enumeration
+surface for zero UX gain.

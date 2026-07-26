@@ -120,6 +120,17 @@ Dashboard → **Authentication → Providers → Email**.
 Dashboard → **Authentication → Email templates**. Point every template
 at the production domain.
 
+Dashboard → **Authentication → SMTP Settings** — **required for auth
+emails**. Enable a custom SMTP provider and sender. Without it,
+Supabase Auth falls back to its built-in email service, which is
+rate-limited to a handful of messages per hour and not meant for
+production — confirmation / verification / password-reset /
+email-change messages silently fail to deliver. Any provider works
+(SendGrid is planned, but this is configurable later and an interim
+provider is fine). Note this is **separate** from the app's
+`SENDGRID_API_KEY` in §6: that env var only sends the app's own promo +
+support mail and does NOT route Auth emails.
+
 **Do NOT** push `supabase/config.toml` at this project — the file is for
 local dev only. Its `enable_confirmations = false` would disable email
 verification if it landed here. `config.toml` is documented as "LOCAL DEV

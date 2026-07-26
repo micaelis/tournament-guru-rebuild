@@ -38,6 +38,7 @@ seed for the permanent automated suite (BUILD-PLAN §2.5).
 
 ### Auth & Onboarding
 - **[FLOW] Signup happy path** — GIVEN /signup WHEN valid email+password + a user type + a role THEN account created, taken to onboarding Screen 1.
+- **[VALID] Signup with an already-registered email** — email field error "An account with this email already exists…" + Log in / Reset password links; must NOT land on verify-email (S12.4; signup is the sole flow allowed to reveal existence — reset stays generic).
 - **[VALID] Password min length** — password < 8 chars → rejected.
 - **[VALID] Password uppercase** — no uppercase → rejected.
 - **[VALID] Password number** — no digit → rejected.

@@ -47,13 +47,22 @@ reference for building/verifying the UI.
   `/signup/verify-email` screen (mail icon, 3-step "what happens next", Go-to-sign-in CTA;
   no email address in the URL). Local dev (confirmations off) → straight to onboarding.
   Failed submits keep typed values on the form; the old above-the-form success banner is gone.
+- **Already-registered email** (DECISIONS S12.4): with confirmations ON, Supabase answers
+  the dup signUp with a user whose `identities` array is **empty** (no error, no session) —
+  `signupAction` detects that shape and returns an `email` field error ("An account with
+  this email already exists. Try logging in, or reset your password.") with **Log in /
+  Reset password links** under the field. The user is deliberately **not** sent to
+  verify-email. Signup is the one flow that reveals account existence — password reset
+  (§3) stays generic. Local dev (confirmations off) instead shows Supabase's own
+  "User already registered" error via the generic error path.
 - Email/password only — no social sign-in button.
 
 ## 3. Password Reset
 - Field: email.
 - Rate limit: **1 email / 30 seconds** — server-side enforced, with a client countdown.
 - **Anti-enumeration:** identical generic response whether or not the email exists
-  ("If an account exists for this email, we've sent a reset link"). Never reveal existence.
+  ("If an account exists for this email, we've sent a reset link"). Never reveal existence
+  here — signup (§2) is the deliberate, sole exception (DECISIONS S12.4).
 - Uses Supabase default reset emails.
 
 ## 4. ED-Claim variant
