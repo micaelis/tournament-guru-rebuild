@@ -143,39 +143,46 @@ body {
   left: 20%;
 }
 
-/* ── Form controls (auth + onboarding) ── */
-.tg-control {
-  width: 100%;
-  border: 1px solid var(--color-border);
-  border-radius: 10px;
-  background: #fff;
-  color: var(--color-text);
-  font-size: 14.5px;
-  line-height: 1.4;
-  padding: 12px 14px;
-  transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease;
-}
-.tg-control::placeholder {
-  color: var(--color-text-faint);
-}
-/* Soft hover — border shift per the style guide (borders, not shadows).
-   Focus, invalid, and disabled states keep their own border colors. */
-.tg-control:hover:not(:focus):not(:disabled):not([aria-invalid="true"]) {
-  border-color: #cbd5e1;
-}
-.tg-control:focus {
-  outline: none;
-  border-color: var(--color-accent);
-  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
-}
-.tg-control:disabled {
-  background: var(--color-border-light);
-  cursor: not-allowed;
-}
-.tg-control[aria-invalid="true"] {
-  border-color: var(--color-accent);
+/* ── Form controls (auth + onboarding) ──
+   Inside @layer components so Tailwind utilities (layer `utilities`,
+   declared later) can override the defaults. Unlayered, this rule
+   silently beat every utility on the same element — `pl-12` on an
+   icon input lost to `padding: 12px 14px` and the text overlapped
+   the icon. */
+@layer components {
+  .tg-control {
+    width: 100%;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    background: #fff;
+    color: var(--color-text);
+    font-size: 14.5px;
+    line-height: 1.4;
+    padding: 12px 14px;
+    transition:
+      border-color 0.15s ease,
+      box-shadow 0.15s ease;
+  }
+  .tg-control::placeholder {
+    color: var(--color-text-faint);
+  }
+  /* Soft hover — border shift per the style guide (borders, not shadows).
+     Focus, invalid, and disabled states keep their own border colors. */
+  .tg-control:hover:not(:focus):not(:disabled):not([aria-invalid="true"]) {
+    border-color: #cbd5e1;
+  }
+  .tg-control:focus {
+    outline: none;
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
+  }
+  .tg-control:disabled {
+    background: var(--color-border-light);
+    cursor: not-allowed;
+  }
+  .tg-control[aria-invalid="true"] {
+    border-color: var(--color-accent);
+  }
 }
 
 /* Outline header pill — reversed colors; hover tints toward the accent */

@@ -78,6 +78,9 @@ recurs on rating pools, reviewer cards, and metric strips — keep it consistent
 - **Input hover:** form controls (`.tg-control`) shift border color `#e2e8f0` → `#cbd5e1` on
   hover — same border-not-shadow language as cards. Focus, invalid, and disabled states win
   over the hover color.
+- **`.tg-control` lives in `@layer components`** so Tailwind utilities can override its
+  defaults — icon inputs pad with `pl-12` (icon container `w-11`), toolbar selects size with
+  `w-auto min-w-[…]`. Unlayered, the class silently beat every utility (DECISIONS S12.6).
 - **Hover motion:** interactive chips/primary buttons may lift `translateY(-1px)` with a soft
   shadow; cards do not move.
 
@@ -121,7 +124,10 @@ Build screens from these; don't hand-roll equivalents.
   upload (pick a PNG/JPG → straight to the bucket via `lib/storage/upload`) and a paste-a-URL
   fallback in the same field. Shows a `SafeImg` thumbnail that falls back to a neutral "No
   image" tile, a soft non-blocking "couldn't load that image" warning on a dead URL, and a
-  Clear button. Pass `name` to submit the value in an uncontrolled `<form>`.
+  Clear button. Pass `name` to submit the value in an uncontrolled `<form>`. In list rows
+  (event images), pass `onRemove` — it renders a Remove button in the same cluster as
+  Upload (replacing Clear) so the pair reads as one control; never park a lone Remove at
+  the far edge of the row.
   `thumbSize="lg"` renders the preview as a fixed **square tile** (`h-36 w-36`) instead of
   the slim column-height thumb — use it for org logos and other hero-ish images that must
   never stretch with the row. Never build a bare URL text input for a DB image again — use
@@ -148,8 +154,10 @@ Build screens from these; don't hand-roll equivalents.
 - **USDateText / USDateField** — masked `mm/dd/yyyy` date input (native `type="date"`
   localizes its placeholder to the browser, not the app). Visible text is always US format;
   forms/callers receive ISO `yyyy-mm-dd` (hidden input or `onIsoChange`). `USDateField` is the
-  labelled Field-wrapped variant (onboarding DOB); `USDateText` is bare (filter drawer dates).
-  User-facing date ENTRY goes through these; dashboard ED tooling may still use native pickers.
+  labelled Field-wrapped variant (onboarding DOB); `USDateText` is bare (filter drawer +
+  event form dates). ALL date entry goes through these — never native `type="date"` — and
+  rendered dates always pass an explicit `"en-US"` locale, never `undefined` (CLAUDE.md
+  "Dates" convention: mm/dd/yyyy everywhere, dd/mm/yyyy nowhere).
 - **Toast** — transient confirmations ("Link copied", "Downloaded", "Saved").
 - **Dashboard shell** (`app/dashboard/{Sidebar,Header,icons}.tsx`) — the ink rail +
   top header pair. Sidebar: `#0f172a`, per-item stroke icons, active item = white/10

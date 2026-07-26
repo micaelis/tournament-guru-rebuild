@@ -27,6 +27,7 @@ import {
   ImageUploadField,
   useToast,
 } from "@/app/components/ui";
+import { USDateText } from "@/app/components/ui/USDateInput";
 import { useLiveValidation } from "@/app/components/ui/useLiveValidation";
 import { useSubmittedValues } from "@/app/components/ui/useSubmittedValues";
 import { safeExternalUrl } from "@/lib/url";
@@ -110,6 +111,20 @@ export function EventForm({ defaults }: { defaults: EventFormDefaults }) {
     useLiveValidation(state.fieldErrors?.region, (v) =>
       v ? null : "Region is required.",
     );
+  const { shownError: startDateError, revalidate: revalidateStartDate } =
+    useLiveValidation(state.fieldErrors?.start_date, (v) =>
+      v ? null : "Starting date is required.",
+    );
+  const { shownError: endDateError, revalidate: revalidateEndDate } =
+    useLiveValidation(state.fieldErrors?.end_date, (v) => {
+      if (!v) return "Ending date is required.";
+      const start = document.querySelector<HTMLInputElement>(
+        'input[name="start_date"]',
+      );
+      return start?.value && v < start.value
+        ? "End date must be on or after the start date."
+        : null;
+    });
   const { shownError: seasonError, revalidate: revalidateSeason } =
     useLiveValidation(state.fieldErrors?.season_id, (v) =>
       v ? null : "Season is required.",
@@ -235,41 +250,58 @@ export function EventForm({ defaults }: { defaults: EventFormDefaults }) {
             validate={(v) => (v.trim() ? null : "Host club is required.")}
             error={state.fieldErrors?.host_club}
           />
-          <Field
+          {/* Masked mm/dd/yyyy text inputs (USDateText) — native
+              type="date" renders the BROWSER locale's order, which
+              shows dd/mm/yyyy abroad. Convention: dates are always US
+              mm/dd/yyyy (see CLAUDE.md); the form still posts ISO. */}
+          <LabeledField
             label="Start date"
-            name="start_date"
-            type="date"
             required
-            defaultValue={values.start_date ?? defaults.base.start_date}
-            validate={(v) => (v ? null : "Starting date is required.")}
-            error={state.fieldErrors?.start_date}
-          />
-          <Field
+            htmlFor="start_date"
+            error={startDateError}
+          >
+            <USDateText
+              id="start_date"
+              name="start_date"
+              className="tg-control"
+              defaultIso={values.start_date ?? defaults.base.start_date}
+              aria-invalid={startDateError ? true : undefined}
+              onIsoChange={(iso) =>
+                revalidateStartDate({ value: iso, checkValidity: () => iso !== "" })
+              }
+            />
+          </LabeledField>
+          <LabeledField
             label="End date"
-            name="end_date"
-            type="date"
             required
-            defaultValue={values.end_date ?? defaults.base.end_date}
-            validate={(v) => {
-              if (!v) return "Ending date is required.";
-              const start = document.querySelector<HTMLInputElement>(
-                'input[name="start_date"]',
-              );
-              return start?.value && v < start.value
-                ? "End date must be on or after the start date."
-                : null;
-            }}
-            error={state.fieldErrors?.end_date}
-          />
-          <Field
+            htmlFor="end_date"
+            error={endDateError}
+          >
+            <USDateText
+              id="end_date"
+              name="end_date"
+              className="tg-control"
+              defaultIso={values.end_date ?? defaults.base.end_date}
+              aria-invalid={endDateError ? true : undefined}
+              onIsoChange={(iso) =>
+                revalidateEndDate({ value: iso, checkValidity: () => iso !== "" })
+              }
+            />
+          </LabeledField>
+          <LabeledField
             label="Registration deadline"
-            name="registration_deadline"
-            type="date"
-            defaultValue={
-              values.registration_deadline ??
-              defaults.base.registration_deadline
-            }
-          />
+            htmlFor="registration_deadline"
+          >
+            <USDateText
+              id="registration_deadline"
+              name="registration_deadline"
+              className="tg-control"
+              defaultIso={
+                values.registration_deadline ??
+                defaults.base.registration_deadline
+              }
+            />
+          </LabeledField>
           <LabeledField
             label="Number of teams (this year)"
             htmlFor="num_teams_this_year"
@@ -844,52 +876,63 @@ function SponsorsEditor({
       {value.map((row, i) => (
         <div
           key={i}
-          className="grid grid-cols-1 items-end gap-3 rounded-xl border border-slate-200 bg-slate-50/60 p-4 md:grid-cols-[1fr_1fr_1fr_auto]"
+          className="rounded-xl border border-slate-200 bg-slate-50/60 p-4 transition-colors hover:border-slate-300"
         >
-          <LabeledField label="Name" htmlFor={`sp_n_${i}`}>
-            <input
-              id={`sp_n_${i}`}
-              className="tg-control"
-              value={row.name}
-              onChange={(e) =>
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">
+              Sponsor {i + 1}
+            </span>
+            <RemoveRowButton
+              onClick={() => onChange(value.filter((_, idx) => idx !== i))}
+            />
+          </div>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <LabeledField label="Name" htmlFor={`sp_n_${i}`}>
+              <input
+                id={`sp_n_${i}`}
+                className="tg-control"
+                placeholder="Sponsor name"
+                value={row.name}
+                onChange={(e) =>
+                  onChange(
+                    value.map((r, idx) =>
+                      idx === i ? { ...r, name: e.target.value } : r,
+                    ),
+                  )
+                }
+              />
+            </LabeledField>
+            <LabeledField label="Link" htmlFor={`sp_l_${i}`}>
+              <IconInput
+                id={`sp_l_${i}`}
+                type="url"
+                placeholder="https://…"
+                value={row.link}
+                onChange={(e) =>
+                  onChange(
+                    value.map((r, idx) =>
+                      idx === i ? { ...r, link: e.target.value } : r,
+                    ),
+                  )
+                }
+                icon={<LinkGlyph />}
+              />
+            </LabeledField>
+          </div>
+          <div className="mt-3">
+            <ImageUploadField
+              label="Logo"
+              bucket="event-images"
+              value={row.logo_url}
+              onChange={(v) =>
                 onChange(
                   value.map((r, idx) =>
-                    idx === i ? { ...r, name: e.target.value } : r,
+                    idx === i ? { ...r, logo_url: v } : r,
                   ),
                 )
               }
             />
-          </LabeledField>
-          <LabeledField label="Link" htmlFor={`sp_l_${i}`}>
-            <input
-              id={`sp_l_${i}`}
-              type="url"
-              className="tg-control"
-              value={row.link}
-              onChange={(e) =>
-                onChange(
-                  value.map((r, idx) =>
-                    idx === i ? { ...r, link: e.target.value } : r,
-                  ),
-                )
-              }
-            />
-          </LabeledField>
-          <ImageUploadField
-            label="Logo"
-            bucket="event-images"
-            value={row.logo_url}
-            onChange={(v) =>
-              onChange(
-                value.map((r, idx) =>
-                  idx === i ? { ...r, logo_url: v } : r,
-                ),
-              )
-            }
-          />
-          <RemoveRowButton
-            onClick={() => onChange(value.filter((_, idx) => idx !== i))}
-          />
+          </div>
         </div>
       ))}
       <Button
@@ -935,15 +978,14 @@ function MilestonesEditor({
             />
           </LabeledField>
           <LabeledField label="Date" htmlFor={`ms_d_${i}`}>
-            <input
+            <USDateText
               id={`ms_d_${i}`}
-              type="date"
               className="tg-control"
-              value={row.milestone_date}
-              onChange={(e) =>
+              iso={row.milestone_date}
+              onIsoChange={(iso) =>
                 onChange(
                   value.map((r, idx) =>
-                    idx === i ? { ...r, milestone_date: e.target.value } : r,
+                    idx === i ? { ...r, milestone_date: iso } : r,
                   ),
                 )
               }
@@ -998,8 +1040,10 @@ function ImagesEditor({
       {value.map((url, i) => (
         <div
           key={i}
-          className="grid grid-cols-1 items-end gap-3 rounded-xl border border-slate-200 bg-slate-50/60 p-4 md:grid-cols-[1fr_auto]"
+          className="rounded-xl border border-slate-200 bg-slate-50/60 p-4"
         >
+          {/* onRemove renders the Remove button beside Upload — one
+              control cluster, not a lone button across the row. */}
           <ImageUploadField
             label={`Image ${i + 1}`}
             bucket="event-images"
@@ -1007,9 +1051,7 @@ function ImagesEditor({
             onChange={(v) =>
               onChange(value.map((cur, idx) => (idx === i ? v : cur)))
             }
-          />
-          <RemoveRowButton
-            onClick={() => onChange(value.filter((_, idx) => idx !== i))}
+            onRemove={() => onChange(value.filter((_, idx) => idx !== i))}
           />
         </div>
       ))}

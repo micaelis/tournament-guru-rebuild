@@ -31,6 +31,7 @@ export function ImageUploadField({
   error,
   hint,
   thumbSize = "md",
+  onRemove,
 }: {
   label: string;
   value: string;
@@ -42,6 +43,13 @@ export function ImageUploadField({
   hint?: string;
   /** "md" = slim column-height thumb; "lg" = fixed square tile (org logos). */
   thumbSize?: "md" | "lg";
+  /**
+   * Row-removal callback for list usages (event images): renders a
+   * "Remove" button right next to Upload so the pair reads as one
+   * control cluster, and replaces "Clear" (removing the row strictly
+   * supersedes blanking its value).
+   */
+  onRemove?: () => void;
 }) {
   const inputId = useId();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -127,19 +135,31 @@ export function ImageUploadField({
             >
               {busy ? "Uploading…" : "Upload PNG/JPG"}
             </Button>
-            {value && (
+            {onRemove ? (
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
-                onClick={() => {
-                  setLoadWarning(false);
-                  setUploadError(null);
-                  onChange("");
-                }}
+                onClick={onRemove}
+                aria-label={`Remove ${label}`}
               >
-                Clear
+                Remove
               </Button>
+            ) : (
+              value && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setLoadWarning(false);
+                    setUploadError(null);
+                    onChange("");
+                  }}
+                >
+                  Clear
+                </Button>
+              )
             )}
           </div>
 

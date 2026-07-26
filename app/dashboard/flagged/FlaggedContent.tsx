@@ -183,7 +183,7 @@ export function FlaggedContent({
                         </div>
                       </TD>
                       <TD className="text-xs text-slate-500">
-                        {new Date(f.created_at).toLocaleDateString(undefined, {
+                        {new Date(f.created_at).toLocaleDateString("en-US", {
                           month: "short",
                           day: "numeric",
                         })}

@@ -83,7 +83,7 @@ export default async function ActivityPage() {
                     </p>
                   </div>
                   <p className="text-xs text-slate-500">
-                    {new Date(r.viewed_at).toLocaleDateString(undefined, {
+                    {new Date(r.viewed_at).toLocaleDateString("en-US", {
                       month: "short",
                       day: "numeric",
                     })}

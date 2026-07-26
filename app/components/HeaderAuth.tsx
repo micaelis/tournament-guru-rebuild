@@ -1,13 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import type { Route } from "next";
 import { createClient } from "@/lib/supabase/client";
 import { signOutAction } from "@/app/(auth)/actions";
 import { HeaderPill, headerPillLook } from "./HeaderPill";
 
 /**
  * Right-hand header slot that reflects auth state: a "Sign in" pill when logged
- * out, or the user's initial + "Log out" when signed in.
+ * out, or the user's initial + "Log out" when signed in. The initial avatar
+ * links to /dashboard, which roots each role to its landing tab — the
+ * header's one entry point into the signed-in area.
  *
  * The initial value is derived server-side in the site layout and passed as
  * `initialEmail`, so there is no client-side auth round-trip on first render
@@ -50,9 +54,11 @@ export function HeaderAuth({ initialEmail }: { initialEmail: string | null }) {
   const initial = email.charAt(0).toUpperCase();
   return (
     <div className="flex items-center gap-3">
-      <span
-        className="inline-flex items-center justify-center rounded-full font-bold text-white"
-        title={email}
+      <Link
+        href={"/dashboard" as Route}
+        aria-label="Your dashboard"
+        title={`Your dashboard (${email})`}
+        className="inline-flex items-center justify-center rounded-full font-bold text-white transition-transform hover:-translate-y-0.5"
         style={{
           width: 32,
           height: 32,
@@ -62,7 +68,7 @@ export function HeaderAuth({ initialEmail }: { initialEmail: string | null }) {
         }}
       >
         {initial}
-      </span>
+      </Link>
       <form action={signOutAction}>
         <LogOutButton />
       </form>

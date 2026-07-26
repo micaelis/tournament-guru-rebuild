@@ -396,7 +396,9 @@ Directors to the dashboard**.
 
 A signed-in user can reach their dashboard from the header (avatar + name +
 notifications icon with a visual indicator for new notifications). Missing
-profile photos render the neutral placeholder.
+profile photos render the neutral placeholder. On the public site header the
+initial-avatar itself links to `/dashboard`, which roots each role to its
+landing tab.
 
 ---
 
@@ -638,7 +640,11 @@ and **Event Images** (≤ 3 free).
 
 **Save vs Publish.** **Draft** requires only the title and is visible only on
 the ED's own dashboard (RLS: draft = creator-only). **Publish** requires all
-mandatory fields with valid types and **end date ≥ start date**. On creation the
+mandatory fields with valid types and **end date ≥ start date**. Sponsor rows
+follow the same split: they are validated (complete + safe URLs) only when
+publishing or updating a live event — a draft saves in-progress rows as-is,
+and all-blank scaffold rows (an untouched "+ Add sponsor") are dropped, never
+validated, never saved (DECISIONS S12.5). On creation the
 event is assigned to the tournament under which it was initiated, dates are
 stored so search filters work, and status derives from the dates (§2.3).
 Temporary age-groups/sponsors/milestones added and deleted in the same session

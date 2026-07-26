@@ -215,6 +215,9 @@ test.describe("Event director — create event", () => {
 
       const title = `E2E Draft Event ${Date.now()}`;
       await page.locator('input[name="title"]').fill(title);
+      // The S12.5 repro: an untouched "+ Add sponsor" scaffold row must
+      // not block a draft ("One of your sponsor logos is invalid").
+      await page.getByRole("button", { name: "+ Add sponsor" }).click();
       // A draft only requires a title; saveEvent redirects to the event page.
       await page.getByRole("button", { name: "Save as draft" }).click();
 
@@ -249,8 +252,10 @@ test.describe("Event director — create event", () => {
         .locator('input[name="website_url"]')
         .fill("https://example.com");
       await page.locator('input[name="host_club"]').fill("Gateway SC");
-      await page.locator('input[name="start_date"]').fill("2026-08-01");
-      await page.locator('input[name="end_date"]').fill("2026-08-02");
+      // Masked mm/dd/yyyy inputs (USDateText): the visible input carries
+      // the id; the ISO value posts via a hidden input under the name.
+      await page.locator("#start_date").fill("08/01/2026");
+      await page.locator("#end_date").fill("08/02/2026");
       await page
         .locator('textarea[name="description"]')
         .fill("A premier youth tournament with strong competition.");

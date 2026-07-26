@@ -2437,3 +2437,61 @@ discloses account existence.
 
 **Alternative rejected:** revealing on reset too — worse enumeration
 surface for zero UX gain.
+
+### S12.5 · Draft saves are never blocked by sponsor rows (blank rows are scaffolding)
+
+**What:** "Save as draft" on an event whose only sponsor row was the
+untouched "+ Add sponsor" scaffold failed with "One of your sponsor
+logos is invalid" — the action validated every parsed row, and a blank
+row fails both the completeness and the URL checks. Two-part fix in
+`saveEvent`: (1) all-blank sponsor rows (no text in name/link/logo) are
+dropped before validation AND before the RPC — they neither error nor
+save; (2) sponsor validation now runs only for `publish`/`update`, the
+intents that put/keep an event on the live surface — a draft saves
+in-progress rows as-is per the draft rule ("only the title is
+mandatory"). The field-error pass moved to a pure module
+(`event-validation.ts`, re-exported types unchanged) so
+`tests/event-validation.test.ts` pins both halves without a DB. Per-row
+checks also became first-failure-wins so an incomplete row reads "fill
+it in", not "invalid logo".
+
+**Why:** the draft-vs-publish split already existed for base fields;
+sponsors were the one collection validated unconditionally, which
+turned UI scaffolding into a save-blocking phantom error. Enum
+cross-checks (levels/surfaces/age groups) intentionally still run for
+drafts — those come from fixed selects and the DB constraints would
+reject them anyway with a worse message.
+
+**Alternative rejected:** validating sponsors on draft but skipping
+blank rows only — still blocks saving in-progress work (e.g. a name
+typed, link pending), contradicting the draft contract.
+
+### S12.6 · `.tg-control` moved into `@layer components`
+
+**What:** `.tg-control` was unlayered CSS, and Tailwind v4 emits
+utilities inside `@layer utilities` — unlayered author styles beat ALL
+layered ones, so every utility on a `tg-control` element silently lost.
+Visible casualty: `pl-12` on icon inputs (Event website, number-of-teams,
+age-group Price) never applied and the text overlapped the leading icon.
+The block now sits in `@layer components`, where utilities (a later
+layer) override it as Tailwind intends. Side effect, verified intended:
+toolbar selects' authored `w-auto min-w-[…]` sizing now applies too.
+
+**Why:** fixing the two `pl-12` sites with `!important` would leave the
+foot-gun — any future utility on a form control would silently no-op
+and the overlap class of bug would regress.
+
+### S12.7 · Dates pinned to US format app-wide
+
+**What:** the event form's three native `type="date"` fields and the
+milestone date input became `USDateText` (masked mm/dd/yyyy, posts
+ISO), and every `toLocaleDateString(undefined, …)` /
+`toLocaleString(undefined, …)` render switched to an explicit
+`"en-US"` locale (15 call sites). Convention pinned in CLAUDE.md
+("Dates → always US format") because it kept regressing: native date
+inputs and `undefined` locales both follow the BROWSER locale, showing
+dd/mm/yyyy (or day-first text dates) abroad.
+
+**Why:** Danny's rule — US format everywhere, never dd/mm/yyyy; the
+audience is US youth sports. The fix is the class (input primitive +
+explicit locale), not the instances.

@@ -72,7 +72,7 @@ function formatDateRange(start: string | null, end: string | null): string {
   const e = new Date(end ?? "");
   if (isNaN(s.getTime())) return start;
   const fmt = (d: Date) =>
-    d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   if (start === end || isNaN(e.getTime())) return fmt(s);
   return `${fmt(s)} – ${fmt(e)}`;
 }

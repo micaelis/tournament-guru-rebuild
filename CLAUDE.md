@@ -144,6 +144,15 @@ Any string from the DB that ends up in `<a href>`, `<img src>`,
 images) so a hostile `javascript:` / `data:text/html;…` URL can't turn
 into stored XSS.
 
+### Dates → always US format
+
+Dates: always US mm/dd/yyyy in placeholders + displays; never
+dd/mm/yyyy. Never use native `type="date"` inputs (their placeholder
+follows the BROWSER locale — dd/mm/yyyy abroad) — use `USDateText` /
+`USDateField` from `app/components/ui/USDateInput.tsx`, which show
+mm/dd/yyyy and post ISO. Rendered dates always pass an explicit
+`"en-US"` locale (`toLocaleDateString("en-US", …)`), never `undefined`.
+
 ### Unbounded id lists → `lib/supabase/in-chunks`
 
 A PostgREST `.in()` filter rides the GET query string; the HTTP client
