@@ -2931,3 +2931,21 @@ codebase's established lifting pattern is `transition-all duration-200`
 and animating incidental color shifts on these controls is desired
 behavior, not a side effect. Rule recorded in STYLE-GUIDE "Hover
 motion".
+
+### S12.29 · Success toast adopts the Alert's white-card + check-disc treatment
+
+**What:** the toast's success tone was the pale flat-green slab
+(emerald-50 wash, emerald-800 text) — low contrast at a glance and,
+per feedback, it read as "nothing happened." It now renders the S12.9
+inline-Alert treatment exactly: white surface, slate border, the small
+emerald check disc (green only in the icon), slate-800 medium text —
+plus `shadow-lg` since it floats. Error keeps the red-tinted block and
+info the plain white card, mirroring the Alert family tone-for-tone.
+
+**Why (white card, not a saturated green slab):** the account work had
+already restyled the inline Alert to the white-card language and the
+toast lagged behind — two different success styles for one meaning. A
+solid green toast would have fixed visibility but forked the language
+again; the check disc + high-contrast slate text is what makes it
+legible, and the shared treatment makes every confirmation read the
+same wherever it appears.

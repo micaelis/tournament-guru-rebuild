@@ -125,7 +125,9 @@ Build screens from these; don't hand-roll equivalents.
 - **Alert** (auth `parts.tsx`) — form-level messages on auth screens and dashboard forms.
   `error` = the red-tinted block; `info`/success = a **white surface card with a small
   green-check disc** — green lives only in the icon, so the note sits calmly on the gray
-  dashboard bg and the white auth cards alike (S12.9). Never a flat green slab.
+  dashboard bg and the white auth cards alike (S12.9). Never a flat green slab. The Toast's
+  success tone uses this exact treatment (S12.29) — the two confirmation surfaces are ONE
+  style.
 - **StatusPill** — the event lifecycle pill; one color per status (see §6).
 - **StarRating** — gold filled stars (`#f59e0b`) on `#e2e8f0` empty, 0.5 step, with the numeric
   value in Bricolage bold and optional `(x reviews)` count. The canonical rating display —
@@ -209,7 +211,11 @@ Build screens from these; don't hand-roll equivalents.
   ALL date entry goes through these — never native `type="date"` — and
   rendered dates always pass an explicit `"en-US"` locale, never `undefined` (CLAUDE.md
   "Dates" convention: mm/dd/yyyy everywhere, dd/mm/yyyy nowhere).
-- **Toast** — transient confirmations ("Link copied", "Downloaded", "Saved").
+- **Toast** — transient confirmations ("Link copied", "Downloaded", "Saved"), bottom-right
+  stack, 4 s auto-dismiss. The **success tone mirrors the inline Alert exactly** — white
+  surface card + the small green-check disc, green only in the icon, slate-800 text — plus
+  `shadow-lg` for the float (S12.29). Never the pale flat-green slab: it read as "nothing
+  happened". Error keeps the red-tinted block; info is the plain white card.
 - **Dashboard shell** (`app/dashboard/{Sidebar,Header,icons}.tsx`) — the ink rail +
   top header pair. Sidebar: `#0f172a`, the **real brand mark** at the top (mark-only
   crop of `public/logo.svg` inlined with the swoosh filled white and the star + T

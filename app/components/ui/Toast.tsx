@@ -42,19 +42,48 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <Ctx.Provider value={value}>
       {children}
       <div className="pointer-events-none fixed bottom-6 right-6 z-50 flex w-full max-w-sm flex-col gap-2">
+        {/* Success mirrors the inline Alert's S12.9 treatment exactly —
+            white surface + green-check disc, green only in the icon —
+            so the two confirmation surfaces read as one style. */}
         {toasts.map((t) => (
           <div
             key={t.id}
             role="status"
             className={cn(
-              "pointer-events-auto rounded-xl border px-4 py-3 text-sm shadow-md",
-              t.tone === "success" &&
-                "border-emerald-200 bg-emerald-50 text-emerald-800",
+              "pointer-events-auto flex items-start gap-3 rounded-xl border px-4 py-3.5 text-sm shadow-lg",
+              t.tone === "success" && "border-slate-200 bg-white",
               t.tone === "error" && "border-red-200 bg-red-50 text-red-700",
               t.tone === "info" && "border-slate-200 bg-white text-slate-800",
             )}
           >
-            {t.message}
+            {t.tone === "success" && (
+              <span
+                aria-hidden="true"
+                className="mt-0.5 grid h-5 w-5 flex-none place-items-center rounded-full bg-emerald-50 ring-1 ring-emerald-200"
+              >
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="text-emerald-600"
+                >
+                  <path d="M5 12l5 5L20 7" />
+                </svg>
+              </span>
+            )}
+            <span
+              className={cn(
+                "min-w-0 leading-relaxed",
+                t.tone === "success" && "font-medium text-slate-800",
+              )}
+            >
+              {t.message}
+            </span>
           </div>
         ))}
       </div>
