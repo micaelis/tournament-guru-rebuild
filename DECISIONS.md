@@ -2699,3 +2699,25 @@ on `usePathname()` (every flash flow lands on a new pathname);
 `window.location` — not `useSearchParams` — keeps static pages free of
 the Suspense/prerender bailout. The mutations + tournament-crud e2e now
 pin four flash toasts across soft navigations.
+
+### S12.17 · Form CTA hierarchy: `secondary` Button variant + RemoveIconButton
+
+**What:** the event form's action set was all ghost buttons — white,
+bordered CTAs that sank into the white form cards and read at the same
+weight as Cancel. Button gained a `secondary` variant (soft slate-100
+fill): Save as draft, every "+ Add row" CTA, and ImageUploadField's
+Upload now use it, so the hierarchy reads primary (ink) → secondary
+(soft fill) → ghost (bail-out only: Cancel). Row-removal switched from
+a "Remove" text button to the new `RemoveIconButton` ui primitive — a
+trash glyph on the soft red tint (md 40px for control rows, sm 32px for
+button clusters), always with a contextual aria-label ("Remove sponsor
+2"); the shared ImageUploadField's `onRemove` renders it too.
+
+**Why:** on a white card, `ghost` is indistinguishable from an input,
+so real actions competed with the bail-out for attention; a filled-but-
+soft tier restores the reading order without minting a second ink
+button (`bg-slate-900` stays reserved for the commit action). The red
+tint on the remove control matches the app's destructive language
+(danger variant, flag chips) while an icon keeps rows compact.
+Alternative rejected: dashed "add" placeholders — EmptyState owns the
+dashed-placeholder look, and these are buttons, not empties.

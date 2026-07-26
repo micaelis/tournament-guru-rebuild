@@ -2,7 +2,6 @@
 
 import type { ReactNode } from "react";
 import { cn } from "@/app/components/ui/cn";
-import { Button } from "@/app/components/ui";
 
 /**
  * Multi-select pill group — one pill per option, click to toggle. Used
@@ -109,19 +108,5 @@ export function IconInput({
       </span>
       <input {...rest} className="tg-control pl-12" />
     </div>
-  );
-}
-
-export function RemoveRowButton({ onClick }: { onClick: () => void }) {
-  return (
-    <Button
-      type="button"
-      variant="ghost"
-      size="sm"
-      onClick={onClick}
-      aria-label="Remove row"
-    >
-      Remove
-    </Button>
   );
 }

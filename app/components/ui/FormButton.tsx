@@ -5,7 +5,7 @@ import { Button } from "./Button";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 
 type Props = {
-  variant?: "primary" | "ghost" | "danger" | "link";
+  variant?: "primary" | "secondary" | "ghost" | "danger" | "link";
   size?: "sm" | "md" | "lg";
   /** Optional label swap while pending (e.g. "Saving…"); the spinner
    * shows either way. */

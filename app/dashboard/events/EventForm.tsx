@@ -9,7 +9,6 @@ import {
   IconInput,
   LabeledField,
   MultiSelectPills,
-  RemoveRowButton,
 } from "./event-form-parts";
 import {
   AGE_BRACKETS,
@@ -25,6 +24,7 @@ import {
   Button,
   FormButton,
   ImageUploadField,
+  RemoveIconButton,
   useToast,
 } from "@/app/components/ui";
 import { USDateText } from "@/app/components/ui/USDateInput";
@@ -675,7 +675,7 @@ export function EventForm({ defaults }: { defaults: EventFormDefaults }) {
               button that fired. */}
           {(!isEdit || defaults.lifecycle === "draft") && (
             <FormButton
-              variant="ghost"
+              variant="secondary"
               name="intent"
               value="draft"
               formNoValidate
@@ -824,14 +824,15 @@ function AgeGroupsEditor({
               ))}
             </select>
           </LabeledField>
-          <RemoveRowButton
+          <RemoveIconButton
+            label={`Remove age group ${i + 1}`}
             onClick={() => onChange(value.filter((_, idx) => idx !== i))}
           />
         </div>
       ))}
       <Button
         type="button"
-        variant="ghost"
+        variant="secondary"
         onClick={() =>
           onChange([
             ...value,
@@ -868,7 +869,9 @@ function SponsorsEditor({
             <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">
               Sponsor {i + 1}
             </span>
-            <RemoveRowButton
+            <RemoveIconButton
+              size="sm"
+              label={`Remove sponsor ${i + 1}`}
               onClick={() => onChange(value.filter((_, idx) => idx !== i))}
             />
           </div>
@@ -923,7 +926,7 @@ function SponsorsEditor({
       ))}
       <Button
         type="button"
-        variant="ghost"
+        variant="secondary"
         onClick={() =>
           onChange([...value, { name: "", link: "", logo_url: "" }])
         }
@@ -991,14 +994,15 @@ function MilestonesEditor({
               }
             />
           </LabeledField>
-          <RemoveRowButton
+          <RemoveIconButton
+            label={`Remove milestone ${i + 1}`}
             onClick={() => onChange(value.filter((_, idx) => idx !== i))}
           />
         </div>
       ))}
       <Button
         type="button"
-        variant="ghost"
+        variant="secondary"
         onClick={() =>
           onChange([...value, { title: "", milestone_date: "", description: "" }])
         }
@@ -1044,7 +1048,7 @@ function ImagesEditor({
       {value.length < cap && (
         <Button
           type="button"
-          variant="ghost"
+          variant="secondary"
           onClick={() => onChange([...value, ""])}
         >
           + Add image

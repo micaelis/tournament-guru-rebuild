@@ -5,6 +5,7 @@ import { safeImageSrc } from "@/lib/url";
 import { uploadImage, type ImageBucket } from "@/lib/storage/upload";
 import { SafeImg } from "./SafeImg";
 import { Button } from "./Button";
+import { RemoveIconButton } from "./RemoveIconButton";
 import { cn } from "./cn";
 
 /**
@@ -137,7 +138,7 @@ export function ImageUploadField({
             />
             <Button
               type="button"
-              variant="ghost"
+              variant="secondary"
               size="sm"
               loading={busy}
               onClick={() => fileRef.current?.click()}
@@ -145,15 +146,11 @@ export function ImageUploadField({
               {busy ? "Uploading…" : "Upload PNG/JPG"}
             </Button>
             {onRemove ? (
-              <Button
-                type="button"
-                variant="ghost"
+              <RemoveIconButton
                 size="sm"
+                label={`Remove ${label}`}
                 onClick={onRemove}
-                aria-label={`Remove ${label}`}
-              >
-                Remove
-              </Button>
+              />
             ) : (
               value && (
                 <Button

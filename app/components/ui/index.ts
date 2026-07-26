@@ -6,6 +6,7 @@ export { ConfirmDialog } from "./ConfirmDialog";
 export { EmptyState } from "./EmptyState";
 export { FormButton } from "./FormButton";
 export { MetricStrip, MetricTile, type MetricTileData } from "./MetricStrip";
+export { RemoveIconButton } from "./RemoveIconButton";
 export { StarRating } from "./StarRating";
 export { Spinner } from "./Spinner";
 export { StatusPill, eventStatusTone, type PillTone } from "./StatusPill";

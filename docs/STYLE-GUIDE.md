@@ -91,7 +91,10 @@ recurs on rating pools, reviewer cards, and metric strips — keep it consistent
 Build screens from these; don't hand-roll equivalents.
 
 - **Button** — variants: `primary` (dark `#0f172a`, white text; lifts 1px with a soft
-  shadow on hover), `ghost` (white, bordered — the secondary), `danger` (red-tinted ghost
+  shadow on hover), `secondary` (soft slate-100 fill, slate-900 text — a real but
+  subordinate action: Save as draft, "+ Add row" CTAs, Upload; use it wherever a
+  bordered white button would sink into a white form card), `ghost` (white, bordered —
+  tertiary/bail-out: Cancel, dialog dismiss), `danger` (red-tinted ghost
   for destructive confirms), `link` (the TextLink treatment). Sizes: `sm`, `md`, `lg`.
   All transitions run 150ms ease-out. `loading` disables the button and prepends the
   shared **Spinner** — pass the pending flag from `useActionState`, or use **FormButton**
@@ -142,13 +145,20 @@ Build screens from these; don't hand-roll equivalents.
   image" tile, a soft non-blocking "couldn't load that image" warning on a dead URL, and a
   Clear button. Pass `name` to submit the value in an uncontrolled `<form>`. In list rows
   (event images), pass `onRemove` — it renders a Remove button in the same cluster as
-  Upload (replacing Clear) so the pair reads as one control; never park a lone Remove at
+  Upload (replacing Clear) so the pair reads as one control — since S12.17 that Remove
+  is the shared RemoveIconButton, not a text button; never park a lone Remove at
   the far edge of the row.
   `thumbSize="lg"` renders the preview as a fixed **square tile** (`h-36 w-36`) instead of
   the slim column-height thumb — use it for org logos and other hero-ish images that must
   never stretch with the row. `thumbShape="circle"` renders a fixed **circular** thumb
   (`h-24 w-24`) — the form-side mirror of Avatar's circle rule; use it for profile photos
   (S12.9). Never build a bare URL text input for a DB image again — use this.
+- **RemoveIconButton** — the row-removal control for editable lists (age groups,
+  sponsors, milestones, gallery images): a trash glyph on the soft red tint
+  (`bg-red-50` / `text-red-600`, red-100 border), `md` (40px, aligns with control rows)
+  or `sm` (32px, sits in size-sm button clusters). Always give it a contextual
+  `label` ("Remove sponsor 2") — it is the accessible name and tooltip. Never a plain
+  "Remove" text button in a list row again (S12.17).
 - **TextLink** — the canonical inline text link (the signup page's "browse events"
   treatment): semibold slate-700 with a soft slate underline, warming to the red accent
   (text + decoration) on hover. Font-size inherits from the surrounding copy; pass a
