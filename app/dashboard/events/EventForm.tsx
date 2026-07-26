@@ -129,9 +129,6 @@ export function EventForm({ defaults }: { defaults: EventFormDefaults }) {
     useLiveValidation(state.fieldErrors?.season_id, (v) =>
       v ? null : "Season is required.",
     );
-  const [intent, setIntent] = useState<"draft" | "publish" | "update">(
-    isEdit && defaults.lifecycle === "active" ? "update" : "draft",
-  );
   const [ageGroups, setAgeGroups] = useState<AgeGroupInput[]>(defaults.ageGroups);
   const [sponsors, setSponsors] = useState<SponsorInput[]>(defaults.sponsors);
   const [milestones, setMilestones] = useState<MilestoneInput[]>(defaults.milestones);
@@ -159,12 +156,6 @@ export function EventForm({ defaults }: { defaults: EventFormDefaults }) {
     }
   }, [state.fieldErrors]);
 
-  useEffect(() => {
-    if (state.createdId && isEdit) {
-      push("success", intent === "publish" ? "Event published." : "Changes saved.");
-    }
-  }, [state.createdId, isEdit, intent, push]);
-
   const canPublish = useMemo(() => {
     return (
       liveTitle.trim().length > 0 &&
@@ -180,7 +171,6 @@ export function EventForm({ defaults }: { defaults: EventFormDefaults }) {
       }}
       className="space-y-8"
     >
-      <input type="hidden" name="intent" value={intent} />
       <input type="hidden" name="tournament_id" value={defaults.tournamentId} />
       {defaults.eventId && (
         <input type="hidden" name="event_id" value={defaults.eventId} />
@@ -679,33 +669,29 @@ export function EventForm({ defaults }: { defaults: EventFormDefaults }) {
           >
             Cancel
           </Button>
-          {isEdit && defaults.lifecycle === "draft" && (
+          {/* Submitter name/value pairs carry the intent (only the
+              clicked button's pair rides the FormData), so the server
+              knows draft-vs-publish and FormButton spins only the
+              button that fired. */}
+          {(!isEdit || defaults.lifecycle === "draft") && (
             <FormButton
               variant="ghost"
+              name="intent"
+              value="draft"
               formNoValidate
               pendingLabel="Saving…"
-              onClick={() => setIntent("draft")}
-            >
-              Save as draft
-            </FormButton>
-          )}
-          {!isEdit && (
-            <FormButton
-              variant="ghost"
-              formNoValidate
-              pendingLabel="Saving…"
-              onClick={() => setIntent("draft")}
             >
               Save as draft
             </FormButton>
           )}
           <FormButton
             variant="primary"
+            name="intent"
+            value={
+              isEdit && defaults.lifecycle === "active" ? "update" : "publish"
+            }
             disabled={!canPublish}
             pendingLabel="Saving…"
-            onClick={() =>
-              setIntent(isEdit && defaults.lifecycle === "active" ? "update" : "publish")
-            }
           >
             {isEdit
               ? defaults.lifecycle === "active"

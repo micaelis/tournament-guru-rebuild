@@ -97,7 +97,11 @@ Build screens from these; don't hand-roll equivalents.
   shared **Spinner** — pass the pending flag from `useActionState`, or use **FormButton**
   (a submit Button that wires `useFormStatus` automatically, with an optional
   `pendingLabel` swap like "Saving…"). Every in-flight action shows the spinner; don't
-  hand-roll "…" or label-only pending states.
+  hand-roll "…" or label-only pending states. Forms with **multiple submit buttons**
+  give each FormButton a `name`/`value` submitter pair (e.g. `name="intent"
+  value="draft"`): only the clicked button spins while its siblings merely disable,
+  and the server reads the same pair off the FormData — no hidden intent input
+  (S12.16).
 - **Card** — white surface, `1px` line border, radius 14–16px, border-color hover. The base
   container for tournaments, events, reviews, panels.
 - **Chip** — small pill: `count` (slate, neutral), `prem` (red, "Premium"), `spons` (violet,

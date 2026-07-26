@@ -648,8 +648,12 @@ validated, never saved (DECISIONS S12.5). On creation the
 event is assigned to the tournament under which it was initiated, dates are
 stored so search filters work, and status derives from the dates (§2.3).
 Temporary age-groups/sponsors/milestones added and deleted in the same session
-are not persisted. On success, redirect to the **internal event details page** (created
-+ last-modified timestamps, status, edit/delete). A save is **atomic**: the base
+are not persisted. On success — draft, publish, or update alike — redirect to the
+**internal event details page** (created + last-modified timestamps, status,
+edit/delete) with a confirmation toast ("Draft saved" / "Event published" /
+"Changes saved"); the user is never left silently on the form. While the save
+runs, only the clicked button shows the "Saving…" spinner — the sibling submit
+button merely disables. A save is **atomic**: the base
 row and every child collection (age groups, sponsors, competition levels,
 surfaces, features, images, milestones) persist through one transactional RPC
 (`save_event_graph`), so a failed save leaves the event exactly as it was — no

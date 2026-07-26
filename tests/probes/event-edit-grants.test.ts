@@ -64,10 +64,11 @@ describe("event edit grants · an ED can actually save an existing event", () =>
     fd.set("event_id", eventId);
     fd.set("title", "Edited By Owner");
 
-    const result = await saveEvent({}, fd);
-    expect(result.error).toBeUndefined();
-    expect(result.fieldErrors).toBeUndefined();
-    expect(result.createdId).toBe(eventId);
+    // Success = the redirect to the event details page with the flash
+    // toast (a validation/DB failure RETURNS state instead of throwing).
+    await expect(saveEvent({}, fd)).rejects.toThrow(
+      `NEXT_REDIRECT:/dashboard/events/${eventId}?flash=${encodeURIComponent("success:Changes saved")}`,
+    );
 
     const { data } = await service()
       .from("events")
@@ -102,9 +103,9 @@ describe("event edit grants · an ED can actually save an existing event", () =>
       .single<{ id: string }>();
     fd.set("season_id", season!.id);
 
-    const result = await saveEvent({}, fd);
-    expect(result.error).toBeUndefined();
-    expect(result.fieldErrors).toBeUndefined();
+    await expect(saveEvent({}, fd)).rejects.toThrow(
+      `NEXT_REDIRECT:/dashboard/events/${eventId}?flash=${encodeURIComponent("success:Event published")}`,
+    );
 
     const { data } = await svc
       .from("events")

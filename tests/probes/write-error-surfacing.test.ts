@@ -133,9 +133,11 @@ beforeEach(() => {
 
 describe("write-error-surfacing · saveEvent child collections", () => {
   it("sanity: a healthy save reports success AND the child rows land", async () => {
-    const result = await saveEvent({}, saveForm());
-    expect(result.error).toBeUndefined();
-    expect(result.createdId).toBe(eventId);
+    // Success = the redirect to the event details page; failures RETURN
+    // state instead of throwing.
+    await expect(saveEvent({}, saveForm())).rejects.toThrow(
+      `NEXT_REDIRECT:/dashboard/events/${eventId}`,
+    );
 
     const svc = service();
     const { data: ages } = await svc
@@ -151,14 +153,13 @@ describe("write-error-surfacing · saveEvent child collections", () => {
   });
 
   it("a failed save_event_graph call surfaces AND leaves the data untouched", async () => {
-    // Seed a known collection through a healthy save first.
-    const healthy = await saveEvent({}, saveForm());
-    expect(healthy.error).toBeUndefined();
+    // Seed a known collection through a healthy save first (success
+    // throws its redirect).
+    await expect(saveEvent({}, saveForm())).rejects.toThrow(/NEXT_REDIRECT/);
 
     ctl.breakRpc = "save_event_graph";
     const result = await saveEvent({}, saveForm());
     expect(result.error).toBeTruthy();
-    expect(result.createdId).toBeUndefined();
 
     // The atomic contract's other half: a failed save is a NO-op — the
     // collection survives (the old replace-all left it wiped here).
@@ -172,7 +173,8 @@ describe("write-error-surfacing · saveEvent child collections", () => {
 
 describe("write-error-surfacing · duplicateEvent child collections", () => {
   it("sanity: a healthy duplicate runs through to its redirect", async () => {
-    await saveEvent({}, saveForm());
+    // Seed via a healthy save (success throws its own redirect).
+    await expect(saveEvent({}, saveForm())).rejects.toThrow(/NEXT_REDIRECT/);
     await expect(duplicateEvent(eventId)).rejects.toThrow(/NEXT_REDIRECT/);
   });
 

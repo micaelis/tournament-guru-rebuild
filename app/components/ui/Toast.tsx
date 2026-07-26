@@ -9,6 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { usePathname } from "next/navigation";
 import { cn } from "./cn";
 
 type Tone = "success" | "error" | "info";
@@ -69,11 +70,17 @@ export function useToast(): ToastCtx {
 
 /**
  * Ephemeral URL-driven toast — reads `?flash=success:message` off the
- * pathname and fires the toast then strips the param. Server actions
- * that redirect can use this to hand a message to the next page.
+ * URL and fires the toast then strips the param. Server actions that
+ * redirect (and router.push) use this to hand a message to the next
+ * page. Keyed on the pathname because this sits in a persisting layout:
+ * a soft navigation doesn't remount it, so a mount-only effect would
+ * miss every in-app flash (every flash flow lands on a new pathname).
+ * window.location — not useSearchParams — so static pages don't need a
+ * Suspense/prerender bailout.
  */
 export function FlashToast() {
   const { push } = useToast();
+  const pathname = usePathname();
   useEffect(() => {
     const url = new URL(window.location.href);
     const flash = url.searchParams.get("flash");
@@ -87,6 +94,6 @@ export function FlashToast() {
     );
     url.searchParams.delete("flash");
     window.history.replaceState({}, "", url.toString());
-  }, [push]);
+  }, [pathname, push]);
   return null;
 }

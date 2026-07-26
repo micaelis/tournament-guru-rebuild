@@ -28,7 +28,6 @@ export type {
 export type EventFormState = {
   error?: string;
   fieldErrors?: Record<string, string>;
-  createdId?: string;
 };
 
 /**
@@ -227,10 +226,17 @@ export async function saveEvent(
   revalidatePath("/dashboard/events");
   revalidatePath(`/dashboard/events/${savedId}`);
 
-  if (isNew) {
-    redirect(`/dashboard/events/${savedId}`);
-  }
-  return { createdId: savedId };
+  // Success always lands on the internal event details page with a
+  // FlashToast confirmation — never silently back on the form.
+  const flash =
+    intent === "publish"
+      ? "Event published"
+      : intent === "update"
+        ? "Changes saved"
+        : "Draft saved";
+  redirect(
+    `/dashboard/events/${savedId}?flash=${encodeURIComponent(`success:${flash}`)}`,
+  );
 }
 
 function str(fd: FormData, key: string): string {

@@ -231,8 +231,54 @@ test.describe("Event director — create event", () => {
       await expect(page).toHaveURL(
         /\/dashboard\/events\/[0-9a-f-]{36}/,
       );
-      createdEventId = page.url().split("/").pop();
+      createdEventId = page.url().split("/").pop()?.split("?")[0];
       await expect(page.getByText(title)).toBeVisible();
+      // The redirect hands a FlashToast to the details page (S12.16).
+      await expect(page.getByText("Draft saved")).toBeVisible();
+    } finally {
+      if (createdEventId) await deleteEvent(createdEventId);
+      if (tournamentId) await deleteTournament(tournamentId);
+      if (ed) await deleteUser(ed.id);
+    }
+  });
+
+  test("only the clicked submit button shows the pending state", async ({
+    page,
+  }) => {
+    let ed: SeededUser | undefined;
+    let tournamentId: string | undefined;
+    let createdEventId: string | undefined;
+    try {
+      ed = await createEventDirector({ completeOnboarding: true });
+      tournamentId = await seedTournament(ed.id);
+      await signIn(page, ed.email, ed.password);
+      await page.goto(`/dashboard/events/new?tournament=${tournamentId}`);
+
+      const title = `E2E Pending State ${Date.now()}`;
+      await page.locator('input[name="title"]').fill(title);
+
+      // Hold the server-action POST so the pending window is observable
+      // (page loads are GETs and pass straight through).
+      await page.route("**/dashboard/events/new**", async (route) => {
+        if (route.request().method() === "POST") {
+          await new Promise((resolve) => setTimeout(resolve, 2_500));
+        }
+        await route.continue();
+      });
+
+      const publish = page.getByRole("button", { name: "Publish", exact: true });
+      await page.getByRole("button", { name: "Save as draft" }).click();
+
+      // Sibling submit: disabled while the action runs, label untouched.
+      await expect(publish).toBeDisabled();
+      await expect(publish).toHaveText("Publish");
+      // The clicked button is the only one that swaps to the spinner label.
+      await expect(page.getByRole("button", { name: "Saving…" })).toBeVisible();
+
+      await expect(page).toHaveURL(/\/dashboard\/events\/[0-9a-f-]{36}/, {
+        timeout: 15_000,
+      });
+      createdEventId = page.url().split("/").pop()?.split("?")[0];
     } finally {
       if (createdEventId) await deleteEvent(createdEventId);
       if (tournamentId) await deleteTournament(tournamentId);
@@ -278,8 +324,9 @@ test.describe("Event director — create event", () => {
 
       // Passing publish validation redirects to the event page.
       await expect(page).toHaveURL(/\/dashboard\/events\/[0-9a-f-]{36}/);
-      createdEventId = page.url().split("/").pop();
+      createdEventId = page.url().split("/").pop()?.split("?")[0];
       await expect(page.getByText(title)).toBeVisible();
+      await expect(page.getByText("Event published")).toBeVisible();
     } finally {
       if (createdEventId) await deleteEvent(createdEventId);
       if (tournamentId) await deleteTournament(tournamentId);

@@ -80,7 +80,12 @@ test.describe("Event director — tournament lifecycle", () => {
       await page.locator('input[name="title"]').fill(newTitle);
       await page.getByRole("button", { name: "Update", exact: true }).click();
 
-      await expect(page.getByText("Changes saved.")).toBeVisible();
+      // Success redirects to the event details page with a FlashToast
+      // (S12.16) — edits no longer stay parked on the form.
+      await expect(page).toHaveURL(
+        new RegExp(`/dashboard/events/${seed.eventId}`),
+      );
+      await expect(page.getByText("Changes saved")).toBeVisible();
 
       // Read the row back — the toast alone would not have caught S9.2,
       // where the write was denied but the UI still moved on.
@@ -133,7 +138,10 @@ test.describe("Event director — tournament lifecycle", () => {
         .getByRole("button", { name: "Update & publish", exact: true })
         .click();
 
-      await expect(page.getByText("Event published.")).toBeVisible();
+      await expect(page).toHaveURL(
+        new RegExp(`/dashboard/events/${seed.eventId}`),
+      );
+      await expect(page.getByText("Event published")).toBeVisible();
       const row = await getEventFields(seed.eventId, "lifecycle");
       expect(row.lifecycle).toBe("active");
     } finally {

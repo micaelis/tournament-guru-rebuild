@@ -2667,3 +2667,35 @@ enumerating the known-good targets is strictly safer than trying to
 out-parse WHATWG normalization. Cost: any future email leg that adds a
 `next` target must also add it to `NEXT_ALLOW` — a loud, greppable
 one-liner.
+
+### S12.16 · Event save: submitter-pair intent + always redirect with a FlashToast
+
+**What:** the event form's two submit buttons each carry a
+`name="intent" value="…"` submitter pair instead of sharing a hidden
+`intent` input driven by onClick state; `FormButton` gained a pure
+`ownsPending(pending, data, name, value)` check over
+`useFormStatus().data`, so only the clicked button swaps to "Saving…"
+while the sibling merely disables. `saveEvent` success (draft, publish,
+and update alike) now `redirect()`s to `/dashboard/events/[id]` with a
+`?flash=success:…` FlashToast ("Draft saved" / "Event published" /
+"Changes saved") instead of returning `createdId` and leaving the edit
+flow parked on the form; `createdId` left `EventFormState`.
+
+**Why:** `useFormStatus().pending` is form-wide, so both buttons showed
+"Saving…" whichever was clicked; the browser puts exactly the clicked
+submitter's pair in the FormData, which identifies the owner without
+any client state and hands the server its intent for free. Redirect
+plus flash replaces the silent success (new events already redirected;
+edits showed a toast but stayed put — one success contract now).
+Alternative rejected: per-button `useActionState` formAction identities
+— two action instances for one mutation, and the intent still has to
+ride the payload.
+
+Found en route: `FlashToast` lives in persisting layouts, but its effect
+ran on MOUNT only — every soft navigation (server-action redirect,
+`router.push`) silently dropped its flash, including the pre-existing
+"Review saved" toast, and no e2e asserted one. The effect is now keyed
+on `usePathname()` (every flash flow lands on a new pathname);
+`window.location` — not `useSearchParams` — keeps static pages free of
+the Suspense/prerender bailout. The mutations + tournament-crud e2e now
+pin four flash toasts across soft navigations.
