@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<!--
+  Tournament Guru — ED EVENTS LIST redesign, COMPACT direction (DESIGN ARTIFACT, not
+  wired to the app). Open directly in a browser (needs network: Tailwind CDN + fonts).
+
+  Replaces the previous heavier iteration of this file: the client prefers the earlier,
+  DENSER version — this rebuild returns to that compactness. Same approved control
+  chrome as the account + ED event-details mockups (crisp ink-outline secondaries,
+  white search input with the red focus ring, bordered segmented tabs with the
+  soft-red selected tint, one status-pill family, solid-red Upgrade); what changed
+  is the layout economy:
+
+    Header     · "Events" + the counts as a quiet subtext on the title line,
+                 "New tournament" pinned top-right, one-line page subtext below.
+    Toolbar    · search + status tabs (All / Published / Drafts / Concluded /
+                 Canceled) on one slim white card.
+    Grouping   · one card per TOURNAMENT — title + "Recurring" tag and a single
+                 COMPACT meta line (N events · stars · avg · N verified reviews ·
+                 "Ratings breakdown" toggle, COLLAPSED by default), with
+                 Add event / Edit tournament packed right.
+    Rows       · events are a DENSE aligned table: Event (small logo, title,
+                 Premium/Spotlight pills, host · season subline), Status, Dates,
+                 Location, Reviews & rating (small stars + score + count + a tiny
+                 collapsible per-event breakdown). Tight row heights — the point
+                 of this direction. Premium rows keep the accent spine + wash.
+    Breakdown  · one compact composition at BOTH levels: a slim audience strip
+                 (Overall / Coach — premium-only / Attendee, coach red + attendee
+                 amber per the app's semantic pairing) over a tight grid of mini
+                 category tiles. Never hero cards.
+    Actions    · fixed order Upgrade → Edit → "…" packed right; Upgrade is the
+                 SOLID accent-red fill (never yellow) and appears ONLY on
+                 non-premium active events. Concluded/Canceled rows are "…" only.
+                 Menus (Duplicate / Copy public link / Copy spectator reviews
+                 link / QR / Cancel / Delete, adapted per status) never clip:
+                 cards don't hide overflow and the panel flips near the viewport
+                 edge.
+    Extras     · search + status filter work; one first-run tournament shows the
+                 empty state.
+
+  Persona: Miguel Santos · Event Director · Lou Fusz Athletic (St. Louis, MO).
+  Design-only — do not implement into app/ until Danny signs off.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>TG — ED events list · compact design mockup</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: { ink: "#0f172a", accent: "#dc2626" },
+        fontFamily: {
+          sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+          heading: ['"Bricolage Grotesque"', "Inter", "sans-serif"],
+        },
+      },
+    },
+  };
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0f172a; --body:#475569; --muted:#64748b; --faint:#94a3b8;
+    --line:#e2e8f0; --line2:#f1f5f9; --accent:#dc2626; --gold:#f59e0b;
+  }
+  body{color:var(--ink);-webkit-font-smoothing:antialiased}
+
+  /* ── surfaces ── */
+  .card{background:#fff;border:1px solid var(--line);border-radius:16px;
+    box-shadow:0 1px 2px rgba(15,23,42,.05),0 14px 34px -22px rgba(15,23,42,.18);
+    transition:border-color .15s ease-out}
+  .hairline{height:1px;background:var(--line2)}
+
+  /* ── buttons — primary solid ink; SECONDARY = the approved crisp ink-outline
+     from the account + ED event-details mockups (transparent fill, 1.5px
+     mid-slate border, ink label; hover darkens the border to ink with a
+     whisper of ink tint) ── */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;
+    font-weight:600;border-radius:10px;text-decoration:none;border:1px solid transparent;
+    font-size:13px;white-space:nowrap;transition:background .15s ease-out,border-color .15s ease-out,
+    color .15s ease-out,box-shadow .15s ease-out,transform .15s ease-out}
+  .btn-primary{background:var(--ink);color:#fff;padding:9px 15px;font-size:13.5px;font-weight:700}
+  .btn-primary:hover{transform:translateY(-1px);box-shadow:0 10px 22px -8px rgba(15,23,42,.45)}
+  .btn-primary:active{transform:none;box-shadow:none}
+  .btn-secondary{background:transparent;border:1.5px solid #94a3b8;color:var(--ink);
+    padding:8px 14px;font-weight:700}
+  .btn-secondary:hover{border-color:var(--ink);background:rgba(15,23,42,.045)}
+  .btn-secondary [data-i]{color:#64748b;transition:color .15s ease-out}
+  .btn-secondary:hover [data-i]{color:var(--ink)}
+  .btn-sm{padding:6px 11px;font-size:12.5px;border-radius:9px}
+  .btn-xs{padding:4.5px 10px;font-size:12px;border-radius:8px;gap:6px}
+
+  /* clicking never leaves a pressed slab/outline; keyboard focus keeps a ring */
+  button:focus,input:focus{outline:none}
+  button:focus-visible{outline:2px solid rgba(100,116,139,.55);outline-offset:2px}
+
+  /* upgrade CTA — SOLID brand-accent fill: the one promotional action on a row.
+     Never yellow/amber; clearly distinct from the red-TINTED danger menu items */
+  .btn-upgrade{display:inline-flex;align-items:center;justify-content:center;gap:5px;cursor:pointer;
+    border-radius:8px;border:1px solid transparent;background:linear-gradient(180deg,#ef4444,var(--accent));
+    color:#fff;font-size:12px;font-weight:700;padding:4.5px 10px;white-space:nowrap;
+    box-shadow:0 6px 14px -8px rgba(220,38,38,.55);
+    transition:background .15s ease-out,box-shadow .15s ease-out,transform .15s ease-out}
+  .btn-upgrade:hover{background:linear-gradient(180deg,var(--accent),#b91c1c);
+    box-shadow:0 10px 22px -10px rgba(220,38,38,.6);transform:translateY(-1px)}
+  .btn-upgrade:active{transform:none;box-shadow:none}
+  .btn-upgrade [data-i]{color:#fecaca}
+
+  /* icon-only "…" trigger — same approved ink-outline as .btn-secondary */
+  .btn-icon{display:grid;place-items:center;width:30px;height:30px;border-radius:8px;cursor:pointer;
+    border:1.5px solid #94a3b8;background:transparent;color:#64748b;
+    transition:color .15s ease-out,background .15s ease-out,border-color .15s ease-out}
+  .btn-icon:hover{color:var(--ink);border-color:var(--ink);background:rgba(15,23,42,.045)}
+  [data-menu][data-open] .btn-icon{color:var(--ink);border-color:var(--ink);
+    background:rgba(15,23,42,.045)}
+
+  .entity-link{color:var(--ink);text-decoration:none;transition:color .15s ease-out;cursor:pointer}
+  .entity-link:hover{color:var(--accent)}
+
+  /* ── status pills — one family, four states ── */
+  .pill{display:inline-flex;align-items:center;gap:6px;border-radius:9999px;
+    font-family:"Bricolage Grotesque",Inter,sans-serif;font-size:10px;font-weight:800;
+    letter-spacing:.03em;text-transform:uppercase;padding:3px 9px 3px 7px;border:1px solid;
+    white-space:nowrap}
+  .pill .dot{width:5px;height:5px;border-radius:9999px;flex:none}
+  .pill-live{background:#d1fae5;color:#065f46;border-color:#6ee7b7}
+  .pill-live .dot{background:#059669}
+  .pill-done{background:#f1f5f9;color:#475569;border-color:#cbd5e1}
+  .pill-done .dot{background:#94a3b8}
+  .pill-draft{background:#fef3c7;color:#92400e;border-color:#fcd34d}
+  .pill-draft .dot{background:#f59e0b}
+  .pill-cancel{background:#fee2e2;color:#991b1b;border-color:#fca5a5}
+  .pill-cancel .dot{background:#dc2626}
+
+  .chip-prem{display:inline-flex;align-items:center;border-radius:9999px;background:var(--accent);
+    color:#fff;font-family:"Bricolage Grotesque",Inter,sans-serif;font-size:9px;font-weight:800;
+    letter-spacing:.07em;text-transform:uppercase;padding:1.5px 7px;flex:none}
+  .chip-spot{display:inline-flex;align-items:center;border-radius:9999px;background:#f5f3ff;
+    color:#7c3aed;border:1px solid #ddd6fe;font-family:"Bricolage Grotesque",Inter,sans-serif;
+    font-size:9px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:1px 7px;flex:none}
+  .tag{display:inline-flex;align-items:center;gap:5px;border-radius:9999px;background:#f8fafc;
+    border:1px solid var(--line);color:#334155;font-size:11px;font-weight:600;padding:2.5px 9px}
+
+  /* ── stars — fractional fill snapped to 0.5 steps (spec), kept SMALL ── */
+  .stars{position:relative;display:inline-flex;line-height:0}
+  .stars svg{width:16px;height:16px;flex:none}
+  .stars.sm svg{width:14px;height:14px}
+  .stars.xs svg{width:12px;height:12px}
+  .stars-base{display:inline-flex;color:#e2e8f0}
+  .stars-fill{display:inline-flex;color:var(--gold);position:absolute;inset:0 auto 0 0;
+    overflow:hidden;white-space:nowrap}
+
+  .val{font-family:"Bricolage Grotesque",Inter,sans-serif;font-weight:800;
+    letter-spacing:-.02em;line-height:1}
+
+  /* ── segmented status filter — the approved crisp bordered track; selected =
+     the soft red tint used app-wide for "chosen" ── */
+  .seg{display:inline-flex;gap:2px;background:transparent;border:1.5px solid #cbd5e1;
+    border-radius:9999px;padding:3px}
+  .seg button{border:1px solid transparent;background:transparent;border-radius:9999px;
+    padding:4px 12px;font-size:12px;font-weight:700;color:var(--body);cursor:pointer;
+    font-family:"Bricolage Grotesque",Inter,sans-serif;
+    transition:background .15s ease-out,color .15s ease-out,border-color .15s ease-out}
+  .seg button:hover{color:var(--ink)}
+  .seg button.on{background:#fef2f2;border-color:var(--accent);color:#b91c1c}
+
+  /* search field — the approved input treatment (white fill, hairline slate
+     border, red focus ring), sized down for the slim toolbar */
+  .search-field{display:flex;align-items:center;gap:8px;border:1px solid var(--line);
+    border-radius:10px;background:#fff;padding:7.5px 12px;
+    transition:border-color .15s ease,box-shadow .15s ease}
+  .search-field:hover:not(:focus-within){border-color:#cbd5e1}
+  .search-field:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(220,38,38,.12)}
+  .search-field input{border:none;outline:none;background:transparent;font-size:13.5px;
+    font-weight:500;color:var(--ink);width:100%;min-width:0}
+  .search-field input::placeholder{color:#94a3b8}
+
+  /* ── event rows: aligned dense grid on xl, stacked cards below ── */
+  .ev-grid{display:grid;gap:8px 10px;align-items:center}
+  @media (min-width:1280px){
+    .ev-grid{grid-template-columns:minmax(0,2.6fr) 86px 110px minmax(0,1fr) 144px 200px}
+  }
+  .ev-row{padding:9px 20px;transition:background .13s ease-out}
+  .ev-row:hover{background:#fafbfd}
+  /* cards don't clip overflow (the "…" menus must escape), so round the last
+     row's hover wash by hand to match the card's bottom corners */
+  section[data-tournament] li:last-child>.ev-row{border-radius:0 0 15px 15px}
+
+  /* premium rows: accent spine + warm brand wash across the row */
+  .ev-row-premium{background:linear-gradient(90deg,rgba(220,38,38,.055) 0%,rgba(220,38,38,.018) 40%,rgba(220,38,38,0) 68%);
+    box-shadow:inset 3px 0 0 var(--accent)}
+  .ev-row-premium:hover{background:linear-gradient(90deg,rgba(220,38,38,.08) 0%,rgba(220,38,38,.028) 40%,#fafbfd 72%)}
+
+  /* table column labels — quiet eyebrow text on the tinted header band */
+  .col-label{font-family:"Bricolage Grotesque",Inter,sans-serif;font-size:10px;font-weight:800;
+    letter-spacing:.11em;text-transform:uppercase;color:#64748b;white-space:nowrap}
+
+  /* ── breakdown toggles — text-link treatment (the app's textLinkClass
+     vocabulary: semibold slate + soft underline, warming to red on hover);
+     OPEN = red per the app-wide "chosen" tint ── */
+  .rb-link{display:inline-flex;align-items:center;gap:3px;cursor:pointer;background:none;
+    border:none;padding:0;font:inherit;font-weight:700;color:#475569;
+    text-decoration:underline;text-decoration-color:#cbd5e1;text-underline-offset:3px;
+    transition:color .15s ease-out,text-decoration-color .15s ease-out;white-space:nowrap}
+  .rb-link:hover{color:var(--accent);text-decoration-color:#fca5a5}
+  .rb-link [data-i]{color:#94a3b8;transition:transform .18s ease-out,color .15s ease-out}
+  .rb-link:hover [data-i]{color:var(--accent)}
+  .rb-link[aria-expanded="true"]{color:#b91c1c;text-decoration-color:#fca5a5}
+  .rb-link[aria-expanded="true"] [data-i]{transform:rotate(180deg);color:#b91c1c}
+  [data-panel]{display:grid;grid-template-rows:0fr;opacity:0;
+    transition:grid-template-rows .22s ease-out,opacity .18s ease-out}
+  [data-panel]>div{overflow:hidden}
+  [data-panel].open{grid-template-rows:1fr;opacity:1}
+
+  /* ── COMPACT ratings breakdown — one composition at tournament + event level:
+     a slim audience strip over a tight grid of mini category tiles. Coach = red,
+     Attendee = amber (the app's semantic pairing). Never hero cards. ── */
+  .rb-box{border:1px solid var(--line);border-radius:12px;background:#fff;overflow:hidden}
+  .rb-aud{display:flex;flex-wrap:wrap;align-items:center;gap:6px 0;padding:7px 12px;
+    border-bottom:1px solid var(--line2)}
+  .rb-aud-item{display:inline-flex;align-items:center;gap:7px;padding:2px 14px 2px 0;
+    margin-right:14px;border-right:1px solid var(--line2)}
+  .rb-aud-item:last-child{border-right:0;margin-right:0;padding-right:0}
+  .rb-aud-lbl{font-family:"Bricolage Grotesque",Inter,sans-serif;font-size:9.5px;font-weight:800;
+    letter-spacing:.08em;text-transform:uppercase;color:#64748b;white-space:nowrap}
+  .rb-cats{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:6px;
+    padding:8px 12px;background:#fafcfe}
+  .rb-cat{display:flex;align-items:center;justify-content:space-between;gap:8px;
+    border:1px solid #eef2f7;border-radius:8px;background:#fff;padding:4.5px 10px}
+  .rb-cat .lbl{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;
+    color:#475569;white-space:nowrap}
+  .rb-flag{display:inline-flex;align-items:center;border-radius:9999px;background:#fef2f2;
+    color:#b91c1c;font-family:"Bricolage Grotesque",Inter,sans-serif;font-size:8.5px;font-weight:800;
+    letter-spacing:.06em;text-transform:uppercase;padding:1.5px 6px;white-space:nowrap}
+
+  /* ── dropdown menus ── */
+  [data-menu]{position:relative}
+  .tg-menu{position:absolute;right:0;top:calc(100% + 8px);width:244px;display:none;z-index:50;
+    background:#fff;border:1px solid var(--line);border-radius:14px;padding:6px;
+    box-shadow:0 18px 40px -12px rgba(15,23,42,.25)}
+  [data-menu][data-open] .tg-menu{display:block;animation:pop .16s cubic-bezier(.2,.7,.2,1) both}
+  .tg-menu.up{top:auto;bottom:calc(100% + 8px)}
+  @keyframes pop{from{opacity:0;transform:translateY(6px) scale(.98)}to{opacity:1;transform:none}}
+  .tg-menu-item{display:flex;align-items:center;gap:10px;border-radius:9px;padding:8px 11px;
+    font-size:13px;font-weight:600;color:#334155;transition:all .13s ease;cursor:pointer;width:100%;
+    background:none;border:none;text-align:left}
+  .tg-menu-item:hover{background:#f1f5f9;color:var(--ink)}
+  .tg-menu-item.danger{color:#b91c1c}
+  .tg-menu-item.danger:hover{background:#fef2f2}
+  .tg-menu-item [data-i]{color:#94a3b8}
+  .tg-menu-item:hover [data-i]{color:currentColor}
+  .tg-menu-item.danger [data-i]{color:currentColor}
+
+  /* ── first-run empty tile ── */
+  .empty-tile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;
+    border:1.5px dashed #cbd5e1;border-radius:12px;padding:22px 20px;text-align:center;
+    background:linear-gradient(155deg,#f8fafc 0%,#fff 62%)}
+
+  /* ── dark-rail scrollbar ── */
+  .tg-scroll-dark{scrollbar-width:thin;scrollbar-color:#334155 transparent}
+  .tg-scroll-dark::-webkit-scrollbar{width:8px}
+  .tg-scroll-dark::-webkit-scrollbar-track{background:transparent}
+  .tg-scroll-dark::-webkit-scrollbar-thumb{background:#334155;border-radius:9999px;border:2px solid #0f172a}
+  .tg-scroll-dark::-webkit-scrollbar-thumb:hover{background:#475569}
+
+  /* ── toast ── */
+  #toast{position:fixed;right:24px;bottom:24px;z-index:80;background:var(--ink);color:#fff;
+    font-size:13px;font-weight:600;border-radius:12px;padding:11px 16px;
+    box-shadow:0 18px 40px -12px rgba(15,23,42,.4);opacity:0;transform:translateY(8px);
+    pointer-events:none;transition:opacity .2s ease,transform .2s ease}
+  #toast.show{opacity:1;transform:none}
+
+  [data-i]{display:inline-block;flex:none}
+  [data-i] svg{display:block;width:100%;height:100%}
+
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+  }
+</style>
+</head>
+<body class="font-sans text-ink antialiased" style="background:linear-gradient(180deg,#eef2f6 0%,#e9eef4 100%);min-height:100vh">
+
+<div class="mx-auto flex max-w-[1440px]">
+
+  <!-- ══════════ Ink rail (the implemented shell, ED role — Events active) ══════════ -->
+  <aside class="sticky top-0 hidden h-dvh w-[260px] flex-none flex-col bg-ink md:flex">
+    <div class="flex items-center gap-3 px-5 py-6">
+      <svg viewBox="0 0 295.82 141" class="h-8 w-auto" role="img" aria-label="Tournament Guru">
+        <path fill="#ffffff" d="M264.28,47.3c0.12,1.75,0.19,3.52,0.19,5.31c0,12.32-2.83,23.67-7.6,32.79c-1.13,2.38-2.56,4.66-4.24,6.82c-4.18,5.7-9.26,10.03-14.9,12.49c-9.69,5.44-21.84,8.69-35.04,8.69c-0.7,0-1.4-0.02-2.09-0.04c-0.69,0.02-1.39,0.04-2.09,0.04c-31.66,0-57.33-18.64-57.33-41.63c0-22.99,25.67-41.63,57.33-41.63h54.61h9.61c4.35-0.05,4.35-0.05,4.35-0.05c1.64-1.16,3.37-3.12,5.5-5.58l23.22-24.42H201.8c-51.93,0-94.02,31.93-94.02,71.33s42.09,71.33,94.02,71.33s94.02-31.93,94.02-71.33c0-2.7-0.22-5.36-0.61-7.99L264.28,47.3z"/>
+        <polygon fill="#EC2027" points="202.8,38.21 212.53,57.94 234.3,61.1 218.55,76.46 222.27,98.14 202.8,87.9 183.32,98.14 187.04,76.46 171.29,61.1 193.06,57.94"/>
+        <path fill="#ED2024" d="M149.52,0.09L94.2,0H64.14H0v30.06h62.2V140.5H94.2V71.42l0.1-10.16c0-0.03,0.03-1.86,0.03-1.89C94.99,41.57,112.28,10.5,149.52,0.09z"/>
+      </svg>
+      <span class="font-heading text-[15px] font-extrabold tracking-tight text-white">Tournament Guru</span>
+    </div>
+
+    <nav class="tg-scroll-dark flex-1 space-y-7 overflow-y-auto px-3 pb-6">
+      <div>
+        <p class="mb-2.5 px-3 text-[10.5px] font-bold uppercase tracking-[0.16em] text-white/30">Manage</p>
+        <ul class="space-y-0.5">
+          <li>
+            <a class="relative flex items-center gap-3 rounded-xl bg-white/[0.1] px-3 py-2.5 text-[13.5px] font-semibold text-white">
+              <span aria-hidden="true" class="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-full bg-accent"></span>
+              <span data-i="calendar" class="h-4 w-4"></span>Events
+            </a>
+          </li>
+          <li><a class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold text-white/55 transition-colors hover:bg-white/[0.06] hover:text-white/90"><span data-i="star" class="h-4 w-4 opacity-70"></span>Reviews</a></li>
+          <li><a class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold text-white/55 transition-colors hover:bg-white/[0.06] hover:text-white/90"><span data-i="inbox" class="h-4 w-4 opacity-70"></span>Claim Requests</a></li>
+          <li><a class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold text-white/55 transition-colors hover:bg-white/[0.06] hover:text-white/90"><span data-i="tag" class="h-4 w-4 opacity-70"></span>Promo Codes</a></li>
+        </ul>
+      </div>
+      <div>
+        <p class="mb-2.5 px-3 text-[10.5px] font-bold uppercase tracking-[0.16em] text-white/30">Browse</p>
+        <ul class="space-y-0.5">
+          <li><a class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold text-white/55 transition-colors hover:bg-white/[0.06] hover:text-white/90"><span data-i="search" class="h-4 w-4 opacity-70"></span>Search Events</a></li>
+        </ul>
+      </div>
+      <div>
+        <p class="mb-2.5 px-3 text-[10.5px] font-bold uppercase tracking-[0.16em] text-white/30">You</p>
+        <ul class="space-y-0.5">
+          <li><a class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold text-white/55 transition-colors hover:bg-white/[0.06] hover:text-white/90"><span data-i="user" class="h-4 w-4 opacity-70"></span>Account</a></li>
+          <li><a class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold text-white/55 transition-colors hover:bg-white/[0.06] hover:text-white/90"><span data-i="help" class="h-4 w-4 opacity-70"></span>FAQ</a></li>
+          <li><a class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold text-white/55 transition-colors hover:bg-white/[0.06] hover:text-white/90"><span data-i="lifebuoy" class="h-4 w-4 opacity-70"></span>Support</a></li>
+        </ul>
+      </div>
+    </nav>
+
+    <div class="space-y-3 border-t border-white/[0.08] px-4 py-5">
+      <div class="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3.5 py-3.5">
+        <p class="text-[12.5px] font-bold text-white">Premium listings</p>
+        <p class="mt-1 text-xs leading-relaxed text-white/45">Feature your events in Spotlight and search-top placements.</p>
+        <a class="mt-2 inline-block cursor-pointer text-[12.5px] font-semibold text-red-400 transition-colors hover:text-red-300 hover:underline">Learn more</a>
+      </div>
+      <div class="flex items-center gap-3 rounded-xl border border-white/[0.08] bg-white/[0.06] px-3 py-3">
+        <span class="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-lg bg-white">
+          <svg viewBox="0 0 96 96" class="h-full w-full"><rect width="96" height="96" rx="18" fill="#0f172a"/><text x="46" y="62" text-anchor="middle" font-family="'Bricolage Grotesque',Inter,sans-serif" font-size="36" font-weight="800" fill="#fff">LF</text><circle cx="77" cy="58" r="4.5" fill="#EC2027"/></svg>
+        </span>
+        <div class="min-w-0">
+          <p class="truncate text-[12.5px] font-bold text-white">Lou Fusz Athletic</p>
+          <p class="truncate text-[11px] font-medium text-white/40">Organization</p>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ══════════ Main column ══════════ -->
+  <div class="flex min-w-0 flex-1 flex-col">
+
+    <!-- Top header -->
+    <header class="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
+      <div class="flex h-16 items-center justify-between gap-4 px-5 md:px-10">
+        <div class="flex min-w-0 items-center gap-2 text-[13px]">
+          <span class="hidden font-medium text-slate-400 sm:block">Dashboard</span>
+          <span data-i="chev-r" class="hidden h-3.5 w-3.5 text-slate-300 sm:block"></span>
+          <span class="truncate font-semibold text-slate-900">Events</span>
+        </div>
+        <div data-menu>
+          <button type="button" data-menu-btn aria-haspopup="menu"
+            class="flex items-center gap-3 rounded-full py-1.5 pl-1.5 pr-3 transition-colors hover:bg-slate-100">
+            <span class="grid h-8 w-8 flex-none place-items-center rounded-full bg-slate-200 font-heading text-[12px] font-extrabold text-slate-600">MS</span>
+            <span class="hidden text-left sm:block">
+              <span class="block text-[13px] font-bold leading-tight text-slate-900">Miguel Santos</span>
+              <span class="block text-[11px] font-medium leading-tight text-slate-500">Event Director</span>
+            </span>
+            <span data-i="chev-d" class="h-4 w-4 text-slate-400 transition-transform"></span>
+          </button>
+          <div class="tg-menu" role="menu">
+            <div class="px-3 py-2.5">
+              <p class="text-[13px] font-bold text-slate-900">Miguel Santos</p>
+              <p class="mt-0.5 truncate text-xs text-slate-500">m.santos@loufusz.com</p>
+            </div>
+            <div class="mx-1.5 h-px bg-slate-100"></div>
+            <button class="tg-menu-item" role="menuitem"><span data-i="user" class="h-[15px] w-[15px]"></span>Account</button>
+            <div class="mx-1.5 h-px bg-slate-100"></div>
+            <button class="tg-menu-item danger" role="menuitem"><span data-i="logout" class="h-[15px] w-[15px]"></span>Log out</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="flex-1 px-5 py-7 md:px-10 md:py-8">
+      <div class="mx-auto max-w-[1240px]">
+
+        <!-- ════════════════ PAGE HEADER + TOOLBAR ════════════════ -->
+        <!-- title + the counts as quiet subtext on the same line; New tournament top-right -->
+        <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+          <div class="flex min-w-0 flex-wrap items-baseline gap-x-3.5 gap-y-1">
+            <h1 class="font-heading text-[24px] font-extrabold tracking-tight text-slate-900">Events</h1>
+            <p class="text-[13px] font-medium text-slate-500">
+              <span class="font-bold text-slate-800">3</span> tournaments
+              <span class="text-slate-300">·</span>
+              <span class="font-bold text-slate-800">5</span> events
+              <span class="text-slate-300">·</span>
+              <span class="font-bold text-slate-800">42</span> verified reviews
+            </p>
+          </div>
+          <button type="button" class="btn btn-primary" data-mock="New tournament wizard opens">
+            <span data-i="plus" class="h-4 w-4"></span>New tournament
+          </button>
+        </div>
+        <p class="mt-1 text-[13px] font-medium text-slate-500">
+          Every tournament and event you manage — publishing status, dates, locations and verified reviews in one place.
+        </p>
+
+        <!-- slim white toolbar: search + status tabs -->
+        <div class="card mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2.5 px-3.5 py-2.5">
+          <label class="search-field w-full max-w-[300px]">
+            <span data-i="search" class="h-4 w-4 text-slate-400"></span>
+            <input id="ev-search" type="search" placeholder="Search your events…" autocomplete="off">
+          </label>
+          <div class="seg" id="status-seg">
+            <button type="button" class="on" data-status="all">All</button>
+            <button type="button" data-status="published">Published</button>
+            <button type="button" data-status="draft">Drafts</button>
+            <button type="button" data-status="concluded">Concluded</button>
+            <button type="button" data-status="canceled">Canceled</button>
+          </div>
+        </div>
+
+<div class="mt-5 space-y-5">
+
+        <!-- ════════════════ TOURNAMENT 1 · Fall "Back 2 Soccer" ════════════════ -->
+        <section class="card" data-tournament>
+          <!-- tournament header: title + Recurring, ONE compact meta line, actions right -->
+          <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-5 pb-3 pt-4">
+            <div class="min-w-0">
+              <div class="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                <h2 class="font-heading text-[16.5px] font-extrabold tracking-tight text-slate-900" style="text-wrap:balance">
+                  Fall &ldquo;Back 2 Soccer&rdquo; Preseason Friendlies
+                </h2>
+                <span class="tag"><span data-i="refresh" class="h-3 w-3 text-slate-400"></span>Recurring</span>
+              </div>
+              <div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] font-medium text-slate-500">
+                <span><span class="font-bold text-slate-800">3</span> events</span>
+                <span class="text-slate-300">·</span>
+                <span class="inline-flex items-center gap-1.5">
+                  <span class="stars xs" data-rating="4.42"></span>
+                  <span class="font-heading text-[13px] font-extrabold text-slate-900">4.42</span>
+                </span>
+                <span class="text-slate-300">·</span>
+                <span><span class="font-bold text-slate-800">19</span> verified reviews</span>
+                <span class="text-slate-300">·</span>
+                <button type="button" class="rb-link" data-toggle="t1-ratings" aria-expanded="false">Ratings breakdown<span data-i="chev-d" class="h-3 w-3"></span></button>
+              </div>
+            </div>
+            <div class="flex shrink-0 items-center gap-2">
+              <button type="button" class="btn btn-secondary btn-xs" data-mock="Add event to Fall 'Back 2 Soccer'">
+                <span data-i="plus" class="h-3 w-3"></span>Add event
+              </button>
+              <button type="button" class="btn btn-secondary btn-xs" data-mock="Edit tournament">
+                <span data-i="pencil" class="h-3 w-3"></span>Edit tournament
+              </button>
+            </div>
+          </div>
+
+          <!-- collapsed-by-default tournament breakdown: audience strip + mini tiles
+               (this tournament has a premium event → Coach appears) -->
+          <div data-panel id="t1-ratings">
+            <div>
+              <div class="px-5 pb-3.5">
+                <div class="rb-box">
+                  <div class="rb-aud">
+                    <span class="rb-aud-item"><span class="rb-aud-lbl">Overall</span><span class="stars xs" data-rating="4.42"></span><span class="val text-[13px] text-slate-900">4.42</span></span>
+                    <span class="rb-aud-item"><span class="rb-aud-lbl">Coach</span><span class="stars xs" data-rating="4.58"></span><span class="val text-[13px] text-red-600">4.58</span><span class="rb-flag">Premium</span></span>
+                    <span class="rb-aud-item"><span class="rb-aud-lbl">Attendee</span><span class="stars xs" data-rating="4.31"></span><span class="val text-[13px] text-amber-700">4.31</span></span>
+                  </div>
+                  <div class="rb-cats">
+                    <div class="rb-cat"><span class="lbl">Fields</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="4.61"></span><span class="val text-[12px]">4.61</span></span></div>
+                    <div class="rb-cat"><span class="lbl">Facilities</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="4.38"></span><span class="val text-[12px]">4.38</span></span></div>
+                    <div class="rb-cat"><span class="lbl">Management</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="4.52"></span><span class="val text-[12px]">4.52</span></span></div>
+                    <div class="rb-cat"><span class="lbl">Competition</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="4.19"></span><span class="val text-[12px]">4.19</span></span></div>
+                    <div class="rb-cat"><span class="lbl">Diversity</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="4.02"></span><span class="val text-[12px]">4.02</span></span></div>
+                    <div class="rb-cat"><span class="lbl">Cost / value</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="4.27"></span><span class="val text-[12px]">4.27</span></span></div>
+                    <div class="rb-cat"><span class="lbl">Coach Experience <span class="rb-flag">Coach-only</span></span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="4.55"></span><span class="val text-[12px]">4.55</span></span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- column labels (xl only) -->
+          <div class="ev-grid hidden border-t border-slate-200/80 bg-[#eef2f9] px-5 py-2 xl:grid">
+            <p class="col-label">Event</p>
+            <p class="col-label">Status</p>
+            <p class="col-label">Dates</p>
+            <p class="col-label">Location</p>
+            <p class="col-label">Reviews &amp; rating</p>
+            <p></p>
+          </div>
+
+          <ul>
+            <!-- ── e1 · 2026 · Published · PREMIUM (no Upgrade CTA) ── -->
+            <li class="border-t border-slate-100" data-ev data-status="published" data-title="Fall Back 2 Soccer Preseason Friendlies 2026">
+              <div class="ev-row ev-grid ev-row-premium">
+                <div class="flex min-w-0 items-center gap-2.5">
+                  <span class="h-9 w-9 shrink-0 overflow-hidden rounded-lg ring-1 ring-slate-200">
+                    <svg viewBox="0 0 96 96" class="h-full w-full" role="img" aria-label="Event logo">
+                      <defs><linearGradient id="lg1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ef4444"/><stop offset="1" stop-color="#b91c1c"/></linearGradient></defs>
+                      <rect width="96" height="96" fill="url(#lg1)"/><circle cx="48" cy="4" r="42" fill="#fff" opacity=".1"/>
+                      <text x="48" y="60" text-anchor="middle" font-family="'Bricolage Grotesque',Inter,sans-serif" font-size="26" font-weight="800" fill="#fff">B2S</text>
+                    </svg>
+                  </span>
+                  <div class="min-w-0">
+                    <a class="entity-link block truncate font-heading text-[13.5px] font-extrabold tracking-tight">Fall &ldquo;Back 2 Soccer&rdquo; Preseason Friendlies 2026</a>
+                    <p class="flex min-w-0 items-center gap-1.5 text-[11.5px] font-medium text-slate-500">
+                      <span class="chip-prem">Premium</span>
+                      <span class="chip-spot">Spotlight</span>
+                      <span class="truncate">Lou Fusz Athletic · Season 2026–27</span>
+                    </p>
+                  </div>
+                </div>
+                <div><span class="pill pill-live"><span class="dot"></span>Published</span></div>
+                <div>
+                  <p class="truncate text-[12.5px] font-semibold text-slate-800">Aug 14–16, 2026</p>
+                  <p class="truncate text-[10.5px] font-medium text-slate-400">starts in 18 days</p>
+                </div>
+                <div class="min-w-0">
+                  <p class="truncate text-[12.5px] font-semibold text-slate-700">Lou Fusz Soccer Complex</p>
+                  <p class="truncate text-[10.5px] font-medium text-slate-400">St. Louis, MO</p>
+                </div>
+                <div>
+                  <div class="flex items-center gap-1.5">
+                    <span class="stars xs" data-rating="4.67"></span>
+                    <span class="font-heading text-[13px] font-extrabold text-slate-900">4.67<span class="text-[10px] font-bold text-slate-400">/5</span></span>
+                  </div>
+                  <p class="mt-0.5 text-[11px] font-medium text-slate-500">6 verified · <button type="button" class="rb-link text-[11px]" data-toggle="cat-e1" aria-expanded="false">Breakdown<span data-i="chev-d" class="h-2.5 w-2.5"></span></button></p>
+                </div>
+                <div class="flex items-center gap-1.5 xl:justify-end">
+                  <button type="button" class="btn btn-secondary btn-xs" data-mock="Edit event"><span data-i="pencil" class="h-3 w-3"></span>Edit</button>
+                  <div data-menu>
+                    <button type="button" data-menu-btn class="btn-icon" aria-haspopup="menu" aria-label="More actions"><span data-i="dots" class="h-4 w-4"></span></button>
+                    <div class="tg-menu" role="menu">
+                      <button class="tg-menu-item" role="menuitem" data-mock="Event duplicated as a new draft"><span data-i="copy" class="h-[15px] w-[15px]"></span>Duplicate</button>
+                      <button class="tg-menu-item" role="menuitem" data-mock="Public link copied"><span data-i="link" class="h-[15px] w-[15px]"></span>Copy public link</button>
+                      <button class="tg-menu-item" role="menuitem" data-mock="Spectator reviews link copied"><span data-i="star" class="h-[15px] w-[15px]"></span>Copy spectator reviews link</button>
+                      <button class="tg-menu-item" role="menuitem" data-mock="QR code downloaded"><span data-i="qr" class="h-[15px] w-[15px]"></span>Download QR code</button>
+                      <div class="mx-1.5 my-1 h-px bg-slate-100"></div>
+                      <button class="tg-menu-item danger" role="menuitem" data-mock="Cancel event — opens the reason dialog"><span data-i="ban" class="h-[15px] w-[15px]"></span>Cancel event</button>
+                      <button class="tg-menu-item danger" role="menuitem" data-mock="Delete event — opens the confirm dialog"><span data-i="trash" class="h-[15px] w-[15px]"></span>Delete event</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <!-- per-event breakdown: same compact composition; premium event →
+                   Coach audience + the coach-only 7th category -->
+              <div data-panel id="cat-e1">
+                <div>
+                  <div class="px-5 pb-3 pt-1">
+                    <div class="rb-box">
+                      <div class="rb-aud">
+                        <span class="rb-aud-item"><span class="rb-aud-lbl">Overall</span><span class="stars xs" data-rating="4.67"></span><span class="val text-[13px] text-slate-900">4.67</span></span>
+                        <span class="rb-aud-item"><span class="rb-aud-lbl">Coach</span><span class="stars xs" data-rating="4.75"></span><span class="val text-[13px] text-red-600">4.75</span><span class="rb-flag">Premium</span></span>
+                        <span class="rb-aud-item"><span class="rb-aud-lbl">Attendee</span><span class="stars xs" data-rating="4.58"></span><span class="val text-[13px] text-amber-700">4.58</span></span>
+                      </div>
+                      <div class="rb-cats">
+                        <div class="rb-cat"><span class="lbl">Fields</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="4.83"></span><span class="val text-[12px]">4.83</span></span></div>
+                        <div class="rb-cat"><span class="lbl">Facilities</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="4.50"></span><span class="val text-[12px]">4.50</span></span></div>
+                        <div class="rb-cat"><span class="lbl">Management</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="4.67"></span><span class="val text-[12px]">4.67</span></span></div>
+                        <div class="rb-cat"><span class="lbl">Competition</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="4.33"></span><span class="val text-[12px]">4.33</span></span></div>
+                        <div class="rb-cat"><span class="lbl">Diversity</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="4.17"></span><span class="val text-[12px]">4.17</span></span></div>
+                        <div class="rb-cat"><span class="lbl">Cost / value</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="4.50"></span><span class="val text-[12px]">4.50</span></span></div>
+                        <div class="rb-cat"><span class="lbl">Coach Experience <span class="rb-flag">Coach-only</span></span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="4.67"></span><span class="val text-[12px]">4.67</span></span></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </li>
+
+            <!-- ── e2 · 2025 · Concluded · non-premium ("…" only, nothing left to promote) ── -->
+            <li class="border-t border-slate-100" data-ev data-status="concluded" data-title="Fall Back 2 Soccer Preseason Friendlies 2025">
+              <div class="ev-row ev-grid">
+                <div class="flex min-w-0 items-center gap-2.5">
+                  <span class="h-9 w-9 shrink-0 overflow-hidden rounded-lg ring-1 ring-slate-200">
+                    <svg viewBox="0 0 96 96" class="h-full w-full" role="img" aria-label="Event logo">
+                      <rect width="96" height="96" fill="#334155"/><circle cx="48" cy="4" r="42" fill="#fff" opacity=".07"/>
+                      <text x="48" y="60" text-anchor="middle" font-family="'Bricolage Grotesque',Inter,sans-serif" font-size="26" font-weight="800" fill="#fff">B2S</text>
+                    </svg>
+                  </span>
+                  <div class="min-w-0">
+                    <a class="entity-link block truncate font-heading text-[13.5px] font-extrabold tracking-tight">Fall &ldquo;Back 2 Soccer&rdquo; Preseason Friendlies 2025</a>
+                    <p class="truncate text-[11.5px] font-medium text-slate-500">Lou Fusz Athletic · Season 2025–26</p>
+                  </div>
+                </div>
+                <div><span class="pill pill-done"><span class="dot"></span>Concluded</span></div>
+                <div>
+                  <p class="truncate text-[12.5px] font-semibold text-slate-800">Aug 15–17, 2025</p>
+                  <p class="truncate text-[10.5px] font-medium text-slate-400">ended 11 months ago</p>
+                </div>
+                <div class="min-w-0">
+                  <p class="truncate text-[12.5px] font-semibold text-slate-700">Lou Fusz Soccer Complex</p>
+                  <p class="truncate text-[10.5px] font-medium text-slate-400">St. Louis, MO</p>
+                </div>
+                <div>
+                  <div class="flex items-center gap-1.5">
+                    <span class="stars xs" data-rating="4.31"></span>
+                    <span class="font-heading text-[13px] font-extrabold text-slate-900">4.31<span class="text-[10px] font-bold text-slate-400">/5</span></span>
+                  </div>
+                  <p class="mt-0.5 text-[11px] font-medium text-slate-500">13 verified · <button type="button" class="rb-link text-[11px]" data-toggle="cat-e2" aria-expanded="false">Breakdown<span data-i="chev-d" class="h-2.5 w-2.5"></span></button></p>
+                </div>
+                <!-- concluded events are read-only: no Edit, no Upgrade — "…" only -->
+                <div class="flex items-center gap-1.5 xl:justify-end">
+                  <div data-menu>
+                    <button type="button" data-menu-btn class="btn-icon" aria-haspopup="menu" aria-label="More actions"><span data-i="dots" class="h-4 w-4"></span></button>
+                    <div class="tg-menu" role="menu">
+                      <button class="tg-menu-item" role="menuitem" data-mock="Event duplicated as a new draft"><span data-i="copy" class="h-[15px] w-[15px]"></span>Duplicate</button>
+                      <button class="tg-menu-item" role="menuitem" data-mock="Public link copied"><span data-i="link" class="h-[15px] w-[15px]"></span>Copy public link</button>
+                      <button class="tg-menu-item" role="menuitem" data-mock="Spectator reviews link copied"><span data-i="star" class="h-[15px] w-[15px]"></span>Copy spectator reviews link</button>
+                      <button class="tg-menu-item" role="menuitem" data-mock="QR code downloaded"><span data-i="qr" class="h-[15px] w-[15px]"></span>Download QR code</button>
+                      <div class="mx-1.5 my-1 h-px bg-slate-100"></div>
+                      <button class="tg-menu-item danger" role="menuitem" data-mock="Delete event — opens the confirm dialog"><span data-i="trash" class="h-[15px] w-[15px]"></span>Delete event</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <!-- non-premium event → no Coach audience, six standard categories -->
+              <div data-panel id="cat-e2">
+                <div>
+                  <div class="px-5 pb-3 pt-1">
+                    <div class="rb-box">
+                      <div class="rb-aud">
+                        <span class="rb-aud-item"><span class="rb-aud-lbl">Overall</span><span class="stars xs" data-rating="4.31"></span><span class="val text-[13px] text-slate-900">4.31</span></span>
+                        <span class="rb-aud-item"><span class="rb-aud-lbl">Attendee</span><span class="stars xs" data-rating="4.24"></span><span class="val text-[13px] text-amber-700">4.24</span></span>
+                      </div>
+                      <div class="rb-cats">
+                        <div class="rb-cat"><span class="lbl">Fields</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="4.46"></span><span class="val text-[12px]">4.46</span></span></div>
+                        <div class="rb-cat"><span class="lbl">Facilities</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="4.31"></span><span class="val text-[12px]">4.31</span></span></div>
+                        <div class="rb-cat"><span class="lbl">Management</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="4.42"></span><span class="val text-[12px]">4.42</span></span></div>
+                        <div class="rb-cat"><span class="lbl">Competition</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="4.08"></span><span class="val text-[12px]">4.08</span></span></div>
+                        <div class="rb-cat"><span class="lbl">Diversity</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="3.92"></span><span class="val text-[12px]">3.92</span></span></div>
+                        <div class="rb-cat"><span class="lbl">Cost / value</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="4.15"></span><span class="val text-[12px]">4.15</span></span></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </li>
+
+            <!-- ── e3 · 2027 · Draft · non-premium → the single Upgrade CTA ── -->
+            <li class="border-t border-slate-100" data-ev data-status="draft" data-title="Fall Back 2 Soccer Preseason Friendlies 2027">
+              <div class="ev-row ev-grid">
+                <div class="flex min-w-0 items-center gap-2.5">
+                  <span class="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-lg border-[1.5px] border-dashed border-slate-300 text-slate-400">
+                    <span data-i="image" style="width:15px;height:15px"></span>
+                  </span>
+                  <div class="min-w-0">
+                    <a class="entity-link block truncate font-heading text-[13.5px] font-extrabold tracking-tight">Fall &ldquo;Back 2 Soccer&rdquo; Preseason Friendlies 2027</a>
+                    <p class="truncate text-[11.5px] font-medium text-slate-500">Lou Fusz Athletic · Season 2027–28</p>
+                  </div>
+                </div>
+                <div><span class="pill pill-draft"><span class="dot"></span>Draft</span></div>
+                <div>
+                  <p class="truncate text-[12.5px] font-semibold text-slate-800">Aug 13–15, 2027</p>
+                  <p class="truncate text-[10.5px] font-medium text-slate-400">not published yet</p>
+                </div>
+                <div class="min-w-0">
+                  <p class="truncate text-[12.5px] font-medium text-slate-400">Venue not set</p>
+                </div>
+                <div>
+                  <p class="text-[11px] font-medium text-slate-400">No reviews yet</p>
+                </div>
+                <!-- Upgrade sits FIRST so Edit + "…" hold the same position on every row -->
+                <div class="flex items-center gap-1.5 xl:justify-end">
+                  <button type="button" class="btn-upgrade" data-mock="Upgrade to Premium — plans dialog"><span data-i="spark" class="h-3 w-3"></span>Upgrade</button>
+                  <button type="button" class="btn btn-secondary btn-xs" data-mock="Edit draft"><span data-i="pencil" class="h-3 w-3"></span>Edit</button>
+                  <div data-menu>
+                    <button type="button" data-menu-btn class="btn-icon" aria-haspopup="menu" aria-label="More actions"><span data-i="dots" class="h-4 w-4"></span></button>
+                    <div class="tg-menu" role="menu">
+                      <button class="tg-menu-item" role="menuitem" data-mock="Draft duplicated"><span data-i="copy" class="h-[15px] w-[15px]"></span>Duplicate</button>
+                      <div class="mx-1.5 my-1 h-px bg-slate-100"></div>
+                      <button class="tg-menu-item danger" role="menuitem" data-mock="Delete draft — opens the confirm dialog"><span data-i="trash" class="h-[15px] w-[15px]"></span>Delete draft</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </li>
+          </ul>
+          <p class="hidden border-t border-slate-100 px-5 py-3 text-[12.5px] font-medium text-slate-400" data-nomatch>No events match this filter.</p>
+        </section>
+
+        <!-- ════════════════ TOURNAMENT 2 · Gateway Cup ════════════════ -->
+        <section class="card" data-tournament>
+          <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-5 pb-3 pt-4">
+            <div class="min-w-0">
+              <div class="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                <h2 class="font-heading text-[16.5px] font-extrabold tracking-tight text-slate-900" style="text-wrap:balance">
+                  Gateway Cup Labor Day Classic
+                </h2>
+              </div>
+              <div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] font-medium text-slate-500">
+                <span><span class="font-bold text-slate-800">2</span> events</span>
+                <span class="text-slate-300">·</span>
+                <span class="inline-flex items-center gap-1.5">
+                  <span class="stars xs" data-rating="3.98"></span>
+                  <span class="font-heading text-[13px] font-extrabold text-slate-900">3.98</span>
+                </span>
+                <span class="text-slate-300">·</span>
+                <span><span class="font-bold text-slate-800">23</span> verified reviews</span>
+                <span class="text-slate-300">·</span>
+                <button type="button" class="rb-link" data-toggle="t2-ratings" aria-expanded="false">Ratings breakdown<span data-i="chev-d" class="h-3 w-3"></span></button>
+              </div>
+            </div>
+            <div class="flex shrink-0 items-center gap-2">
+              <button type="button" class="btn btn-secondary btn-xs" data-mock="Add event to Gateway Cup">
+                <span data-i="plus" class="h-3 w-3"></span>Add event
+              </button>
+              <button type="button" class="btn btn-secondary btn-xs" data-mock="Edit tournament">
+                <span data-i="pencil" class="h-3 w-3"></span>Edit tournament
+              </button>
+            </div>
+          </div>
+
+          <!-- no premium events here → no Coach audience, six standard categories -->
+          <div data-panel id="t2-ratings">
+            <div>
+              <div class="px-5 pb-3.5">
+                <div class="rb-box">
+                  <div class="rb-aud">
+                    <span class="rb-aud-item"><span class="rb-aud-lbl">Overall</span><span class="stars xs" data-rating="3.98"></span><span class="val text-[13px] text-slate-900">3.98</span></span>
+                    <span class="rb-aud-item"><span class="rb-aud-lbl">Attendee</span><span class="stars xs" data-rating="3.91"></span><span class="val text-[13px] text-amber-700">3.91</span></span>
+                  </div>
+                  <div class="rb-cats">
+                    <div class="rb-cat"><span class="lbl">Fields</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="4.21"></span><span class="val text-[12px]">4.21</span></span></div>
+                    <div class="rb-cat"><span class="lbl">Facilities</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="3.76"></span><span class="val text-[12px]">3.76</span></span></div>
+                    <div class="rb-cat"><span class="lbl">Management</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="3.64"></span><span class="val text-[12px]">3.64</span></span></div>
+                    <div class="rb-cat"><span class="lbl">Competition</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="4.08"></span><span class="val text-[12px]">4.08</span></span></div>
+                    <div class="rb-cat"><span class="lbl">Diversity</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="3.89"></span><span class="val text-[12px]">3.89</span></span></div>
+                    <div class="rb-cat"><span class="lbl">Cost / value</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="3.58"></span><span class="val text-[12px]">3.58</span></span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="ev-grid hidden border-t border-slate-200/80 bg-[#eef2f9] px-5 py-2 xl:grid">
+            <p class="col-label">Event</p>
+            <p class="col-label">Status</p>
+            <p class="col-label">Dates</p>
+            <p class="col-label">Location</p>
+            <p class="col-label">Reviews &amp; rating</p>
+            <p></p>
+          </div>
+
+          <ul>
+            <!-- ── e4 · 2026 · Published · non-premium → Upgrade CTA ── -->
+            <li class="border-t border-slate-100" data-ev data-status="published" data-title="Gateway Cup Labor Day Classic 2026">
+              <div class="ev-row ev-grid">
+                <div class="flex min-w-0 items-center gap-2.5">
+                  <span class="h-9 w-9 shrink-0 overflow-hidden rounded-lg ring-1 ring-slate-200">
+                    <svg viewBox="0 0 96 96" class="h-full w-full" role="img" aria-label="Event logo">
+                      <defs><linearGradient id="lg2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6366f1"/><stop offset="1" stop-color="#4338ca"/></linearGradient></defs>
+                      <rect width="96" height="96" fill="url(#lg2)"/>
+                      <path d="M18 74 Q48 22 78 74" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="5"/>
+                      <text x="48" y="62" text-anchor="middle" font-family="'Bricolage Grotesque',Inter,sans-serif" font-size="26" font-weight="800" fill="#fff">GC</text>
+                    </svg>
+                  </span>
+                  <div class="min-w-0">
+                    <a class="entity-link block truncate font-heading text-[13.5px] font-extrabold tracking-tight">Gateway Cup Labor Day Classic 2026</a>
+                    <p class="truncate text-[11.5px] font-medium text-slate-500">Vetta Sports · Season 2026–27</p>
+                  </div>
+                </div>
+                <div><span class="pill pill-live"><span class="dot"></span>Published</span></div>
+                <div>
+                  <p class="truncate text-[12.5px] font-semibold text-slate-800">Sep 5–7, 2026</p>
+                  <p class="truncate text-[10.5px] font-medium text-slate-400">reg closes 08/24/2026</p>
+                </div>
+                <div class="min-w-0">
+                  <p class="truncate text-[12.5px] font-semibold text-slate-700">Vetta Sports Concord</p>
+                  <p class="truncate text-[10.5px] font-medium text-slate-400">St. Louis, MO</p>
+                </div>
+                <div>
+                  <div class="flex items-center gap-1.5">
+                    <span class="stars xs" data-rating="3.87"></span>
+                    <span class="font-heading text-[13px] font-extrabold text-slate-900">3.87<span class="text-[10px] font-bold text-slate-400">/5</span></span>
+                  </div>
+                  <p class="mt-0.5 text-[11px] font-medium text-slate-500">9 verified · <button type="button" class="rb-link text-[11px]" data-toggle="cat-e4" aria-expanded="false">Breakdown<span data-i="chev-d" class="h-2.5 w-2.5"></span></button></p>
+                </div>
+                <div class="flex items-center gap-1.5 xl:justify-end">
+                  <button type="button" class="btn-upgrade" data-mock="Upgrade to Premium — plans dialog"><span data-i="spark" class="h-3 w-3"></span>Upgrade</button>
+                  <button type="button" class="btn btn-secondary btn-xs" data-mock="Edit event"><span data-i="pencil" class="h-3 w-3"></span>Edit</button>
+                  <div data-menu>
+                    <button type="button" data-menu-btn class="btn-icon" aria-haspopup="menu" aria-label="More actions"><span data-i="dots" class="h-4 w-4"></span></button>
+                    <div class="tg-menu" role="menu">
+                      <button class="tg-menu-item" role="menuitem" data-mock="Event duplicated as a new draft"><span data-i="copy" class="h-[15px] w-[15px]"></span>Duplicate</button>
+                      <button class="tg-menu-item" role="menuitem" data-mock="Public link copied"><span data-i="link" class="h-[15px] w-[15px]"></span>Copy public link</button>
+                      <button class="tg-menu-item" role="menuitem" data-mock="Spectator reviews link copied"><span data-i="star" class="h-[15px] w-[15px]"></span>Copy spectator reviews link</button>
+                      <button class="tg-menu-item" role="menuitem" data-mock="QR code downloaded"><span data-i="qr" class="h-[15px] w-[15px]"></span>Download QR code</button>
+                      <div class="mx-1.5 my-1 h-px bg-slate-100"></div>
+                      <button class="tg-menu-item danger" role="menuitem" data-mock="Cancel event — opens the reason dialog"><span data-i="ban" class="h-[15px] w-[15px]"></span>Cancel event</button>
+                      <button class="tg-menu-item danger" role="menuitem" data-mock="Delete event — opens the confirm dialog"><span data-i="trash" class="h-[15px] w-[15px]"></span>Delete event</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div data-panel id="cat-e4">
+                <div>
+                  <div class="px-5 pb-3 pt-1">
+                    <div class="rb-box">
+                      <div class="rb-aud">
+                        <span class="rb-aud-item"><span class="rb-aud-lbl">Overall</span><span class="stars xs" data-rating="3.87"></span><span class="val text-[13px] text-slate-900">3.87</span></span>
+                        <span class="rb-aud-item"><span class="rb-aud-lbl">Attendee</span><span class="stars xs" data-rating="3.81"></span><span class="val text-[13px] text-amber-700">3.81</span></span>
+                      </div>
+                      <div class="rb-cats">
+                        <div class="rb-cat"><span class="lbl">Fields</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="4.11"></span><span class="val text-[12px]">4.11</span></span></div>
+                        <div class="rb-cat"><span class="lbl">Facilities</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="3.67"></span><span class="val text-[12px]">3.67</span></span></div>
+                        <div class="rb-cat"><span class="lbl">Management</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="3.56"></span><span class="val text-[12px]">3.56</span></span></div>
+                        <div class="rb-cat"><span class="lbl">Competition</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="4.00"></span><span class="val text-[12px]">4.00</span></span></div>
+                        <div class="rb-cat"><span class="lbl">Diversity</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="3.78"></span><span class="val text-[12px]">3.78</span></span></div>
+                        <div class="rb-cat"><span class="lbl">Cost / value</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="3.44"></span><span class="val text-[12px]">3.44</span></span></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </li>
+
+            <!-- ── e5 · 2025 · Canceled — keeps its history + reviews; "…" only ── -->
+            <li class="border-t border-slate-100" data-ev data-status="canceled" data-title="Gateway Cup Labor Day Classic 2025">
+              <div class="ev-row ev-grid">
+                <div class="flex min-w-0 items-center gap-2.5 opacity-80">
+                  <span class="h-9 w-9 shrink-0 overflow-hidden rounded-lg ring-1 ring-slate-200 grayscale">
+                    <svg viewBox="0 0 96 96" class="h-full w-full" role="img" aria-label="Event logo">
+                      <rect width="96" height="96" fill="#64748b"/>
+                      <path d="M18 74 Q48 22 78 74" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="5"/>
+                      <text x="48" y="62" text-anchor="middle" font-family="'Bricolage Grotesque',Inter,sans-serif" font-size="26" font-weight="800" fill="#fff">GC</text>
+                    </svg>
+                  </span>
+                  <div class="min-w-0">
+                    <a class="entity-link block truncate font-heading text-[13.5px] font-extrabold tracking-tight">Gateway Cup Labor Day Classic 2025</a>
+                    <p class="truncate text-[11.5px] font-medium text-slate-500">Vetta Sports · Season 2025–26</p>
+                  </div>
+                </div>
+                <div><span class="pill pill-cancel"><span class="dot"></span>Canceled</span></div>
+                <div>
+                  <p class="truncate text-[12.5px] font-semibold text-slate-800">Sep 6–8, 2025</p>
+                  <p class="truncate text-[10.5px] font-medium text-slate-400">canceled 08/29/2025</p>
+                </div>
+                <div class="min-w-0">
+                  <p class="truncate text-[12.5px] font-semibold text-slate-700">Creve Coeur Lake Park</p>
+                  <p class="truncate text-[10.5px] font-medium text-slate-400">Maryland Heights, MO</p>
+                </div>
+                <div>
+                  <div class="flex items-center gap-1.5">
+                    <span class="stars xs" data-rating="4.05"></span>
+                    <span class="font-heading text-[13px] font-extrabold text-slate-900">4.05<span class="text-[10px] font-bold text-slate-400">/5</span></span>
+                  </div>
+                  <p class="mt-0.5 text-[11px] font-medium text-slate-500">14 verified · <button type="button" class="rb-link text-[11px]" data-toggle="cat-e5" aria-expanded="false">Breakdown<span data-i="chev-d" class="h-2.5 w-2.5"></span></button></p>
+                </div>
+                <!-- canceled events are read-only: no Edit, no Upgrade — "…" only -->
+                <div class="flex items-center gap-1.5 xl:justify-end">
+                  <div data-menu>
+                    <button type="button" data-menu-btn class="btn-icon" aria-haspopup="menu" aria-label="More actions"><span data-i="dots" class="h-4 w-4"></span></button>
+                    <div class="tg-menu" role="menu">
+                      <button class="tg-menu-item" role="menuitem" data-mock="Event duplicated as a new draft"><span data-i="copy" class="h-[15px] w-[15px]"></span>Duplicate</button>
+                      <button class="tg-menu-item" role="menuitem" data-mock="Spectator reviews link copied"><span data-i="star" class="h-[15px] w-[15px]"></span>Copy spectator reviews link</button>
+                      <div class="mx-1.5 my-1 h-px bg-slate-100"></div>
+                      <button class="tg-menu-item danger" role="menuitem" data-mock="Delete event — opens the confirm dialog"><span data-i="trash" class="h-[15px] w-[15px]"></span>Delete event</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div data-panel id="cat-e5">
+                <div>
+                  <div class="px-5 pb-3 pt-1">
+                    <div class="rb-box">
+                      <div class="rb-aud">
+                        <span class="rb-aud-item"><span class="rb-aud-lbl">Overall</span><span class="stars xs" data-rating="4.05"></span><span class="val text-[13px] text-slate-900">4.05</span></span>
+                        <span class="rb-aud-item"><span class="rb-aud-lbl">Attendee</span><span class="stars xs" data-rating="3.97"></span><span class="val text-[13px] text-amber-700">3.97</span></span>
+                      </div>
+                      <div class="rb-cats">
+                        <div class="rb-cat"><span class="lbl">Fields</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="4.29"></span><span class="val text-[12px]">4.29</span></span></div>
+                        <div class="rb-cat"><span class="lbl">Facilities</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="3.82"></span><span class="val text-[12px]">3.82</span></span></div>
+                        <div class="rb-cat"><span class="lbl">Management</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="3.71"></span><span class="val text-[12px]">3.71</span></span></div>
+                        <div class="rb-cat"><span class="lbl">Competition</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="4.14"></span><span class="val text-[12px]">4.14</span></span></div>
+                        <div class="rb-cat"><span class="lbl">Diversity</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="3.96"></span><span class="val text-[12px]">3.96</span></span></div>
+                        <div class="rb-cat"><span class="lbl">Cost / value</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="3.68"></span><span class="val text-[12px]">3.68</span></span></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </li>
+          </ul>
+          <p class="hidden border-t border-slate-100 px-5 py-3 text-[12.5px] font-medium text-slate-400" data-nomatch>No events match this filter.</p>
+        </section>
+
+        <!-- ════════════════ TOURNAMENT 3 · first-run, no events yet ════════════════ -->
+        <section class="card" data-tournament data-empty>
+          <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-5 pb-3 pt-4">
+            <div class="min-w-0">
+              <div class="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                <h2 class="font-heading text-[16.5px] font-extrabold tracking-tight text-slate-900">Winter Indoor Futsal Showcase</h2>
+              </div>
+              <!-- no ratings meta: it appears only once the tournament has reviews -->
+              <div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] font-medium text-slate-500">
+                <span><span class="font-bold text-slate-800">0</span> events</span>
+                <span class="text-slate-300">·</span>
+                <span>No reviews yet</span>
+              </div>
+            </div>
+            <div class="flex shrink-0 items-center gap-2">
+              <button type="button" class="btn btn-secondary btn-xs" data-mock="Edit tournament">
+                <span data-i="pencil" class="h-3 w-3"></span>Edit tournament
+              </button>
+            </div>
+          </div>
+          <div class="px-5 pb-5">
+            <div class="empty-tile">
+              <span class="grid h-9 w-9 place-items-center rounded-full border border-slate-200 bg-white text-accent shadow-sm">
+                <span data-i="calendar" style="width:16px;height:16px"></span>
+              </span>
+              <p class="font-heading text-[14px] font-extrabold tracking-tight text-slate-900">No events yet</p>
+              <p class="max-w-[46ch] text-[12px] font-medium leading-relaxed text-slate-500">
+                Add the first event to publish this tournament — dates, venue and age groups —
+                and start collecting verified reviews.
+              </p>
+              <button type="button" class="btn btn-primary btn-sm mt-1" data-mock="Add event to Winter Indoor Futsal Showcase">
+                <span data-i="plus" class="h-3.5 w-3.5"></span>Add your first event
+              </button>
+            </div>
+          </div>
+        </section>
+
+        </div>
+
+      </div>
+    </main>
+  </div>
+</div>
+
+<div id="toast" role="status"></div>
+<div class="fixed bottom-5 left-1/2 z-50 -translate-x-1/2 whitespace-nowrap rounded-full bg-ink/95 px-4 py-2 text-[11px] font-semibold text-white/60 shadow-xl ring-1 ring-white/10">
+  Design mockup · <span class="text-white">search, status filter, ratings breakdowns and the "…" menus are clickable</span>
+</div>
+
+<script>
+  /* ── stroke icons (same geometry as app/dashboard/icons.tsx) ── */
+  const I = {
+    calendar:'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+    star:'<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
+    inbox:'<polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
+    tag:'<path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><path d="M7 7h.01"/>',
+    search:'<circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>',
+    user:'<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+    help:'<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>',
+    lifebuoy:'<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><path d="M4.93 4.93l4.24 4.24M14.83 14.83l4.24 4.24M14.83 9.17l4.24-4.24M4.93 19.07l4.24-4.24"/>',
+    logout:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>',
+    'chev-d':'<polyline points="6 9 12 15 18 9"/>',
+    'chev-r':'<polyline points="9 18 15 12 9 6"/>',
+    pencil:'<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>',
+    copy:'<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
+    qr:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3z"/><path d="M21 14v.01M14 21v.01M21 18v3h-3"/>',
+    link:'<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
+    plus:'<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
+    ban:'<circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>',
+    trash:'<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
+    image:'<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>',
+    refresh:'<path d="M3 12a9 9 0 0 1 9-9 9 9 0 0 1 6.7 3"/><path d="M21 3v6h-6"/><path d="M21 12a9 9 0 0 1-9 9 9 9 0 0 1-6.7-3"/><path d="M3 21v-6h6"/>',
+    dots:'<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
+    spark:'<path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9L19 15z"/>',
+  };
+  document.querySelectorAll('[data-i]').forEach(el => {
+    el.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (I[el.dataset.i] || '') + '</svg>';
+  });
+
+  /* ── stars: base + gold fill; the FILL snaps to 0.5-star steps (spec),
+        the number next to it keeps the exact 2-decimal average ── */
+  const STAR = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z"/></svg>';
+  document.querySelectorAll('.stars').forEach(el => {
+    const raw = Math.max(0, Math.min(5, parseFloat(el.dataset.rating || '0')));
+    const snapped = Math.round(raw * 2) / 2;
+    el.innerHTML =
+      '<span class="stars-base">' + STAR.repeat(5) + '</span>' +
+      '<span class="stars-fill" style="width:' + (snapped / 5 * 100) + '%">' + STAR.repeat(5) + '</span>';
+    el.setAttribute('role', 'img');
+    el.setAttribute('aria-label', raw + ' out of 5 stars');
+  });
+
+  /* ── collapsibles: tournament + per-event ratings breakdowns ── */
+  document.querySelectorAll('[data-toggle]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const panel = document.getElementById(btn.dataset.toggle);
+      if (!panel) return;
+      const open = panel.classList.toggle('open');
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+  });
+
+  /* ── dropdown menus (user + per-row overflow) ── */
+  document.querySelectorAll('[data-menu-btn]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const menu = btn.closest('[data-menu]');
+      document.querySelectorAll('[data-menu][data-open]').forEach(m => {
+        if (m !== menu) m.removeAttribute('data-open');
+      });
+      menu.toggleAttribute('data-open');
+      /* never clipped: cards don't hide overflow, and the menu flips upward
+         whenever it would fall below the viewport edge */
+      if (menu.hasAttribute('data-open')) {
+        const panel = menu.querySelector('.tg-menu');
+        panel.classList.remove('up');
+        const r = panel.getBoundingClientRect();
+        if (r.bottom > window.innerHeight - 12) panel.classList.add('up');
+      }
+    });
+  });
+  document.addEventListener('click', () =>
+    document.querySelectorAll('[data-menu][data-open]').forEach(m => m.removeAttribute('data-open')));
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape')
+      document.querySelectorAll('[data-menu][data-open]').forEach(m => m.removeAttribute('data-open'));
+  });
+
+  /* ── toast + mock actions ── */
+  const toastEl = document.getElementById('toast');
+  let toastTimer;
+  function toast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2200);
+  }
+  document.querySelectorAll('[data-mock]').forEach(btn => {
+    btn.addEventListener('click', () => toast(btn.dataset.mock + ' (mockup)'));
+  });
+
+  /* ── search + status filter: rows hide, each tournament keeps a "no match"
+        line, and the empty first-run tournament (no rows to match) hides
+        whenever any filter is active ── */
+  const searchInput = document.getElementById('ev-search');
+  const seg = document.getElementById('status-seg');
+  function applyFilters() {
+    const q = searchInput.value.trim().toLowerCase();
+    const status = seg.querySelector('button.on').dataset.status;
+    document.querySelectorAll('[data-tournament]').forEach(sec => {
+      if (sec.hasAttribute('data-empty')) {
+        sec.style.display = (q || status !== 'all') ? 'none' : '';
+        return;
+      }
+      const tourName = sec.querySelector('h2').textContent.toLowerCase();
+      let visible = 0;
+      sec.querySelectorAll('[data-ev]').forEach(li => {
+        const okStatus = status === 'all' || li.dataset.status === status;
+        const okQuery = !q || li.dataset.title.toLowerCase().includes(q) || tourName.includes(q);
+        const show = okStatus && okQuery;
+        li.style.display = show ? '' : 'none';
+        if (show) visible++;
+      });
+      sec.querySelector('[data-nomatch]').classList.toggle('hidden', visible > 0);
+    });
+  }
+  searchInput.addEventListener('input', applyFilters);
+  seg.querySelectorAll('button').forEach(b => {
+    b.addEventListener('click', () => {
+      seg.querySelectorAll('button').forEach(x => x.classList.remove('on'));
+      b.classList.add('on');
+      applyFilters();
+    });
+  });
+</script>
+</body>
+</html>
