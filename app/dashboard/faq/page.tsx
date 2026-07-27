@@ -76,7 +76,7 @@ export default async function DashboardFaqPage() {
         </div>
         <a href="#faq-support">
           <Button variant="secondary" size="sm">
-            <Icon name="lifebuoy" className="h-4 w-4 text-slate-500" />
+            <Icon name="lifebuoy" className="h-4 w-4" />
             Contact support
           </Button>
         </a>
