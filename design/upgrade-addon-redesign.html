@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<!--
+  Tournament Guru — ADD-ON / UPGRADE page redesign (DESIGN ARTIFACT, not wired to the app).
+  Open directly in a browser (needs network: Tailwind CDN + Google Fonts).
+
+  The page an Event Director reaches from an event's "Upgrade" CTA and from the
+  sidebar "Premium listings → Learn more" pointer. It sells the two paid add-ons
+  behind one tab toggle:
+
+    Header       · "Add-on Details" + one-line pitch, back link to the source event,
+                   and the big segmented toggle: Premium Listing ($900) | General Ads ($300).
+                   Selected segment = the app's red-tint segmented language.
+    Premium tab  · title + Premium chip + Verified pill, dark ink device panel
+                   (stylized laptop + phone showing the "Promoted Events" placement,
+                   inline SVG only), then the "What's included" checklist (6 features,
+                   emerald check discs). Right rail: sticky price card — $900 USD,
+                   "Includes all features listed", solid brand-RED Activate CTA
+                   (the reserved upgrade-accent role; never yellow, never a gradient),
+                   the event it applies to, Stripe reassurance, cross-sell link.
+    General Ads  · same skeleton in the Spotlight-violet register: browser-window ad
+                   preview (events page, "Spotlight" strip, AD-chipped event card,
+                   floating stats chip), 4-feature checklist, $300 price card whose
+                   Activate CTA carries the same violet→sky gradient as its rail accent.
+    Closer       · shared "Not sure which fits?" support strip.
+
+  Persona: Miguel Santos · Event Director · Lone Star Youth Sports (Austin, TX).
+  Source event: "Spring Kickoff Cup — U10 Division" · Published · Jul 30 – Aug 1, 2026.
+  Tabs (click or keys 1–2), menus, cross-sell links and CTAs are clickable; checkout
+  actions toast only. Design-only — do not implement into app/ until Danny signs off.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>TG — Add-on details · design mockup</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: { ink: "#0f172a", accent: "#dc2626" },
+        fontFamily: {
+          sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+          heading: ['"Bricolage Grotesque"', "Inter", "sans-serif"],
+        },
+      },
+    },
+  };
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0f172a; --body:#475569; --muted:#64748b; --faint:#94a3b8;
+    --line:#e2e8f0; --line2:#f1f5f9; --accent:#dc2626; --gold:#f59e0b;
+  }
+  body{color:var(--ink);-webkit-font-smoothing:antialiased}
+
+  /* ── surfaces ── */
+  .card{background:#fff;border:1px solid var(--line);border-radius:16px;
+    box-shadow:0 1px 2px rgba(15,23,42,.05),0 14px 34px -22px rgba(15,23,42,.18);
+    transition:border-color .15s ease-out}
+  .eyebrow{font-family:"Bricolage Grotesque",Inter,sans-serif;font-size:10.5px;font-weight:800;
+    letter-spacing:.14em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+  .hairline{height:1px;background:var(--line2)}
+
+  /* ── buttons (the shipped treatments) ── */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;
+    font-weight:600;border-radius:10px;text-decoration:none;border:1px solid transparent;
+    font-size:13px;white-space:nowrap;transition:background .15s ease-out,border-color .15s ease-out,
+    color .15s ease-out,box-shadow .15s ease-out,transform .15s ease-out}
+  .btn-primary{background:var(--ink);color:#fff;padding:10px 16px;font-size:13.5px;font-weight:700}
+  .btn-primary:hover{transform:translateY(-1px);box-shadow:0 10px 22px -8px rgba(15,23,42,.45)}
+  .btn-primary:active{transform:none;box-shadow:none}
+  .btn-secondary{background:transparent;border:1.5px solid #94a3b8;color:var(--ink);
+    padding:8px 14px;font-weight:700}
+  .btn-secondary:hover{border-color:var(--ink);background:rgba(15,23,42,.045)}
+  .btn-secondary [data-i]{color:#64748b;transition:color .15s ease-out}
+  .btn-secondary:hover [data-i]{color:var(--ink)}
+  /* accent — brand-red fill, RESERVED for the upgrade/activate role */
+  .btn-accent{background:var(--accent);color:#fff;border-radius:12px;
+    padding:12px 18px;font-size:14px;font-weight:800;letter-spacing:-.01em}
+  .btn-accent:hover{background:#b91c1c;transform:translateY(-1px);
+    box-shadow:0 14px 28px -10px rgba(220,38,38,.55)}
+  .btn-accent:active{transform:none;box-shadow:none}
+  /* accent-ads — General Ads register only: the SAME violet→sky gradient as that
+     rail's top border. Premium's Activate stays solid brand red. */
+  .btn-accent-ads{background:linear-gradient(90deg,#7c3aed,#a78bfa,#38bdf8);color:#fff;border-radius:12px;
+    padding:12px 18px;font-size:14px;font-weight:800;letter-spacing:-.01em}
+  .btn-accent-ads:hover{transform:translateY(-1px);filter:saturate(1.12);
+    box-shadow:0 14px 28px -10px rgba(124,58,237,.6)}
+  .btn-accent-ads:active{transform:none;box-shadow:none;filter:none}
+
+  .tg-link{font-weight:600;color:#334155;text-decoration:underline;text-decoration-color:#cbd5e1;
+    text-underline-offset:3px;transition:color .15s ease,text-decoration-color .15s ease;cursor:pointer}
+  .tg-link:hover{color:var(--accent);text-decoration-color:var(--accent)}
+
+  /* ── status pills & chips ── */
+  .pill{display:inline-flex;align-items:center;gap:6px;border-radius:9999px;
+    font-family:"Bricolage Grotesque",Inter,sans-serif;font-size:10px;font-weight:800;
+    letter-spacing:.08em;text-transform:uppercase;padding:3px 10px 3px 8px;border:1px solid}
+  .pill .dot{width:5px;height:5px;border-radius:9999px}
+  .pill-live{background:#d1fae5;color:#065f46;border-color:#6ee7b7}
+  .pill-live .dot{background:#059669}
+  .chip-prem{display:inline-flex;align-items:center;border-radius:9999px;background:var(--accent);
+    color:#fff;font-family:"Bricolage Grotesque",Inter,sans-serif;font-size:10px;font-weight:800;
+    letter-spacing:.08em;text-transform:uppercase;padding:4px 10px}
+  .chip-spot{display:inline-flex;align-items:center;border-radius:9999px;background:#f5f3ff;
+    color:#7c3aed;border:1px solid #ddd6fe;font-family:"Bricolage Grotesque",Inter,sans-serif;
+    font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:3px 10px}
+  .pill-verified{display:inline-flex;align-items:center;gap:5px;border-radius:9999px;
+    border:1px solid #fecaca;background:#fef2f2;color:#b91c1c;
+    font-family:"Bricolage Grotesque",Inter,sans-serif;font-size:10px;font-weight:800;
+    letter-spacing:.08em;text-transform:uppercase;padding:3px 10px 3px 8px}
+
+  /* ── the add-on toggle: the app's segmented language, scaled up for the
+       page's one big decision. Crisp bordered track, selected = red tint ── */
+  .addon-tabs{display:inline-flex;gap:4px;border:1.5px solid #cbd5e1;border-radius:9999px;padding:4px;
+    background:#fff;box-shadow:0 1px 2px rgba(15,23,42,.05)}
+  .addon-tabs button{display:inline-flex;align-items:center;gap:8px;border:1px solid transparent;
+    background:transparent;border-radius:9999px;padding:9px 18px;cursor:pointer;
+    font-family:"Bricolage Grotesque",Inter,sans-serif;font-size:13.5px;font-weight:800;
+    letter-spacing:-.01em;color:var(--body);
+    transition:background .15s ease-out,color .15s ease-out,border-color .15s ease-out}
+  .addon-tabs button [data-i]{color:#94a3b8;transition:color .15s ease-out}
+  .addon-tabs button:hover{color:var(--ink)}
+  .addon-tabs button:hover [data-i]{color:var(--ink)}
+  .addon-tabs button.on{background:#fef2f2;border-color:var(--accent);color:#b91c1c}
+  .addon-tabs button.on [data-i]{color:var(--accent)}
+  .tab-price{border-radius:9999px;padding:3px 11px;font-size:13.5px;font-weight:800;letter-spacing:-.01em;
+    background:#fff;color:#334155;box-shadow:inset 0 0 0 1px #cbd5e1;
+    transition:background .15s ease-out,color .15s ease-out,box-shadow .15s ease-out}
+  .addon-tabs button.on .tab-price{background:#fff;color:#b91c1c;box-shadow:inset 0 0 0 1px #fecaca}
+
+  /* ── panels slide up softly when the toggle switches ── */
+  [data-addon-panel]{animation:rise .28s cubic-bezier(.2,.7,.2,1) both}
+  @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+  /* ── section icon chip ── */
+  .sec-ic{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;flex:none}
+
+  /* ── checklist ── */
+  .check-disc{display:grid;place-items:center;width:22px;height:22px;flex:none;margin-top:1px;
+    border-radius:9999px;background:#ecfdf5;border:1px solid #a7f3d0;color:#059669}
+
+  /* ── device / ad preview panels: the summary-band ink treatment ── */
+  .preview{position:relative;overflow:hidden;border-radius:16px;
+    background:linear-gradient(115deg,#0b1120 0%,#1e293b 74%,#28364b 100%);
+    box-shadow:0 20px 44px -20px rgba(15,23,42,.55)}
+  .preview::before{content:"";position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(520px 220px at 14% -20%,rgba(220,38,38,.32),transparent 65%),
+               radial-gradient(420px 200px at 88% 130%,rgba(245,158,11,.18),transparent 70%)}
+  .preview-ads::before{background:radial-gradient(520px 220px at 14% -20%,rgba(124,58,237,.36),transparent 65%),
+               radial-gradient(420px 200px at 88% 130%,rgba(56,189,248,.20),transparent 70%)}
+  .preview svg{position:relative;display:block;width:100%;height:auto}
+  .preview svg text{font-family:Inter,ui-sans-serif,system-ui,sans-serif}
+  .float-chip{position:absolute;z-index:10;display:inline-flex;align-items:center;gap:6px;
+    border-radius:9999px;background:rgba(255,255,255,.96);padding:6px 12px;font-size:11px;
+    font-weight:700;color:#0f172a;box-shadow:0 10px 24px -8px rgba(2,6,23,.5);
+    backdrop-filter:blur(4px)}
+
+  /* ── dropdown menus ── */
+  [data-menu]{position:relative}
+  .tg-menu{position:absolute;right:0;top:calc(100% + 8px);width:232px;display:none;z-index:50;
+    background:#fff;border:1px solid var(--line);border-radius:14px;padding:6px;
+    box-shadow:0 18px 40px -12px rgba(15,23,42,.25)}
+  [data-menu][data-open] .tg-menu{display:block;animation:pop .16s cubic-bezier(.2,.7,.2,1) both}
+  @keyframes pop{from{opacity:0;transform:translateY(6px) scale(.98)}to{opacity:1;transform:none}}
+  .tg-menu-item{display:flex;align-items:center;gap:10px;border-radius:9px;padding:9px 11px;
+    font-size:13px;font-weight:600;color:#334155;transition:all .13s ease;cursor:pointer;width:100%;
+    background:none;border:none;text-align:left}
+  .tg-menu-item:hover{background:#f1f5f9;color:var(--ink)}
+  .tg-menu-item.danger{color:#b91c1c}
+  .tg-menu-item.danger:hover{background:#fef2f2}
+  .tg-menu-item [data-i]{color:#94a3b8}
+  .tg-menu-item:hover [data-i]{color:currentColor}
+  .tg-menu-item.danger [data-i]{color:currentColor}
+
+  /* ── dark-rail scrollbar ── */
+  .tg-scroll-dark{scrollbar-width:thin;scrollbar-color:#334155 transparent}
+  .tg-scroll-dark::-webkit-scrollbar{width:8px}
+  .tg-scroll-dark::-webkit-scrollbar-track{background:transparent}
+  .tg-scroll-dark::-webkit-scrollbar-thumb{background:#334155;border-radius:9999px;border:2px solid #0f172a}
+  .tg-scroll-dark::-webkit-scrollbar-thumb:hover{background:#475569}
+
+  /* ── toast ── */
+  #toast{position:fixed;right:24px;bottom:24px;z-index:80;background:var(--ink);color:#fff;
+    font-size:13px;font-weight:600;border-radius:12px;padding:11px 16px;
+    box-shadow:0 18px 40px -12px rgba(15,23,42,.4);opacity:0;transform:translateY(8px);
+    pointer-events:none;transition:opacity .2s ease,transform .2s ease}
+  #toast.show{opacity:1;transform:none}
+
+  [data-i]{display:inline-block;flex:none}
+  [data-i] svg{display:block;width:100%;height:100%}
+
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+  }
+</style>
+</head>
+<!-- deeper slate wash than slate-50 so white cards visibly lift off the page -->
+<body class="font-sans text-ink antialiased" style="background:linear-gradient(180deg,#eef2f6 0%,#e9eef4 100%);min-height:100vh">
+
+<div class="mx-auto flex max-w-[1440px]">
+
+  <!-- ══════════ Ink rail (the implemented shell, ED role) ══════════ -->
+  <aside class="sticky top-0 hidden h-dvh w-[260px] flex-none flex-col bg-ink md:flex">
+    <div class="flex items-center gap-3 px-5 py-6">
+      <svg viewBox="0 0 295.82 141" class="h-8 w-auto" role="img" aria-label="Tournament Guru">
+        <path fill="#ffffff" d="M264.28,47.3c0.12,1.75,0.19,3.52,0.19,5.31c0,12.32-2.83,23.67-7.6,32.79c-1.13,2.38-2.56,4.66-4.24,6.82c-4.18,5.7-9.26,10.03-14.9,12.49c-9.69,5.44-21.84,8.69-35.04,8.69c-0.7,0-1.4-0.02-2.09-0.04c-0.69,0.02-1.39,0.04-2.09,0.04c-31.66,0-57.33-18.64-57.33-41.63c0-22.99,25.67-41.63,57.33-41.63h54.61h9.61c4.35-0.05,4.35-0.05,4.35-0.05c1.64-1.16,3.37-3.12,5.5-5.58l23.22-24.42H201.8c-51.93,0-94.02,31.93-94.02,71.33s42.09,71.33,94.02,71.33s94.02-31.93,94.02-71.33c0-2.7-0.22-5.36-0.61-7.99L264.28,47.3z"/>
+        <polygon fill="#EC2027" points="202.8,38.21 212.53,57.94 234.3,61.1 218.55,76.46 222.27,98.14 202.8,87.9 183.32,98.14 187.04,76.46 171.29,61.1 193.06,57.94"/>
+        <path fill="#ED2024" d="M149.52,0.09L94.2,0H64.14H0v30.06h62.2V140.5H94.2V71.42l0.1-10.16c0-0.03,0.03-1.86,0.03-1.89C94.99,41.57,112.28,10.5,149.52,0.09z"/>
+      </svg>
+      <span class="font-heading text-[15px] font-extrabold tracking-tight text-white">Tournament Guru</span>
+    </div>
+
+    <nav class="tg-scroll-dark flex-1 space-y-7 overflow-y-auto px-3 pb-6">
+      <div>
+        <p class="mb-2.5 px-3 text-[10.5px] font-bold uppercase tracking-[0.16em] text-white/30">Manage</p>
+        <ul class="space-y-0.5">
+          <li>
+            <a class="relative flex items-center gap-3 rounded-xl bg-white/[0.1] px-3 py-2.5 text-[13.5px] font-semibold text-white">
+              <span aria-hidden="true" class="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-full bg-accent"></span>
+              <span data-i="calendar" class="h-4 w-4"></span>Events
+            </a>
+          </li>
+          <li><a class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold text-white/55 transition-colors hover:bg-white/[0.06] hover:text-white/90"><span data-i="star" class="h-4 w-4 opacity-70"></span>Reviews</a></li>
+          <li><a class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold text-white/55 transition-colors hover:bg-white/[0.06] hover:text-white/90"><span data-i="inbox" class="h-4 w-4 opacity-70"></span>Claim Requests</a></li>
+          <li><a class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold text-white/55 transition-colors hover:bg-white/[0.06] hover:text-white/90"><span data-i="tag" class="h-4 w-4 opacity-70"></span>Promo Codes</a></li>
+        </ul>
+      </div>
+      <div>
+        <p class="mb-2.5 px-3 text-[10.5px] font-bold uppercase tracking-[0.16em] text-white/30">Browse</p>
+        <ul class="space-y-0.5">
+          <li><a class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold text-white/55 transition-colors hover:bg-white/[0.06] hover:text-white/90"><span data-i="search" class="h-4 w-4 opacity-70"></span>Search Events</a></li>
+        </ul>
+      </div>
+      <div>
+        <p class="mb-2.5 px-3 text-[10.5px] font-bold uppercase tracking-[0.16em] text-white/30">You</p>
+        <ul class="space-y-0.5">
+          <li><a class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold text-white/55 transition-colors hover:bg-white/[0.06] hover:text-white/90"><span data-i="user" class="h-4 w-4 opacity-70"></span>Account</a></li>
+          <li><a class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold text-white/55 transition-colors hover:bg-white/[0.06] hover:text-white/90"><span data-i="help" class="h-4 w-4 opacity-70"></span>FAQ</a></li>
+          <li><a class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold text-white/55 transition-colors hover:bg-white/[0.06] hover:text-white/90"><span data-i="lifebuoy" class="h-4 w-4 opacity-70"></span>Support</a></li>
+        </ul>
+      </div>
+    </nav>
+
+    <!-- role context (ED): the premium pointer whose "Learn more" opens THIS page -->
+    <div class="space-y-3 border-t border-white/[0.08] px-4 py-5">
+      <div class="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3.5 py-3.5">
+        <p class="text-[12.5px] font-bold text-white">Premium listings</p>
+        <p class="mt-1 text-xs leading-relaxed text-white/45">Feature your events in Spotlight and search-top placements.</p>
+        <span class="mt-2 inline-flex items-center gap-1 text-[12.5px] font-semibold text-red-400">You're here<span data-i="check" class="h-3 w-3"></span></span>
+      </div>
+      <div class="flex items-center gap-3 rounded-xl border border-white/[0.08] bg-white/[0.06] px-3 py-3">
+        <span class="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-lg bg-white">
+          <svg viewBox="0 0 96 96" class="h-full w-full"><rect width="96" height="96" rx="18" fill="#0f172a"/><text x="46" y="62" text-anchor="middle" font-family="'Bricolage Grotesque',Inter,sans-serif" font-size="36" font-weight="800" fill="#fff">LS</text><circle cx="77" cy="58" r="4.5" fill="#EC2027"/></svg>
+        </span>
+        <div class="min-w-0">
+          <p class="truncate text-[12.5px] font-bold text-white">Lone Star Youth Sports</p>
+          <p class="truncate text-[11px] font-medium text-white/40">Organization</p>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ══════════ Main column ══════════ -->
+  <div class="flex min-w-0 flex-1 flex-col">
+
+    <!-- Top header: breadcrumb + user menu -->
+    <header class="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
+      <div class="flex h-16 items-center justify-between gap-4 px-5 md:px-10">
+        <div class="flex min-w-0 items-center gap-2 text-[13px]">
+          <span class="hidden font-medium text-slate-400 sm:block">Dashboard</span>
+          <span data-i="chev-r" class="hidden h-3.5 w-3.5 text-slate-300 sm:block"></span>
+          <a class="hidden cursor-pointer font-medium text-slate-400 transition-colors hover:text-slate-600 sm:block">Events</a>
+          <span data-i="chev-r" class="hidden h-3.5 w-3.5 text-slate-300 sm:block"></span>
+          <a class="hidden cursor-pointer truncate font-medium text-slate-400 transition-colors hover:text-slate-600 md:block">Spring Kickoff Cup — U10 Division</a>
+          <span data-i="chev-r" class="hidden h-3.5 w-3.5 text-slate-300 md:block"></span>
+          <span class="truncate font-semibold text-slate-900">Add-ons</span>
+        </div>
+        <div data-menu>
+          <button type="button" data-menu-btn aria-haspopup="menu"
+            class="flex items-center gap-3 rounded-full py-1.5 pl-1.5 pr-3 transition-colors hover:bg-slate-100">
+            <span class="grid h-8 w-8 flex-none place-items-center rounded-full bg-slate-200 font-heading text-[12px] font-extrabold text-slate-600">MS</span>
+            <span class="hidden text-left sm:block">
+              <span class="block text-[13px] font-bold leading-tight text-slate-900">Miguel Santos</span>
+              <span class="block text-[11px] font-medium leading-tight text-slate-500">Event Director</span>
+            </span>
+            <span data-i="chev-d" class="h-4 w-4 text-slate-400 transition-transform"></span>
+          </button>
+          <div class="tg-menu" role="menu">
+            <div class="px-3 py-2.5">
+              <p class="text-[13px] font-bold text-slate-900">Miguel Santos</p>
+              <p class="mt-0.5 truncate text-xs text-slate-500">m.santos@lonestaryouth.org</p>
+            </div>
+            <div class="mx-1.5 h-px bg-slate-100"></div>
+            <button class="tg-menu-item" role="menuitem"><span data-i="user" class="h-[15px] w-[15px]"></span>Account</button>
+            <div class="mx-1.5 h-px bg-slate-100"></div>
+            <button class="tg-menu-item danger" role="menuitem"><span data-i="logout" class="h-[15px] w-[15px]"></span>Log out</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="flex-1 px-5 py-8 md:px-10 md:py-9">
+      <div class="mx-auto max-w-[1140px]">
+
+        <!-- ════════════════ PAGE HEADER ════════════════ -->
+        <a class="inline-flex cursor-pointer items-center gap-1.5 text-[12.5px] font-bold text-slate-500 transition-colors hover:text-slate-900"
+           data-mock="Back to Spring Kickoff Cup — U10 Division">
+          <span data-i="arrow-l" class="h-3.5 w-3.5"></span>Back to Spring Kickoff Cup — U10 Division
+        </a>
+
+        <h1 class="mt-3 font-heading text-[26px] font-extrabold tracking-tight text-slate-900">Add-on Details</h1>
+        <p class="mt-1 text-[13.5px] leading-relaxed text-slate-600">
+          Whether you unlock premium features or an advertising option, your event is sure to be noticed.
+        </p>
+
+        <!-- the one big decision: which add-on -->
+        <div class="mt-6 flex flex-wrap items-center justify-between gap-3">
+          <div class="addon-tabs" role="tablist" aria-label="Add-on options">
+            <button type="button" id="tab-premium" role="tab" aria-selected="true" data-addon="premium" class="on">
+              <span data-i="star" class="h-4 w-4"></span>Premium Listing<span class="tab-price">$900</span>
+            </button>
+            <button type="button" id="tab-ads" role="tab" aria-selected="false" data-addon="ads">
+              <span data-i="megaphone" class="h-4 w-4"></span>General Ads<span class="tab-price">$300</span>
+            </button>
+          </div>
+          <p class="hidden items-center gap-1.5 text-[11.5px] font-semibold text-slate-500 sm:inline-flex">
+            <span data-i="lock" class="h-3.5 w-3.5"></span>Secure checkout · one-time payment per event
+          </p>
+        </div>
+
+        <!-- ════════════════ PREMIUM LISTING ════════════════ -->
+        <section data-addon-panel="premium" role="tabpanel" aria-labelledby="tab-premium" class="mt-6">
+          <div class="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+
+            <!-- pitch + preview + features -->
+            <div class="card min-w-0 p-5 md:p-7">
+              <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
+                <span class="sec-ic" style="background:#fffbeb;color:#f59e0b"><span data-i="star" class="h-4 w-4"></span></span>
+                <h2 class="font-heading text-[22px] font-extrabold tracking-tight">Premium Listing</h2>
+                <span class="chip-prem">Premium</span>
+                <span class="pill-verified"><span data-i="shield" class="h-3 w-3"></span>Verified listing</span>
+              </div>
+              <p class="mt-2.5 max-w-[58ch] text-[13.5px] leading-relaxed text-slate-600">
+                Stand out and inspire trust with a premium event presence.
+              </p>
+
+              <!-- device preview: promoted placement on desktop + mobile -->
+              <div class="preview mt-5 p-5 md:p-7">
+                <span class="float-chip right-4 top-4 md:right-6 md:top-6">
+                  <span data-i="star" class="h-3.5 w-3.5 text-amber-500"></span>Top of search results
+                </span>
+                <span class="float-chip bottom-4 left-4 md:bottom-6 md:left-6">
+                  <span data-i="mail" class="h-3.5 w-3.5 text-accent"></span>Weekly Featured Events email
+                </span>
+                <svg viewBox="0 0 720 420" role="img" aria-label="Preview of a promoted event listing on a laptop and a phone">
+                  <defs>
+                    <linearGradient id="pvImg" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0" stop-color="#22c55e"/><stop offset="1" stop-color="#15803d"/>
+                    </linearGradient>
+                    <linearGradient id="pvBase" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0" stop-color="#e2e8f0"/><stop offset="1" stop-color="#94a3b8"/>
+                    </linearGradient>
+                    <clipPath id="pvScr"><rect x="84" y="42" width="404" height="246" rx="6"/></clipPath>
+                    <clipPath id="pvPh"><rect x="531" y="107" width="112" height="242" rx="14"/></clipPath>
+                  </defs>
+
+                  <!-- ground shadows -->
+                  <ellipse cx="300" cy="338" rx="290" ry="17" fill="#020617" opacity=".35"/>
+                  <ellipse cx="587" cy="366" rx="82" ry="11" fill="#020617" opacity=".35"/>
+
+                  <!-- laptop -->
+                  <rect x="70" y="28" width="432" height="274" rx="14" fill="#0f172a" stroke="#334155" stroke-width="1.5"/>
+                  <circle cx="286" cy="35.5" r="2" fill="#475569"/>
+                  <g clip-path="url(#pvScr)">
+                    <rect x="84" y="42" width="404" height="246" fill="#f8fafc"/>
+                    <rect x="84" y="42" width="404" height="28" fill="#0f172a"/>
+                    <polygon fill="#dc2626" points="98,49 100.3,53.6 105.4,54.3 101.7,57.9 102.6,63 98,60.6 93.4,63 94.3,57.9 90.6,54.3 95.7,53.6"/>
+                    <text x="112" y="60" font-size="9" font-weight="800" fill="#fff" letter-spacing=".8">TOURNAMENT GURU</text>
+                    <rect x="360" y="53" width="30" height="6" rx="3" fill="#fff" opacity=".28"/>
+                    <rect x="404" y="50.5" width="36" height="11" rx="5.5" fill="#dc2626"/>
+                    <rect x="84" y="70" width="404" height="2" fill="#dc2626" opacity=".9"/>
+
+                    <text x="98" y="94" font-size="9.5" font-weight="800" fill="#64748b" letter-spacing="2">PROMOTED EVENTS</text>
+
+                    <!-- the premium card: red halo + border, full detail -->
+                    <rect x="94" y="100" width="190" height="162" rx="12" fill="#dc2626" opacity=".1"/>
+                    <rect x="100" y="106" width="178" height="150" rx="9" fill="#fff" stroke="#fca5a5" stroke-width="1.5"/>
+                    <rect x="108" y="114" width="162" height="62" rx="5" fill="url(#pvImg)"/>
+                    <g stroke="#fff" stroke-width="1.4" fill="none" opacity=".8">
+                      <line x1="189" y1="114" x2="189" y2="176"/><circle cx="189" cy="145" r="13"/>
+                    </g>
+                    <rect x="114" y="120" width="52" height="14" rx="7" fill="#dc2626"/>
+                    <text x="140" y="130" text-anchor="middle" font-size="7.5" font-weight="800" fill="#fff" letter-spacing=".8">PREMIUM</text>
+                    <text x="108" y="196" font-size="11.5" font-weight="800" fill="#0f172a">Spring Kickoff Cup</text>
+                    <text x="108" y="210" font-size="8.5" font-weight="600" fill="#64748b">Austin, TX · Jul 30 – Aug 1</text>
+                    <text x="107" y="228" font-size="10" fill="#f59e0b" letter-spacing="1">★★★★★</text>
+                    <text x="164" y="227" font-size="8.5" font-weight="700" fill="#334155">4.9 (34)</text>
+                    <rect x="108" y="236" width="74" height="14" rx="7" fill="#0f172a"/>
+                    <text x="145" y="245.5" text-anchor="middle" font-size="7.5" font-weight="700" fill="#fff">View event</text>
+
+                    <!-- muted, non-premium neighbors -->
+                    <rect x="298" y="118" width="150" height="126" rx="9" fill="#fff" stroke="#e2e8f0"/>
+                    <rect x="306" y="126" width="134" height="50" rx="5" fill="#e2e8f0"/>
+                    <rect x="306" y="186" width="96" height="8" rx="4" fill="#cbd5e1"/>
+                    <rect x="306" y="200" width="70" height="7" rx="3.5" fill="#e2e8f0"/>
+                    <rect x="306" y="222" width="56" height="10" rx="5" fill="#e2e8f0"/>
+                    <rect x="462" y="118" width="120" height="126" rx="9" fill="#fff" stroke="#e2e8f0"/>
+                    <rect x="470" y="126" width="104" height="50" rx="5" fill="#e2e8f0"/>
+                    <rect x="470" y="186" width="70" height="8" rx="4" fill="#cbd5e1"/>
+                  </g>
+                  <!-- laptop base -->
+                  <path d="M36 302 L536 302 L516 326 Q514 330 507 330 L65 330 Q58 330 56 326 Z" fill="url(#pvBase)"/>
+                  <rect x="252" y="302" width="68" height="7" rx="3.5" fill="#64748b" opacity=".55"/>
+
+                  <!-- phone -->
+                  <rect x="524" y="98" width="126" height="260" rx="20" fill="#0f172a" stroke="#475569" stroke-width="1.5"/>
+                  <g clip-path="url(#pvPh)">
+                    <rect x="531" y="107" width="112" height="242" fill="#f8fafc"/>
+                    <rect x="531" y="107" width="112" height="26" fill="#0f172a"/>
+                    <polygon fill="#dc2626" points="541,114 542.9,117.8 547.1,118.4 544.1,121.4 544.8,125.6 541,123.6 537.2,125.6 537.9,121.4 534.9,118.4 539.1,117.8"/>
+                    <text x="551" y="124" font-size="7.5" font-weight="800" fill="#fff" letter-spacing="1">TG</text>
+                    <text x="539" y="150" font-size="8" font-weight="800" fill="#64748b" letter-spacing="1.6">PROMOTED</text>
+                    <rect x="535" y="156" width="104" height="128" rx="10" fill="#dc2626" opacity=".1"/>
+                    <rect x="539" y="160" width="96" height="120" rx="8" fill="#fff" stroke="#fca5a5" stroke-width="1.2"/>
+                    <rect x="545" y="166" width="84" height="44" rx="4" fill="url(#pvImg)"/>
+                    <rect x="549" y="170" width="40" height="11" rx="5.5" fill="#dc2626"/>
+                    <text x="569" y="177.5" text-anchor="middle" font-size="6" font-weight="800" fill="#fff" letter-spacing=".6">PREMIUM</text>
+                    <text x="545" y="224" font-size="8.5" font-weight="800" fill="#0f172a">Spring Kickoff Cup</text>
+                    <text x="545" y="235" font-size="6.5" font-weight="600" fill="#64748b">Austin, TX · Jul 30</text>
+                    <text x="544" y="248" font-size="8" fill="#f59e0b" letter-spacing=".8">★★★★★</text>
+                    <text x="590" y="247" font-size="6.5" font-weight="700" fill="#334155">4.9</text>
+                    <rect x="545" y="256" width="56" height="12" rx="6" fill="#0f172a"/>
+                    <text x="573" y="264.5" text-anchor="middle" font-size="6" font-weight="700" fill="#fff">View event</text>
+                    <rect x="539" y="290" width="96" height="59" rx="8" fill="#fff" stroke="#e2e8f0"/>
+                    <rect x="545" y="296" width="84" height="28" rx="4" fill="#e2e8f0"/>
+                    <rect x="545" y="330" width="58" height="6" rx="3" fill="#cbd5e1"/>
+                  </g>
+                </svg>
+              </div>
+              <p class="mt-3 text-center text-[11.5px] font-semibold text-slate-500">
+                How your promoted listing appears across search, event pages, and the mobile experience.
+              </p>
+
+              <div class="hairline my-6"></div>
+
+              <p class="eyebrow">What's included</p>
+              <ul class="mt-4 grid gap-x-7 gap-y-4 sm:grid-cols-2">
+                <li class="flex items-start gap-3">
+                  <span class="check-disc"><span data-i="check" class="h-3 w-3"></span></span>
+                  <div class="min-w-0">
+                    <p class="text-[13.5px] font-bold text-slate-900">Priority listing placement</p>
+                    <p class="mt-0.5 text-[12px] leading-relaxed text-slate-600">Your event ranks first in search results and category pages.</p>
+                  </div>
+                </li>
+                <li class="flex items-start gap-3">
+                  <span class="check-disc"><span data-i="check" class="h-3 w-3"></span></span>
+                  <div class="min-w-0">
+                    <p class="text-[13.5px] font-bold text-slate-900">Verified &amp; trusted coach/manager reviews</p>
+                    <p class="mt-0.5 text-[12px] leading-relaxed text-slate-600">Reviews carry the verified badge attendees trust.</p>
+                  </div>
+                </li>
+                <li class="flex items-start gap-3">
+                  <span class="check-disc"><span data-i="check" class="h-3 w-3"></span></span>
+                  <div class="min-w-0">
+                    <p class="text-[13.5px] font-bold text-slate-900">Enhanced profile</p>
+                    <p class="mt-0.5 text-[12px] leading-relaxed text-slate-600">More images, an extended description, and event videos.</p>
+                  </div>
+                </li>
+                <li class="flex items-start gap-3">
+                  <span class="check-disc"><span data-i="check" class="h-3 w-3"></span></span>
+                  <div class="min-w-0">
+                    <p class="text-[13.5px] font-bold text-slate-900">Up to 10 images &amp; event video</p>
+                    <p class="mt-0.5 text-[12px] leading-relaxed text-slate-600">Show the full story of your event weekend.</p>
+                  </div>
+                </li>
+                <li class="flex items-start gap-3">
+                  <span class="check-disc"><span data-i="check" class="h-3 w-3"></span></span>
+                  <div class="min-w-0">
+                    <p class="text-[13.5px] font-bold text-slate-900">Hyperlinks to team lists</p>
+                    <p class="mt-0.5 text-[12px] leading-relaxed text-slate-600">Send coaches straight to your registered team lists.</p>
+                  </div>
+                </li>
+                <li class="flex items-start gap-3">
+                  <span class="check-disc"><span data-i="check" class="h-3 w-3"></span></span>
+                  <div class="min-w-0">
+                    <p class="text-[13.5px] font-bold text-slate-900">Weekly Featured Events email listing</p>
+                    <p class="mt-0.5 text-[12px] leading-relaxed text-slate-600">Your event lands in subscriber inboxes every week.</p>
+                  </div>
+                </li>
+              </ul>
+            </div>
+
+            <!-- price rail -->
+            <aside class="flex flex-col lg:sticky lg:top-24">
+              <div class="card relative p-6">
+                <span aria-hidden="true" class="pointer-events-none absolute inset-x-0 top-0 h-4 overflow-hidden rounded-t-[15px]">
+                  <span class="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-accent via-red-400 to-amber-400"></span>
+                </span>
+                <p class="eyebrow">Premium Listing · one-time</p>
+                <div class="mt-3 flex items-end gap-2">
+                  <span class="font-heading text-[44px] font-extrabold leading-none tracking-tight text-slate-900">$900</span>
+                  <span class="pb-1 text-[13px] font-bold text-slate-500">USD</span>
+                </div>
+                <p class="mt-1.5 text-[12.5px] font-semibold text-slate-600">per event listing · one-time payment</p>
+
+                <div class="mt-4 flex items-center gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2.5">
+                  <span class="check-disc" style="width:20px;height:20px;margin-top:0;background:#fff"><span data-i="check" class="h-3 w-3"></span></span>
+                  <p class="text-[12.5px] font-bold text-emerald-900">Includes all features listed</p>
+                </div>
+
+                <button type="button" class="btn btn-accent mt-4 w-full" data-mock="Checkout — Premium Listing · $900">
+                  <span data-i="zap" class="h-4 w-4"></span>Activate
+                </button>
+                <div class="mt-3.5 flex flex-col items-center gap-1.5">
+                  <svg viewBox="0 0 468 222.5" class="h-5 w-auto text-slate-500" fill="currentColor" role="img" aria-label="Stripe">
+                    <path fill-rule="evenodd" clip-rule="evenodd" d="M414 113.4c0-25.6-12.4-45.8-36.1-45.8-23.8 0-38.2 20.2-38.2 45.6 0 30.1 17 45.3 41.4 45.3 11.9 0 20.9-2.7 27.7-6.5v-20c-6.8 3.4-14.6 5.5-24.5 5.5-9.7 0-18.3-3.4-19.4-15.2h48.9c0-1.3.2-6.5.2-8.9zm-49.4-9.5c0-11.3 6.9-16 13.2-16 6.1 0 12.6 4.7 12.6 16h-25.8zM301.1 67.6c-9.8 0-16.1 4.6-19.6 7.8l-1.3-6.2h-22v116.6l25-5.3.1-28.3c3.6 2.6 8.9 6.3 17.7 6.3 17.9 0 34.2-14.4 34.2-46.1-.1-29-16.6-44.8-34.1-44.8zm-6 68.9c-5.9 0-9.4-2.1-11.8-4.7l-.1-37.1c2.6-2.9 6.2-4.9 11.9-4.9 9.1 0 15.4 10.2 15.4 23.3 0 13.4-6.2 23.4-15.4 23.4zM223.8 61.7l25.1-5.4V36l-25.1 5.3v20.4zM223.8 69.3h25.1v87.5h-25.1V69.3zM196.9 76.7l-1.6-7.4h-21.6v87.5h25V97.5c5.9-7.7 15.9-6.3 19-5.2v-23c-3.2-1.2-14.9-3.4-20.8 7.4zM146.9 47.6l-24.4 5.2-.1 80.1c0 14.8 11.1 25.7 25.9 25.7 8.2 0 14.2-1.5 17.5-3.3V135c-3.2 1.3-19 5.9-19-8.9V90.6h19V69.3h-19l.1-21.7zM79.3 94.7c0-3.9 3.2-5.4 8.5-5.4 7.6 0 17.2 2.3 24.8 6.4V72.2c-8.3-3.3-16.5-4.6-24.8-4.6C67.5 67.6 54 78.2 54 95.9c0 27.6 38 23.2 38 35.1 0 4.6-4 6.1-9.6 6.1-8.3 0-18.9-3.4-27.3-8v23.8c9.3 4 18.7 5.7 27.3 5.7 20.8 0 35.1-10.3 35.1-28.2-.1-29.8-38.2-24.5-38.2-35.7z"/>
+                  </svg>
+                  <p class="flex items-center justify-center gap-1.5 text-[11.5px] font-semibold text-slate-600">
+                    <span data-i="lock" class="h-3 w-3"></span>Secure checkout · powered by Stripe
+                  </p>
+                </div>
+
+                <div class="hairline my-5"></div>
+
+                <p class="eyebrow">Applies to</p>
+                <div class="mt-3 flex items-center gap-3">
+                  <span class="grid h-10 w-10 flex-none place-items-center overflow-hidden rounded-xl ring-1 ring-slate-200">
+                    <svg viewBox="0 0 96 96" class="h-full w-full" role="img" aria-label="Spring Kickoff Cup event logo">
+                      <defs>
+                        <linearGradient id="crestP" x1="0" y1="0" x2="1" y2="1">
+                          <stop offset="0" stop-color="#ef4444"/><stop offset="1" stop-color="#b91c1c"/>
+                        </linearGradient>
+                      </defs>
+                      <rect width="96" height="96" fill="url(#crestP)"/>
+                      <polygon fill="#fff" points="48,22 54.2,34.6 68,36.6 58,46.4 60.4,60.2 48,53.7 35.6,60.2 38,46.4 28,36.6 41.8,34.6"/>
+                      <text x="48" y="80" text-anchor="middle" font-family="'Bricolage Grotesque',Inter,sans-serif" font-size="19" font-weight="800" fill="#fff" letter-spacing="1.5">SKC</text>
+                    </svg>
+                  </span>
+                  <div class="min-w-0">
+                    <p class="truncate text-[13px] font-bold text-slate-900">Spring Kickoff Cup — U10 Division</p>
+                    <p class="mt-1 flex items-center gap-2 text-[11px] font-medium text-slate-600">
+                      <span class="pill pill-live"><span class="dot"></span>Published</span>Jul 30 – Aug 1, 2026
+                    </p>
+                  </div>
+                </div>
+
+                <div class="hairline my-5"></div>
+
+                <button type="button" class="tg-link inline-flex items-center gap-1 border-0 bg-transparent p-0 text-left text-[12.5px]" data-goto="ads">
+                  Need broader reach? See General Ads — $300<span data-i="chev-r" class="h-3.5 w-3.5"></span>
+                </button>
+              </div>
+
+              <div class="mt-4 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
+                <span class="grid h-9 w-9 flex-none place-items-center rounded-xl bg-white text-amber-500 ring-1 ring-amber-200">
+                  <span data-i="zap" class="h-4 w-4"></span>
+                </span>
+                <div class="min-w-0">
+                  <p class="text-[13px] font-bold text-slate-900">Goes live instantly</p>
+                  <p class="mt-0.5 text-[12px] leading-relaxed text-slate-600">Premium features unlock the moment checkout completes — no review wait.</p>
+                </div>
+              </div>
+            </aside>
+
+          </div>
+        </section>
+
+        <!-- ════════════════ GENERAL ADS ════════════════ -->
+        <section data-addon-panel="ads" role="tabpanel" aria-labelledby="tab-ads" class="mt-6" hidden>
+          <div class="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+
+            <!-- pitch + preview + features -->
+            <div class="card min-w-0 p-5 md:p-7">
+              <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
+                <span class="sec-ic" style="background:#f5f3ff;color:#7c3aed"><span data-i="megaphone" class="h-4 w-4"></span></span>
+                <h2 class="font-heading text-[22px] font-extrabold tracking-tight">General Ads</h2>
+                <span class="chip-spot">Spotlight</span>
+              </div>
+              <p class="mt-2.5 max-w-[58ch] text-[13.5px] leading-relaxed text-slate-600">
+                Expand your reach with high-visibility ads across the platform.
+              </p>
+              <p class="mt-1 text-[12px] font-semibold text-slate-500">Shown to attendees as the "Spotlight" section.</p>
+
+              <!-- ad preview: the Spotlight strip on the search page -->
+              <div class="preview preview-ads mt-5 p-5 md:p-7">
+                <span class="float-chip bottom-4 left-4 md:bottom-6 md:left-6">
+                  <span data-i="chart" class="h-3.5 w-3.5 text-violet-600"></span>Stats for every impression
+                </span>
+                <svg viewBox="0 0 720 400" role="img" aria-label="Preview of an event ad in the Spotlight strip on the search page">
+                  <defs>
+                    <linearGradient id="adImg" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0" stop-color="#4ade80"/><stop offset="1" stop-color="#16a34a"/>
+                    </linearGradient>
+                    <clipPath id="adW"><rect x="58" y="22" width="604" height="348" rx="14"/></clipPath>
+                  </defs>
+
+                  <ellipse cx="360" cy="382" rx="310" ry="13" fill="#020617" opacity=".35"/>
+
+                  <g clip-path="url(#adW)">
+                    <rect x="58" y="22" width="604" height="348" fill="#fff"/>
+                    <!-- browser chrome -->
+                    <rect x="58" y="22" width="604" height="34" fill="#f1f5f9"/>
+                    <circle cx="82" cy="39" r="4.5" fill="#f87171"/>
+                    <circle cx="100" cy="39" r="4.5" fill="#fbbf24"/>
+                    <circle cx="118" cy="39" r="4.5" fill="#34d399"/>
+                    <rect x="142" y="30" width="252" height="18" rx="9" fill="#fff" stroke="#e2e8f0"/>
+                    <text x="154" y="42" font-size="8.5" font-weight="600" fill="#475569">tournamentgurus.com/events</text>
+
+                    <!-- search page header -->
+                    <text x="90" y="86" font-size="14" font-weight="800" fill="#0f172a">Find your next tournament</text>
+                    <rect x="90" y="96" width="280" height="24" rx="12" fill="#f8fafc" stroke="#e2e8f0"/>
+                    <text x="104" y="111" font-size="8.5" font-weight="600" fill="#94a3b8">Soccer · Texas · Spring 2026</text>
+                    <rect x="330" y="99" width="36" height="18" rx="9" fill="#dc2626"/>
+                    <text x="348" y="110.5" text-anchor="middle" font-size="7" font-weight="700" fill="#fff">Search</text>
+
+                    <!-- spotlight strip -->
+                    <text x="90" y="150" font-size="9.5" font-weight="800" fill="#7c3aed" letter-spacing="2">SPOTLIGHT</text>
+                    <text x="164" y="150" font-size="8" font-weight="600" fill="#94a3b8">· sponsored placements</text>
+
+                    <rect x="90" y="162" width="152" height="138" rx="10" fill="#fff" stroke="#e2e8f0"/>
+                    <rect x="98" y="170" width="136" height="52" rx="5" fill="#e2e8f0"/>
+                    <rect x="98" y="232" width="96" height="8" rx="4" fill="#cbd5e1"/>
+                    <rect x="98" y="246" width="70" height="7" rx="3.5" fill="#e2e8f0"/>
+                    <rect x="98" y="270" width="56" height="12" rx="6" fill="#e2e8f0"/>
+
+                    <!-- YOUR ad: violet halo + border + AD chip -->
+                    <rect x="252" y="156" width="186" height="150" rx="12" fill="#7c3aed" opacity=".1"/>
+                    <rect x="258" y="162" width="174" height="138" rx="10" fill="#fff" stroke="#a78bfa" stroke-width="1.5"/>
+                    <rect x="266" y="170" width="158" height="56" rx="5" fill="url(#adImg)"/>
+                    <g stroke="#fff" stroke-width="1.3" fill="none" opacity=".8">
+                      <line x1="345" y1="170" x2="345" y2="226"/><circle cx="345" cy="198" r="12"/>
+                    </g>
+                    <rect x="272" y="176" width="28" height="13" rx="6.5" fill="#7c3aed"/>
+                    <text x="286" y="185.5" text-anchor="middle" font-size="7" font-weight="800" fill="#fff" letter-spacing=".8">AD</text>
+                    <circle cx="416" cy="184" r="9" fill="#ede9fe" stroke="#ddd6fe"/>
+                    <g stroke="#7c3aed" fill="none" stroke-width="1.2">
+                      <path d="M409 184c2.4-3.4 11.6-3.4 14 0c-2.4 3.4-11.6 3.4-14 0z"/>
+                    </g>
+                    <circle cx="416" cy="184" r="1.6" fill="#7c3aed"/>
+                    <text x="266" y="244" font-size="11" font-weight="800" fill="#0f172a">Spring Kickoff Cup</text>
+                    <text x="266" y="257" font-size="8" font-weight="600" fill="#64748b">Austin, TX · U9–U11 · from $495</text>
+                    <rect x="266" y="268" width="70" height="15" rx="7.5" fill="#0f172a"/>
+                    <text x="301" y="278" text-anchor="middle" font-size="7.5" font-weight="700" fill="#fff">View event</text>
+                    <text x="346" y="279" font-size="9" fill="#f59e0b" letter-spacing=".8">★★★★★</text>
+                    <text x="396" y="278.5" font-size="7.5" font-weight="700" fill="#334155">4.9</text>
+
+                    <rect x="448" y="162" width="152" height="138" rx="10" fill="#fff" stroke="#e2e8f0"/>
+                    <rect x="456" y="170" width="136" height="52" rx="5" fill="#e2e8f0"/>
+                    <rect x="456" y="232" width="96" height="8" rx="4" fill="#cbd5e1"/>
+                    <rect x="456" y="246" width="70" height="7" rx="3.5" fill="#e2e8f0"/>
+                    <rect x="456" y="270" width="56" height="12" rx="6" fill="#e2e8f0"/>
+                    <rect x="616" y="162" width="120" height="138" rx="10" fill="#fff" stroke="#e2e8f0"/>
+                    <rect x="624" y="170" width="104" height="52" rx="5" fill="#e2e8f0"/>
+
+                    <!-- listing rows below the strip -->
+                    <rect x="90" y="318" width="510" height="20" rx="6" fill="#f8fafc" stroke="#f1f5f9"/>
+                    <circle cx="104" cy="328" r="6" fill="#e2e8f0"/>
+                    <rect x="118" y="324" width="140" height="8" rx="4" fill="#e2e8f0"/>
+                    <rect x="430" y="324" width="60" height="8" rx="4" fill="#f1f5f9"/>
+                    <rect x="90" y="344" width="510" height="20" rx="6" fill="#f8fafc" stroke="#f1f5f9"/>
+                    <circle cx="104" cy="354" r="6" fill="#e2e8f0"/>
+                    <rect x="118" y="350" width="120" height="8" rx="4" fill="#e2e8f0"/>
+                    <rect x="430" y="350" width="60" height="8" rx="4" fill="#f1f5f9"/>
+                  </g>
+                  <rect x="58" y="22" width="604" height="348" rx="14" fill="none" stroke="#cbd5e1"/>
+                </svg>
+              </div>
+              <p class="mt-3 text-center text-[11.5px] font-semibold text-slate-500">
+                Your event card in the Spotlight strip — seen by every visitor browsing events.
+              </p>
+
+              <div class="hairline my-6"></div>
+
+              <p class="eyebrow">What's included</p>
+              <ul class="mt-4 grid gap-x-7 gap-y-4 sm:grid-cols-2">
+                <li class="flex items-start gap-3">
+                  <span class="check-disc"><span data-i="check" class="h-3 w-3"></span></span>
+                  <div class="min-w-0">
+                    <p class="text-[13.5px] font-bold text-slate-900">Event ads on user-facing pages</p>
+                    <p class="mt-0.5 text-[12px] leading-relaxed text-slate-600">Placed in high-visibility areas where attendees actually look.</p>
+                  </div>
+                </li>
+                <li class="flex items-start gap-3">
+                  <span class="check-disc"><span data-i="check" class="h-3 w-3"></span></span>
+                  <div class="min-w-0">
+                    <p class="text-[13.5px] font-bold text-slate-900">Broad, non-targeted reach</p>
+                    <p class="mt-0.5 text-[12px] leading-relaxed text-slate-600">Your ad reaches all visitors — coaches, parents, and managers.</p>
+                  </div>
+                </li>
+                <li class="flex items-start gap-3">
+                  <span class="check-disc"><span data-i="check" class="h-3 w-3"></span></span>
+                  <div class="min-w-0">
+                    <p class="text-[13.5px] font-bold text-slate-900">Detailed statistics</p>
+                    <p class="mt-0.5 text-[12px] leading-relaxed text-slate-600">Every impression is counted and reported to you.</p>
+                  </div>
+                </li>
+                <li class="flex items-start gap-3">
+                  <span class="check-disc"><span data-i="check" class="h-3 w-3"></span></span>
+                  <div class="min-w-0">
+                    <p class="text-[13.5px] font-bold text-slate-900">Consistent visibility</p>
+                    <p class="mt-0.5 text-[12px] leading-relaxed text-slate-600">Shown across event and listing pages, not a single slot.</p>
+                  </div>
+                </li>
+              </ul>
+            </div>
+
+            <!-- price rail -->
+            <aside class="flex flex-col lg:sticky lg:top-24">
+              <div class="card relative p-6">
+                <span aria-hidden="true" class="pointer-events-none absolute inset-x-0 top-0 h-4 overflow-hidden rounded-t-[15px]">
+                  <span class="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-violet-600 via-violet-400 to-sky-400"></span>
+                </span>
+                <p class="eyebrow">General Ads · one-time</p>
+                <div class="mt-3 flex items-end gap-2">
+                  <span class="font-heading text-[44px] font-extrabold leading-none tracking-tight text-slate-900">$300</span>
+                  <span class="pb-1 text-[13px] font-bold text-slate-500">USD</span>
+                </div>
+                <p class="mt-1.5 text-[12.5px] font-semibold text-slate-600">per event listing · one-time payment</p>
+
+                <div class="mt-4 flex items-center gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2.5">
+                  <span class="check-disc" style="width:20px;height:20px;margin-top:0;background:#fff"><span data-i="check" class="h-3 w-3"></span></span>
+                  <p class="text-[12.5px] font-bold text-emerald-900">Includes all features listed</p>
+                </div>
+
+                <button type="button" class="btn btn-accent-ads mt-4 w-full" data-mock="Checkout — General Ads · $300">
+                  <span data-i="zap" class="h-4 w-4"></span>Activate
+                </button>
+                <div class="mt-3.5 flex flex-col items-center gap-1.5">
+                  <svg viewBox="0 0 468 222.5" class="h-5 w-auto text-slate-500" fill="currentColor" role="img" aria-label="Stripe">
+                    <path fill-rule="evenodd" clip-rule="evenodd" d="M414 113.4c0-25.6-12.4-45.8-36.1-45.8-23.8 0-38.2 20.2-38.2 45.6 0 30.1 17 45.3 41.4 45.3 11.9 0 20.9-2.7 27.7-6.5v-20c-6.8 3.4-14.6 5.5-24.5 5.5-9.7 0-18.3-3.4-19.4-15.2h48.9c0-1.3.2-6.5.2-8.9zm-49.4-9.5c0-11.3 6.9-16 13.2-16 6.1 0 12.6 4.7 12.6 16h-25.8zM301.1 67.6c-9.8 0-16.1 4.6-19.6 7.8l-1.3-6.2h-22v116.6l25-5.3.1-28.3c3.6 2.6 8.9 6.3 17.7 6.3 17.9 0 34.2-14.4 34.2-46.1-.1-29-16.6-44.8-34.1-44.8zm-6 68.9c-5.9 0-9.4-2.1-11.8-4.7l-.1-37.1c2.6-2.9 6.2-4.9 11.9-4.9 9.1 0 15.4 10.2 15.4 23.3 0 13.4-6.2 23.4-15.4 23.4zM223.8 61.7l25.1-5.4V36l-25.1 5.3v20.4zM223.8 69.3h25.1v87.5h-25.1V69.3zM196.9 76.7l-1.6-7.4h-21.6v87.5h25V97.5c5.9-7.7 15.9-6.3 19-5.2v-23c-3.2-1.2-14.9-3.4-20.8 7.4zM146.9 47.6l-24.4 5.2-.1 80.1c0 14.8 11.1 25.7 25.9 25.7 8.2 0 14.2-1.5 17.5-3.3V135c-3.2 1.3-19 5.9-19-8.9V90.6h19V69.3h-19l.1-21.7zM79.3 94.7c0-3.9 3.2-5.4 8.5-5.4 7.6 0 17.2 2.3 24.8 6.4V72.2c-8.3-3.3-16.5-4.6-24.8-4.6C67.5 67.6 54 78.2 54 95.9c0 27.6 38 23.2 38 35.1 0 4.6-4 6.1-9.6 6.1-8.3 0-18.9-3.4-27.3-8v23.8c9.3 4 18.7 5.7 27.3 5.7 20.8 0 35.1-10.3 35.1-28.2-.1-29.8-38.2-24.5-38.2-35.7z"/>
+                  </svg>
+                  <p class="flex items-center justify-center gap-1.5 text-[11.5px] font-semibold text-slate-600">
+                    <span data-i="lock" class="h-3 w-3"></span>Secure checkout · powered by Stripe
+                  </p>
+                </div>
+
+                <div class="hairline my-5"></div>
+
+                <p class="eyebrow">Applies to</p>
+                <div class="mt-3 flex items-center gap-3">
+                  <span class="grid h-10 w-10 flex-none place-items-center overflow-hidden rounded-xl ring-1 ring-slate-200">
+                    <svg viewBox="0 0 96 96" class="h-full w-full" role="img" aria-label="Spring Kickoff Cup event logo">
+                      <defs>
+                        <linearGradient id="crestA" x1="0" y1="0" x2="1" y2="1">
+                          <stop offset="0" stop-color="#ef4444"/><stop offset="1" stop-color="#b91c1c"/>
+                        </linearGradient>
+                      </defs>
+                      <rect width="96" height="96" fill="url(#crestA)"/>
+                      <polygon fill="#fff" points="48,22 54.2,34.6 68,36.6 58,46.4 60.4,60.2 48,53.7 35.6,60.2 38,46.4 28,36.6 41.8,34.6"/>
+                      <text x="48" y="80" text-anchor="middle" font-family="'Bricolage Grotesque',Inter,sans-serif" font-size="19" font-weight="800" fill="#fff" letter-spacing="1.5">SKC</text>
+                    </svg>
+                  </span>
+                  <div class="min-w-0">
+                    <p class="truncate text-[13px] font-bold text-slate-900">Spring Kickoff Cup — U10 Division</p>
+                    <p class="mt-1 flex items-center gap-2 text-[11px] font-medium text-slate-600">
+                      <span class="pill pill-live"><span class="dot"></span>Published</span>Jul 30 – Aug 1, 2026
+                    </p>
+                  </div>
+                </div>
+
+                <div class="hairline my-5"></div>
+
+                <button type="button" class="tg-link inline-flex items-center gap-1 border-0 bg-transparent p-0 text-left text-[12.5px]" data-goto="premium">
+                  Want the full presence? See Premium Listing — $900<span data-i="chev-r" class="h-3.5 w-3.5"></span>
+                </button>
+              </div>
+
+              <div class="mt-4 flex items-start gap-3 rounded-2xl border border-violet-200 bg-violet-50 p-4 shadow-sm">
+                <span class="grid h-9 w-9 flex-none place-items-center rounded-xl bg-white text-violet-600 ring-1 ring-violet-200">
+                  <span data-i="chart" class="h-4 w-4"></span>
+                </span>
+                <div class="min-w-0">
+                  <p class="text-[13px] font-bold text-slate-900">Impression reporting included</p>
+                  <p class="mt-0.5 text-[12px] leading-relaxed text-slate-600">Track views from your dashboard from the first day your ad runs.</p>
+                </div>
+              </div>
+            </aside>
+
+          </div>
+        </section>
+
+        <!-- ════════════════ SHARED CLOSER ════════════════ -->
+        <section class="card mt-8 flex flex-wrap items-center justify-between gap-4 p-5 md:p-6">
+          <div class="flex items-center gap-4">
+            <span class="grid h-11 w-11 flex-none place-items-center rounded-xl bg-sky-50 text-sky-600 ring-1 ring-sky-100">
+              <span data-i="lifebuoy" class="h-5 w-5"></span>
+            </span>
+            <div class="min-w-0">
+              <p class="font-heading text-[16px] font-extrabold tracking-tight text-slate-900">Not sure which add-on fits?</p>
+              <p class="mt-0.5 text-[12.5px] font-medium text-slate-600">Tell us about your event and we'll point you to the right option — no commitment.</p>
+            </div>
+          </div>
+          <button type="button" class="btn btn-secondary" data-mock="Contact support">
+            <span data-i="mail" class="h-4 w-4"></span>Contact support
+          </button>
+        </section>
+
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- toast + mockup hint -->
+<div id="toast" role="status"></div>
+<div class="fixed bottom-5 left-1/2 z-50 -translate-x-1/2 whitespace-nowrap rounded-full bg-ink/95 px-4 py-2 text-[11px] font-semibold text-white/60 shadow-xl ring-1 ring-white/10">
+  Design mockup · <span class="text-white">tabs, menus &amp; CTAs are clickable</span> · keys 1–2
+</div>
+
+<script>
+  /* ── stroke icons (same geometry as app/dashboard/icons.tsx) ── */
+  const I = {
+    calendar:'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+    star:'<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
+    inbox:'<polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
+    tag:'<path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><path d="M7 7h.01"/>',
+    search:'<circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>',
+    user:'<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+    help:'<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>',
+    lifebuoy:'<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><path d="M4.93 4.93l4.24 4.24M14.83 14.83l4.24 4.24M14.83 9.17l4.24-4.24M4.93 19.07l4.24-4.24"/>',
+    logout:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>',
+    'chev-d':'<polyline points="6 9 12 15 18 9"/>',
+    'chev-r':'<polyline points="9 18 15 12 9 6"/>',
+    'arrow-l':'<line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>',
+    check:'<polyline points="20 6 9 17 4 12"/>',
+    shield:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 11.5 11 13.5 15 9.5"/>',
+    zap:'<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>',
+    megaphone:'<path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>',
+    lock:'<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+    mail:'<path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/><polyline points="22,6 12,13 2,6"/>',
+    chart:'<line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/>',
+  };
+  document.querySelectorAll('[data-i]').forEach(el => {
+    el.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (I[el.dataset.i] || '') + '</svg>';
+  });
+
+  /* ── add-on tab toggle (click, cross-sell links, or keys 1–2) ── */
+  const ADDONS = ['premium', 'ads'];
+  function goAddon(key) {
+    document.querySelectorAll('[data-addon]').forEach(b => {
+      const on = b.dataset.addon === key;
+      b.classList.toggle('on', on);
+      b.setAttribute('aria-selected', on);
+    });
+    document.querySelectorAll('[data-addon-panel]').forEach(p => {
+      p.hidden = p.dataset.addonPanel !== key;
+    });
+  }
+  document.querySelectorAll('[data-addon]').forEach(b =>
+    b.addEventListener('click', () => goAddon(b.dataset.addon)));
+  document.querySelectorAll('[data-goto]').forEach(b =>
+    b.addEventListener('click', () => {
+      goAddon(b.dataset.goto);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }));
+  document.addEventListener('keydown', e => {
+    if (e.target.matches('input,textarea,select')) return;
+    const i = ['1', '2'].indexOf(e.key);
+    if (i > -1) goAddon(ADDONS[i]);
+  });
+
+  /* ── dropdown menus (user menu) ── */
+  document.querySelectorAll('[data-menu-btn]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const menu = btn.closest('[data-menu]');
+      document.querySelectorAll('[data-menu][data-open]').forEach(m => {
+        if (m !== menu) m.removeAttribute('data-open');
+      });
+      menu.toggleAttribute('data-open');
+    });
+  });
+  document.addEventListener('click', () =>
+    document.querySelectorAll('[data-menu][data-open]').forEach(m => m.removeAttribute('data-open')));
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape')
+      document.querySelectorAll('[data-menu][data-open]').forEach(m => m.removeAttribute('data-open'));
+  });
+
+  /* ── toast ── */
+  const toastEl = document.getElementById('toast');
+  let toastTimer;
+  function toast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2200);
+  }
+
+  /* ── mock actions → toast only ── */
+  document.querySelectorAll('[data-mock]').forEach(btn => {
+    btn.addEventListener('click', () => toast(btn.dataset.mock + ' (mockup)'));
+  });
+</script>
+</body>
+</html>
