@@ -28,6 +28,10 @@ import {
 } from "@/lib/enums";
 import { safeExternalUrl, safeImageSrc } from "@/lib/url";
 import { derivePriceRange } from "@/lib/format-price";
+import {
+  KeyDatesTimeline,
+  buildKeyDateRows,
+} from "@/app/components/events/KeyDatesTimeline";
 import { DetailsActionPanel } from "./details-actions";
 import {
   ACCENT_LINK_CLASS,
@@ -99,6 +103,12 @@ export default async function EventDetailPage({
   const featureLabels = payload.features.map(
     (f) => EVENT_FEATURES.find((fv) => fv.value === f)?.label ?? f,
   );
+  // Same rows as the public page's premium timeline; [] when the ED
+  // entered no milestones (the derived kick-off alone doesn't warrant
+  // the section).
+  const keyDateRows = event.is_premium
+    ? buildKeyDateRows(payload.milestones, event.start_date)
+    : [];
 
   const editAction = (label: string) => (
     <ButtonLink href={editHref}>
@@ -347,6 +357,29 @@ export default async function EventDetailPage({
                     index={i}
                   />
                 ))}
+              </div>
+            </SectionCard>
+          )}
+
+          {/* Key dates & deadlines (premium; needs ≥1 ED milestone) */}
+          {keyDateRows.length > 0 && (
+            <SectionCard
+              icon="calendar"
+              iconClass="bg-red-50 text-red-600"
+              title="Key dates & deadlines"
+              sub={
+                <>
+                  {payload.milestones.length} milestone
+                  {payload.milestones.length === 1 ? "" : "s"} + the kick-off ·{" "}
+                  <span className="font-medium text-slate-400">
+                    shown on your public page
+                  </span>
+                </>
+              }
+              action={editAction("Edit dates")}
+            >
+              <div className="mt-5">
+                <KeyDatesTimeline rows={keyDateRows} />
               </div>
             </SectionCard>
           )}

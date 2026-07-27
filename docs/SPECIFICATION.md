@@ -534,10 +534,18 @@ logged in, favouriting prompts account creation first.
   review count, and a **5-row score breakdown with progress bars**; "x verified
   reviews" shown if the event is featured.
 - **Sponsors**: logo, link, title.
-- **Key Dates & Deadlines** (featured only): the ED adds milestones (date, title,
-  optional description). Two are **auto-created** — "Early-Bird Pricing Ends" and
-  "Registration Deadline" — and are editable/deletable like any other. The ED can
-  add, edit, and delete milestones.
+- **Key Dates & Deadlines** (featured only, S12.48): a vertical timeline of the
+  ED's entered milestones (title, date, optional description — added/edited/
+  deleted in the event form, §6) plus a derived, always-present **"Tournament
+  Kicks Off"** anchor row (= the event's start date; never a stored milestone).
+  Rows sort by date (dateless milestones trail as TBD) and carry a
+  **date-derived status badge**: past = *Done* (emerald), every milestone on the
+  soonest still-to-come date = *Next up* (red-tint), later futures = *Upcoming*
+  (slate), and the kick-off always reads *Event day* (solid red). The card
+  renders **only when the ED entered at least one milestone** — the derived
+  kick-off alone doesn't warrant it. (Historical note: the legacy app
+  auto-created "Early-Bird Pricing Ends" + "Registration Deadline" rows; the
+  rebuild never auto-creates milestones — `is_auto` is a dormant column.)
 
 Every visit to this page registers the event in the viewer's **recently viewed**
 list (see §7.3).
@@ -759,7 +767,10 @@ reviews the rating zone becomes a review-invite block (copies the public link)
 while the price + teams facts remain. **Sections**, each with an Edit link into
 the editor: About & key info (description, season, region, website,
 registration deadline, competition levels, surfaces, premium features), Age
-groups & pricing (per-division cards, per-team prices), Media (premium only:
+groups & pricing (per-division cards, per-team prices), Key dates & deadlines
+(premium + ≥1 ED milestone — the same shared timeline as the public page,
+§5.3/S12.48, with the milestone count and "shown on your public page" in the
+header), Media (premium only:
 video link-out + photo gallery with an "Add photos" slot tile), Sponsors
 (logo + domain + Visit), and Reviews (overall + the 6-category strip; the full
 shared reviews component is a later unification). **Right rail**: Location

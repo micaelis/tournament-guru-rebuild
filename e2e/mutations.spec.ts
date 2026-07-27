@@ -9,11 +9,13 @@ import {
   deleteTournament,
   seedEvent,
   seedCompleteEvent,
+  seedEventMilestones,
   deleteEvent,
   deleteSubmittedCsvsForEvent,
   deleteBannedWord,
   getEventAgeGroups,
   setEventPremium,
+  daysAgo,
   type SeededUser,
 } from "./helpers/db";
 import { signIn } from "./helpers/auth";
@@ -394,6 +396,120 @@ test.describe("Event form — premium sections gate", () => {
       if (seeded) {
         await deleteEvent(seeded.eventId);
         await deleteTournament(seeded.tournamentId);
+      }
+      if (ed) await deleteUser(ed.id);
+    }
+  });
+});
+
+test.describe("Key dates & deadlines timeline (event details)", () => {
+  /** The timeline list — same markup on the public and internal pages;
+   * the derived kick-off row makes it uniquely findable. */
+  const timeline = (page: import("@playwright/test").Page) =>
+    page.locator("ol").filter({ hasText: "Tournament Kicks Off" });
+
+  test("premium event renders milestones + kick-off with date-derived badges (public + internal)", async ({
+    page,
+  }) => {
+    let ed: SeededUser | undefined;
+    let seeded: { tournamentId: string; eventId: string } | undefined;
+    try {
+      ed = await createEventDirector({ completeOnboarding: true });
+      seeded = await seedCompleteEvent(ed.id);
+      await seedEventMilestones(seeded.eventId, [
+        { title: "Early-Bird Pricing Ends", milestone_date: daysAgo(10) },
+        {
+          title: "Rosters & Documents Due",
+          milestone_date: daysAgo(-5),
+          description: "Upload player cards and final rosters.",
+        },
+        { title: "Team Check-In", milestone_date: daysAgo(-10) },
+      ]);
+      await setEventPremium(seeded.eventId, true);
+
+      // Public page — no sign-in needed.
+      await page.goto(`/events/${seeded.eventId}`);
+      await expect(
+        page.getByRole("heading", { name: "Key dates & deadlines" }),
+      ).toBeVisible();
+      const row = (title: string) =>
+        timeline(page).locator("li").filter({ hasText: title });
+      await expect(row("Early-Bird Pricing Ends")).toContainText("Done");
+      await expect(row("Rosters & Documents Due")).toContainText("Next up");
+      await expect(row("Rosters & Documents Due")).toContainText(
+        "Upload player cards and final rosters.",
+      );
+      await expect(row("Team Check-In")).toContainText("Upcoming");
+      // The derived anchor: always present, always Event day.
+      await expect(row("Tournament Kicks Off")).toContainText("Event day");
+
+      // Internal ED details page — the same timeline.
+      await signIn(page, ed.email, ed.password);
+      await page.goto(`/dashboard/events/${seeded.eventId}`);
+      await expect(
+        page.getByRole("heading", { name: "Key dates & deadlines" }),
+      ).toBeVisible();
+      await expect(row("Early-Bird Pricing Ends")).toContainText("Done");
+      await expect(row("Tournament Kicks Off")).toContainText("Event day");
+    } finally {
+      if (seeded) {
+        await deleteEvent(seeded.eventId);
+        await deleteTournament(seeded.tournamentId);
+      }
+      if (ed) await deleteUser(ed.id);
+    }
+  });
+
+  test("hidden on non-premium events and on premium events without milestones", async ({
+    page,
+  }) => {
+    let ed: SeededUser | undefined;
+    let withMilestones: { tournamentId: string; eventId: string } | undefined;
+    let noMilestones: { tournamentId: string; eventId: string } | undefined;
+    try {
+      ed = await createEventDirector({ completeOnboarding: true });
+
+      // Non-premium + milestones: the premium gate wins.
+      withMilestones = await seedCompleteEvent(ed.id);
+      await seedEventMilestones(withMilestones.eventId, [
+        { title: "Registration Deadline", milestone_date: daysAgo(-5) },
+      ]);
+      await page.goto(`/events/${withMilestones.eventId}`);
+      await expect(
+        page.getByRole("heading", { name: "About this tournament" }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("heading", { name: "Key dates & deadlines" }),
+      ).toHaveCount(0);
+
+      // Premium + no ED milestones: the kick-off alone doesn't render.
+      noMilestones = await seedCompleteEvent(ed.id);
+      await setEventPremium(noMilestones.eventId, true);
+      await page.goto(`/events/${noMilestones.eventId}`);
+      await expect(
+        page.getByRole("heading", { name: "About this tournament" }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("heading", { name: "Key dates & deadlines" }),
+      ).toHaveCount(0);
+
+      // Same gate on the internal details page.
+      await signIn(page, ed.email, ed.password);
+      await page.goto(`/dashboard/events/${noMilestones.eventId}`);
+      await expect(
+        page.getByRole("heading", { name: "About this event" }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("heading", { name: "Key dates & deadlines" }),
+      ).toHaveCount(0);
+    } finally {
+      if (withMilestones) {
+        await deleteEvent(withMilestones.eventId);
+        await deleteTournament(withMilestones.tournamentId);
+      }
+      if (noMilestones) {
+        await deleteEvent(noMilestones.eventId);
+        await deleteTournament(noMilestones.tournamentId);
       }
       if (ed) await deleteUser(ed.id);
     }

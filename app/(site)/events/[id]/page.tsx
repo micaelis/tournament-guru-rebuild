@@ -25,7 +25,7 @@ import { EventDetail } from "./parts";
 type Params = { id: string };
 
 const EVENT_SELECT =
-  "id, tournament_id, owner_id, title, description, host_club, logo_url, website_url, start_date, end_date, registration_deadline, location_formatted, location_state_abbr, num_teams_this_year, teams_attended_prev_year, teams_this_year_url, teams_prev_year_url, registration_url, region, lifecycle, is_premium, is_general_ad, cancel_reason, would_return_pct, general_rating, coach_rating, attendee_rating, review_count, updated_at, event_age_groups(id, age, team_gender, price, field_size), event_competition_levels(level), event_surfaces(surface), event_images(url, sort_order), sponsors(id, name, link, logo_url)";
+  "id, tournament_id, owner_id, title, description, host_club, logo_url, website_url, start_date, end_date, registration_deadline, location_formatted, location_state_abbr, num_teams_this_year, teams_attended_prev_year, teams_this_year_url, teams_prev_year_url, registration_url, region, lifecycle, is_premium, is_general_ad, cancel_reason, would_return_pct, general_rating, coach_rating, attendee_rating, review_count, updated_at, event_age_groups(id, age, team_gender, price, field_size), event_competition_levels(level), event_surfaces(surface), event_images(url, sort_order), sponsors(id, name, link, logo_url), event_milestones(title, milestone_date, description, sort_order)";
 
 type RawEvent = {
   id: string;
@@ -68,6 +68,12 @@ type RawEvent = {
   event_surfaces: { surface: string | null }[] | null;
   event_images: { url: string; sort_order: number | null }[] | null;
   sponsors: { id: string; name: string; link: string; logo_url: string }[] | null;
+  event_milestones: {
+    title: string;
+    milestone_date: string | null;
+    description: string | null;
+    sort_order: number | null;
+  }[] | null;
 };
 
 async function loadEvent(id: string): Promise<RawEvent | null> {
@@ -276,6 +282,7 @@ export default async function PublicEventPage({
       bannedWords={bannedWords}
       ageGroups={ageGroups}
       sponsors={sponsors}
+      milestones={ev.event_milestones ?? []}
       otherEvents={otherEvents}
       director={director}
       favorited={favorited}

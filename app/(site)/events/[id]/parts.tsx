@@ -25,6 +25,11 @@ import type {
 import { safeExternalUrl, safeImageSrc } from "@/lib/url";
 import { derivePriceRange, formatPrice } from "@/lib/format-price";
 import { SafeImg } from "@/app/components/ui/SafeImg";
+import {
+  KeyDatesTimeline,
+  buildKeyDateRows,
+  type KeyDateMilestone,
+} from "@/app/components/events/KeyDatesTimeline";
 
 /* ───────────────────────────────────────────────────────────────────
    Top-level layout
@@ -42,6 +47,7 @@ export function EventDetail({
   bannedWords,
   ageGroups,
   sponsors,
+  milestones,
   otherEvents,
   director,
   favorited,
@@ -56,6 +62,7 @@ export function EventDetail({
   bannedWords: string[];
   ageGroups: EventAgeGroupRow[];
   sponsors: SponsorRow[];
+  milestones: KeyDateMilestone[];
   otherEvents: EventRow[];
   director: DirectorProfile | null;
   favorited: boolean;
@@ -121,7 +128,12 @@ export function EventDetail({
         <div className="tg-ev-main mt-8 grid gap-8">
           <div className="flex min-w-0 flex-col gap-6">
             <KeyFactsAboutCard event={event} ageGroups={ageGroups} />
-            {event.premium && <KeyDatesCard event={event} concluded={concluded} />}
+            {event.premium && (
+              <KeyDatesCard
+                milestones={milestones}
+                startDate={event.start_date}
+              />
+            )}
             <LocationCard event={event} />
             <ReviewsSection
               event={event}
@@ -930,186 +942,34 @@ function AgeGroupRow({ row }: { row: EventAgeGroupRow }) {
 }
 
 /* ───────────────────────────────────────────────────────────────────
-   Key dates — a slim vertical timeline
+   Key dates & deadlines — the ED's entered milestones + the derived
+   "Tournament Kicks Off" anchor on the shared premium timeline
+   (app/components/events/KeyDatesTimeline). Renders only when the ED
+   entered at least one milestone — the kick-off alone doesn't warrant
+   the card.
    ─────────────────────────────────────────────────────────────────── */
 
 function KeyDatesCard({
-  event,
-  concluded,
+  milestones,
+  startDate,
 }: {
-  event: EventDetailRow;
-  concluded: boolean;
+  milestones: KeyDateMilestone[];
+  startDate: string | null;
 }) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const milestones: {
-    label: string;
-    date: string | null;
-    active?: boolean;
-    kind: "done" | "next" | "event" | "upcoming";
-  }[] = [];
-
-  const created = event.created_at ? new Date(event.created_at) : null;
-  const regDeadline = event.registration_deadline
-    ? new Date(event.registration_deadline)
-    : null;
-  const startD = event.start_date ? new Date(event.start_date) : null;
-  const endD = event.end_date ? new Date(event.end_date) : null;
-
-  milestones.push({
-    label: "Registration open",
-    date: event.created_at,
-    kind: (created && created <= today) ? "done" : "upcoming",
-  });
-  if (regDeadline) {
-    milestones.push({
-      label: "Registration deadline",
-      date: event.registration_deadline,
-      kind: regDeadline < today ? "done" : "next",
-    });
-  }
-  if (startD) {
-    milestones.push({
-      label: "Event begins",
-      date: event.start_date,
-      kind: concluded ? "done" : "event",
-    });
-  }
-  if (endD && event.end_date !== event.start_date) {
-    milestones.push({
-      label: "Event wraps up",
-      date: event.end_date,
-      kind: endD < today ? "done" : "upcoming",
-    });
-  }
-
+  const rows = buildKeyDateRows(milestones, startDate);
+  if (rows.length === 0) return null;
   return (
     <Card>
-      <SectionH>Key dates</SectionH>
-      <ol className="mt-3 flex flex-col gap-0" style={{ listStyle: "none", margin: 0, padding: 0 }}>
-        {milestones.map((m, i) => (
-          <li
-            key={`${m.label}-${i}`}
-            className="relative flex items-start gap-4"
-            style={{ paddingBottom: i === milestones.length - 1 ? 0 : 20 }}
-          >
-            {i !== milestones.length - 1 && (
-              <span
-                aria-hidden
-                style={{
-                  position: "absolute",
-                  left: 11,
-                  top: 22,
-                  bottom: -4,
-                  width: 2,
-                  background: "var(--color-border)",
-                  borderRadius: 1,
-                }}
-              />
-            )}
-            <MilestoneDot kind={m.kind} />
-            <div className="flex-1">
-              <div
-                className="font-heading"
-                style={{
-                  fontSize: 14,
-                  fontWeight: 700,
-                  color: "var(--color-dark)",
-                  letterSpacing: "-0.005em",
-                }}
-              >
-                {m.label}
-              </div>
-              <div
-                className="mt-0.5"
-                style={{ fontSize: 12.5, color: "var(--color-text-muted)" }}
-              >
-                {m.date ? fmtFullDate(m.date) : "TBD"}
-              </div>
-            </div>
-          </li>
-        ))}
-      </ol>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <SectionH>Key dates &amp; deadlines</SectionH>
+        <span className="inline-flex items-center rounded-full bg-red-600 px-2.5 py-[3px] font-[var(--font-heading)] text-[9px] font-extrabold uppercase tracking-[0.07em] text-white">
+          Premium
+        </span>
+      </div>
+      <div className="mt-5">
+        <KeyDatesTimeline rows={rows} />
+      </div>
     </Card>
-  );
-}
-
-function MilestoneDot({
-  kind,
-}: {
-  kind: "done" | "next" | "event" | "upcoming";
-}) {
-  if (kind === "done") {
-    return (
-      <span
-        aria-hidden
-        className="relative inline-flex shrink-0 items-center justify-center rounded-full"
-        style={{
-          width: 24,
-          height: 24,
-          background: "#16a34a",
-          border: "3px solid #fff",
-          boxShadow: "0 0 0 1px #dcfce7",
-          color: "#fff",
-          zIndex: 1,
-        }}
-      >
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M5 12l4 4 10-11" />
-        </svg>
-      </span>
-    );
-  }
-  if (kind === "event") {
-    return (
-      <span
-        aria-hidden
-        className="relative inline-flex shrink-0 items-center justify-center rounded-full"
-        style={{
-          width: 24,
-          height: 24,
-          background: "var(--color-accent)",
-          border: "3px solid #fff",
-          boxShadow: "0 0 0 1px rgba(220,38,38,.20)",
-          color: "#fff",
-          zIndex: 1,
-        }}
-      >
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.78l-5.2 2.72.99-5.78L3.58 9.62l5.82-.85L12 3.5z" />
-        </svg>
-      </span>
-    );
-  }
-  if (kind === "next") {
-    return (
-      <span
-        aria-hidden
-        className="relative inline-block shrink-0 rounded-full"
-        style={{
-          width: 24,
-          height: 24,
-          background: "#fff",
-          border: "3px solid var(--color-accent)",
-          boxShadow: "0 0 0 3px rgba(220,38,38,.14)",
-          zIndex: 1,
-        }}
-      />
-    );
-  }
-  return (
-    <span
-      aria-hidden
-      className="relative inline-block shrink-0 rounded-full"
-      style={{
-        width: 24,
-        height: 24,
-        background: "#fff",
-        border: "3px solid var(--color-border)",
-        zIndex: 1,
-      }}
-    />
   );
 }
 
@@ -2859,16 +2719,6 @@ function fmtDateRange(start: string, end: string | null): string {
     return `${fmt(s).split(" ")[0]} ${s.getDate()}–${e.getDate()}`;
   }
   return `${fmt(s)} – ${fmt(e)}`;
-}
-
-function fmtFullDate(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "TBD";
-  return d.toLocaleDateString("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
 }
 
 function numOr0(v: number | null | undefined): number {

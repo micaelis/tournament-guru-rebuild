@@ -314,6 +314,30 @@ export async function getEventAgeGroups(
   return (data ?? []) as Array<{ team_gender: string; age: string }>;
 }
 
+/** Seed Key-dates milestones (service role) — for the premium timeline
+ * on the public + internal event-details pages. */
+export async function seedEventMilestones(
+  eventId: string,
+  rows: Array<{
+    title: string;
+    milestone_date: string | null;
+    description?: string | null;
+  }>,
+): Promise<void> {
+  const { error } = await service()
+    .from("event_milestones")
+    .insert(
+      rows.map((r, i) => ({
+        event_id: eventId,
+        title: r.title,
+        milestone_date: r.milestone_date,
+        description: r.description ?? null,
+        sort_order: i,
+      })),
+    );
+  if (error) throw new Error(`seedEventMilestones: ${error.message}`);
+}
+
 /** Flip an event's premium flag (service role) — for premium-gated UI
  * journeys (key dates & deadlines, feature tiles). */
 export async function setEventPremium(

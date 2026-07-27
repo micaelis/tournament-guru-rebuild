@@ -3417,3 +3417,40 @@ pre-gate form — intended convergence (the editor is hidden, the
 public timeline is premium-only, and pre-launch data makes the loss
 theoretical). e2e pins the section's absence on free events and its
 appearance after the premium flip; the milestone gate is unit-pinned.
+
+### S12.48 · Public Key-dates card rewired to the ED's real milestones; shared timeline on the internal page
+
+**What:** The public event page's premium `KeyDatesCard` no longer
+fabricates its rows from `created_at` / `registration_deadline` /
+`end_date` — it now reads the event's real `event_milestones` (title ·
+date · optional description; added to the public detail SELECT as an
+embedded resource) and appends the derived **"Tournament Kicks Off"**
+anchor (= `start_date`, matching the form's pinned read-only row,
+S12.47). Every row carries a date-derived status badge — past = Done
+(emerald), each milestone on the soonest still-to-come date = Next up
+(red-tint), later futures = Upcoming (slate), the kick-off always =
+Event day (solid red) — judged against local midnight, en-US display
+(`Mon D` + weekday date block). The timeline (rows, dots, badges,
+status builder) lives in a shared presentational module,
+`app/components/events/KeyDatesTimeline.tsx`, rendered by BOTH the
+public card and a new premium-only SectionCard on the internal ED
+details page, so the two surfaces can't drift. The card renders only
+when the ED entered ≥1 milestone — the derived kick-off alone doesn't
+warrant it (so premium events with no milestones show nothing, same
+as before the ED touches the editor).
+
+**Why:** the auto-derived rows were placeholder-era: they showed
+"Registration open" = the row's `updated_at` and ignored the
+milestones the S12.47 editor now collects, so a premium ED's entered
+key dates never appeared anywhere. Milestones are public event data
+(RLS: child-table read follows the parent's non-draft visibility;
+table grants already cover anon) — display-only read, no policy
+change. Statuses are derived, never stored: one clock rule instead of
+a moderated state column. Alternative rejected: keeping a
+`concluded`-driven kick-off badge — "Event day" is the anchor's
+identity, not a live-ness claim, and a stable badge keeps concluded
+events' timelines readable as a record. The spec's legacy "two
+auto-created milestones" claim was stale (nothing writes `is_auto` in
+the rebuild) — §5.3 reconciled. Status rules are unit-pinned
+(mutation-checked); e2e pins render + badges on both pages and the
+hidden states (non-premium / premium-without-milestones).
