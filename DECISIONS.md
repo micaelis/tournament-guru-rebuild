@@ -3111,3 +3111,57 @@ from Spotlight's violet (the constraint Danny called out) and from
 Upcoming's blue-800 text; the Concluded outline echoes the approved
 crisp-outline control chrome, keeping "finished" quiet without another
 slab. Dots make the five states scan as one family in the dense table.
+
+### S12.37 · Attendee Activity rebuilt as the approved vertical timeline
+
+**What:** `/dashboard/activity` goes from a flat card list to the
+approved shipment-tracker timeline
+(`design/activity-timeline-redesign.html`): a left rail with day
+checkpoints (Today/Yesterday/Earlier), a node per viewed event (newest
+= accent dot with a motion-gated ping halo, rail fades after the last
+entry), relative + exact view times beside the rail (collapsing into
+the card below `sm`), and a "last 50" cap note. Entry cards are fully
+clickable (stretched title link), now with age-group + gender chips,
+an event-dates chip ("Ended …" once past), and a working favorite
+heart. "Browse events" (header + empty state) is the public red
+HeaderPill, and the empty state matches the mockup (icon disc + red
+search badge). Notable calls:
+- **Titles are de-suffixed for display only** — a trailing
+  "— U12 Girls" / "— U10 Division" segment is stripped by heuristic
+  (last dash segment containing a U-age / gender / "Division" token);
+  the demographics now come from `event_age_groups(age, team_gender)`
+  as chips (`both` or mixed sets → "Coed", matching the search cards'
+  collapse rule). Any other dash suffix is treated as part of the
+  event's real name. Full title kept in the link's `title` attr.
+- **No Spotlight wiring in the page** — the dashboard layout already
+  mounts `SpotlightColumn` beside every attendee page, exactly the
+  column the mockup shows; duplicating it would double-render.
+- **Favorites read degrades** (`unwrapRowsLogged`) — heart state is
+  chrome; only the recently-viewed query keeps the throwing `unwrapRows`
+  contract. The `.in()` id list is bounded by the page's 50-row cap.
+- Deleted-event rows keep their timeline slot as a muted "Event
+  removed." card, preserving the old page's behavior.
+- Spec §7.3 previously promised favourite/unfavourite on this page but
+  the shipped list never had it — this rebuild closes that gap.
+
+### S12.38 · Audit finding: the intercepted pending-state e2e is a timing flake, worse since S12.34
+
+**What:** `mutations.spec.ts › only the clicked submit button shows the
+pending state` — the variant that holds the server-action POST 2.5s via
+`page.route` before continuing — hangs at "Saving…" with no redirect on
+some runs: on 2026-07-27 it failed 5 of 6 tries against `5cee5a5`
+(S12.34-36) yet passed back-to-back at `cc4f753` (S12.33), then passed
+again at `5cee5a5` and on the activity worktree, so it is a
+probabilistic timing flake, not a hard regression. The un-intercepted
+draft-save and publish e2e tests pass consistently on the same builds —
+the real user flow is fine; on a passing run the held POST completes
+with the normal 303. Nothing in the S12.34-36 diff touches the form or
+action (only list-page components + Button styling), so the commit most
+likely only shifted timing. Not chased further inside the activity
+run; if it keeps biting, instrument the 303-follow race between the
+delayed action response and the router's aborted `_rsc` prefetches
+before touching the app.
+
+**Why recorded:** the failure looks like a broken save flow but
+reproduces only under the artificial 2.5s network hold; the next person
+who hits it should not bisect the app before reading this.

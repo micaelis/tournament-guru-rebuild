@@ -1014,10 +1014,20 @@ are prompted to create one.
 
 ### 7.3 Activity
 
-*"Your recent viewed events."* Recently-viewed events **newest-first**, one card
-per row, clickable to the public event page, with favourite/unfavourite here.
-Each public event-page visit registers the event; the list is **capped at 50**
-(upsert latest).
+*"A trail of the events you've viewed lately — newest first."* Recently-viewed
+events as a **vertical timeline**: one rail down the left with day checkpoints
+(`Today · <date>`, `Yesterday · <date>`, `Earlier`), a node per entry —
+the newest is the accent-red dot (soft ping halo, motion-gated) — and per-entry
+relative + exact view times beside the rail (collapsing into the card below
+`sm`). Each entry is a white card, fully clickable to the public event page:
+logo, **de-suffixed title** (a trailing "— U12 Girls"-style division marker is
+stripped; the demographics render instead as **age-group + gender chips**,
+`both`/mixed → *Coed*), host club · location, an event-dates chip (*"Ended …"*
+muted once past), favourite/unfavourite heart, chevron. The rail fades out
+after the last entry, followed by the cap note *"Your last 50 viewed events
+are kept here."* **Browse events** (page header + empty state) wears the
+public red primary pill. Each public event-page visit registers the event; the
+list is **capped at 50** (upsert latest).
 
 ### 7.4 Account (shared behaviors)
 
