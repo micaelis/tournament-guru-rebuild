@@ -113,6 +113,37 @@ body {
   animation: tg-fade-in 0.28s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 
+/* ── EmptyState gold-tone accents (reduced-motion killed globally above) ── */
+@keyframes tg-floaty {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+.tg-floaty {
+  animation: tg-floaty 3.8s ease-in-out infinite;
+}
+@keyframes tg-twinkle {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.tg-twinkle {
+  animation: tg-twinkle 2.6s ease-in-out infinite;
+}
+.tg-twinkle-2 {
+  animation-delay: 1.1s;
+}
+
 /* ── Nav link hover ── */
 .tg-nav-link {
   position: relative;

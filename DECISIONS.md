@@ -3237,3 +3237,31 @@ sketched: the shipped header carries tournaments + verified-reviews
 counts too, and a treatment swap must not silently drop information.
 **Alternative rejected:** a bespoke chip per page (the S12.34 events
 header and the My Reviews count pill were already drifting apart).
+
+### S12.42 · App-wide EmptyState + header user pill (the My Reviews mockup's shared treatments)
+
+**What:** two shell-level treatments the approved My Reviews mockup
+establishes, implemented as shared primitives. (1) `EmptyState`
+redesigned in place: white card + solid hairline (the dashed border and
+red-dot fallback are gone), an icon disc with an optional red corner
+badge, and two illustrated tones — `gold` (floating amber disc, warm
+wash, twinkle accents; first-run celebration) and the default `slate`
+(calm no-matches). `compact` keeps its quiet one-liner role, dashed →
+solid hairline. Because every default-variant caller shares the
+component, all ~19 existing usages pick up the new chrome at once;
+giving each bespoke copy/icons stays a tracked follow-up. (2) The
+dashboard header's user identity becomes the bordered white pill —
+ringed avatar, name over the role in its semantic color (coach red /
+attendee amber / ED–admin slate), chevron disc that flips open — and
+the dropdown gains a slate header block (avatar + email + tinted role
+chip). Menu logic, items (Account / Log out), and sign-out wiring are
+untouched; `layout.tsx` passes the two new presentation props
+(`typeLabel`, `roleTone`).
+
+**Why:** the old EmptyState was the look Danny flagged ("dashed border /
+big title / red dot looks bad"), and redesigning the primitive itself is
+the only way "app-wide consistent" stays true — restyling one page's
+empty would fork the treatment. Role colors reuse the MetricStrip
+semantic pair rather than inventing a new palette. **Alternative
+rejected:** a new parallel component adopted page-by-page — would leave
+two treatments live indefinitely (the exact drift the redesign closes).

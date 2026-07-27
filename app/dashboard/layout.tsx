@@ -29,6 +29,18 @@ export default async function DashboardLayout({
     profile.user_type === "admin"
       ? "Admin"
       : ROLE_LABELS[profile.role_title] ?? profile.role_title;
+  const typeLabel =
+    profile.user_type === "admin"
+      ? "Admin"
+      : profile.user_type === "event_director"
+        ? "Event Director"
+        : "Attendee";
+  const roleTone =
+    profile.user_type === "attendee"
+      ? profile.role_title === "coach"
+        ? ("coach" as const)
+        : ("attendee" as const)
+      : ("neutral" as const);
   const fullName =
     [profile.first_name, profile.last_name].filter(Boolean).join(" ") ||
     "Your account";
@@ -50,6 +62,8 @@ export default async function DashboardLayout({
               user={{
                 name: fullName,
                 roleLabel,
+                typeLabel,
+                roleTone,
                 email: user.email,
                 photoUrl: profile.profile_photo_url,
               }}

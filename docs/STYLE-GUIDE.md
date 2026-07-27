@@ -218,10 +218,15 @@ Build screens from these; don't hand-roll equivalents.
   style again.
 - **Table** — dashboard list rows; use a shared grid template with a fixed-width actions column
   so columns align across rows (never `auto`-width action cells).
-- **EmptyState** — the shared "no results / nothing yet" placeholder; reuse everywhere with
-  adjusted copy + CTA (e.g. "Find Events"). Two weights: the illustrated default (icon +
-  heading) for first-run empties, and `compact` (no icon, plain one-liner) for
-  filtered-no-results ("nothing matched"). Never hand-roll a dashed placeholder box.
+- **EmptyState** — the shared "no results / nothing yet" placeholder (S12.42): a white
+  card (solid hairline border + the card shadow — **never a dashed border, never a bare
+  red dot**) with an icon disc, optional red corner `badgeIcon`, friendly title/body, and
+  caller-supplied `action` + `secondary` slots. Two illustrated tones: `gold` — the
+  celebratory first-run weight (floating amber disc, warm radial wash, twinkle accents;
+  all motion killed by the global reduced-motion rule) — and the default `slate` (calm
+  64px slate-100 disc) for no-matches states. `compact` stays the quiet one-liner for
+  filtered-no-results rows. Titles are friendly prompts, not shouty headlines; the
+  primary CTA is a real Button (accent for first-run pushes), the secondary a TextLink.
 - **ConfirmDialog** — destructive/confirm popups (delete tournament, unfollow, decline claim).
 - **USDateText / USDateField** — masked `mm/dd/yyyy` date input (native `type="date"`
   localizes its placeholder to the browser, not the app). Visible text is always US format;
@@ -251,9 +256,13 @@ Build screens from these; don't hand-roll equivalents.
   (`.tg-scroll-dark`: `#334155` thumb, `#475569` hover — never the default gray);
   bottom slot is role context (ED: Premium-listings pointer + org card; attendee:
   club card; admin: none) — never session actions. Header: sticky white/95 blur,
-  breadcrumb left, user (Avatar + name + role) right; clicking the user opens the
-  account menu (name + email header, **Account**, **Log out**) — the only sign-out
-  surface in the dashboard. Icons come from the shared `Icon` lookup in
+  breadcrumb left, and the **user pill** right (S12.42): a bordered white pill —
+  ringed 34px Avatar, name stacked over the ROLE in its semantic color (Coach = red,
+  other attendee roles = amber, ED/Admin = neutral slate — the MetricStrip pair), and
+  a chevron in a 22px slate disc that flips when the menu opens. The dropdown leads
+  with a slate-50 header block (avatar + name + email + a tinted role chip in the same
+  semantic tone), then **Account**, **Log out** — the only sign-out surface in the
+  dashboard. Icons come from the shared `Icon` lookup in
   `app/dashboard/icons.tsx`; don't inline one-off SVGs in shell code.
 - **Choice chips (selected state)** — selectable blocks (user type, role, gender,
   distance, flag reasons) mark the checked option with the **soft red tint**:
