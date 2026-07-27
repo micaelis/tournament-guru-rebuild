@@ -54,7 +54,11 @@ export type ReviewCardRow = {
    * first and fall back to the snapshot for detached rows. */
   event?: {
     title: string | null;
+    start_date: string | null;
     end_date: string | null;
+    logo_url: string | null;
+    host_club: string | null;
+    location_city: string | null;
     location_state_abbr: string | null;
   } | null;
 };
@@ -197,7 +201,7 @@ export async function listReviewsRaw({
     .from("reviews")
     .select(
       REVIEW_BASE_COLUMNS +
-        ", event:events!reviews_event_id_fkey(title, end_date, location_state_abbr)" +
+        ", event:events!reviews_event_id_fkey(title, start_date, end_date, logo_url, host_club, location_city, location_state_abbr)" +
         ", author:profiles!reviews_author_id_fkey(first_name, last_name, organization_title, profile_photo_url)",
     );
   if (authorId) q = q.eq("author_id", authorId);

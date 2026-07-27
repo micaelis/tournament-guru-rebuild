@@ -345,26 +345,34 @@ export async function seedReview(
   eventId: string,
   authorId: string,
   title: string,
-  opts: { reviewerRole?: string; guru?: boolean } = {},
+  opts: {
+    reviewerRole?: string;
+    guru?: boolean;
+    status?: "draft" | "published";
+    /** One value applied to all six category ratings (default 4). */
+    ratings?: number;
+  } = {},
 ): Promise<string> {
+  const status = opts.status ?? "published";
+  const rating = opts.ratings ?? 4;
   const { data, error } = await service()
     .from("reviews")
     .insert({
       event_id: eventId,
       author_id: authorId,
-      status: "published",
+      status,
       review_title: title,
       review_body: "Solid event overall — well organized, strong competition.",
-      rating_fields: 4,
-      rating_facilities: 4,
-      rating_management: 4,
-      rating_competition: 4,
-      rating_diversity: 4,
-      rating_cost_value: 4,
+      rating_fields: rating,
+      rating_facilities: rating,
+      rating_management: rating,
+      rating_competition: rating,
+      rating_diversity: rating,
+      rating_cost_value: rating,
       reviewer_user_type: "attendee",
       reviewer_role: opts.reviewerRole ?? "coach",
       guru_review: opts.guru ?? false,
-      published_at: new Date().toISOString(),
+      published_at: status === "published" ? new Date().toISOString() : null,
     })
     .select("id")
     .single();
@@ -390,8 +398,22 @@ export type PromoSeed = {
   csvId: string;
 };
 
-const daysAgo = (n: number): string =>
+export const daysAgo = (n: number): string =>
   new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10);
+
+/** Re-date an event (service role) — e.g. backdate it past the 30-day
+ * review-edit window for locked-edit fixtures. */
+export async function setEventDates(
+  eventId: string,
+  start: string,
+  end: string,
+): Promise<void> {
+  const { error } = await service()
+    .from("events")
+    .update({ start_date: start, end_date: end })
+    .eq("id", eventId);
+  if (error) throw new Error(`setEventDates: ${error.message}`);
+}
 
 /**
  * Seed a full verified-review promo addressed to `email`: an ED owner, a

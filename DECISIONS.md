@@ -3292,3 +3292,35 @@ point the heuristic dies. **Also dropped:** the mockup's "or email
 support@…" line — the address is env-configurable (`SUPPORT_EMAIL_TO`),
 so hardcoding it in UI could misstate prod; the CTA routes to the
 support form instead.
+
+### S12.44 · My Reviews restyled to the approved mockup; the location filter becomes a multi-select
+
+**What:** `AttendeeReviews.tsx` rebuilt visually to
+design/my-reviews-redesign.html on the shipped S12.24–30 functionality:
+header pills via HeaderCountChip (reviews / published / drafts — the
+drafts pill hidden at 0, Danny's call: drafts are private, "0 drafts"
+is noise), a toolbar row (location left, sort right in the approved
+control chrome), and the cohesive review card — header band with event
+crest/host/city/dates, rating hero, tinted six-tile category panel,
+slate footer band whose stats never render a bare "0" (zeroes read as
+words; drafts read the private note + the publish deadline, event end
++ 30 days), soft-background icon Edit/Delete, the dark locked-edit
+tooltip ("Reviews lock a month after the event ends."), and the Guru
+accent (red spine + tinted border + warm header wash + solid-red
+badge). Empty state = the shared gold-tone EmptyState; the FAQ page is
+its "How verified reviews work" link target. All dates mm/dd/yyyy
+(date-only values format in UTC so they don't shift a day west of
+Greenwich). `listReviewsRaw`'s events join widens by four display
+columns (start_date, logo_url, host_club, location_city) — read-side
+projection only; mutations, eligibility, and RLS untouched.
+
+**Why the filter changed shape:** the chip row shipped in S12.27 was
+single-select; the approved mockup's dropdown is a checkbox menu
+(multi-select, selected count on the trigger, empty = all), so the
+restyle carries that behavior — `deriveLocationChips` and the
+published-only counting are unchanged, and the reviews e2e now drives
+the dropdown (multi-state + clear included). Sort keeps the native
+select (restyled shell) rather than a custom menu — no reason to
+rebuild a working control. **Also:** the locked-edit tooltip copy
+shortens to the mockup's wording; the long "ended more than 30 days
+ago" sentence lives on in the write-form guard.

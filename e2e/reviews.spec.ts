@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 import {
   createAttendee,
   createEventDirector,
+  daysAgo,
   deleteUser,
   firstViewableEvent,
   seedPromo,
@@ -11,6 +12,7 @@ import {
   deleteTournament,
   seedReview,
   deleteReview,
+  setEventDates,
   type SeededUser,
   type PromoSeed,
 } from "./helpers/db";
@@ -296,7 +298,7 @@ test.describe("Dashboard reviews — reviewer details popup", () => {
 });
 
 test.describe("My Reviews — location filter", () => {
-  test("state chips show published counts and filter the list", async ({
+  test("the location multi-select shows published counts and filters the list", async ({
     page,
   }) => {
     let ed: SeededUser | undefined;
@@ -326,24 +328,134 @@ test.describe("My Reviews — location filter", () => {
       await signIn(page, author.email, author.password);
       await page.goto("/dashboard/reviews");
 
-      // One chip per state with this user's published-review count.
+      // Published-only pills; the drafts pill never renders at 0.
+      await expect(page.getByText("2 reviews")).toBeVisible();
+      await expect(page.getByText("2 published")).toBeVisible();
+      await expect(page.getByText(/\d+ drafts?/)).toHaveCount(0);
+
+      // The dropdown lists each state (full name) with its published count.
       const filterGroup = page.getByRole("group", {
         name: "Filter by location",
       });
-      const moChip = filterGroup.getByRole("button", { name: /^MO/ });
-      await expect(moChip).toContainText("1");
+      const trigger = filterGroup.getByRole("button", { name: /^Location/ });
+      await trigger.click();
+      const moOption = filterGroup.getByRole("button", { name: /Missouri/ });
+      await expect(moOption).toContainText("1");
       await expect(
-        filterGroup.getByRole("button", { name: /^IL/ }),
+        filterGroup.getByRole("button", { name: /Illinois/ }),
       ).toContainText("1");
       await expect(page.getByText(`MO review ${stamp}`)).toBeVisible();
       await expect(page.getByText(`IL review ${stamp}`)).toBeVisible();
 
-      // Selecting a chip filters the list; toggling it off restores it.
-      await moChip.click();
+      // Checking a state filters the list (menu stays open) and the
+      // selected count rides the trigger; unchecking restores.
+      await moOption.click();
       await expect(page.getByText(`MO review ${stamp}`)).toBeVisible();
       await expect(page.getByText(`IL review ${stamp}`)).toBeHidden();
-      await moChip.click();
+      await expect(trigger).toContainText("1");
+      await filterGroup
+        .getByRole("button", { name: /Illinois/ })
+        .click();
       await expect(page.getByText(`IL review ${stamp}`)).toBeVisible();
+
+      // Clear selection empties the set → all states again.
+      await filterGroup
+        .getByRole("button", { name: "Clear selection" })
+        .click();
+      await expect(page.getByText(`MO review ${stamp}`)).toBeVisible();
+      await expect(page.getByText(`IL review ${stamp}`)).toBeVisible();
+    } finally {
+      for (const id of reviewIds) await deleteReview(id);
+      for (const s of seeds) {
+        await deleteEvent(s.eventId);
+        await deleteTournament(s.tournamentId);
+      }
+      if (author) await deleteUser(author.id);
+      if (ed) await deleteUser(ed.id);
+    }
+  });
+});
+
+test.describe("My Reviews — header pills, draft privacy, locked edit, sort", () => {
+  test("pills count drafts, draft footer is private, past-window edit locks with the tooltip, sort reorders", async ({
+    page,
+  }) => {
+    let ed: SeededUser | undefined;
+    let author: SeededUser | undefined;
+    const seeds: { eventId: string; tournamentId: string }[] = [];
+    const reviewIds: string[] = [];
+    const stamp = Date.now();
+    try {
+      ed = await createEventDirector({ completeOnboarding: true });
+      author = await createAttendee({ completeOnboarding: true });
+      // One event per review — reviews are unique per author + event.
+      const recent = await seedEvent(ed.id, {
+        title: `E2E Recent Event ${stamp}`,
+        state: "TX",
+      });
+      const old = await seedEvent(ed.id, {
+        title: `E2E Old Event ${stamp}`,
+        state: "TX",
+      });
+      const draftEv = await seedEvent(ed.id, {
+        title: `E2E Draft Event ${stamp}`,
+        state: "TX",
+      });
+      seeds.push(recent, old, draftEv);
+      // Ended 60 days ago → past the 30-day edit window.
+      await setEventDates(old.eventId, daysAgo(62), daysAgo(60));
+
+      reviewIds.push(
+        await seedReview(old.eventId, author.id, `Locked review ${stamp}`, {
+          ratings: 2,
+        }),
+      );
+      reviewIds.push(
+        await seedReview(recent.eventId, author.id, `Fresh review ${stamp}`, {
+          ratings: 5,
+        }),
+      );
+      reviewIds.push(
+        await seedReview(draftEv.eventId, author.id, `Draft review ${stamp}`, {
+          status: "draft",
+          ratings: 3,
+        }),
+      );
+
+      await signIn(page, author.email, author.password);
+      await page.goto("/dashboard/reviews");
+
+      // Header pills: total + published + the drafts pill at 1.
+      await expect(page.getByText("3 reviews")).toBeVisible();
+      await expect(page.getByText("2 published")).toBeVisible();
+      await expect(page.getByText("1 draft")).toBeVisible();
+
+      // Draft card footer: private note + publish deadline, never counts.
+      await expect(
+        page.getByText("Only you can see this draft"),
+      ).toBeVisible();
+      await expect(page.getByText(/Publish window closes/)).toBeVisible();
+
+      // The past-window review's Edit is disabled; hovering surfaces the
+      // dark tooltip (it rides opacity, so assert the computed value).
+      const lockedEdit = page.getByLabel("Edit review (locked)");
+      await expect(lockedEdit).toBeDisabled();
+      const tip = page.getByRole("tooltip");
+      await expect(tip).toHaveCSS("opacity", "0");
+      await lockedEdit.hover({ force: true });
+      await expect(tip).toHaveCSS("opacity", "1");
+      await expect(tip).toContainText(
+        "Reviews lock a month after the event ends.",
+      );
+
+      // Sort still drives the list: Newest leads with the draft (last
+      // created); Best-to-worst leads with the 5-rated review.
+      const titles = page.getByRole("heading", { level: 3 });
+      await expect(titles.first()).toHaveText(`Draft review ${stamp}`);
+      await page.getByLabel("Sort reviews").selectOption("best");
+      await expect(titles.first()).toHaveText(`Fresh review ${stamp}`);
+      await page.getByLabel("Sort reviews").selectOption("worst");
+      await expect(titles.first()).toHaveText(`Locked review ${stamp}`);
     } finally {
       for (const id of reviewIds) await deleteReview(id);
       for (const s of seeds) {

@@ -1033,33 +1033,55 @@ Support. Sign-out is in the header user menu (see the §6 shell).
 
 ### 7.1 My Reviews
 
-The attendee's version of the Reviews list (§6.2), with these differences:
+The attendee's version of the Reviews list (§6.2), redesigned as the
+approved my-reviews mockup (S12.44):
 
-- The heading carries a **total-count chip** of this user's reviews; the
-  **sort dropdown sits on the header row's right side**.
-- **Sort by**: Newest, Oldest, Best-to-worst, Worst-to-best (by overall across
-  the six categories); default **Newest**.
-- **Location filter**: a chip row under the header — an "All" chip plus one
-  chip per state the user has a **published** review in (2-letter code + that
-  count, A→Z; draft-only states get no chip; hidden when none). Selecting a
-  chip filters the whole list (drafts included) to that state; re-selecting
-  clears it. State comes from the **live events join** (snapshots are only
-  stamped at event-deletion detach, so detached rows fall back to the snapshot
-  location's trailing state code). Derivation is the pure
+- **Header**: "My Reviews" + HeaderCountChip pills — `N reviews`,
+  `N published`, and `N drafts` (the drafts pill is **hidden at 0** —
+  drafts are private, "0 drafts" is noise; the published pill hides only
+  when there are no reviews at all) — over a one-line page subtext.
+- **Toolbar row** under the header: the **location multi-select** left,
+  the **sort control** right (icon + native select in the approved
+  control chrome). Sort by: Newest, Oldest, Best-to-worst,
+  Worst-to-best (by overall across the six categories); default
+  **Newest**.
+- **Location filter**: a dropdown trigger ("Location" + pin; the
+  selected count rides it as a red bubble) opening a **checkbox menu**
+  of states — full state name + this user's **published**-review count
+  per state, A→Z; draft-only states get no row; the control hides when
+  no state derives. Checking states filters the whole list (drafts
+  included) to those states; empty selection = all; "Clear selection"
+  resets. State comes from the **live events join** (snapshots are only
+  stamped at event-deletion detach, so detached rows fall back to the
+  snapshot location's trailing state code). Derivation is the pure
   `deriveLocationChips` in `lib/reviews/shared.ts`.
-- Each card shows event info and the category ratings **with 5-star icons**,
-  plus **icon chips** for the helpful count (thumbs-up) and comments count
-  (speech bubble). A **status chip (Draft / Published)** is shown **only on the
-  attendee dashboard**.
-- Card actions are **icon buttons with a background tint**: pencil = Edit
-  (slate), trash = Delete (red, confirm dialog — allowed any time; deletion
-  cascades the review's comments). Save/publish from the write form confirms
-  via the success toast ("Draft saved…" / "Your review has been published").
-- The 30-day edit window applies: past it the Edit button renders **disabled
-  with a tooltip** explaining that the event ended more than 30 days ago.
+- **Each card is one cohesive container**: a header band (event crest
+  via SafeImg, title link, host · city, state · event dates + the
+  **status pill** — Published emerald / Draft sky — and, on verified
+  rows, the solid-red **Guru Review** badge), a rating hero (stars +
+  big score + review date), review title/body, a tinted **category
+  ratings panel** (six white tiles with 5-star icons), and a slate
+  footer band. All dates render mm/dd/yyyy (`"en-US"`).
+- **Footer stats are never a bare "0"**: published cards show
+  `N found this helpful` / `N comments` with icon discs, zeroes read as
+  words ("No helpful votes yet" / "No comments yet"); a **draft**'s
+  footer instead reads "Only you can see this draft" + "Publish window
+  closes <mm/dd/yyyy>" (end + 30 days; "closed" once past).
+- Card actions are **icon buttons with a background tint**: pencil =
+  Edit (slate), trash = Delete (red, confirm dialog — allowed any time;
+  deletion cascades the review's comments). Save/publish from the write
+  form confirms via the success toast ("Draft saved…" / "Your review
+  has been published").
+- The 30-day edit window applies: past it the Edit button renders
+  **disabled with the dark tooltip** — "Editing locked · Reviews lock a
+  month after the event ends."
+- A verified **Guru review wears the accent treatment**: red spine +
+  red-tinted border + warm header wash (Guru = red).
 - If the **owner ED commented** on the review, that comment shows here; other
   comments open in a popup on click.
-- Empty state: a placeholder with a **Find Events** CTA → Search Events.
+- Empty state: the shared gold-tone EmptyState (floating star disc, red
+  pencil badge) with a red **Browse events** CTA → Search Events and a
+  "How verified reviews work" text link → FAQ.
 
 ### 7.2 Favorites
 

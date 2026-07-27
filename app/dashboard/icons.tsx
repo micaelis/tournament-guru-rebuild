@@ -50,7 +50,10 @@ export type IconName =
   | "chart"
   | "chat"
   | "layers"
-  | "compass";
+  | "compass"
+  | "sort"
+  | "thumb"
+  | "comment";
 
 const PATHS: Record<IconName, ReactNode> = {
   calendar: (
@@ -297,6 +300,23 @@ const PATHS: Record<IconName, ReactNode> = {
       <circle cx="12" cy="12" r="10" />
       <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
     </>
+  ),
+  sort: (
+    <>
+      <path d="M21 16l-4 4-4-4" />
+      <path d="M17 20V4" />
+      <path d="M3 8l4-4 4 4" />
+      <path d="M7 4v16" />
+    </>
+  ),
+  thumb: (
+    <>
+      <path d="M7 22V11" />
+      <path d="M15 22H9a2 2 0 0 1-2-2V11a2 2 0 0 1 2-2h1.5l3-6a1.5 1.5 0 0 1 3 1v6h4a2 2 0 0 1 2 2l-2 8a3 3 0 0 1-3 2z" />
+    </>
+  ),
+  comment: (
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
   ),
 };
 
