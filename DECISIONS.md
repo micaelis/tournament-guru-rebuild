@@ -3265,3 +3265,30 @@ empty would fork the treatment. Role colors reuse the MetricStrip
 semantic pair rather than inventing a new palette. **Alternative
 rejected:** a new parallel component adopted page-by-page — would leave
 two treatments live indefinitely (the exact drift the redesign closes).
+
+### S12.43 · FAQ dashboard page rebuilt as the designed help page; topics are presentational
+
+**What:** `/dashboard/faq` implements the approved faq-redesign mockup:
+elevated header (title + two HeaderCountChips — visible answers,
+non-empty topics — derived live from the audience-filtered rows, plus a
+Contact-support secondary that smooth-scrolls to the support card via
+the global `scroll-behavior` + anchor, no JS), a search card with
+jump-to-topic anchor chips and a `/` focus shortcut, four canonical
+topic sections of divided expand/collapse rows (ink-filled chevron disc
+when open, 0fr→1fr grid height animation, ~620px answer measure,
+Guru/claim rows pre-expanded by title match), the shared EmptyState at
+zero results, and a closing support card whose red CTA routes to the
+§6.6 support form. Data fetch + audience filtering are unchanged.
+
+**Why the topics are derived, not stored:** the `faqs` schema has no
+topic/category column (only audience targeting), and this branch is
+presentation-only — no migrations. `deriveFaqTopic`
+(`lib/faq/topics.ts`) buckets by TITLE keywords (account → reviews →
+events priority, "tournament"/"guru" excluded as brand words, fallback
+Getting started), unit-tested against the seed. Empty topics never
+render, so a mis-bucketed future entry is at worst one section off.
+Follow-up (backlog): a real `topic` column + admin CRUD chip, at which
+point the heuristic dies. **Also dropped:** the mockup's "or email
+support@…" line — the address is env-configurable (`SUPPORT_EMAIL_TO`),
+so hardcoding it in UI could misstate prod; the CTA routes to the
+support form instead.

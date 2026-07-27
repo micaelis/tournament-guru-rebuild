@@ -995,6 +995,34 @@ A form with **Email** and **Full name** (both autopopulated) and a **Message**
 **support@tournamentguru.com** — *"You have a message from: <name>, <email>"*
 followed by the message in italics — and shows a confirmation popup.
 
+### 6.7 FAQ (shared: ED + attendee)
+
+`/dashboard/faq` renders the published + visible entries whose audience
+matches the signed-in user (`faq_audiences`: user_type + optional
+role_title), grouped as a designed help page (S12.43):
+
+- **Header**: "FAQ" + two HeaderCountChip pills — `N answers` (visible
+  entries) and `N topics` (non-empty topic sections) — both derived from
+  the live audience-filtered data; a "Contact support" ink-outline
+  secondary top-right smooth-scrolls to the support card.
+- **Topics** are presentational: the schema has no topic column, so
+  entries bucket into four canonical sections (Getting started ·
+  Reviews & ratings · Events & claiming · Account & privacy) by
+  title-keyword derivation (`lib/faq/topics.ts`, `deriveFaqTopic`);
+  unmatched titles land in Getting started and empty topics never
+  render. Each section: icon-badge header + one card of divided
+  expand/collapse rows (chevron disc fills ink when open; answers sit
+  at a ~620px measure). Rows whose title mentions Guru or claiming
+  ship pre-expanded.
+- **Search** (a card with jump-to-topic anchor chips): `/` focuses it;
+  typing filters live — matches auto-expand, empty topics hide, a meta
+  line counts results, zero results shows the shared EmptyState with a
+  Clear-search action.
+- **Support card** at the end links the red Contact-support CTA to
+  §6.6's form. (The mockup's "or email …" line is dropped: the address
+  is env-configurable — `SUPPORT_EMAIL_TO` — so hardcoding it in UI
+  could misstate prod.)
+
 ---
 
 ## 7. Attendee dashboard
@@ -1420,8 +1448,9 @@ without rework:
 - **Hidden ED items**: Transactions, Add-on Pricing, and Notifications
   are hidden this sprint. **FAQ** is now live: admin CRUD at
   `/dashboard/faqs` (status, visibility toggle, type→role audience chips);
-  attendee + ED dashboards at `/dashboard/faq` (audience-filtered, searchable);
-  public `/faq` shows all published+visible entries.
+  attendee + ED dashboards at `/dashboard/faq` (audience-filtered, the
+  designed help page — see §6.7); public `/faq` shows all
+  published+visible entries.
 - **Recurring tournaments.** The `recurring` toggle is a stored no-op —
   informational only; the feature was never finalized with the client.
 - **Backlog items**: an ED email when the admin approves/rejects a submitted CSV;

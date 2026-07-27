@@ -33,7 +33,7 @@ export function HeaderCountChip({
       </span>
       <span className="font-[var(--font-heading)] text-[12.5px] font-extrabold text-slate-900">
         {count}
-      </span>
+      </span>{" "}
       {label}
     </span>
   );
