@@ -52,13 +52,23 @@ test.describe("Add-ons — ED coming-soon preview", () => {
       await expect(
         page.getByRole("button", { name: "Coming soon" }),
       ).toBeDisabled();
+      await expect(
+        page.getByRole("button", { name: /Activate/ }),
+      ).toHaveCount(0);
+      // The rail carries the Stripe trust signal in its pre-launch
+      // wording (no "Secure checkout" — there is no checkout yet).
+      await expect(page.getByAltText("Stripe")).toBeVisible();
+      await expect(
+        page.getByText("Payments powered by Stripe"),
+      ).toBeVisible();
       // The rail shows which event the add-on would apply to (exact:
       // the back link also carries the title, prefixed with "Back to").
       await expect(
         page.getByText("Addon Preview Probe", { exact: true }),
       ).toBeVisible();
 
-      // The General Ads tab swaps in the $300 rail — still disabled.
+      // The General Ads tab swaps in the $300 rail — still disabled,
+      // and it carries the same Stripe trust signal.
       await page.getByRole("tab", { name: /General Ads/ }).click();
       await expect(page.getByText("General Ads · one-time")).toBeVisible();
       await expect(
@@ -67,6 +77,13 @@ test.describe("Add-ons — ED coming-soon preview", () => {
       await expect(
         page.getByRole("button", { name: "Coming soon" }),
       ).toBeDisabled();
+      await expect(
+        page.getByRole("button", { name: /Activate/ }),
+      ).toHaveCount(0);
+      await expect(page.getByAltText("Stripe")).toBeVisible();
+      await expect(
+        page.getByText("Payments powered by Stripe"),
+      ).toBeVisible();
     } finally {
       if (seed) {
         await deleteEvent(seed.eventId);

@@ -3192,3 +3192,25 @@ the mockup's 10 — the page must not undersell the shipped limit.
 **Alternative rejected:** a "contact us to upgrade" inquiry form —
 explicitly out of scope; the page is informational only until payments
 ship.
+
+### S12.40 · Stripe trust signal restored on the add-on price rails, in coming-soon wording
+
+**What:** both price rails on the Add-on Details preview (Premium +
+General Ads) regain the Stripe signal the approved mockup
+(design/upgrade-addon-redesign.html) shows under each Activate slot —
+the "Powered by Stripe" wordmark (`public/stripe-logo.png`, rendered as
+a plain `<img>`, not through SafeImg: it's a static public asset, not a
+DB URL) plus a lock-icon caption. Partially supersedes "S12.39 · Add-on
+page ships as a coming-soon preview", which had dropped the Stripe
+reassurance along with the checkout.
+
+**Why:** the trust signal is part of the approved design and does its
+job pre-launch — it tells EDs who will be handling their money. The
+caption is reworded from the mockup's "Secure checkout · powered by
+Stripe" to **"Payments powered by Stripe"**: there is no checkout on
+the page (the Activate stubs stay disabled, no inquiry form, no
+mutation), so "secure checkout" would promise a flow that doesn't
+exist yet, while "payments powered by" reads as a statement about
+what's coming — consistent with the amber coming-soon banner.
+**Alternative rejected:** keeping the mockup caption verbatim — wrong
+until payments actually ship.

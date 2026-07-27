@@ -187,8 +187,12 @@ and **General Ads · $300** (one-time, per event listing) — each with a dark
 device/browser mock preview, a "What's included" checklist, and a sticky price
 rail. The coming-soon framing is explicit and triple-stated: a "Coming soon"
 pill beside the title, an amber "add-ons aren't purchasable yet" banner, and
-the Activate slot rendered as a **disabled "Coming soon" stub** — no Stripe, no
-checkout, no inquiry/contact form, no mutations of any kind. The event-scoped
+the Activate slot rendered as a **disabled "Coming soon" stub** — no checkout,
+no inquiry/contact form, no mutations of any kind. Each price rail keeps the
+mockup's Stripe trust signal beneath its Activate slot: the "Powered by Stripe"
+wordmark (`/stripe-logo.png`) over a lock-icon caption reading **"Payments
+powered by Stripe"** — reworded from the mockup's "Secure checkout · powered by
+Stripe" because no checkout exists pre-launch. The event-scoped
 variant shows the source event in the rail's "Applies to" card (logo, status +
 tier pills, date range) and its back link returns to that event. Entry points
 (all ED-facing): the events-list row **Upgrade**, the details-page **Upgrade to

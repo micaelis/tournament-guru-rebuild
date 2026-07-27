@@ -277,6 +277,7 @@ function PremiumPanel({
             <PriceLine amount={PREMIUM_PRICE} />
             <IncludesAllStrip />
             <ComingSoonCta flavor="premium" />
+            <StripeSignal />
             {event && <AppliesTo event={event} />}
             <div className="my-5 h-px bg-slate-100" />
             <button
@@ -381,6 +382,7 @@ function AdsPanel({
             <PriceLine amount={ADS_PRICE} />
             <IncludesAllStrip />
             <ComingSoonCta flavor="ads" />
+            <StripeSignal />
             {event && <AppliesTo event={event} />}
             <div className="my-5 h-px bg-slate-100" />
             <button
@@ -480,6 +482,26 @@ function ComingSoonCta({ flavor }: { flavor: AddOnKey }) {
         Activation opens when payments launch.
       </p>
     </>
+  );
+}
+
+/**
+ * The mockup's per-rail Stripe trust signal, reworded for pre-launch:
+ * "Payments powered by Stripe", not "Secure checkout · powered by
+ * Stripe" — there is no checkout to call secure yet. The wordmark is a
+ * static asset in /public, not a DB URL, so it renders as a plain
+ * <img> rather than through SafeImg/safeImageSrc.
+ */
+function StripeSignal() {
+  return (
+    <div className="mt-3.5 flex flex-col items-center gap-1.5">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/stripe-logo.png" alt="Stripe" className="h-6 w-auto" />
+      <p className="flex items-center justify-center gap-1.5 text-[11.5px] font-semibold text-slate-600">
+        <Icon name="lock" className="h-3 w-3" />
+        Payments powered by Stripe
+      </p>
+    </div>
   );
 }
 
