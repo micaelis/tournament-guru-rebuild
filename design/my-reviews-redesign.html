@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<!--
+  Tournament Guru — attendee MY REVIEWS redesign (DESIGN ARTIFACT, not wired to the app).
+  Open directly in a browser (needs network: Tailwind CDN + Google Fonts).
+
+  Rebuilds app/dashboard/reviews/AttendeeReviews.tsx's flat card list in the approved TG
+  language (account + activity-timeline + ED-events mockups), and ESTABLISHES three
+  APP-WIDE treatments:
+
+    Page title   · heading-font title + the QUIET COUNT SUBTEXT on the title baseline —
+                   the exact header-count treatment of the ED events-list mockup, so the
+                   two dashboards read as one family. Never a bare bold title again.
+    Header user  · the top-right user piece becomes a bordered white pill: ringed
+                   avatar, name over the ROLE in its semantic color (Coach = red,
+                   Attendee = amber), chevron in a disc that flips when the menu opens.
+                   The menu gains a slate header block with avatar + email + role chip.
+    Empty state  · the app-wide EmptyState: white card, floating gold-star disc with a
+                   red pencil badge + twinkling accents, friendly prompt copy, red
+                   primary CTA + quiet text link. No dashed border, no red dot,
+                   no shouty title. Press E (or the hint pill) to preview it.
+
+  The page itself:
+    Header    · "My Reviews" + the count subtext + a one-line page subtext.
+    Toolbar   · ONE row under the header: the LOCATION MULTI-SELECT dropdown (left) —
+                approved control chrome, a checkbox menu of states with review counts,
+                selected count on the trigger, empty selection = all — and the SORT
+                control (Newest / Oldest / Best to worst / Worst to best — the shipped
+                options) on the right. Both work the list live.
+    Card      · ONE cohesive section-styled container: header band (event crest + title
+                + host · city · event dates + StatusPill — Published = emerald,
+                Draft = sky), hairline, rating hero
+                (stars + big score + review date), review title + body, a tinted
+                CATEGORY RATINGS panel (6 tiles, each with 5-star icons: Fields,
+                Facilities, Management, Competition, Diversity, Cost / value), and a
+                slate footer band: designed helpful / comments stats (never a bare
+                "0 helpful" — zero reads "No comments yet"; drafts read "Only you can
+                see this draft" + the publish deadline) with soft-background icon
+                Edit / Delete right. Past the 30-day window Edit disables and a dark
+                tooltip explains: reviews lock a month after the event ends.
+    Guru      · a verified GURU review wears the accent treatment (style guide:
+                Guru = red): red spine, red-tinted border, warm header wash, and a
+                solid-red "Guru Review" badge beside its status pill.
+    Spotlight · right-hand 270px sticky column, same banner cards as the timeline
+                mockup (the live dashboard's SpotlightColumn).
+
+  Data shown = exactly what the shipped page has (ReviewCardRow + comment counts):
+  four realistic youth-soccer reviews — one fresh draft, one editable published,
+  one verified Guru review, one locked published. Sort + the location filter +
+  menus + hearts are clickable.
+
+  Persona: Marcus Bennett · Attendee (Coach) · Austin, TX. "My Reviews" nav active.
+  Design-only — do not implement into app/ until Danny signs off.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>TG — My Reviews · design mockup</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: { ink: "#0f172a", accent: "#dc2626" },
+        fontFamily: {
+          sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+          heading: ['"Bricolage Grotesque"', "Inter", "sans-serif"],
+        },
+      },
+    },
+  };
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0f172a; --body:#475569; --muted:#64748b; --faint:#94a3b8;
+    --line:#e2e8f0; --line2:#f1f5f9; --accent:#dc2626; --gold:#f59e0b;
+  }
+  body{color:var(--ink);-webkit-font-smoothing:antialiased}
+
+  /* ── surfaces (the approved card language) ── */
+  .card{background:#fff;border:1px solid var(--line);border-radius:16px;
+    box-shadow:0 1px 2px rgba(15,23,42,.05),0 14px 34px -22px rgba(15,23,42,.18);
+    transition:border-color .15s ease-out,box-shadow .15s ease-out}
+  .card-hover:hover{border-color:#cbd5e1;box-shadow:0 2px 4px rgba(15,23,42,.06),0 18px 38px -20px rgba(15,23,42,.24)}
+  .eyebrow{font-family:"Bricolage Grotesque",Inter,sans-serif;font-size:10.5px;font-weight:800;
+    letter-spacing:.14em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+
+  /* verified GURU reviews wear the accent treatment (style guide: Guru = red) —
+     the spine vocabulary of the ED premium rows: red spine + tinted border + a
+     warm wash across the header band */
+  .rc-guru{border-color:#fecaca;
+    box-shadow:inset 3px 0 0 var(--accent),0 1px 2px rgba(15,23,42,.05),0 14px 34px -22px rgba(220,38,38,.30)}
+  .rc-guru.card-hover:hover{border-color:#fca5a5;
+    box-shadow:inset 3px 0 0 var(--accent),0 2px 4px rgba(15,23,42,.06),0 18px 38px -20px rgba(220,38,38,.38)}
+  .rc-guru>header{border-radius:15px 15px 0 0;
+    background:linear-gradient(90deg,rgba(220,38,38,.05) 0%,rgba(220,38,38,.015) 55%,rgba(220,38,38,0) 80%)}
+
+  /* ── buttons (SHIPPED treatment: primary = ink, secondary = crisp ink-outline,
+       action = the public-site red-gradient CTA; never yellow) ── */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;
+    font-weight:600;border-radius:10px;text-decoration:none;border:1px solid transparent;
+    font-size:13px;white-space:nowrap;transition:background .15s ease-out,border-color .15s ease-out,
+    color .15s ease-out,box-shadow .15s ease-out,transform .15s ease-out}
+  .btn-primary{background:var(--ink);color:#fff;padding:10px 18px;font-size:13.5px;font-weight:700}
+  .btn-primary:hover{transform:translateY(-1px);box-shadow:0 10px 22px -8px rgba(15,23,42,.45)}
+  .btn-primary:active{transform:none;box-shadow:none}
+  .btn-secondary{background:transparent;border:1.5px solid #94a3b8;color:var(--ink);
+    padding:8px 14px;font-weight:700}
+  .btn-secondary:hover{border-color:var(--ink);background:rgba(15,23,42,.045)}
+  .btn-accent{background:linear-gradient(135deg,#dc2626 0%,#b91c1c 100%);color:#fff;
+    padding:10px 18px;font-size:13.5px;font-weight:700;
+    box-shadow:0 6px 16px -6px rgba(220,38,38,.5)}
+  .btn-accent:hover{transform:translateY(-1px);
+    background:linear-gradient(135deg,#b91c1c 0%,#9d1616 100%);
+    box-shadow:0 10px 22px -8px rgba(220,38,38,.55)}
+  .btn-accent:active{transform:none;box-shadow:0 6px 16px -6px rgba(220,38,38,.5)}
+
+  button:focus,select:focus{outline:none}
+  button:focus-visible{outline:2px solid rgba(100,116,139,.55);outline-offset:2px}
+
+  .tg-link{font-weight:600;color:#334155;text-decoration:underline;text-decoration-color:#cbd5e1;
+    text-underline-offset:3px;transition:color .15s ease,text-decoration-color .15s ease;cursor:pointer}
+  .tg-link:hover{color:var(--accent);text-decoration-color:var(--accent)}
+  .entity-link{color:var(--ink);text-decoration:none;transition:color .15s ease-out;cursor:pointer}
+  .entity-link:hover{color:var(--accent)}
+
+  /* ══ APP-WIDE · header user piece: bordered pill, ringed avatar, semantic role ══ */
+  .user-pill{display:flex;align-items:center;gap:10px;cursor:pointer;
+    border:1px solid var(--line);background:#fff;border-radius:9999px;
+    padding:4px 8px 4px 4px;box-shadow:0 1px 2px rgba(15,23,42,.05);
+    transition:border-color .15s ease-out,box-shadow .15s ease-out,background .15s ease-out}
+  .user-pill:hover{border-color:#cbd5e1;box-shadow:0 3px 8px -2px rgba(15,23,42,.12)}
+  [data-menu][data-open] .user-pill{border-color:#cbd5e1;background:#f8fafc}
+  .user-chev{display:grid;place-items:center;width:22px;height:22px;border-radius:9999px;
+    background:#f1f5f9;color:#64748b;transition:transform .18s ease-out,background .15s ease-out}
+  .user-pill:hover .user-chev{background:#e2e8f0;color:#334155}
+  [data-menu][data-open] .user-chev{transform:rotate(180deg)}
+
+  /* ── sort control: the approved input chrome (white, hairline, red focus ring) ── */
+  .sortbox{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);
+    border-radius:10px;background:#fff;padding:8.5px 12px;cursor:pointer;
+    box-shadow:0 1px 2px rgba(15,23,42,.04);
+    transition:border-color .15s ease,box-shadow .15s ease}
+  .sortbox:hover:not(:focus-within){border-color:#cbd5e1}
+  .sortbox:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(220,38,38,.12)}
+  .sortbox select{appearance:none;-webkit-appearance:none;border:none;background:transparent;
+    font-size:13px;font-weight:600;color:var(--ink);cursor:pointer;padding-right:2px}
+
+  /* ── location multi-select: the same control chrome as the sort box; the open
+       menu is a white checkbox list, selected = the app-wide soft-red tint ── */
+  .ddbox{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);
+    border-radius:10px;background:#fff;padding:8.5px 12px;cursor:pointer;
+    font-size:13px;font-weight:600;color:var(--ink);
+    box-shadow:0 1px 2px rgba(15,23,42,.04);
+    transition:border-color .15s ease,box-shadow .15s ease}
+  .ddbox:hover{border-color:#cbd5e1}
+  .ddbox[aria-expanded="true"]{border-color:var(--accent);box-shadow:0 0 0 3px rgba(220,38,38,.12)}
+  .ddbox .dd-chev{transition:transform .18s ease-out}
+  .ddbox[aria-expanded="true"] .dd-chev{transform:rotate(180deg)}
+  .dd-count{display:inline-flex;align-items:center;justify-content:center;min-width:18px;
+    height:18px;border-radius:9999px;background:#fef2f2;border:1px solid #fca5a5;
+    color:#b91c1c;font-size:10.5px;font-weight:800;padding:0 5px;line-height:1;flex:none}
+  .dd-panel{position:absolute;left:0;top:calc(100% + 8px);width:224px;display:none;z-index:50;
+    background:#fff;border:1px solid var(--line);border-radius:14px;padding:6px;
+    box-shadow:0 18px 40px -12px rgba(15,23,42,.25)}
+  #loc-dd[data-open] .dd-panel{display:block;animation:pop .16s cubic-bezier(.2,.7,.2,1) both}
+  .dd-opt{display:flex;align-items:center;gap:10px;border-radius:9px;padding:8px 10px;width:100%;
+    font-size:13px;font-weight:600;color:#334155;cursor:pointer;background:none;border:none;
+    text-align:left;transition:background .13s ease,color .13s ease}
+  .dd-opt:hover{background:#f1f5f9;color:var(--ink)}
+  .dd-check{display:grid;place-items:center;width:16px;height:16px;border-radius:5px;flex:none;
+    border:1.5px solid #cbd5e1;background:#fff;color:transparent;
+    transition:background .13s ease,border-color .13s ease,color .13s ease}
+  .dd-check svg{width:10px;height:10px}
+  .dd-opt[aria-selected="true"]{color:#b91c1c}
+  .dd-opt[aria-selected="true"]:hover{background:#fef2f2}
+  .dd-opt[aria-selected="true"] .dd-check{background:var(--accent);border-color:var(--accent);color:#fff}
+  .dd-opt .dd-n{font-size:10.5px;font-weight:800;color:#64748b;background:#f1f5f9;
+    border-radius:9999px;padding:1.5px 7px;line-height:1.4;flex:none;
+    transition:background .13s ease,color .13s ease}
+  .dd-opt[aria-selected="true"] .dd-n{background:#fee2e2;color:#b91c1c}
+  .dd-clear{display:block;width:100%;border:none;background:none;border-radius:9px;
+    padding:7px 10px;font-size:12px;font-weight:700;color:#64748b;cursor:pointer;
+    text-align:left;transition:background .13s ease,color .13s ease}
+  .dd-clear:hover{background:#fef2f2;color:#b91c1c}
+  .dd-clear[disabled]{color:#cbd5e1;cursor:not-allowed;background:none}
+
+  /* ── status pills — the shipped StatusPill: Published = emerald, Draft = sky ── */
+  .pill{display:inline-flex;align-items:center;gap:6px;border-radius:9999px;
+    font-family:"Bricolage Grotesque",Inter,sans-serif;font-size:10px;font-weight:800;
+    letter-spacing:.03em;text-transform:uppercase;padding:3.5px 10px 3.5px 8px;border:1px solid;
+    white-space:nowrap;flex:none}
+  .pill .dot{width:5px;height:5px;border-radius:9999px;flex:none}
+  .pill-pub{background:#d1fae5;color:#065f46;border-color:#6ee7b7}
+  .pill-pub .dot{background:#059669}
+  .pill-draft{background:#e0f2fe;color:#075985;border-color:#7dd3fc}
+  .pill-draft .dot{background:#0ea5e9}
+  /* Guru badge: solid brand red (style guide: Guru = red) with a gold star */
+  .pill-guru{background:linear-gradient(135deg,#ef4444 0%,#b91c1c 100%);color:#fff;
+    border-color:#b91c1c;box-shadow:0 4px 10px -4px rgba(220,38,38,.55)}
+  .pill-guru svg{width:10px;height:10px;fill:#fde68a;flex:none}
+
+  /* ── stars — fractional gold fill snapped to 0.5 steps ── */
+  .stars{position:relative;display:inline-flex;line-height:0;flex:none}
+  .stars svg{width:17px;height:17px;flex:none}
+  .stars.sm svg{width:14px;height:14px}
+  .stars.xs svg{width:12.5px;height:12.5px}
+  .stars-base{display:inline-flex;color:#e2e8f0}
+  .stars-fill{display:inline-flex;color:var(--gold);position:absolute;inset:0 auto 0 0;
+    overflow:hidden;white-space:nowrap}
+  .val{font-family:"Bricolage Grotesque",Inter,sans-serif;font-weight:800;
+    letter-spacing:-.02em;line-height:1}
+
+  /* ── category-ratings panel inside the review card ── */
+  .cat-panel{border:1px solid var(--line2);border-radius:12px;background:#f8fafc;padding:11px 12px}
+  .cat-tile{display:flex;align-items:center;justify-content:space-between;gap:10px;
+    border:1px solid #eef2f7;border-radius:9px;background:#fff;padding:6.5px 11px}
+  .cat-tile .lbl{font-size:12px;font-weight:600;color:#475569;white-space:nowrap}
+
+  /* ── footer stats: never a bare "0" ── */
+  .stat{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:#64748b}
+  .stat b{color:var(--ink);font-weight:800}
+  .stat-ic{display:grid;place-items:center;width:25px;height:25px;border-radius:9999px;
+    background:#fff;border:1px solid var(--line);color:#64748b;flex:none}
+  .stat.is-zero{color:#94a3b8}
+  .stat.is-zero .stat-ic{color:#cbd5e1}
+
+  /* ── icon actions: Edit / Delete with a soft background ── */
+  .icon-btn{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;
+    border:none;cursor:pointer;flex:none;
+    transition:background .15s ease-out,color .15s ease-out,transform .1s ease-out}
+  .icon-btn:hover{transform:translateY(-1px)}
+  .icon-btn:active{transform:none}
+  .icon-btn.edit{background:#e9eef5;color:#475569}
+  .icon-btn.edit:hover{background:#dbe3ec;color:var(--ink)}
+  .icon-btn.del{background:#fef2f2;color:var(--accent)}
+  .icon-btn.del:hover{background:#fee2e2;color:#b91c1c}
+  .icon-btn[disabled]{background:#eef2f6;color:#cbd5e1;cursor:not-allowed}
+  .icon-btn[disabled]:hover{transform:none}
+
+  /* dark tooltip on the locked Edit */
+  .tip{position:relative;display:inline-flex}
+  .tip-bubble{position:absolute;bottom:calc(100% + 10px);right:-4px;width:224px;
+    background:var(--ink);color:#fff;border-radius:10px;padding:9px 12px;text-align:left;
+    font-size:11.5px;line-height:1.55;font-weight:500;opacity:0;transform:translateY(3px);
+    pointer-events:none;box-shadow:0 14px 30px -10px rgba(15,23,42,.55);z-index:40;
+    transition:opacity .15s ease-out,transform .15s ease-out}
+  .tip-bubble b{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;
+    color:#fff;margin-bottom:2px}
+  .tip-bubble b [data-i]{color:#fca5a5}
+  .tip-bubble::after{content:"";position:absolute;top:100%;right:15px;
+    border:5px solid transparent;border-top-color:var(--ink)}
+  .tip:hover .tip-bubble,.tip:focus-within .tip-bubble{opacity:1;transform:none}
+
+  /* ── favorite heart (the app's FavoriteButton icon variant) ── */
+  .fav-btn{display:inline-flex;align-items:center;justify-content:center;flex:none;cursor:pointer;
+    z-index:10;width:32px;height:32px;padding:0;border-radius:9999px;
+    border:1px solid rgba(220,38,38,.18);background:#fff;color:#94a3b8;
+    box-shadow:0 2px 6px rgba(15,23,42,.10),0 6px 14px -6px rgba(15,23,42,.14);
+    transition:color .15s ease,transform .1s ease,box-shadow .15s ease,border-color .15s ease}
+  .fav-btn:hover{color:var(--accent);border-color:rgba(220,38,38,.4);transform:scale(1.07)}
+  .fav-btn[aria-pressed="true"]{color:var(--accent)}
+  .fav-btn[aria-pressed="true"] [data-i] svg{fill:currentColor}
+
+  /* ── empty state: floating disc + twinkles ── */
+  .floaty{animation:floaty 3.8s ease-in-out infinite}
+  @keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+  .twinkle{animation:twinkle 2.6s ease-in-out infinite}
+  .twinkle.t2{animation-delay:1.1s}
+  @keyframes twinkle{0%,100%{opacity:.25;transform:scale(.8)}50%{opacity:1;transform:scale(1)}}
+
+  /* ── user menu ── */
+  [data-menu]{position:relative}
+  .tg-menu{position:absolute;right:0;top:calc(100% + 10px);width:264px;display:none;z-index:50;
+    background:#fff;border:1px solid var(--line);border-radius:14px;padding:6px;
+    box-shadow:0 18px 40px -12px rgba(15,23,42,.25)}
+  [data-menu][data-open] .tg-menu{display:block;animation:pop .16s cubic-bezier(.2,.7,.2,1) both}
+  @keyframes pop{from{opacity:0;transform:translateY(6px) scale(.98)}to{opacity:1;transform:none}}
+  .tg-menu-item{display:flex;align-items:center;gap:10px;border-radius:9px;padding:9px 11px;
+    font-size:13px;font-weight:600;color:#334155;transition:all .13s ease;cursor:pointer;width:100%;
+    background:none;border:none;text-align:left}
+  .tg-menu-item:hover{background:#f1f5f9;color:var(--ink)}
+  .tg-menu-item.danger:hover{background:#fef2f2;color:#b91c1c}
+  .tg-menu-item [data-i]{color:#94a3b8}
+  .tg-menu-item:hover [data-i]{color:currentColor}
+
+  /* ── dark-rail scrollbar ── */
+  .tg-scroll-dark{scrollbar-width:thin;scrollbar-color:#334155 transparent}
+  .tg-scroll-dark::-webkit-scrollbar{width:8px}
+  .tg-scroll-dark::-webkit-scrollbar-track{background:transparent}
+  .tg-scroll-dark::-webkit-scrollbar-thumb{background:#334155;border-radius:9999px;border:2px solid #0f172a}
+  .tg-scroll-dark::-webkit-scrollbar-thumb:hover{background:#475569}
+
+  /* ── toast ── */
+  #toast{position:fixed;right:24px;bottom:24px;z-index:80;background:var(--ink);color:#fff;
+    font-size:13px;font-weight:600;border-radius:12px;padding:11px 16px;
+    box-shadow:0 18px 40px -12px rgba(15,23,42,.4);opacity:0;transform:translateY(8px);
+    pointer-events:none;transition:opacity .2s ease,transform .2s ease}
+  #toast.show{opacity:1;transform:none}
+
+  [data-i]{display:inline-block;flex:none}
+  [data-i] svg{display:block;width:100%;height:100%}
+
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+  }
+</style>
+</head>
+<body class="font-sans text-ink antialiased" style="background:linear-gradient(180deg,#eef2f6 0%,#e9eef4 100%);min-height:100vh">
+
+<div class="mx-auto flex max-w-[1440px]">
+
+  <!-- ══════════ Ink rail (the implemented shell, ATTENDEE role — My Reviews active) ══════════ -->
+  <aside class="sticky top-0 hidden h-dvh w-[260px] flex-none flex-col bg-ink md:flex">
+    <div class="flex items-center gap-3 px-5 py-6">
+      <svg viewBox="0 0 295.82 141" class="h-8 w-auto" role="img" aria-label="Tournament Guru">
+        <path fill="#ffffff" d="M264.28,47.3c0.12,1.75,0.19,3.52,0.19,5.31c0,12.32-2.83,23.67-7.6,32.79c-1.13,2.38-2.56,4.66-4.24,6.82c-4.18,5.7-9.26,10.03-14.9,12.49c-9.69,5.44-21.84,8.69-35.04,8.69c-0.7,0-1.4-0.02-2.09-0.04c-0.69,0.02-1.39,0.04-2.09,0.04c-31.66,0-57.33-18.64-57.33-41.63c0-22.99,25.67-41.63,57.33-41.63h54.61h9.61c4.35-0.05,4.35-0.05,4.35-0.05c1.64-1.16,3.37-3.12,5.5-5.58l23.22-24.42H201.8c-51.93,0-94.02,31.93-94.02,71.33s42.09,71.33,94.02,71.33s94.02-31.93,94.02-71.33c0-2.7-0.22-5.36-0.61-7.99L264.28,47.3z"/>
+        <polygon fill="#EC2027" points="202.8,38.21 212.53,57.94 234.3,61.1 218.55,76.46 222.27,98.14 202.8,87.9 183.32,98.14 187.04,76.46 171.29,61.1 193.06,57.94"/>
+        <path fill="#ED2024" d="M149.52,0.09L94.2,0H64.14H0v30.06h62.2V140.5H94.2V71.42l0.1-10.16c0-0.03,0.03-1.86,0.03-1.89C94.99,41.57,112.28,10.5,149.52,0.09z"/>
+      </svg>
+      <span class="font-heading text-[15px] font-extrabold tracking-tight text-white">Tournament Guru</span>
+    </div>
+
+    <nav class="tg-scroll-dark flex-1 space-y-7 overflow-y-auto px-3 pb-6">
+      <div>
+        <p class="mb-2.5 px-3 text-[10.5px] font-bold uppercase tracking-[0.16em] text-white/30">Browse</p>
+        <ul class="space-y-0.5">
+          <li><a class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold text-white/55 transition-colors hover:bg-white/[0.06] hover:text-white/90"><span data-i="search" class="h-4 w-4 opacity-70"></span>Search Events</a></li>
+        </ul>
+      </div>
+      <div>
+        <p class="mb-2.5 px-3 text-[10.5px] font-bold uppercase tracking-[0.16em] text-white/30">You</p>
+        <ul class="space-y-0.5">
+          <li>
+            <a class="relative flex items-center gap-3 rounded-xl bg-white/[0.1] px-3 py-2.5 text-[13.5px] font-semibold text-white">
+              <span aria-hidden="true" class="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-full bg-accent"></span>
+              <span data-i="star" class="h-4 w-4"></span>My Reviews
+            </a>
+          </li>
+          <li><a class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold text-white/55 transition-colors hover:bg-white/[0.06] hover:text-white/90"><span data-i="tag" class="h-4 w-4 opacity-70"></span>Promo Codes</a></li>
+          <li><a class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold text-white/55 transition-colors hover:bg-white/[0.06] hover:text-white/90"><span data-i="heart" class="h-4 w-4 opacity-70"></span>Favorites</a></li>
+          <li><a class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold text-white/55 transition-colors hover:bg-white/[0.06] hover:text-white/90"><span data-i="activity" class="h-4 w-4 opacity-70"></span>Activity</a></li>
+          <li><a class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold text-white/55 transition-colors hover:bg-white/[0.06] hover:text-white/90"><span data-i="user" class="h-4 w-4 opacity-70"></span>Account</a></li>
+          <li><a class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold text-white/55 transition-colors hover:bg-white/[0.06] hover:text-white/90"><span data-i="help" class="h-4 w-4 opacity-70"></span>FAQ</a></li>
+          <li><a class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold text-white/55 transition-colors hover:bg-white/[0.06] hover:text-white/90"><span data-i="lifebuoy" class="h-4 w-4 opacity-70"></span>Support</a></li>
+        </ul>
+      </div>
+    </nav>
+
+    <!-- role context (attendee): quiet favorites pointer -->
+    <div class="border-t border-white/[0.08] px-4 py-5">
+      <div class="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3.5 py-3.5">
+        <p class="text-[12.5px] font-bold text-white">Save events for later</p>
+        <p class="mt-1 text-xs leading-relaxed text-white/45">Tap the heart on any event to keep it in your Favorites.</p>
+        <a class="mt-2 inline-block cursor-pointer text-[12.5px] font-semibold text-red-400 transition-colors hover:text-red-300 hover:underline">View favorites</a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ══════════ Main column ══════════ -->
+  <div class="flex min-w-0 flex-1 flex-col">
+
+    <!-- Top header: breadcrumb + the ELEVATED user piece (app-wide treatment) -->
+    <header class="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
+      <div class="flex h-16 items-center justify-between gap-4 px-5 md:px-10">
+        <div class="flex min-w-0 items-center gap-2 text-[13px]">
+          <span class="hidden font-medium text-slate-500 sm:block">Dashboard</span>
+          <span data-i="chev-r" class="hidden h-3.5 w-3.5 text-slate-300 sm:block"></span>
+          <span class="truncate font-semibold text-slate-900">My Reviews</span>
+        </div>
+        <div data-menu>
+          <button type="button" data-menu-btn aria-haspopup="menu" class="user-pill">
+            <span class="relative block h-[34px] w-[34px] flex-none">
+              <span class="grid h-[34px] w-[34px] place-items-center rounded-full bg-slate-200 font-heading text-[12px] font-extrabold text-slate-600 ring-2 ring-white">MB</span>
+              <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="" class="absolute inset-0 h-[34px] w-[34px] rounded-full object-cover ring-2 ring-white" onerror="this.remove()">
+              <span aria-hidden="true" class="absolute inset-0 rounded-full ring-1 ring-slate-900/10"></span>
+            </span>
+            <span class="hidden text-left sm:block">
+              <span class="block text-[13px] font-bold leading-tight text-slate-900">Marcus Bennett</span>
+              <span class="mt-0.5 block text-[9.5px] font-extrabold uppercase leading-tight tracking-[0.13em] text-red-600">Coach</span>
+            </span>
+            <span class="user-chev"><span data-i="chev-d" class="h-3.5 w-3.5"></span></span>
+          </button>
+          <div class="tg-menu" role="menu">
+            <div class="m-1 rounded-[10px] bg-slate-50 px-3 py-3">
+              <div class="flex items-center gap-3">
+                <span class="relative block h-9 w-9 flex-none">
+                  <span class="grid h-9 w-9 place-items-center rounded-full bg-slate-200 font-heading text-[12px] font-extrabold text-slate-600">MB</span>
+                  <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="" class="absolute inset-0 h-9 w-9 rounded-full object-cover" onerror="this.remove()">
+                </span>
+                <div class="min-w-0">
+                  <p class="text-[13px] font-bold text-slate-900">Marcus Bennett</p>
+                  <p class="truncate text-[11.5px] text-slate-500">marcus.bennett@gmail.com</p>
+                </div>
+              </div>
+              <span class="mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-red-50 px-2.5 py-0.5 text-[9.5px] font-extrabold uppercase tracking-[0.09em] text-red-700 ring-1 ring-red-200">
+                <span class="h-1.5 w-1.5 rounded-full bg-red-500"></span>Coach · Attendee
+              </span>
+            </div>
+            <div class="mx-1.5 my-1 h-px bg-slate-100"></div>
+            <button class="tg-menu-item" role="menuitem"><span data-i="user" class="h-[15px] w-[15px]"></span>Account</button>
+            <button class="tg-menu-item" role="menuitem"><span data-i="heart" class="h-[15px] w-[15px]"></span>Favorites</button>
+            <div class="mx-1.5 my-1 h-px bg-slate-100"></div>
+            <button class="tg-menu-item danger" role="menuitem"><span data-i="logout" class="h-[15px] w-[15px]"></span>Log out</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="flex-1 px-5 py-8 md:px-12 md:py-10">
+      <!-- two-column row: reviews (≤880px) + Spotlight (270px, ≥xl); centers when alone -->
+      <div class="mx-auto flex max-w-[1190px] items-start justify-center gap-10">
+      <div class="w-full min-w-0 max-w-[880px] flex-1">
+
+        <!-- ════════════════ PAGE HEADER (the app-wide page-title treatment) ════════════════ -->
+        <div class="min-w-0">
+          <div class="flex min-w-0 flex-wrap items-baseline gap-x-3.5 gap-y-1">
+            <h1 class="font-heading text-[26px] font-extrabold leading-none tracking-tight text-slate-900">My Reviews</h1>
+            <!-- the ED events-list header-count treatment: quiet counts on the title baseline -->
+            <p class="text-[13px] font-medium text-slate-500" id="count-line">
+              <span class="font-bold text-slate-800">4</span> reviews
+              <span class="text-slate-300">·</span>
+              <span class="font-bold text-slate-800">3</span> published
+              <span class="text-slate-300">·</span>
+              <span class="font-bold text-slate-800">1</span> draft
+            </p>
+          </div>
+          <p class="mt-1.5 text-[13.5px] text-slate-600">Every review you've written for the events you've attended — drafts stay private until you publish them.</p>
+        </div>
+
+        <!-- ════════════════ TOOLBAR · one line: Location filter left, sort right ════════════════ -->
+        <div class="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2.5" data-when="list">
+          <!-- location multi-select: checkbox menu of states; count rides the trigger -->
+          <div class="relative" id="loc-dd">
+            <button type="button" id="loc-btn" class="ddbox" aria-haspopup="listbox" aria-expanded="false" aria-label="Location — all states">
+              <span data-i="pin" class="h-4 w-4 text-slate-400"></span>
+              <span>Location</span>
+              <span class="dd-count" id="loc-count" hidden>0</span>
+              <span data-i="chev-d" class="dd-chev h-3.5 w-3.5 text-slate-400"></span>
+            </button>
+            <div class="dd-panel" id="loc-panel" role="listbox" aria-multiselectable="true" aria-label="Filter by state">
+              <p class="eyebrow px-2.5 pb-1.5 pt-2 text-[9.5px]">Filter by state</p>
+              <button type="button" class="dd-opt" role="option" data-loc="MO" aria-selected="false">
+                <span class="dd-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+                <span class="min-w-0 flex-1 truncate">Missouri</span>
+                <span class="dd-n">1</span>
+              </button>
+              <button type="button" class="dd-opt" role="option" data-loc="TX" aria-selected="false">
+                <span class="dd-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+                <span class="min-w-0 flex-1 truncate">Texas</span>
+                <span class="dd-n">3</span>
+              </button>
+              <div class="mx-1.5 my-1 h-px bg-slate-100"></div>
+              <button type="button" class="dd-clear" id="loc-clear" disabled>Clear selection</button>
+            </div>
+          </div>
+          <!-- shipped sort control, dressed in the approved input chrome -->
+          <label class="sortbox">
+            <span data-i="sort" class="h-4 w-4 text-slate-400"></span>
+            <select id="sort" aria-label="Sort reviews">
+              <option value="newest">Newest</option>
+              <option value="oldest">Oldest</option>
+              <option value="best">Best to worst</option>
+              <option value="worst">Worst to best</option>
+            </select>
+            <span data-i="chev-d" class="h-3.5 w-3.5 text-slate-400"></span>
+          </label>
+        </div>
+
+        <!-- ════════════════ REVIEW CARDS ════════════════ -->
+        <div id="review-list" class="mt-5 space-y-5" data-when="list">
+
+          <!-- ── review 1 · DRAFT · Ozark Mountain Invitational (MO) · editable ── -->
+          <article class="card card-hover" data-review data-status="draft" data-state="MO" data-date="2026-07-22" data-rating="3.7">
+            <header class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2.5 px-5 pb-4 pt-4 md:px-6">
+              <div class="flex min-w-0 items-center gap-3.5">
+                <span class="h-11 w-11 flex-none overflow-hidden rounded-xl ring-1 ring-slate-200">
+                  <svg viewBox="0 0 96 96" class="h-full w-full" role="img" aria-label="Event logo">
+                    <defs><linearGradient id="lg-omi" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#15803d"/><stop offset="1" stop-color="#14532d"/></linearGradient></defs>
+                    <rect width="96" height="96" fill="url(#lg-omi)"/><circle cx="48" cy="2" r="42" fill="#fff" opacity=".09"/>
+                    <text x="48" y="60" text-anchor="middle" font-family="'Bricolage Grotesque',Inter,sans-serif" font-size="26" font-weight="800" fill="#fff">OMI</text>
+                  </svg>
+                </span>
+                <div class="min-w-0">
+                  <a class="entity-link block truncate font-heading text-[16px] font-extrabold tracking-tight">Ozark Mountain Invitational — U12 Girls</a>
+                  <p class="mt-0.5 truncate text-[12px] font-medium text-slate-500">Springfield Storm SC · Springfield, MO · Jul 10–12, 2026</p>
+                </div>
+              </div>
+              <span class="pill pill-draft"><span class="dot"></span>Draft</span>
+            </header>
+            <div class="mx-5 h-px bg-slate-100 md:mx-6"></div>
+
+            <div class="px-5 py-4 md:px-6">
+              <div class="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                <span class="stars" data-rating="3.7"></span>
+                <span class="val text-[18px] text-slate-900">3.7<span class="text-[11px] font-bold text-slate-400">/5</span></span>
+                <span aria-hidden="true" class="hidden h-3.5 w-px bg-slate-200 sm:block"></span>
+                <span class="text-[12.5px] font-medium text-slate-500">Draft saved Jul 22, 2026</span>
+              </div>
+
+              <h3 class="mt-3 font-heading text-[15px] font-bold text-slate-900">Solid competition, rough parking</h3>
+              <p class="mt-1.5 text-[13.5px] leading-relaxed text-slate-600">Bracket play was competitive from the first whistle and our girls got four real tests in two days. Fields drained well after Friday's rain. Still want to add a note about the parking shuttle before I publish this…</p>
+
+              <div class="cat-panel mt-4">
+                <p class="eyebrow mb-2 px-0.5 text-[9.5px]">Category ratings</p>
+                <div class="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                  <div class="cat-tile"><span class="lbl">Fields</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="4"></span><span class="val text-[12px] text-slate-800">4</span></span></div>
+                  <div class="cat-tile"><span class="lbl">Facilities</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="3"></span><span class="val text-[12px] text-slate-800">3</span></span></div>
+                  <div class="cat-tile"><span class="lbl">Management</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="4"></span><span class="val text-[12px] text-slate-800">4</span></span></div>
+                  <div class="cat-tile"><span class="lbl">Competition</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="4"></span><span class="val text-[12px] text-slate-800">4</span></span></div>
+                  <div class="cat-tile"><span class="lbl">Diversity</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="3"></span><span class="val text-[12px] text-slate-800">3</span></span></div>
+                  <div class="cat-tile"><span class="lbl">Cost / value</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="4"></span><span class="val text-[12px] text-slate-800">4</span></span></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- draft footer: private note + publish deadline instead of empty counts -->
+            <footer class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2.5 rounded-b-2xl border-t border-slate-100 bg-slate-50/70 px-5 py-3 md:px-6">
+              <div class="flex flex-wrap items-center gap-x-5 gap-y-1.5">
+                <span class="stat"><span class="stat-ic"><span data-i="lock" class="h-3 w-3"></span></span>Only you can see this draft</span>
+                <span class="stat"><span class="stat-ic"><span data-i="clock" class="h-3 w-3"></span></span>Publish window closes&nbsp;<b>Aug 11, 2026</b></span>
+              </div>
+              <div class="flex items-center gap-2">
+                <button type="button" class="icon-btn edit" aria-label="Edit review" data-mock="Opens the review editor for this draft"><span data-i="pencil" class="h-4 w-4"></span></button>
+                <button type="button" class="icon-btn del" aria-label="Delete review" data-mock="Delete review — opens the confirm dialog"><span data-i="trash" class="h-4 w-4"></span></button>
+              </div>
+            </footer>
+          </article>
+
+          <!-- ── review 2 · PUBLISHED · Hill Country Kickoff (TX) · still editable ── -->
+          <article class="card card-hover" data-review data-status="published" data-state="TX" data-date="2026-07-20" data-rating="4.8">
+            <header class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2.5 px-5 pb-4 pt-4 md:px-6">
+              <div class="flex min-w-0 items-center gap-3.5">
+                <span class="h-11 w-11 flex-none overflow-hidden rounded-xl ring-1 ring-slate-200">
+                  <svg viewBox="0 0 96 96" class="h-full w-full" role="img" aria-label="Event logo">
+                    <defs><linearGradient id="lg-hck" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9a3412"/><stop offset="1" stop-color="#7c2d12"/></linearGradient></defs>
+                    <rect width="96" height="96" fill="url(#lg-hck)"/><circle cx="48" cy="2" r="42" fill="#fff" opacity=".09"/>
+                    <text x="48" y="60" text-anchor="middle" font-family="'Bricolage Grotesque',Inter,sans-serif" font-size="26" font-weight="800" fill="#fff">HCK</text>
+                  </svg>
+                </span>
+                <div class="min-w-0">
+                  <a class="entity-link block truncate font-heading text-[16px] font-extrabold tracking-tight">Hill Country Kickoff — U14 Boys</a>
+                  <p class="mt-0.5 truncate text-[12px] font-medium text-slate-500">Austin United FC · Dripping Springs, TX · Jul 10–12, 2026</p>
+                </div>
+              </div>
+              <span class="pill pill-pub"><span class="dot"></span>Published</span>
+            </header>
+            <div class="mx-5 h-px bg-slate-100 md:mx-6"></div>
+
+            <div class="px-5 py-4 md:px-6">
+              <div class="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                <span class="stars" data-rating="4.8"></span>
+                <span class="val text-[18px] text-slate-900">4.8<span class="text-[11px] font-bold text-slate-400">/5</span></span>
+                <span aria-hidden="true" class="hidden h-3.5 w-px bg-slate-200 sm:block"></span>
+                <span class="text-[12.5px] font-medium text-slate-500">Reviewed Jul 20, 2026</span>
+              </div>
+
+              <h3 class="mt-3 font-heading text-[15px] font-bold text-slate-900">The kickoff weekend our boys needed</h3>
+              <p class="mt-1.5 text-[13.5px] leading-relaxed text-slate-600">Well-marked fields, quick text updates from the tournament desk, and athletic trainers at every site. Only ding: the U14 bracket had a long gap between Saturday games — plan a lunch spot in town.</p>
+
+              <div class="cat-panel mt-4">
+                <p class="eyebrow mb-2 px-0.5 text-[9.5px]">Category ratings</p>
+                <div class="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                  <div class="cat-tile"><span class="lbl">Fields</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="5"></span><span class="val text-[12px] text-slate-800">5</span></span></div>
+                  <div class="cat-tile"><span class="lbl">Facilities</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="5"></span><span class="val text-[12px] text-slate-800">5</span></span></div>
+                  <div class="cat-tile"><span class="lbl">Management</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="5"></span><span class="val text-[12px] text-slate-800">5</span></span></div>
+                  <div class="cat-tile"><span class="lbl">Competition</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="4"></span><span class="val text-[12px] text-slate-800">4</span></span></div>
+                  <div class="cat-tile"><span class="lbl">Diversity</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="5"></span><span class="val text-[12px] text-slate-800">5</span></span></div>
+                  <div class="cat-tile"><span class="lbl">Cost / value</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="5"></span><span class="val text-[12px] text-slate-800">5</span></span></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- zero comments reads as words, never "0" -->
+            <footer class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2.5 rounded-b-2xl border-t border-slate-100 bg-slate-50/70 px-5 py-3 md:px-6">
+              <div class="flex flex-wrap items-center gap-x-5 gap-y-1.5">
+                <span class="stat" title="2 people found this review helpful"><span class="stat-ic"><span data-i="thumb" class="h-3 w-3"></span></span><b>2</b>&nbsp;found this helpful</span>
+                <span class="stat is-zero" title="No comments yet"><span class="stat-ic"><span data-i="comment" class="h-3 w-3"></span></span>No comments yet</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <button type="button" class="icon-btn edit" aria-label="Edit review" data-mock="Opens the review editor"><span data-i="pencil" class="h-4 w-4"></span></button>
+                <button type="button" class="icon-btn del" aria-label="Delete review" data-mock="Delete review — opens the confirm dialog"><span data-i="trash" class="h-4 w-4"></span></button>
+              </div>
+            </footer>
+          </article>
+
+          <!-- ── review 3 · PUBLISHED · GURU · Alamo City Showdown (TX) · the verified Guru treatment ── -->
+          <article class="card card-hover rc-guru" data-review data-status="published" data-state="TX" data-date="2026-07-08" data-rating="4.2">
+            <header class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2.5 px-5 pb-4 pt-4 md:px-6">
+              <div class="flex min-w-0 items-center gap-3.5">
+                <span class="h-11 w-11 flex-none overflow-hidden rounded-xl ring-1 ring-slate-200">
+                  <svg viewBox="0 0 96 96" class="h-full w-full" role="img" aria-label="Event logo">
+                    <defs><linearGradient id="lg-acs" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7c3aed"/><stop offset="1" stop-color="#4c1d95"/></linearGradient></defs>
+                    <rect width="96" height="96" fill="url(#lg-acs)"/><circle cx="48" cy="2" r="42" fill="#fff" opacity=".09"/>
+                    <text x="48" y="60" text-anchor="middle" font-family="'Bricolage Grotesque',Inter,sans-serif" font-size="26" font-weight="800" fill="#fff">ACS</text>
+                  </svg>
+                </span>
+                <div class="min-w-0">
+                  <a class="entity-link block truncate font-heading text-[16px] font-extrabold tracking-tight">Alamo City Showdown — U12 Boys</a>
+                  <p class="mt-0.5 truncate text-[12px] font-medium text-slate-500">River City FC · San Antonio, TX · Jun 26–28, 2026</p>
+                </div>
+              </div>
+              <div class="flex flex-none flex-wrap items-center gap-2">
+                <span class="pill pill-guru"><svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>Guru Review</span>
+                <span class="pill pill-pub"><span class="dot"></span>Published</span>
+              </div>
+            </header>
+            <div class="mx-5 h-px bg-slate-100 md:mx-6"></div>
+
+            <div class="px-5 py-4 md:px-6">
+              <div class="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                <span class="stars" data-rating="4.2"></span>
+                <span class="val text-[18px] text-slate-900">4.2<span class="text-[11px] font-bold text-slate-400">/5</span></span>
+                <span aria-hidden="true" class="hidden h-3.5 w-px bg-slate-200 sm:block"></span>
+                <span class="text-[12.5px] font-medium text-slate-500">Reviewed Jul 8, 2026</span>
+              </div>
+
+              <h3 class="mt-3 font-heading text-[15px] font-bold text-slate-900">Run like a pro event, priced like a local one</h3>
+              <p class="mt-1.5 text-[13.5px] leading-relaxed text-slate-600">QR check-in at the gate, field marshals on every pitch and brackets reseeded overnight without a single scheduling hiccup. Refs skewed young in pool play but the finals crews were sharp. For the entry fee, nothing in south Texas comes close.</p>
+
+              <div class="cat-panel mt-4">
+                <p class="eyebrow mb-2 px-0.5 text-[9.5px]">Category ratings</p>
+                <div class="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                  <div class="cat-tile"><span class="lbl">Fields</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="4"></span><span class="val text-[12px] text-slate-800">4</span></span></div>
+                  <div class="cat-tile"><span class="lbl">Facilities</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="4"></span><span class="val text-[12px] text-slate-800">4</span></span></div>
+                  <div class="cat-tile"><span class="lbl">Management</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="5"></span><span class="val text-[12px] text-slate-800">5</span></span></div>
+                  <div class="cat-tile"><span class="lbl">Competition</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="4"></span><span class="val text-[12px] text-slate-800">4</span></span></div>
+                  <div class="cat-tile"><span class="lbl">Diversity</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="4"></span><span class="val text-[12px] text-slate-800">4</span></span></div>
+                  <div class="cat-tile"><span class="lbl">Cost / value</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="4"></span><span class="val text-[12px] text-slate-800">4</span></span></div>
+                </div>
+              </div>
+            </div>
+
+            <footer class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2.5 rounded-b-2xl border-t border-slate-100 bg-slate-50/70 px-5 py-3 md:px-6">
+              <div class="flex flex-wrap items-center gap-x-5 gap-y-1.5">
+                <span class="stat" title="9 people found this review helpful"><span class="stat-ic"><span data-i="thumb" class="h-3 w-3"></span></span><b>9</b>&nbsp;found this helpful</span>
+                <span class="stat" title="2 comments on this review"><span class="stat-ic"><span data-i="comment" class="h-3 w-3"></span></span><b>2</b>&nbsp;comments</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <button type="button" class="icon-btn edit" aria-label="Edit review" data-mock="Opens the review editor"><span data-i="pencil" class="h-4 w-4"></span></button>
+                <button type="button" class="icon-btn del" aria-label="Delete review" data-mock="Delete review — opens the confirm dialog"><span data-i="trash" class="h-4 w-4"></span></button>
+              </div>
+            </footer>
+          </article>
+
+          <!-- ── review 4 · PUBLISHED · Summer Classic (TX) · ended >1 month ago → Edit locked + tooltip ── -->
+          <article class="card card-hover" data-review data-status="published" data-state="TX" data-date="2026-06-18" data-rating="4.5">
+            <header class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2.5 px-5 pb-4 pt-4 md:px-6">
+              <div class="flex min-w-0 items-center gap-3.5">
+                <span class="h-11 w-11 flex-none overflow-hidden rounded-xl ring-1 ring-slate-200">
+                  <svg viewBox="0 0 96 96" class="h-full w-full" role="img" aria-label="Event logo">
+                    <defs><linearGradient id="lg-sc" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1d4ed8"/><stop offset="1" stop-color="#1e3a8a"/></linearGradient></defs>
+                    <rect width="96" height="96" fill="url(#lg-sc)"/><circle cx="48" cy="2" r="42" fill="#fff" opacity=".09"/>
+                    <text x="48" y="62" text-anchor="middle" font-family="'Bricolage Grotesque',Inter,sans-serif" font-size="30" font-weight="800" fill="#fff">SC</text>
+                    <polygon points="72,20 74.4,25 79.8,25.8 75.9,29.6 76.8,35 72,32.4 67.2,35 68.1,29.6 64.2,25.8 69.6,25" fill="#f59e0b"/>
+                  </svg>
+                </span>
+                <div class="min-w-0">
+                  <a class="entity-link block truncate font-heading text-[16px] font-extrabold tracking-tight">Summer Classic — U14 Boys</a>
+                  <p class="mt-0.5 truncate text-[12px] font-medium text-slate-500">Lone Star Youth Sports · Frisco, TX · Jun 12–14, 2026</p>
+                </div>
+              </div>
+              <span class="pill pill-pub"><span class="dot"></span>Published</span>
+            </header>
+            <div class="mx-5 h-px bg-slate-100 md:mx-6"></div>
+
+            <div class="px-5 py-4 md:px-6">
+              <div class="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                <span class="stars" data-rating="4.5"></span>
+                <span class="val text-[18px] text-slate-900">4.5<span class="text-[11px] font-bold text-slate-400">/5</span></span>
+                <span aria-hidden="true" class="hidden h-3.5 w-px bg-slate-200 sm:block"></span>
+                <span class="text-[12.5px] font-medium text-slate-500">Reviewed Jun 18, 2026</span>
+              </div>
+
+              <h3 class="mt-3 font-heading text-[15px] font-bold text-slate-900">Hot weekend, first-class operation</h3>
+              <p class="mt-1.5 text-[13.5px] leading-relaxed text-slate-600">Three days, zero schedule slips — games kicked off on time all weekend and the refs were consistent across age groups. The turf complex is outstanding. Concessions lines got long on Saturday and shade was scarce between fields, so bring canopies. We'd make the trip from Austin again without thinking twice.</p>
+
+              <div class="cat-panel mt-4">
+                <p class="eyebrow mb-2 px-0.5 text-[9.5px]">Category ratings</p>
+                <div class="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                  <div class="cat-tile"><span class="lbl">Fields</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="5"></span><span class="val text-[12px] text-slate-800">5</span></span></div>
+                  <div class="cat-tile"><span class="lbl">Facilities</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="4"></span><span class="val text-[12px] text-slate-800">4</span></span></div>
+                  <div class="cat-tile"><span class="lbl">Management</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="5"></span><span class="val text-[12px] text-slate-800">5</span></span></div>
+                  <div class="cat-tile"><span class="lbl">Competition</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="4"></span><span class="val text-[12px] text-slate-800">4</span></span></div>
+                  <div class="cat-tile"><span class="lbl">Diversity</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="4"></span><span class="val text-[12px] text-slate-800">4</span></span></div>
+                  <div class="cat-tile"><span class="lbl">Cost / value</span><span class="flex items-center gap-1.5"><span class="stars xs" data-rating="5"></span><span class="val text-[12px] text-slate-800">5</span></span></div>
+                </div>
+              </div>
+            </div>
+
+            <footer class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2.5 rounded-b-2xl border-t border-slate-100 bg-slate-50/70 px-5 py-3 md:px-6">
+              <div class="flex flex-wrap items-center gap-x-5 gap-y-1.5">
+                <span class="stat" title="12 people found this review helpful"><span class="stat-ic"><span data-i="thumb" class="h-3 w-3"></span></span><b>12</b>&nbsp;found this helpful</span>
+                <span class="stat" title="3 comments on this review"><span class="stat-ic"><span data-i="comment" class="h-3 w-3"></span></span><b>3</b>&nbsp;comments</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <!-- locked: event ended >30 days ago → disabled Edit + dark tooltip -->
+                <span class="tip">
+                  <button type="button" class="icon-btn edit" disabled aria-label="Edit review (locked)" aria-describedby="tip-sc"><span data-i="pencil" class="h-4 w-4"></span></button>
+                  <span class="tip-bubble" role="tooltip" id="tip-sc">
+                    <b><span data-i="lock" class="h-3 w-3"></span>Editing locked</b>
+                    Reviews lock a month after the event ends.
+                  </span>
+                </span>
+                <button type="button" class="icon-btn del" aria-label="Delete review" data-mock="Delete review — opens the confirm dialog"><span data-i="trash" class="h-4 w-4"></span></button>
+              </div>
+            </footer>
+          </article>
+
+        </div>
+
+        <!-- ════════════════ EMPTY STATE (the app-wide EmptyState · press E) ════════════════ -->
+        <section id="empty" class="mt-5" hidden aria-label="No reviews yet">
+          <div class="card relative overflow-hidden px-6 py-16 text-center">
+            <!-- soft warm wash behind the icon, in place of the old dashed border -->
+            <div aria-hidden="true" class="pointer-events-none absolute inset-x-0 top-0 h-44"
+                 style="background:radial-gradient(340px 150px at 50% 0%,rgba(245,158,11,.09),transparent 72%)"></div>
+
+            <div class="relative mx-auto w-fit">
+              <span class="floaty grid h-[74px] w-[74px] place-items-center rounded-2xl bg-gradient-to-br from-amber-50 to-white shadow-[0_16px_32px_-16px_rgba(245,158,11,.5)] ring-1 ring-amber-200/70">
+                <svg viewBox="0 0 24 24" class="h-8 w-8" fill="#f59e0b" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              </span>
+              <span class="absolute -right-2.5 -top-2.5 grid h-7 w-7 place-items-center rounded-full bg-accent text-white shadow-[0_6px_14px_-4px_rgba(220,38,38,.55)]">
+                <span data-i="pencil" class="h-3.5 w-3.5"></span>
+              </span>
+              <svg viewBox="0 0 24 24" class="twinkle absolute -left-6 top-1 h-3 w-3" fill="#fbbf24" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <svg viewBox="0 0 24 24" class="twinkle t2 absolute -right-7 bottom-2 h-2.5 w-2.5" fill="#fca5a5" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            </div>
+
+            <h2 class="relative mt-6 font-heading text-[19px] font-extrabold tracking-tight text-slate-900">Your first review is waiting</h2>
+            <p class="relative mx-auto mt-2 max-w-md text-[13.5px] leading-relaxed text-slate-600">Been to a tournament lately? Two minutes on the fields, the refs and the schedule helps the next coach pick the right weekend.</p>
+            <div class="relative mt-6 flex flex-col items-center gap-3.5">
+              <button type="button" class="btn btn-accent" data-mock="Browse events — opens search">Browse events</button>
+              <a class="tg-link text-[12.5px]">How verified reviews work</a>
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- ══════════ Spotlight (right column; mirrors the live dashboard's SpotlightColumn) ══════════ -->
+      <aside class="sticky top-24 hidden w-[270px] flex-none self-start pt-1 xl:block" aria-label="Spotlight events">
+        <h2 class="font-heading text-[13px] font-extrabold uppercase tracking-[0.08em] text-slate-600">Spotlight</h2>
+        <p class="mt-1 text-[12px] leading-snug text-slate-500">Check out these events</p>
+        <div class="mt-4 flex flex-col gap-3">
+
+          <div class="group relative overflow-hidden rounded-xl border border-slate-200 bg-white transition hover:border-slate-300 hover:shadow-sm">
+            <button type="button" class="fav-btn absolute right-2 top-2" data-fav aria-pressed="false" aria-label="Save event"><span data-i="heart" class="h-3.5 w-3.5"></span></button>
+            <a href="#" class="block cursor-pointer">
+              <div class="h-[100px] w-full overflow-hidden bg-slate-100">
+                <svg viewBox="0 0 270 100" preserveAspectRatio="xMidYMid slice" class="h-full w-full transition-transform duration-300 group-hover:scale-105" aria-hidden="true">
+                  <rect width="270" height="100" fill="#7f1d1d"/>
+                  <circle cx="238" cy="14" r="52" fill="#fff" opacity=".06"/>
+                  <circle cx="26" cy="100" r="62" fill="#000" opacity=".16"/>
+                  <text x="135" y="62" text-anchor="middle" font-family="'Bricolage Grotesque',Inter,sans-serif" font-size="30" font-weight="800" fill="#fff" opacity=".94">TCC</text>
+                </svg>
+              </div>
+              <div class="p-3">
+                <h3 class="line-clamp-2 text-[13px] font-bold leading-snug text-slate-900">Texas Cup Championships</h3>
+                <p class="mt-1 text-[11px] font-semibold text-slate-600">Aug 15 – 17</p>
+                <p class="mt-0.5 truncate text-[11px] text-slate-500">Round Rock, TX</p>
+              </div>
+            </a>
+          </div>
+
+          <div class="group relative overflow-hidden rounded-xl border border-slate-200 bg-white transition hover:border-slate-300 hover:shadow-sm">
+            <button type="button" class="fav-btn absolute right-2 top-2" data-fav aria-pressed="false" aria-label="Save event"><span data-i="heart" class="h-3.5 w-3.5"></span></button>
+            <a href="#" class="block cursor-pointer">
+              <div class="h-[100px] w-full overflow-hidden bg-slate-100">
+                <svg viewBox="0 0 270 100" preserveAspectRatio="xMidYMid slice" class="h-full w-full transition-transform duration-300 group-hover:scale-105" aria-hidden="true">
+                  <rect width="270" height="100" fill="#92400e"/>
+                  <circle cx="34" cy="10" r="50" fill="#fff" opacity=".07"/>
+                  <circle cx="246" cy="98" r="58" fill="#000" opacity=".16"/>
+                  <text x="135" y="62" text-anchor="middle" font-family="'Bricolage Grotesque',Inter,sans-serif" font-size="30" font-weight="800" fill="#fff" opacity=".94">ACS</text>
+                </svg>
+              </div>
+              <div class="p-3">
+                <h3 class="line-clamp-2 text-[13px] font-bold leading-snug text-slate-900">Autumn Classic Showcase</h3>
+                <p class="mt-1 text-[11px] font-semibold text-slate-600">Sep 5 – 7</p>
+                <p class="mt-0.5 truncate text-[11px] text-slate-500">Plano, TX</p>
+              </div>
+            </a>
+          </div>
+
+          <div class="group relative overflow-hidden rounded-xl border border-slate-200 bg-white transition hover:border-slate-300 hover:shadow-sm">
+            <button type="button" class="fav-btn absolute right-2 top-2" data-fav aria-pressed="false" aria-label="Save event"><span data-i="heart" class="h-3.5 w-3.5"></span></button>
+            <a href="#" class="block cursor-pointer">
+              <div class="h-[100px] w-full overflow-hidden bg-slate-100">
+                <svg viewBox="0 0 270 100" preserveAspectRatio="xMidYMid slice" class="h-full w-full transition-transform duration-300 group-hover:scale-105" aria-hidden="true">
+                  <rect width="270" height="100" fill="#0c4a6e"/>
+                  <circle cx="230" cy="8" r="54" fill="#fff" opacity=".06"/>
+                  <circle cx="30" cy="102" r="60" fill="#000" opacity=".16"/>
+                  <text x="135" y="62" text-anchor="middle" font-family="'Bricolage Grotesque',Inter,sans-serif" font-size="30" font-weight="800" fill="#fff" opacity=".94">RFF</text>
+                </svg>
+              </div>
+              <div class="p-3">
+                <h3 class="line-clamp-2 text-[13px] font-bold leading-snug text-slate-900">Riverside Fall Festival</h3>
+                <p class="mt-1 text-[11px] font-semibold text-slate-600">Oct 10 – 11</p>
+                <p class="mt-0.5 truncate text-[11px] text-slate-500">San Marcos, TX</p>
+              </div>
+            </a>
+          </div>
+
+        </div>
+      </aside>
+
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- mockup hint -->
+<button type="button" id="hint"
+  class="fixed bottom-5 left-1/2 z-50 -translate-x-1/2 cursor-pointer whitespace-nowrap rounded-full bg-ink/95 px-4 py-2 text-[11px] font-semibold text-white/60 shadow-xl ring-1 ring-white/10">
+  Design mockup · <span class="text-white">press E</span> for the empty state · sort &amp; the location filter work
+</button>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+  /* ── stroke icons (same geometry as app/dashboard/icons.tsx) ── */
+  const I = {
+    search:'<circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>',
+    star:'<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
+    tag:'<path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><path d="M7 7h.01"/>',
+    heart:'<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>',
+    activity:'<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>',
+    user:'<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+    help:'<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>',
+    lifebuoy:'<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><path d="M4.93 4.93l4.24 4.24M14.83 14.83l4.24 4.24M14.83 9.17l4.24-4.24M4.93 19.07l4.24-4.24"/>',
+    logout:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>',
+    'chev-d':'<polyline points="6 9 12 15 18 9"/>',
+    'chev-r':'<polyline points="9 18 15 12 9 6"/>',
+    sort:'<path d="M21 16l-4 4-4-4"/><path d="M17 20V4"/><path d="M3 8l4-4 4 4"/><path d="M7 4v16"/>',
+    pencil:'<path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>',
+    trash:'<path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/>',
+    thumb:'<path d="M7 22V11"/><path d="M15 22H9a2 2 0 0 1-2-2V11a2 2 0 0 1 2-2h1.5l3-6a1.5 1.5 0 0 1 3 1v6h4a2 2 0 0 1 2 2l-2 8a3 3 0 0 1-3 2z"/>',
+    comment:'<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+    lock:'<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+    clock:'<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+    pin:'<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>',
+  };
+  document.querySelectorAll('[data-i]').forEach(el => {
+    el.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (I[el.dataset.i] || '') + '</svg>';
+  });
+
+  /* ── fractional gold stars, snapped to 0.5 steps (spec) ── */
+  const STAR = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
+  const ROW = STAR.repeat(5);
+  document.querySelectorAll('.stars').forEach(el => {
+    const r = Math.max(0, Math.min(5, parseFloat(el.dataset.rating) || 0));
+    const pct = (Math.round(r * 2) / 2) / 5 * 100;
+    el.innerHTML = '<span class="stars-base">' + ROW + '</span><span class="stars-fill" style="width:' + pct + '%">' + ROW + '</span>';
+  });
+
+  /* ── user menu (opening it also closes the location dropdown, and vice versa) ── */
+  document.querySelectorAll('[data-menu-btn]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      closeLoc();
+      btn.closest('[data-menu]').toggleAttribute('data-open');
+    });
+  });
+  document.addEventListener('click', () => {
+    document.querySelectorAll('[data-menu][data-open]').forEach(m => m.removeAttribute('data-open'));
+    closeLoc();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      document.querySelectorAll('[data-menu][data-open]').forEach(m => m.removeAttribute('data-open'));
+      closeLoc();
+    }
+  });
+
+  /* ── favorite hearts (mock toggle; real page persists via toggleFavorite) ── */
+  document.querySelectorAll('[data-fav]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.preventDefault(); e.stopPropagation();
+      const on = btn.getAttribute('aria-pressed') === 'true';
+      btn.setAttribute('aria-pressed', String(!on));
+      btn.setAttribute('aria-label', on ? 'Save event' : 'Remove from favorites');
+    });
+  });
+
+  /* ── sort (the shipped SortKey options) ── */
+  const list = document.getElementById('review-list');
+  document.getElementById('sort').addEventListener('change', e => {
+    const key = e.target.value;
+    const cards = [...list.querySelectorAll('[data-review]')];
+    cards.sort((a, b) => {
+      switch (key) {
+        case 'oldest': return a.dataset.date.localeCompare(b.dataset.date);
+        case 'best':   return parseFloat(b.dataset.rating) - parseFloat(a.dataset.rating);
+        case 'worst':  return parseFloat(a.dataset.rating) - parseFloat(b.dataset.rating);
+        default:       return b.dataset.date.localeCompare(a.dataset.date);
+      }
+    });
+    cards.forEach(c => list.appendChild(c));
+  });
+
+  /* ── location multi-select (checkbox menu ↔ cards; empty selection = all) ── */
+  const locDD = document.getElementById('loc-dd');
+  const locBtn = document.getElementById('loc-btn');
+  const locPanel = document.getElementById('loc-panel');
+  const locCount = document.getElementById('loc-count');
+  const locClear = document.getElementById('loc-clear');
+  const locSel = new Set();
+  function closeLoc() {
+    locDD.removeAttribute('data-open');
+    locBtn.setAttribute('aria-expanded', 'false');
+  }
+  locBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    document.querySelectorAll('[data-menu][data-open]').forEach(m => m.removeAttribute('data-open'));
+    const open = locDD.toggleAttribute('data-open');
+    locBtn.setAttribute('aria-expanded', String(open));
+  });
+  /* checking a state must not dismiss the menu */
+  locPanel.addEventListener('click', e => e.stopPropagation());
+  function applyLoc() {
+    list.querySelectorAll('[data-review]').forEach(card => {
+      card.hidden = locSel.size > 0 && !locSel.has(card.dataset.state);
+    });
+    locCount.hidden = locSel.size === 0;
+    locCount.textContent = locSel.size;
+    locClear.disabled = locSel.size === 0;
+    locBtn.setAttribute('aria-label',
+      locSel.size ? 'Location — ' + locSel.size + ' state' + (locSel.size > 1 ? 's' : '') + ' selected'
+                  : 'Location — all states');
+  }
+  locPanel.querySelectorAll('.dd-opt').forEach(opt => {
+    opt.addEventListener('click', () => {
+      const on = !locSel.has(opt.dataset.loc);
+      locSel[on ? 'add' : 'delete'](opt.dataset.loc);
+      opt.setAttribute('aria-selected', String(on));
+      applyLoc();
+    });
+  });
+  locClear.addEventListener('click', () => {
+    locSel.clear();
+    locPanel.querySelectorAll('.dd-opt').forEach(o => o.setAttribute('aria-selected', 'false'));
+    applyLoc();
+  });
+
+  /* ── empty-state preview (E key or the hint pill): swaps the list views and
+       zeroes the header counts, exactly as the real first-run page would read ── */
+  const empty = document.getElementById('empty'), countLine = document.getElementById('count-line');
+  const countFull = countLine.innerHTML;
+  let showingEmpty = false;
+  function toggleEmpty() {
+    showingEmpty = !showingEmpty;
+    closeLoc();
+    document.querySelectorAll('[data-when="list"]').forEach(el => { el.hidden = showingEmpty; });
+    empty.hidden = !showingEmpty;
+    countLine.innerHTML = showingEmpty
+      ? '<span class="font-bold text-slate-800">0</span> reviews'
+      : countFull;
+  }
+  document.getElementById('hint').addEventListener('click', toggleEmpty);
+  document.addEventListener('keydown', e => {
+    if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+    if (e.key === 'e' || e.key === 'E') toggleEmpty();
+  });
+
+  /* ── mock-action toast ── */
+  const toast = document.getElementById('toast'); let tt;
+  document.addEventListener('click', e => {
+    const m = e.target.closest('[data-mock]');
+    if (!m) return;
+    toast.textContent = m.dataset.mock;
+    toast.classList.add('show');
+    clearTimeout(tt);
+    tt = setTimeout(() => toast.classList.remove('show'), 2200);
+  });
+</script>
+</body>
+</html>

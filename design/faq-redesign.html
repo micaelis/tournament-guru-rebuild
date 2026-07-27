@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<!--
+  Tournament Guru — FAQ page redesign (DESIGN ARTIFACT, not wired to the app).
+  Open directly in a browser (needs network: Tailwind CDN + Google Fonts).
+
+  Replaces the bare search box + flat <details> list at app/dashboard/faq/ with a
+  designed help page:
+
+    Header    · the approved elevated page-title row — "FAQ" + count chips beside
+                the title ("13 answers" / "4 topics" as small white pills with an
+                icon medallion, the ED events-list header chip treatment),
+                description line beneath, and a secondary "Contact support"
+                outline button top-right that scrolls to the support card.
+    Search    · a prominent search field on a soft white card (approved input
+                treatment: hairline slate border, red focus ring, magnifier icon,
+                clear ×). Press / to focus. Typing filters questions live —
+                matches auto-expand, empty topics hide, a quiet meta line counts
+                results, and a friendly empty state appears at zero.
+    Jump to   · category anchor chips inside the search card (icon + count) give
+                the page a light sectioned/anchored feel — smooth-scroll to each
+                topic.
+    Topics    · four categories — Getting started / Reviews & ratings / Events &
+                claiming / Account & privacy — each with a small icon badge
+                section header and ONE soft rounded-2xl card of divided question
+                rows (calmer than a flat accordion of floating cards).
+    Questions · clean expand/collapse rows: chevron disc rotates and fills ink
+                when open, open rows get a faint wash, answers sit at a
+                comfortable ~620px measure with real paragraph/list rhythm.
+                Two ship expanded ("How do verified (Guru) reviews work?" and
+                "How do I claim an event I organize?"); the rest collapsed.
+    Support   · a subtle "Still need help?" card at the end — lifebuoy disc,
+                one-business-day promise, red Contact support CTA (action = red).
+
+  Content = realistic admin-authored FAQs for this platform (reviews lock after
+  publication, Guru verification, ratings math, claiming, Premium, email privacy,
+  account deletion) — copy aligned with docs/SPECIFICATION.md behavior.
+
+  Persona: Marcus Bennett · Attendee (coach) · Austin, TX. "FAQ" nav active.
+  Design-only — do not implement into app/ until Danny signs off.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>TG — FAQ · design mockup</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: { ink: "#0f172a", accent: "#dc2626" },
+        fontFamily: {
+          sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+          heading: ['"Bricolage Grotesque"', "Inter", "sans-serif"],
+        },
+      },
+    },
+  };
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0f172a; --body:#475569; --muted:#64748b; --faint:#94a3b8;
+    --line:#e2e8f0; --line2:#f1f5f9; --accent:#dc2626;
+  }
+  body{color:var(--ink);-webkit-font-smoothing:antialiased}
+
+  /* ── surfaces (the approved card language) ── */
+  .card{background:#fff;border:1px solid var(--line);border-radius:16px;
+    box-shadow:0 1px 2px rgba(15,23,42,.05),0 14px 34px -22px rgba(15,23,42,.18);
+    transition:border-color .15s ease-out,box-shadow .15s ease-out}
+  .eyebrow{font-family:"Bricolage Grotesque",Inter,sans-serif;font-size:10.5px;font-weight:800;
+    letter-spacing:.14em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+
+  /* ── header stat chips — count pills beside the page title (shared dashboard
+     header-chip treatment: white pill, icon medallion, bold count) ── */
+  .stat-chip{display:inline-flex;align-items:center;gap:6px;border-radius:9999px;
+    border:1px solid var(--line);background:#fff;padding:4px 12px 4px 5px;
+    font-size:12px;font-weight:600;color:#64748b;white-space:nowrap;
+    box-shadow:0 1px 2px rgba(15,23,42,.05)}
+  .stat-chip .med{display:grid;place-items:center;width:22px;height:22px;flex:none;
+    border-radius:9999px;background:#f1f5f9;color:#64748b}
+  .stat-chip .n{font-family:"Bricolage Grotesque",Inter,sans-serif;font-size:12.5px;
+    font-weight:800;color:var(--ink)}
+
+  /* ── buttons (SHIPPED treatment: primary = ink · secondary = crisp outline ·
+     action = red gradient) ── */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;
+    font-weight:600;border-radius:10px;text-decoration:none;border:1px solid transparent;
+    font-size:13px;white-space:nowrap;transition:background .15s ease-out,border-color .15s ease-out,
+    color .15s ease-out,box-shadow .15s ease-out,transform .15s ease-out}
+  .btn-primary{background:var(--ink);color:#fff;padding:10px 18px;font-size:13.5px;font-weight:700}
+  .btn-primary:hover{transform:translateY(-1px);box-shadow:0 10px 22px -8px rgba(15,23,42,.45)}
+  .btn-primary:active{transform:none;box-shadow:none}
+  .btn-secondary{background:transparent;border:1.5px solid #94a3b8;color:var(--ink);
+    padding:8px 14px;font-weight:700}
+  .btn-secondary:hover{border-color:var(--ink);background:rgba(15,23,42,.045)}
+  .btn-secondary [data-i]{color:#64748b;transition:color .15s ease-out}
+  .btn-secondary:hover [data-i]{color:var(--ink)}
+  .btn-accent{background:linear-gradient(135deg,#dc2626 0%,#b91c1c 100%);color:#fff;
+    padding:10px 18px;font-size:13.5px;font-weight:700;
+    box-shadow:0 6px 16px -6px rgba(220,38,38,.5)}
+  .btn-accent:hover{transform:translateY(-1px);
+    background:linear-gradient(135deg,#b91c1c 0%,#9d1616 100%);
+    box-shadow:0 10px 22px -8px rgba(220,38,38,.55)}
+  .btn-accent:active{transform:none;box-shadow:0 6px 16px -6px rgba(220,38,38,.5)}
+
+  .tg-link{font-weight:600;color:#334155;text-decoration:underline;text-decoration-color:#cbd5e1;
+    text-underline-offset:3px;transition:color .15s ease,text-decoration-color .15s ease;cursor:pointer}
+  .tg-link:hover{color:var(--accent);text-decoration-color:var(--accent)}
+
+  /* ── the prominent search field — approved input treatment, sized up ── */
+  .search-big{display:flex;align-items:center;gap:12px;border:1px solid var(--line);
+    border-radius:14px;background:#fff;padding:13px 16px;
+    transition:border-color .15s ease,box-shadow .15s ease}
+  .search-big:hover:not(:focus-within){border-color:#cbd5e1}
+  .search-big:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(220,38,38,.12)}
+  .search-big input{border:none;outline:none;background:transparent;font-size:15px;
+    font-weight:500;color:var(--ink);width:100%;min-width:0}
+  .search-big input::placeholder{color:#94a3b8}
+  .search-big input::-webkit-search-cancel-button{display:none}
+  .search-clear{display:grid;place-items:center;width:26px;height:26px;flex:none;cursor:pointer;
+    border:none;border-radius:8px;background:transparent;color:#94a3b8;
+    transition:background .13s ease,color .13s ease}
+  .search-clear:hover{background:#f1f5f9;color:#475569}
+
+  /* jump-to-topic anchor chips */
+  .jump{display:inline-flex;align-items:center;gap:7px;border-radius:9999px;cursor:pointer;
+    border:1px solid var(--line);background:#f8fafc;color:#334155;font-size:12px;font-weight:700;
+    padding:6px 13px;white-space:nowrap;transition:all .15s ease}
+  .jump:hover{border-color:#fca5a5;background:#fef2f2;color:#b91c1c}
+  .jump [data-i]{color:#94a3b8;transition:color .15s ease}
+  .jump:hover [data-i]{color:#b91c1c}
+  .jump .n{font-size:10.5px;font-weight:800;color:#94a3b8;transition:color .15s ease}
+  .jump:hover .n{color:#f87171}
+
+  /* ── accordion rows ── */
+  .faq-q{display:flex;width:100%;align-items:center;gap:14px;text-align:left;cursor:pointer;
+    background:none;border:none;padding:17px 20px;transition:background .13s ease-out}
+  @media (min-width:768px){.faq-q{padding:18px 24px}}
+  .faq-q:hover{background:#fafbfd}
+  .faq-t{min-width:0;flex:1;font-size:14.5px;font-weight:600;color:#1e293b;line-height:1.45;
+    transition:color .13s ease-out}
+  .faq-q:hover .faq-t{color:var(--ink)}
+  .faq-q[aria-expanded="true"] .faq-t{font-weight:700;color:var(--ink)}
+  .faq-chev{display:grid;place-items:center;width:28px;height:28px;flex:none;border-radius:9999px;
+    border:1px solid var(--line);background:#fff;color:#94a3b8;
+    transition:transform .22s ease-out,background .15s ease-out,color .15s ease-out,border-color .15s ease-out}
+  .faq-q:hover .faq-chev{border-color:#cbd5e1;color:#64748b}
+  .faq-q[aria-expanded="true"] .faq-chev{transform:rotate(180deg);background:var(--ink);
+    border-color:var(--ink);color:#fff}
+  .faq.is-open{background:#fafbfd}
+  /* smooth height: 0fr→1fr grid rows */
+  .faq-a{display:grid;grid-template-rows:0fr;opacity:0;
+    transition:grid-template-rows .24s ease-out,opacity .18s ease-out}
+  .faq-a>div{overflow:hidden}
+  .faq.is-open .faq-a{grid-template-rows:1fr;opacity:1}
+  /* answer typography: comfortable measure + calm rhythm */
+  .ans{max-width:620px;padding:0 20px 20px;font-size:13.5px;line-height:1.7;color:#475569}
+  @media (min-width:768px){.ans{padding:0 24px 22px}}
+  .ans p+p{margin-top:9px}
+  .ans ul,.ans ol{margin-top:9px;display:grid;gap:6px;padding-left:2px}
+  .ans ul li{position:relative;padding-left:18px}
+  .ans ul li::before{content:"";position:absolute;left:2px;top:9px;width:5px;height:5px;
+    border-radius:9999px;background:#cbd5e1}
+  .ans ol{counter-reset:step}
+  .ans ol li{position:relative;padding-left:30px;counter-increment:step}
+  .ans ol li::before{content:counter(step);position:absolute;left:0;top:2px;width:19px;height:19px;
+    display:grid;place-items:center;border-radius:9999px;background:#f1f5f9;color:#475569;
+    font-size:10.5px;font-weight:800;font-family:"Bricolage Grotesque",Inter,sans-serif}
+  .ans strong{font-weight:700;color:#1e293b}
+
+  /* inline sample of the app's verified pill (shown inside an answer) */
+  .v-pill{display:inline-flex;align-items:center;gap:5px;vertical-align:baseline;
+    border-radius:9999px;background:#ecfdf5;padding:1px 8px 1px 6px;
+    font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+    color:#047857;box-shadow:inset 0 0 0 1px #a7f3d0;white-space:nowrap}
+  .v-pill::before{content:"";width:6px;height:6px;border-radius:9999px;background:#10b981}
+
+  /* ── user menu ── */
+  [data-menu]{position:relative}
+  .tg-menu{position:absolute;right:0;top:calc(100% + 10px);width:256px;display:none;z-index:50;
+    background:#fff;border:1px solid var(--line);border-radius:14px;padding:6px;
+    box-shadow:0 18px 40px -12px rgba(15,23,42,.25)}
+  [data-menu][data-open] .tg-menu{display:block;animation:pop .16s cubic-bezier(.2,.7,.2,1) both}
+  @keyframes pop{from{opacity:0;transform:translateY(6px) scale(.98)}to{opacity:1;transform:none}}
+  .tg-menu-item{display:flex;align-items:center;gap:10px;border-radius:9px;padding:9px 11px;
+    font-size:13px;font-weight:600;color:#334155;transition:all .13s ease;cursor:pointer;width:100%;
+    background:none;border:none;text-align:left}
+  .tg-menu-item:hover{background:#f1f5f9;color:var(--ink)}
+  .tg-menu-item.danger:hover{background:#fef2f2;color:#b91c1c}
+  .tg-menu-item [data-i]{color:#94a3b8}
+  .tg-menu-item:hover [data-i]{color:currentColor}
+
+  /* ── dark-rail scrollbar ── */
+  .tg-scroll-dark{scrollbar-width:thin;scrollbar-color:#334155 transparent}
+  .tg-scroll-dark::-webkit-scrollbar{width:8px}
+  .tg-scroll-dark::-webkit-scrollbar-track{background:transparent}
+  .tg-scroll-dark::-webkit-scrollbar-thumb{background:#334155;border-radius:9999px;border:2px solid #0f172a}
+  .tg-scroll-dark::-webkit-scrollbar-thumb:hover{background:#475569}
+
+  [data-i]{display:inline-block;flex:none}
+  [data-i] svg{display:block;width:100%;height:100%}
+
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+  }
+</style>
+</head>
+<!-- deeper slate wash so white cards visibly lift off the page (per the ED details rev) -->
+<body class="font-sans text-ink antialiased" style="background:linear-gradient(180deg,#eef2f6 0%,#e9eef4 100%);min-height:100vh">
+
+<div class="mx-auto flex max-w-[1440px]">
+
+  <!-- ══════════ Ink rail (the implemented shell, ATTENDEE role) ══════════ -->
+  <aside class="sticky top-0 hidden h-dvh w-[260px] flex-none flex-col bg-ink md:flex">
+    <!-- Real logo mark from public/logo.svg — wordmark inverted white for the rail,
+         star + T keep the logo's own reds -->
+    <div class="flex items-center gap-3 px-5 py-6">
+      <svg viewBox="0 0 295.82 141" class="h-8 w-auto" role="img" aria-label="Tournament Guru">
+        <path fill="#ffffff" d="M264.28,47.3c0.12,1.75,0.19,3.52,0.19,5.31c0,12.32-2.83,23.67-7.6,32.79c-1.13,2.38-2.56,4.66-4.24,6.82c-4.18,5.7-9.26,10.03-14.9,12.49c-9.69,5.44-21.84,8.69-35.04,8.69c-0.7,0-1.4-0.02-2.09-0.04c-0.69,0.02-1.39,0.04-2.09,0.04c-31.66,0-57.33-18.64-57.33-41.63c0-22.99,25.67-41.63,57.33-41.63h54.61h9.61c4.35-0.05,4.35-0.05,4.35-0.05c1.64-1.16,3.37-3.12,5.5-5.58l23.22-24.42H201.8c-51.93,0-94.02,31.93-94.02,71.33s42.09,71.33,94.02,71.33s94.02-31.93,94.02-71.33c0-2.7-0.22-5.36-0.61-7.99L264.28,47.3z"/>
+        <polygon fill="#EC2027" points="202.8,38.21 212.53,57.94 234.3,61.1 218.55,76.46 222.27,98.14 202.8,87.9 183.32,98.14 187.04,76.46 171.29,61.1 193.06,57.94"/>
+        <path fill="#ED2024" d="M149.52,0.09L94.2,0H64.14H0v30.06h62.2V140.5H94.2V71.42l0.1-10.16c0-0.03,0.03-1.86,0.03-1.89C94.99,41.57,112.28,10.5,149.52,0.09z"/>
+      </svg>
+      <span class="font-heading text-[15px] font-extrabold tracking-tight text-white">Tournament Guru</span>
+    </div>
+
+    <nav class="tg-scroll-dark flex-1 space-y-7 overflow-y-auto px-3 pb-6">
+      <div>
+        <p class="mb-2.5 px-3 text-[10.5px] font-bold uppercase tracking-[0.16em] text-white/30">Browse</p>
+        <ul class="space-y-0.5">
+          <li><a class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold text-white/55 transition-colors hover:bg-white/[0.06] hover:text-white/90"><span data-i="search" class="h-4 w-4 opacity-70"></span>Search Events</a></li>
+        </ul>
+      </div>
+      <div>
+        <p class="mb-2.5 px-3 text-[10.5px] font-bold uppercase tracking-[0.16em] text-white/30">You</p>
+        <ul class="space-y-0.5">
+          <li><a class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold text-white/55 transition-colors hover:bg-white/[0.06] hover:text-white/90"><span data-i="star" class="h-4 w-4 opacity-70"></span>My Reviews</a></li>
+          <li><a class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold text-white/55 transition-colors hover:bg-white/[0.06] hover:text-white/90"><span data-i="tag" class="h-4 w-4 opacity-70"></span>Promo Codes</a></li>
+          <li><a class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold text-white/55 transition-colors hover:bg-white/[0.06] hover:text-white/90"><span data-i="heart" class="h-4 w-4 opacity-70"></span>Favorites</a></li>
+          <li><a class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold text-white/55 transition-colors hover:bg-white/[0.06] hover:text-white/90"><span data-i="activity" class="h-4 w-4 opacity-70"></span>Activity</a></li>
+          <li><a class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold text-white/55 transition-colors hover:bg-white/[0.06] hover:text-white/90"><span data-i="user" class="h-4 w-4 opacity-70"></span>Account</a></li>
+          <li>
+            <a class="relative flex items-center gap-3 rounded-xl bg-white/[0.1] px-3 py-2.5 text-[13.5px] font-semibold text-white">
+              <span aria-hidden="true" class="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-full bg-accent"></span>
+              <span data-i="help" class="h-4 w-4"></span>FAQ
+            </a>
+          </li>
+          <li><a class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold text-white/55 transition-colors hover:bg-white/[0.06] hover:text-white/90"><span data-i="lifebuoy" class="h-4 w-4 opacity-70"></span>Support</a></li>
+        </ul>
+      </div>
+    </nav>
+
+    <!-- role context (attendee): quiet favorites pointer -->
+    <div class="border-t border-white/[0.08] px-4 py-5">
+      <div class="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3.5 py-3.5">
+        <p class="text-[12.5px] font-bold text-white">Save events for later</p>
+        <p class="mt-1 text-xs leading-relaxed text-white/45">Tap the heart on any event to keep it in your Favorites.</p>
+        <a class="mt-2 inline-block cursor-pointer text-[12.5px] font-semibold text-red-400 transition-colors hover:text-red-300 hover:underline">View favorites</a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ══════════ Main column ══════════ -->
+  <div class="flex min-w-0 flex-1 flex-col">
+
+    <!-- Top header: breadcrumb + user menu -->
+    <header class="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
+      <div class="flex h-16 items-center justify-between gap-4 px-5 md:px-10">
+        <div class="flex min-w-0 items-center gap-2 text-[13px]">
+          <span class="hidden font-medium text-slate-500 sm:block">Dashboard</span>
+          <span data-i="chev-r" class="hidden h-3.5 w-3.5 text-slate-300 sm:block"></span>
+          <span class="truncate font-semibold text-slate-900">FAQ</span>
+        </div>
+        <div data-menu>
+          <button type="button" data-menu-btn aria-haspopup="menu"
+            class="flex items-center gap-3 rounded-full py-1.5 pl-1.5 pr-3 transition-colors hover:bg-slate-100">
+            <span class="relative block h-8 w-8 flex-none">
+              <span class="grid h-8 w-8 place-items-center rounded-full bg-slate-200 font-heading text-[12px] font-extrabold text-slate-600">MB</span>
+              <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="" class="absolute inset-0 h-8 w-8 rounded-full object-cover" onerror="this.remove()">
+            </span>
+            <span class="hidden text-left sm:block">
+              <span class="block text-[13px] font-bold leading-tight text-slate-900">Marcus Bennett</span>
+              <span class="block text-[11px] font-medium leading-tight text-slate-600">Coach</span>
+            </span>
+            <span data-i="chev-d" class="h-4 w-4 text-slate-400 transition-transform"></span>
+          </button>
+          <div class="tg-menu" role="menu">
+            <div class="px-3 py-2.5">
+              <p class="text-[13px] font-bold text-slate-900">Marcus Bennett</p>
+              <p class="mt-0.5 truncate text-xs text-slate-600">marcus.bennett@gmail.com</p>
+            </div>
+            <div class="mx-1.5 h-px bg-slate-100"></div>
+            <button class="tg-menu-item" role="menuitem"><span data-i="user" class="h-[15px] w-[15px]"></span>Account</button>
+            <div class="mx-1.5 h-px bg-slate-100"></div>
+            <button class="tg-menu-item danger" role="menuitem"><span data-i="logout" class="h-[15px] w-[15px]"></span>Log out</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="flex-1 px-5 py-8 md:px-12 md:py-10">
+      <div class="mx-auto max-w-[860px]">
+
+        <!-- ════════════════ PAGE HEADER (elevated title treatment) ════════════════ -->
+        <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+          <div class="flex min-w-0 flex-wrap items-center gap-x-3.5 gap-y-2">
+            <h1 class="font-heading text-[24px] font-extrabold tracking-tight text-slate-900">FAQ</h1>
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="stat-chip"><span class="med"><span data-i="chat" class="h-3 w-3"></span></span><span class="n">13</span>answers</span>
+              <span class="stat-chip"><span class="med"><span data-i="layers" class="h-3 w-3"></span></span><span class="n">4</span>topics</span>
+            </div>
+          </div>
+          <a href="#support" class="btn btn-secondary" data-scroll>
+            <span data-i="lifebuoy" class="h-4 w-4"></span>Contact support
+          </a>
+        </div>
+        <p class="mt-1 text-[13px] font-medium text-slate-500">
+          Quick answers about events, reviews, and your account — or search for exactly what you need.
+        </p>
+
+        <!-- ════════════════ SEARCH + JUMP-TO (soft surface, not floating) ════════════════ -->
+        <div class="card mt-6 p-4 md:p-5">
+          <label class="search-big" aria-label="Search FAQ">
+            <span data-i="search" class="h-[18px] w-[18px] flex-none text-slate-400"></span>
+            <input id="faq-search" type="search" placeholder="Search the FAQ — try &ldquo;review&rdquo;, &ldquo;claim&rdquo;, &ldquo;email&rdquo;&hellip;" autocomplete="off">
+            <button type="button" id="faq-clear" class="search-clear" aria-label="Clear search" hidden>
+              <span data-i="x" class="h-3.5 w-3.5"></span>
+            </button>
+            <span class="hidden flex-none rounded-md border border-slate-200 bg-slate-50 px-1.5 py-0.5 font-heading text-[10.5px] font-extrabold text-slate-400 sm:block" aria-hidden="true">/</span>
+          </label>
+          <div class="mt-3.5 flex flex-wrap items-center gap-2 px-0.5">
+            <span class="eyebrow mr-1 text-[10px] tracking-[0.12em]">Jump to</span>
+            <button type="button" class="jump" data-jump="cat-start"><span data-i="compass" class="h-3.5 w-3.5"></span>Getting started<span class="n">3</span></button>
+            <button type="button" class="jump" data-jump="cat-reviews"><span data-i="star" class="h-3.5 w-3.5"></span>Reviews &amp; ratings<span class="n">4</span></button>
+            <button type="button" class="jump" data-jump="cat-events"><span data-i="calendar" class="h-3.5 w-3.5"></span>Events &amp; claiming<span class="n">3</span></button>
+            <button type="button" class="jump" data-jump="cat-account"><span data-i="shield" class="h-3.5 w-3.5"></span>Account &amp; privacy<span class="n">3</span></button>
+          </div>
+        </div>
+
+        <!-- live search meta -->
+        <p id="search-meta" class="mt-4 text-[12.5px] font-medium text-slate-500" hidden></p>
+
+        <!-- search empty state -->
+        <section id="faq-empty" class="card mt-6 flex flex-col items-center px-6 py-14 text-center" hidden aria-label="No matching questions">
+          <div class="relative">
+            <span class="grid h-16 w-16 place-items-center rounded-2xl bg-slate-100 text-slate-400">
+              <span data-i="help" class="h-7 w-7"></span>
+            </span>
+            <span class="absolute -right-1.5 -top-1.5 grid h-6 w-6 place-items-center rounded-full bg-accent text-white shadow-[0_6px_14px_-4px_rgba(220,38,38,.55)]">
+              <span data-i="search" class="h-3 w-3"></span>
+            </span>
+          </div>
+          <h2 class="mt-5 font-heading text-[17px] font-bold text-slate-900">No matching questions</h2>
+          <p class="mt-1.5 max-w-sm text-[13px] leading-relaxed text-slate-600">Try a different word — or ask us directly and we'll point you the right way.</p>
+          <div class="mt-6 flex items-center gap-4">
+            <button type="button" id="empty-clear" class="btn btn-secondary">Clear search</button>
+            <a href="#support" class="tg-link text-[12.5px]" data-scroll>Contact support</a>
+          </div>
+        </section>
+
+        <!-- ════════════════ TOPIC · GETTING STARTED ════════════════ -->
+        <section id="cat-start" data-cat class="mt-9 scroll-mt-24" aria-labelledby="cat-start-h">
+          <div class="flex items-center gap-3.5">
+            <span class="grid h-10 w-10 flex-none place-items-center rounded-xl bg-white text-slate-600 shadow-[0_1px_2px_rgba(15,23,42,.06)] ring-1 ring-slate-200">
+              <span data-i="compass" class="h-[18px] w-[18px]"></span>
+            </span>
+            <div class="min-w-0">
+              <h2 id="cat-start-h" class="font-heading text-[16.5px] font-extrabold tracking-tight text-slate-900">Getting started</h2>
+              <p class="text-[12px] font-medium text-slate-500">Finding your way around Tournament Guru.</p>
+            </div>
+          </div>
+
+          <div class="card mt-3.5 divide-y divide-slate-100 overflow-hidden">
+
+            <div class="faq" data-faq>
+              <h3 class="m-0">
+                <button type="button" class="faq-q" aria-expanded="false">
+                  <span class="faq-t">What is Tournament Guru?</span>
+                  <span class="faq-chev"><span data-i="chev-d" class="h-4 w-4"></span></span>
+                </button>
+              </h3>
+              <div class="faq-a" role="region"><div><div class="ans">
+                <p>Tournament Guru helps coaches, team managers, and parents find youth-sports tournaments worth traveling for. Every event page combines the details that matter — dates, location, age groups, competition level — with <strong>verified reviews</strong> from people who actually attended.</p>
+                <p>Event Directors claim and manage their own listings, so information comes straight from the source, and our team moderates the platform to keep it honest.</p>
+              </div></div></div>
+            </div>
+
+            <div class="faq" data-faq>
+              <h3 class="m-0">
+                <button type="button" class="faq-q" aria-expanded="false">
+                  <span class="faq-t">How do I find tournaments near me?</span>
+                  <span class="faq-chev"><span data-i="chev-d" class="h-4 w-4"></span></span>
+                </button>
+              </h3>
+              <div class="faq-a" role="region"><div><div class="ans">
+                <p>Head to <strong>Search Events</strong> and start from your city — you can filter by distance, dates, age group, gender, and competition level. Results are ranked with your location in mind.</p>
+                <p>Tip: set your <strong>travel distance</strong> under Account → Preferences and we'll prioritize events within range automatically.</p>
+              </div></div></div>
+            </div>
+
+            <div class="faq" data-faq>
+              <h3 class="m-0">
+                <button type="button" class="faq-q" aria-expanded="false">
+                  <span class="faq-t">What do the age group and level filters mean?</span>
+                  <span class="faq-chev"><span data-i="chev-d" class="h-4 w-4"></span></span>
+                </button>
+              </h3>
+              <div class="faq-a" role="region"><div><div class="ans">
+                <p>Age groups follow the standard U8–U19 convention — a U12 bracket is for players aged 12 and under in that season. Competition level describes the strength of the field, from <strong>Highest</strong> (top club and showcase play) down to <strong>Lowest</strong> (recreational and developmental).</p>
+                <p>Directors set both on their listings, so you can match events to your team before you commit to the drive.</p>
+              </div></div></div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ════════════════ TOPIC · REVIEWS & RATINGS ════════════════ -->
+        <section id="cat-reviews" data-cat class="mt-9 scroll-mt-24" aria-labelledby="cat-reviews-h">
+          <div class="flex items-center gap-3.5">
+            <span class="grid h-10 w-10 flex-none place-items-center rounded-xl bg-red-50 text-red-600 shadow-[0_1px_2px_rgba(15,23,42,.06)] ring-1 ring-red-100">
+              <span data-i="star" class="h-[18px] w-[18px]"></span>
+            </span>
+            <div class="min-w-0">
+              <h2 id="cat-reviews-h" class="font-heading text-[16.5px] font-extrabold tracking-tight text-slate-900">Reviews &amp; ratings</h2>
+              <p class="text-[12px] font-medium text-slate-500">How reviews are written, verified, and scored.</p>
+            </div>
+          </div>
+
+          <div class="card mt-3.5 divide-y divide-slate-100 overflow-hidden">
+
+            <div class="faq" data-faq>
+              <h3 class="m-0">
+                <button type="button" class="faq-q" aria-expanded="false">
+                  <span class="faq-t">Why can't I edit my review anymore?</span>
+                  <span class="faq-chev"><span data-i="chev-d" class="h-4 w-4"></span></span>
+                </button>
+              </h3>
+              <div class="faq-a" role="region"><div><div class="ans">
+                <p>You can edit a review freely while it's <strong>pending</strong>. Once it's published, it becomes part of the event's permanent rating record — the score directors and other families rely on — so editing closes at that point.</p>
+                <p>If something in a published review is factually wrong (a typo'd venue, the wrong year), <a href="#support" class="tg-link" data-scroll>contact support</a> and we'll set it right. You can always delete your own review from My Reviews.</p>
+              </div></div></div>
+            </div>
+
+            <div class="faq" data-faq data-open-default>
+              <h3 class="m-0">
+                <button type="button" class="faq-q" aria-expanded="false">
+                  <span class="faq-t">How do verified (Guru) reviews work?</span>
+                  <span class="faq-chev"><span data-i="chev-d" class="h-4 w-4"></span></span>
+                </button>
+              </h3>
+              <div class="faq-a" role="region"><div><div class="ans">
+                <p>Every review goes through the Guru check before it's published: our team confirms the reviewer actually attended the event — matching their team, age group, and dates against the tournament — and screens for spam or conflicts of interest.</p>
+                <p>Reviews that pass carry the <span class="v-pill">Verified</span> badge, and <strong>only verified reviews count toward an event's rating</strong>. That's the whole point of Tournament Guru: scores you can trust when you're deciding where to spend a weekend.</p>
+              </div></div></div>
+            </div>
+
+            <div class="faq" data-faq>
+              <h3 class="m-0">
+                <button type="button" class="faq-q" aria-expanded="false">
+                  <span class="faq-t">How are ratings calculated?</span>
+                  <span class="faq-chev"><span data-i="chev-d" class="h-4 w-4"></span></span>
+                </button>
+              </h3>
+              <div class="faq-a" role="region"><div><div class="ans">
+                <p>Each verified reviewer scores the event across four categories:</p>
+                <ul>
+                  <li><strong>Organization</strong> — scheduling, communication, check-in</li>
+                  <li><strong>Facilities</strong> — fields, parking, amenities</li>
+                  <li><strong>Competition</strong> — quality and fairness of the bracket</li>
+                  <li><strong>Value</strong> — what you got for the entry fee and travel</li>
+                </ul>
+                <p>An event's overall rating is the average across all verified reviews, and we show <strong>coach</strong> and <strong>parent</strong> scores separately — the two groups often experience the same weekend very differently.</p>
+              </div></div></div>
+            </div>
+
+            <div class="faq" data-faq>
+              <h3 class="m-0">
+                <button type="button" class="faq-q" aria-expanded="false">
+                  <span class="faq-t">Can an event director edit or remove my review?</span>
+                  <span class="faq-chev"><span data-i="chev-d" class="h-4 w-4"></span></span>
+                </button>
+              </h3>
+              <div class="faq-a" role="region"><div><div class="ans">
+                <p><strong>No.</strong> Directors can post a public reply to any review on their events, but they can never edit, hide, or delete what you wrote. Only Tournament Guru moderators can remove a review, and only when it breaks the community guidelines — never because it's critical.</p>
+              </div></div></div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ════════════════ TOPIC · EVENTS & CLAIMING ════════════════ -->
+        <section id="cat-events" data-cat class="mt-9 scroll-mt-24" aria-labelledby="cat-events-h">
+          <div class="flex items-center gap-3.5">
+            <span class="grid h-10 w-10 flex-none place-items-center rounded-xl bg-white text-slate-600 shadow-[0_1px_2px_rgba(15,23,42,.06)] ring-1 ring-slate-200">
+              <span data-i="calendar" class="h-[18px] w-[18px]"></span>
+            </span>
+            <div class="min-w-0">
+              <h2 id="cat-events-h" class="font-heading text-[16.5px] font-extrabold tracking-tight text-slate-900">Events &amp; claiming</h2>
+              <p class="text-[12px] font-medium text-slate-500">Listings, ownership, and Premium placement.</p>
+            </div>
+          </div>
+
+          <div class="card mt-3.5 divide-y divide-slate-100 overflow-hidden">
+
+            <div class="faq" data-faq data-open-default>
+              <h3 class="m-0">
+                <button type="button" class="faq-q" aria-expanded="false">
+                  <span class="faq-t">How do I claim an event I organize?</span>
+                  <span class="faq-chev"><span data-i="chev-d" class="h-4 w-4"></span></span>
+                </button>
+              </h3>
+              <div class="faq-a" role="region"><div><div class="ans">
+                <p>If your tournament is already listed, claiming it takes a few minutes:</p>
+                <ol>
+                  <li>Sign up (or switch) to an <strong>Event Director</strong> account.</li>
+                  <li>Open the event page and choose <strong>&ldquo;Claim this event.&rdquo;</strong></li>
+                  <li>Tell us your role and organization — our team verifies you're really the organizer.</li>
+                  <li>Once approved, the listing appears under your Events and you manage everything: details, dates, photos, and replies to reviews.</li>
+                </ol>
+                <p>Most claims are reviewed within two business days. Not listed yet? Directors can add a new event from their dashboard instead.</p>
+              </div></div></div>
+            </div>
+
+            <div class="faq" data-faq>
+              <h3 class="m-0">
+                <button type="button" class="faq-q" aria-expanded="false">
+                  <span class="faq-t">What makes an event Premium?</span>
+                  <span class="faq-chev"><span data-i="chev-d" class="h-4 w-4"></span></span>
+                </button>
+              </h3>
+              <div class="faq-a" role="region"><div><div class="ans">
+                <p>Premium is a paid placement that directors purchase for a listing. Premium events appear in the <strong>Spotlight</strong> column, rank at the top of relevant searches, and get a richer page with banner imagery.</p>
+                <p>What Premium <strong>never</strong> changes: the reviews. Ratings are earned from verified attendees only — a Premium badge can't buy a better score.</p>
+              </div></div></div>
+            </div>
+
+            <div class="faq" data-faq>
+              <h3 class="m-0">
+                <button type="button" class="faq-q" aria-expanded="false">
+                  <span class="faq-t">An event's details look wrong — how do I report it?</span>
+                  <span class="faq-chev"><span data-i="chev-d" class="h-4 w-4"></span></span>
+                </button>
+              </h3>
+              <div class="faq-a" role="region"><div><div class="ans">
+                <p>Claimed listings are maintained by their directors, but mistakes happen. Use <a href="#support" class="tg-link" data-scroll>Contact support</a> with a link to the event and what's off — dates, venue, fees — and we'll flag it to the director or correct unclaimed listings ourselves.</p>
+              </div></div></div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ════════════════ TOPIC · ACCOUNT & PRIVACY ════════════════ -->
+        <section id="cat-account" data-cat class="mt-9 scroll-mt-24" aria-labelledby="cat-account-h">
+          <div class="flex items-center gap-3.5">
+            <span class="grid h-10 w-10 flex-none place-items-center rounded-xl bg-white text-slate-600 shadow-[0_1px_2px_rgba(15,23,42,.06)] ring-1 ring-slate-200">
+              <span data-i="shield" class="h-[18px] w-[18px]"></span>
+            </span>
+            <div class="min-w-0">
+              <h2 id="cat-account-h" class="font-heading text-[16.5px] font-extrabold tracking-tight text-slate-900">Account &amp; privacy</h2>
+              <p class="text-[12px] font-medium text-slate-500">Your data, your login, and what others can see.</p>
+            </div>
+          </div>
+
+          <div class="card mt-3.5 divide-y divide-slate-100 overflow-hidden">
+
+            <div class="faq" data-faq>
+              <h3 class="m-0">
+                <button type="button" class="faq-q" aria-expanded="false">
+                  <span class="faq-t">Is my email visible to other users?</span>
+                  <span class="faq-chev"><span data-i="chev-d" class="h-4 w-4"></span></span>
+                </button>
+              </h3>
+              <div class="faq-a" role="region"><div><div class="ans">
+                <p><strong>No.</strong> The email you sign in with is never shown to anyone. Your reviews and comments display your first name and role (coach, parent, team manager) — nothing more.</p>
+                <p>Event Directors who want to be reachable set a separate <strong>public business contact</strong> on their profile; that's the only email that ever appears on the site, and it's theirs to choose.</p>
+              </div></div></div>
+            </div>
+
+            <div class="faq" data-faq>
+              <h3 class="m-0">
+                <button type="button" class="faq-q" aria-expanded="false">
+                  <span class="faq-t">How do I change my email or password?</span>
+                  <span class="faq-chev"><span data-i="chev-d" class="h-4 w-4"></span></span>
+                </button>
+              </h3>
+              <div class="faq-a" role="region"><div><div class="ans">
+                <p>Both live under <strong>Account → Security</strong>. Changing your email sends a confirmation link to the new address — the switch happens once you click it. Passwords need at least 8 characters with an uppercase letter and a number.</p>
+                <p>Locked out? Use <strong>Forgot password</strong> on the login screen and we'll email you a reset link.</p>
+              </div></div></div>
+            </div>
+
+            <div class="faq" data-faq>
+              <h3 class="m-0">
+                <button type="button" class="faq-q" aria-expanded="false">
+                  <span class="faq-t">What happens to my reviews if I delete my account?</span>
+                  <span class="faq-chev"><span data-i="chev-d" class="h-4 w-4"></span></span>
+                </button>
+              </h3>
+              <div class="faq-a" role="region"><div><div class="ans">
+                <p>Your personal data is removed, but published reviews and comments stay on the platform, anonymized as <strong>&ldquo;Former member&rdquo;</strong> — they're part of the rating history other families depend on.</p>
+                <p>If you'd rather take a review down entirely, delete it from My Reviews <em>before</em> deleting your account. Account deletion can't be undone.</p>
+              </div></div></div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ════════════════ STILL NEED HELP ════════════════ -->
+        <section id="support" class="card mt-10 scroll-mt-24 p-6 md:p-7" aria-label="Contact support">
+          <div class="flex flex-col items-center gap-5 text-center sm:flex-row sm:text-left">
+            <span class="grid h-12 w-12 flex-none place-items-center rounded-2xl bg-red-50 text-red-600 ring-1 ring-red-100">
+              <span data-i="lifebuoy" class="h-[22px] w-[22px]"></span>
+            </span>
+            <div class="min-w-0 flex-1">
+              <h2 class="font-heading text-[16.5px] font-extrabold tracking-tight text-slate-900">Still need help?</h2>
+              <p class="mt-1 text-[13px] leading-relaxed text-slate-600">Didn't find your answer? Send us a note — a real person replies within one business day.</p>
+            </div>
+            <div class="flex flex-none flex-col items-center gap-2 sm:items-end">
+              <button type="button" class="btn btn-accent"><span data-i="mail" class="h-4 w-4 opacity-90"></span>Contact support</button>
+              <p class="text-[11.5px] font-medium text-slate-500">or email <a class="tg-link text-[11.5px]">support@tournamentguru.com</a></p>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- mockup hint -->
+<div class="fixed bottom-5 left-1/2 z-50 -translate-x-1/2 whitespace-nowrap rounded-full bg-ink/95 px-4 py-2 text-[11px] font-semibold text-white/60 shadow-xl ring-1 ring-white/10">
+  Design mockup · <span class="text-white">search, jump chips &amp; accordions are clickable</span> · press <span class="text-white">/</span> to search
+</div>
+
+<script>
+  /* ── stroke icons (same geometry as app/dashboard/icons.tsx) ── */
+  const I = {
+    search:'<circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>',
+    star:'<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
+    tag:'<path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><path d="M7 7h.01"/>',
+    heart:'<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>',
+    activity:'<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>',
+    user:'<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+    help:'<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>',
+    chat:'<path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>',
+    layers:'<polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>',
+    lifebuoy:'<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><path d="M4.93 4.93l4.24 4.24M14.83 14.83l4.24 4.24M14.83 9.17l4.24-4.24M4.93 19.07l4.24-4.24"/>',
+    calendar:'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+    compass:'<circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>',
+    shield:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
+    mail:'<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/>',
+    logout:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>',
+    'chev-d':'<polyline points="6 9 12 15 18 9"/>',
+    'chev-r':'<polyline points="9 18 15 12 9 6"/>',
+    x:'<path d="M18 6 6 18M6 6l12 12"/>',
+  };
+  document.querySelectorAll('[data-i]').forEach(el => {
+    el.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (I[el.dataset.i] || '') + '</svg>';
+  });
+
+  /* ── accordions ── */
+  const items = [...document.querySelectorAll('[data-faq]')];
+  function setOpen(item, open) {
+    item.classList.toggle('is-open', open);
+    item.querySelector('.faq-q').setAttribute('aria-expanded', String(open));
+  }
+  items.forEach(item => {
+    item.querySelector('.faq-q').addEventListener('click', () =>
+      setOpen(item, !item.classList.contains('is-open')));
+    // searchable text, captured once
+    item.dataset.text = (
+      item.querySelector('.faq-t').textContent + ' ' +
+      item.querySelector('.ans').textContent
+    ).toLowerCase();
+  });
+  const restoreDefaults = () =>
+    items.forEach(item => setOpen(item, item.hasAttribute('data-open-default')));
+  restoreDefaults();
+
+  /* ── live search: filter rows, hide empty topics, auto-expand matches ── */
+  const input = document.getElementById('faq-search');
+  const clearBtn = document.getElementById('faq-clear');
+  const meta = document.getElementById('search-meta');
+  const emptyBox = document.getElementById('faq-empty');
+  const cats = [...document.querySelectorAll('[data-cat]')];
+
+  function applySearch() {
+    const q = input.value.trim().toLowerCase();
+    clearBtn.hidden = q === '';
+    if (!q) {
+      items.forEach(item => { item.hidden = false; });
+      cats.forEach(cat => { cat.hidden = false; });
+      meta.hidden = true;
+      emptyBox.hidden = true;
+      restoreDefaults();
+      return;
+    }
+    let hits = 0;
+    items.forEach(item => {
+      const hit = item.dataset.text.includes(q);
+      item.hidden = !hit;
+      setOpen(item, hit);           // open matches so the answer is right there
+      if (hit) hits++;
+    });
+    cats.forEach(cat => {
+      cat.hidden = ![...cat.querySelectorAll('[data-faq]')].some(item => !item.hidden);
+    });
+    meta.hidden = hits === 0;
+    meta.innerHTML = '<span class="font-bold text-slate-800">' + hits + '</span> answer' +
+      (hits === 1 ? '' : 's') + ' match “' + input.value.trim().replace(/[<>&]/g, '') + '”';
+    emptyBox.hidden = hits !== 0;
+  }
+  input.addEventListener('input', applySearch);
+
+  function clearSearch() { input.value = ''; applySearch(); input.focus(); }
+  clearBtn.addEventListener('click', clearSearch);
+  document.getElementById('empty-clear').addEventListener('click', clearSearch);
+
+  /* "/" focuses search (like the app's palette affordance) */
+  document.addEventListener('keydown', e => {
+    if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+    if (e.key === '/') { e.preventDefault(); input.focus(); }
+  });
+
+  /* ── smooth-scroll: jump chips + in-page support links ── */
+  document.querySelectorAll('[data-jump]').forEach(btn =>
+    btn.addEventListener('click', () =>
+      document.getElementById(btn.dataset.jump)?.scrollIntoView({ behavior: 'smooth', block: 'start' })));
+  document.querySelectorAll('[data-scroll]').forEach(a =>
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      document.querySelector(a.getAttribute('href'))?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }));
+
+  /* ── user menu ── */
+  document.querySelectorAll('[data-menu-btn]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      btn.closest('[data-menu]').toggleAttribute('data-open');
+    });
+  });
+  document.addEventListener('click', () =>
+    document.querySelectorAll('[data-menu][data-open]').forEach(m => m.removeAttribute('data-open')));
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape')
+      document.querySelectorAll('[data-menu][data-open]').forEach(m => m.removeAttribute('data-open'));
+  });
+</script>
+</body>
+</html>
