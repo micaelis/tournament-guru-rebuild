@@ -95,12 +95,13 @@ recurs on rating pools, reviewer cards, and metric strips — keep it consistent
 Build screens from these; don't hand-roll equivalents.
 
 - **Button** — variants: `primary` (dark `#0f172a`, white text; lifts 1px with a soft
-  shadow on hover), `secondary` (the crisp ink-outline: transparent surface, 1.5px
-  slate-400 border, bold ink label; hover darkens the border to ink with a whisper of
-  ink tint — a real but subordinate action: Duplicate/Share, Save as draft, "+ Add row"
-  CTAs, per-section Edit links. NEVER a white or gray fill — legibility comes from the
-  border weight, so the same button holds up on white cards and the slate wash alike;
-  supersedes the S12.17 slate-100 fill, see DECISIONS S12.31), `accent` (brand-red
+  shadow on hover), `secondary` (the locked-in off-white treatment: `#f8fafc` fill,
+  1px INK border, ink label and icon; hover goes a hair darker with a 1px lift + soft
+  shadow — a real but subordinate action: Duplicate/Share, Save as draft, the
+  section-header "Add X" CTAs. Legibility comes from the full-strength ink border —
+  never a borderless white or gray slab; supersedes the S12.31 ink-outline tier, see
+  DECISIONS S12.45. Note: this converges `secondary` with the S12.35 `outline` tier —
+  folding the pair into one variant is a tracked follow-up), `accent` (brand-red
   fill — RESERVED for premium/upgrade CTAs, the color table's "upgrade CTA" role;
   never a general-purpose primary), `ghost` (transparent with a soft slate-200
   border — tertiary/bail-out: Cancel, dialog dismiss), `danger` (the unified red-tint
@@ -110,8 +111,9 @@ Build screens from these; don't hand-roll equivalents.
   (white surface, 1px ink-navy border — container-level actions like a tournament
   card's Add event / Edit tournament) over `soft` (gray-blue slate-100 fill, no
   border — the row-level actions subordinate to them: Edit, the "…" trigger). The
-  pair is live on the ED events list only for now; replacing `secondary`/`ghost`
-  app-wide is a tracked follow-up. Sizes: `xs`, `sm`, `md`, `lg`.
+  pair is live on the ED events list only for now; with S12.45 `secondary` and
+  `outline` are visually near-twins, so merging them into one variant is the
+  tracked follow-up. Sizes: `xs`, `sm`, `md`, `lg`.
   All transitions run 150ms ease-out. `loading` disables the button and prepends the
   shared **Spinner** — pass the pending flag from `useActionState`, or use **FormButton**
   (a submit Button that wires `useFormStatus` automatically, with an optional
@@ -227,7 +229,15 @@ Build screens from these; don't hand-roll equivalents.
   64px slate-100 disc) for no-matches states. `compact` stays the quiet one-liner for
   filtered-no-results rows. Titles are friendly prompts, not shouty headlines; the
   primary CTA is a real Button (accent for first-run pushes), the secondary a TextLink.
-- **ConfirmDialog** — destructive/confirm popups (delete tournament, unfollow, decline claim).
+- **Form section header** (S12.45; lives in `EventForm.tsx` as `SectionHeader`) — every
+  form-card section leads with a 38px `rounded-xl` slate-100 icon medallion (slate-600
+  stroke glyph from the shared dashboard `Icon` set), a tight Bricolage ~15.5px/800
+  title, and a 12.5px slate-500 subtitle directly under it; an optional right-side
+  `action` slot holds the section's "Add X" CTA (secondary `sm`), Premium tag, or count
+  chip so per-section actions never float loose inside the section body. Icon per
+  section: basics=`info`, dates=`calendar`, location=`pin`, competition=`award`,
+  age groups=`users`, sponsors=`megaphone`, additional features=`check`,
+  key dates=`flag`, photos=`image`.
 - **USDateText / USDateField** — masked `mm/dd/yyyy` date input (native `type="date"`
   localizes its placeholder to the browser, not the app). Visible text is always US format;
   forms/callers receive ISO `yyyy-mm-dd` (hidden input or `onIsoChange`). `USDateField` is the

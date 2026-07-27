@@ -3324,3 +3324,27 @@ select (restyled shell) rather than a custom menu — no reason to
 rebuild a working control. **Also:** the locked-edit tooltip copy
 shortens to the mockup's wording; the long "ended more than 30 days
 ago" sentence lives on in the write-form guard.
+
+### S12.45 · Secondary buttons become the locked-in off-white + ink-border tier; section headers get an icon + action slot
+
+**What:** `Button` `secondary` changes app-wide from the S12.31
+ink-outline (transparent, 1.5px slate-400 border) to the client-approved
+locked-in style: `#f8fafc` (slate-50) fill, 1px full-ink border, ink
+label and icon, hover a hair darker (`#eef2f7`) with the standard 1px
+lift + soft shadow. Every `variant="secondary"` call site inherits it
+(event form, FAQ, ImageUploadField upload buttons, event details
+actions). The event form's `SectionHeader` gains the mockup treatment: a
+38px rounded-xl slate-100 icon medallion (shared dashboard `Icon`),
+tightened Bricolage ~15.5px title over a 12.5px slate-500 subtitle, and
+an optional right-side `action` slot for the section's "Add X" CTA /
+Premium tag / count chip. `icons.tsx` adds `save` plus the eight
+amenity glyphs (`parking`, `cup`, `restroom`, `wifi`, `accessible`,
+`paw`, `home`, `grass`) for the feature tiles.
+
+**Why:** Danny's event-form review locked the secondary treatment
+("off-white bg + 1px navy border, navy text+icon") — the ink-outline
+read too faint next to the new denser form chrome. Known consequence:
+`secondary` and the S12.35 `outline` tier are now visual near-twins;
+merging the pair into one variant is a tracked follow-up rather than
+part of this pass. Blast radius re-checked visually on the ED events
+list / account / dashboards as part of the S12.46 gate.

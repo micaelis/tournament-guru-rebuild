@@ -53,7 +53,16 @@ export type IconName =
   | "compass"
   | "sort"
   | "thumb"
-  | "comment";
+  | "comment"
+  | "save"
+  | "parking"
+  | "cup"
+  | "restroom"
+  | "wifi"
+  | "accessible"
+  | "paw"
+  | "home"
+  | "grass";
 
 const PATHS: Record<IconName, ReactNode> = {
   calendar: (
@@ -317,6 +326,70 @@ const PATHS: Record<IconName, ReactNode> = {
   ),
   comment: (
     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+  ),
+  save: (
+    <>
+      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+      <polyline points="17 21 17 13 7 13 7 21" />
+      <polyline points="7 3 7 8 15 8" />
+    </>
+  ),
+  parking: (
+    <>
+      <rect x="4" y="3" width="16" height="18" rx="2" />
+      <path d="M9 17V7h4a3 3 0 0 1 0 6H9" />
+    </>
+  ),
+  cup: (
+    <>
+      <path d="M6 8h12l-1 11a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L6 8z" />
+      <path d="M8 8V5a4 4 0 0 1 8 0v3" />
+    </>
+  ),
+  restroom: (
+    <>
+      <line x1="12" y1="3" x2="12" y2="21" />
+      <circle cx="7" cy="5" r="1.5" />
+      <path d="M5.5 9h3l-1 5H6z" />
+      <circle cx="17" cy="5" r="1.5" />
+      <path d="M15.5 9h3v5h-3z" />
+    </>
+  ),
+  wifi: (
+    <>
+      <path d="M5 12.5a10 10 0 0 1 14 0" />
+      <path d="M8.5 16a5 5 0 0 1 7 0" />
+      <line x1="12" y1="19.5" x2="12.01" y2="19.5" />
+    </>
+  ),
+  accessible: (
+    <>
+      <circle cx="12" cy="4.5" r="1.8" />
+      <path d="M8 8h8" />
+      <path d="M12 8v6h4l2 5" />
+      <path d="M12 14a4 4 0 1 1-4-4" />
+    </>
+  ),
+  paw: (
+    <>
+      <circle cx="7" cy="9" r="1.6" />
+      <circle cx="12" cy="7" r="1.6" />
+      <circle cx="17" cy="9" r="1.6" />
+      <path d="M12 12c-3 0-5 2.5-5 5a2 2 0 0 0 2 2c1 0 2-.6 3-.6s2 .6 3 .6a2 2 0 0 0 2-2c0-2.5-2-5-5-5z" />
+    </>
+  ),
+  home: (
+    <>
+      <path d="M3 11l9-7 9 7" />
+      <path d="M5 10v10h14V10" />
+    </>
+  ),
+  grass: (
+    <>
+      <path d="M12 21V9" />
+      <path d="M12 13c-2-1-4-4-4-7 3 0 5 3 5 6" />
+      <path d="M12 15c2-1.5 4-4 4-8-3 0-5 3-5 6" />
+    </>
   ),
 };
 

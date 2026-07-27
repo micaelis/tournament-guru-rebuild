@@ -1,8 +1,16 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useActionState,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
+import { Icon, type IconName } from "../icons";
 import { Alert, Field } from "../../(auth)/parts";
 import { LocationAutocomplete } from "@/app/components/LocationAutocomplete";
 import {
@@ -234,6 +242,7 @@ export function EventForm({
 
       <section className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6">
         <SectionHeader
+          icon="info"
           title="The basics"
           subtitle="Show attendees what this event is and where to find it."
         />
@@ -371,6 +380,7 @@ export function EventForm({
 
       <section className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6">
         <SectionHeader
+          icon="pin"
           title="Location & season"
           subtitle="Used for the state filter on search and for the region grouping."
         />
@@ -473,6 +483,7 @@ export function EventForm({
 
       <section className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6">
         <SectionHeader
+          icon="award"
           title="Competition"
           subtitle="What levels are welcome, on what surfaces."
         />
@@ -502,6 +513,7 @@ export function EventForm({
 
       <section className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6">
         <SectionHeader
+          icon="users"
           title="Age groups"
           subtitle="Add one per bracket you offer. Prices are USD."
         />
@@ -514,6 +526,7 @@ export function EventForm({
 
       <section className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6">
         <SectionHeader
+          icon="megaphone"
           title="Sponsors"
           subtitle="Optional — one row per sponsor with name, link, and logo."
         />
@@ -526,6 +539,7 @@ export function EventForm({
 
       <section className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6">
         <SectionHeader
+          icon="flag"
           title="Key dates"
           subtitle="Optional — milestones like registration open, team assignments, etc."
         />
@@ -534,6 +548,7 @@ export function EventForm({
 
       <section className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6">
         <SectionHeader
+          icon="image"
           title="Images"
           subtitle={`Up to ${FREE_IMAGE_LIMIT} for free events. Premium unlocks 10 more.`}
         />
@@ -732,18 +747,35 @@ export function EventForm({
 }
 
 function SectionHeader({
+  icon,
   title,
   subtitle,
+  action,
 }: {
+  icon: IconName;
   title: string;
-  subtitle: string;
+  subtitle: ReactNode;
+  /** Right-side slot — "+ Add X" CTA, Premium tag, count chips. */
+  action?: ReactNode;
 }) {
   return (
-    <div>
-      <h2 className="font-[var(--font-heading)] text-xl font-extrabold text-slate-900">
-        {title}
-      </h2>
-      <p className="mt-1 text-sm text-slate-500">{subtitle}</p>
+    <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="flex items-start gap-3">
+        <span className="grid h-[38px] w-[38px] flex-none place-items-center rounded-xl bg-slate-100 text-slate-600">
+          <Icon name={icon} className="h-[18px] w-[18px]" />
+        </span>
+        <div>
+          <h2 className="font-[var(--font-heading)] text-[15.5px] font-extrabold leading-[1.15] tracking-[-0.01em] text-slate-900">
+            {title}
+          </h2>
+          <p className="mt-0.5 text-[12.5px] font-medium text-slate-500">
+            {subtitle}
+          </p>
+        </div>
+      </div>
+      {action && (
+        <div className="flex flex-wrap items-center gap-2.5">{action}</div>
+      )}
     </div>
   );
 }
