@@ -18,7 +18,9 @@ const MENU_ITEM_CLASS =
 
 /**
  * The hero's management column: Edit (primary), Duplicate + Share,
- * optional Upgrade, then the red-tinted Cancel/Delete danger pair. Same
+ * optional Upgrade (EDs → the coming-soon add-ons preview; admins → the
+ * on-behalf premium confirm), then the red-tinted Cancel/Delete danger
+ * pair. Same
  * wiring as the row-level EventActions — shared dialogs, same server
  * actions — laid out as the details page's control stack. QR items are
  * admin-only because the qr route itself rejects non-admins; the
@@ -198,7 +200,11 @@ export function DetailsActionPanel({
           variant="accent"
           size="sm"
           className="mt-2 w-full"
-          onClick={() => setConfirmUpgrade(true)}
+          onClick={() =>
+            isAdmin
+              ? setConfirmUpgrade(true)
+              : router.push(`/dashboard/events/${eventId}/add-ons` as Route)
+          }
         >
           ★ Upgrade to premium
         </Button>
@@ -265,21 +271,25 @@ export function DetailsActionPanel({
         />
       )}
 
-      <ConfirmDialog
-        open={confirmUpgrade}
-        destructive={false}
-        title="Upgrade this event to premium?"
-        body={UPGRADE_EVENT_DIALOG_BODY}
-        confirmLabel="Yes, upgrade"
-        onClose={() => setConfirmUpgrade(false)}
-        onConfirm={async () => {
-          const res = await upgradeEvent(eventId);
-          setConfirmUpgrade(false);
-          if (res.error) return push("error", res.error);
-          push("success", "Event upgraded. Premium fields are now editable.");
-          router.refresh();
-        }}
-      />
+      {/* Admin-only: the on-behalf premium flip while payments are
+          deferred. EDs land on the coming-soon add-ons preview instead. */}
+      {isAdmin && (
+        <ConfirmDialog
+          open={confirmUpgrade}
+          destructive={false}
+          title="Upgrade this event to premium?"
+          body={UPGRADE_EVENT_DIALOG_BODY}
+          confirmLabel="Yes, upgrade"
+          onClose={() => setConfirmUpgrade(false)}
+          onConfirm={async () => {
+            const res = await upgradeEvent(eventId);
+            setConfirmUpgrade(false);
+            if (res.error) return push("error", res.error);
+            push("success", "Event upgraded. Premium fields are now editable.");
+            router.refresh();
+          }}
+        />
+      )}
     </div>
   );
 }

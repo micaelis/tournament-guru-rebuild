@@ -19,7 +19,11 @@ import {
 export const DELETE_EVENT_DIALOG_BODY =
   "This action is permanent. Deleting this event won't remove the reviews people wrote for it — they're kept and stay visible on the reviewers' profiles.";
 
-/** Same single-source rule for the upgrade confirm (row + details page). */
+/**
+ * Same single-source rule for the ADMIN upgrade confirm (row + details
+ * page). EDs never see this dialog — their Upgrade CTAs route to the
+ * coming-soon add-ons preview instead.
+ */
 export const UPGRADE_EVENT_DIALOG_BODY =
   "We'll unlock video, extra images, roster + registration URLs, and the full feature list. Payments aren't wired yet — the client will manage premium on-behalf while the app launches, so this is a free flip for now.";
 
@@ -32,7 +36,9 @@ const MENU_ITEM_DANGER_CLASS =
  * The row action pack: fixed order Upgrade → Edit → "…" so Edit and the
  * overflow hold the same position on every row. Upgrade (solid accent
  * red) appears only on non-premium draft/upcoming/ongoing events —
- * concluded has nothing left to promote, canceled is read-only. Edit
+ * concluded has nothing left to promote, canceled is read-only. For EDs
+ * it opens the coming-soon add-ons preview; for admins it opens the
+ * on-behalf premium confirm (payments are deferred). Edit
  * covers every status except Canceled (concluded events stay editable).
  * Everything else lives in the overflow menu, adapted per status; all
  * items wire to the same server actions and dialogs the details page
@@ -101,7 +107,11 @@ export function EventActions({
         <Button
           variant="accent"
           size="xs"
-          onClick={() => setConfirmUpgrade(true)}
+          onClick={() =>
+            isAdmin
+              ? setConfirmUpgrade(true)
+              : router.push(`/dashboard/events/${eventId}/add-ons` as never)
+          }
         >
           <Icon name="spark" className="h-3 w-3" />
           Upgrade
@@ -279,23 +289,26 @@ export function EventActions({
         onClose={() => setConfirmCancel(false)}
       />
 
-      {/* TODO: when the paid add-on / checkout flow ships, route there
-          instead of flipping the flag through this confirm. */}
-      <ConfirmDialog
-        open={confirmUpgrade}
-        destructive={false}
-        title="Upgrade this event to premium?"
-        body={UPGRADE_EVENT_DIALOG_BODY}
-        confirmLabel="Yes, upgrade"
-        onClose={() => setConfirmUpgrade(false)}
-        onConfirm={async () => {
-          const res = await upgradeEvent(eventId);
-          setConfirmUpgrade(false);
-          if (res.error) return push("error", res.error);
-          push("success", "Event upgraded to premium.");
-          router.refresh();
-        }}
-      />
+      {/* Admin-only: the on-behalf premium flip while payments are
+          deferred (upgradeEvent's RPC rejects non-admins anyway). EDs
+          land on the coming-soon add-ons preview instead. */}
+      {isAdmin && (
+        <ConfirmDialog
+          open={confirmUpgrade}
+          destructive={false}
+          title="Upgrade this event to premium?"
+          body={UPGRADE_EVENT_DIALOG_BODY}
+          confirmLabel="Yes, upgrade"
+          onClose={() => setConfirmUpgrade(false)}
+          onConfirm={async () => {
+            const res = await upgradeEvent(eventId);
+            setConfirmUpgrade(false);
+            if (res.error) return push("error", res.error);
+            push("success", "Event upgraded to premium.");
+            router.refresh();
+          }}
+        />
+      )}
 
       {isAdmin && (
         <QRDialog

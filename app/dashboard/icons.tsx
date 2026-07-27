@@ -45,7 +45,9 @@ export type IconName =
   | "dots"
   | "spark"
   | "refresh"
-  | "close";
+  | "close"
+  | "megaphone"
+  | "chart";
 
 const PATHS: Record<IconName, ReactNode> = {
   calendar: (
@@ -262,6 +264,19 @@ const PATHS: Record<IconName, ReactNode> = {
     <>
       <line x1="18" y1="6" x2="6" y2="18" />
       <line x1="6" y1="6" x2="18" y2="18" />
+    </>
+  ),
+  megaphone: (
+    <>
+      <path d="M3 11l18-5v12L3 14v-3z" />
+      <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" />
+    </>
+  ),
+  chart: (
+    <>
+      <line x1="12" y1="20" x2="12" y2="10" />
+      <line x1="18" y1="20" x2="18" y2="4" />
+      <line x1="6" y1="20" x2="6" y2="16" />
     </>
   ),
 };

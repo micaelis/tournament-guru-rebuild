@@ -118,7 +118,10 @@ export default async function EditEventPage({
           Back to event details
         </TextLink>
       </div>
-      <EventForm defaults={defaults} />
+      <EventForm
+        defaults={defaults}
+        isAdmin={profile.user_type === "admin"}
+      />
     </div>
   );
 }

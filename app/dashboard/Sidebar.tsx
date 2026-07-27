@@ -33,6 +33,10 @@ export function Sidebar({
   const groups = groupBySection(items);
   const isEd = userType === "event_director";
   const showOrgCard = isEd || (userType === "attendee" && Boolean(orgTitle));
+  // Covers both add-ons surfaces: /dashboard/add-ons and the
+  // event-scoped /dashboard/events/[id]/add-ons.
+  const onAddOnsPage =
+    pathname === "/dashboard/add-ons" || pathname.endsWith("/add-ons");
 
   return (
     <>
@@ -150,13 +154,20 @@ export function Sidebar({
                 <p className="mt-1 text-xs leading-relaxed text-white/45">
                   Feature your events in Spotlight and search-top placements.
                 </p>
-                <Link
-                  href={"/dashboard/support" as Route}
-                  onClick={() => setOpen(false)}
-                  className="mt-2 inline-block text-[12.5px] font-semibold text-red-400 transition-colors hover:text-red-300 hover:underline"
-                >
-                  Learn more
-                </Link>
+                {onAddOnsPage ? (
+                  <span className="mt-2 inline-flex items-center gap-1 text-[12.5px] font-semibold text-red-400">
+                    You&apos;re here
+                    <Icon name="check" className="h-3 w-3" />
+                  </span>
+                ) : (
+                  <Link
+                    href={"/dashboard/add-ons" as Route}
+                    onClick={() => setOpen(false)}
+                    className="mt-2 inline-block text-[12.5px] font-semibold text-red-400 transition-colors hover:text-red-300 hover:underline"
+                  >
+                    Learn more
+                  </Link>
+                )}
               </div>
             )}
             {showOrgCard && (

@@ -176,6 +176,26 @@ admin-only while the paywall is off. Enforced at the DB via column grants
 SECURITY DEFINER RPCs (`admin_set_premium`, `admin_set_general_ad`) with
 `is_admin()` entry checks.
 
+### 2.4.4 Add-on Details page — COMING SOON preview
+
+The paid add-on flow is **not live for launch** (payments deferred), but EDs
+already get its landing page as an informational preview: **Add-on Details**
+(`/dashboard/events/[id]/add-ons` from an event's Upgrade CTA;
+`/dashboard/add-ons` from the sidebar pointer — same page, no "Applies to"
+card). One segmented toggle sells the two add-ons — **Premium Listing · $900**
+and **General Ads · $300** (one-time, per event listing) — each with a dark
+device/browser mock preview, a "What's included" checklist, and a sticky price
+rail. The coming-soon framing is explicit and triple-stated: a "Coming soon"
+pill beside the title, an amber "add-ons aren't purchasable yet" banner, and
+the Activate slot rendered as a **disabled "Coming soon" stub** — no Stripe, no
+checkout, no inquiry/contact form, no mutations of any kind. The event-scoped
+variant shows the source event in the rail's "Applies to" card (logo, status +
+tier pills, date range) and its back link returns to that event. Entry points
+(all ED-facing): the events-list row **Upgrade**, the details-page **Upgrade to
+premium**, the edit-form header prompt, and the sidebar **Premium listings →
+Learn more** (which flips to "You're here" on the page). Admins never route
+here from those CTAs — they keep the on-behalf confirm/toggles (§2.4.3).
+
 ### 2.5 Enumerations
 
 The canonical choice-sets are Postgres enums (see the appendix, §11, for the full
@@ -573,7 +593,9 @@ breadcrumb (*Dashboard › section*) on the left and the signed-in user
 name + login email, **Account**, and **Log out** (returns to `/login`).
 Session actions live ONLY in that menu — the sidebar carries navigation and
 role context, never sign-out. The sidebar's bottom slot is role-scoped: EDs
-get a **Premium listings** pointer (links to Support) and their
+get a **Premium listings** pointer (its **Learn more** opens the coming-soon
+**Add-on Details** page, §2.4.4; on that page the link flips to a "You're
+here" state) and their
 **organization card** (logo + title); attendees get a **club card** when a
 club affiliation is set; admins get neither. Below that, every role gets the
 **legal footer row** — Privacy · Legal · Cookies, labels mirroring the public
@@ -658,8 +680,9 @@ and **Event Images** (≤ 3 free).
 - **Free image cap = 3.** On a saved non-premium event the edit form leads with an
   **upgrade prompt in the form header** (white surface, red upgrade accent + star
   disc, "Upgrade this event" CTA — S12.18); the images section notes the free-tier
-  cap when it's hit. Upgrading
-  (Stripe deferred — see §10) reveals a visually distinct **premium section**,
+  cap when it's hit. For EDs the CTA opens the coming-soon **Add-on Details**
+  preview (§2.4.4); for admins it opens the on-behalf upgrade confirm, and
+  upgrading (Stripe deferred — see §10) reveals a visually distinct **premium section**,
   scrolls to it, and shows a popup confirming the event is now premium and will
   appear in top searches. The premium section adds: **Teams** (this-year teams
   URL, previous-year teams URL, registration URL, teams-attended-previous-year),
@@ -691,7 +714,9 @@ deadline meta row (upcoming events add a "starts in N days" note), and a "View
 public page" link. The hero's **action column**: Edit event (primary),
 Duplicate, a Share menu (Copy public link for everyone; View/Download QR
 PNG+PDF admin-only — the QR route itself is admin-gated), "Upgrade to premium"
-on free events, and the red-tinted **Cancel event / Delete** danger pair
+on free events (EDs → the coming-soon **Add-on Details** preview, §2.4.4;
+admins → the on-behalf confirm), and the red-tinted **Cancel event / Delete**
+danger pair
 (existing dialogs; deleting from this page returns to the events list).
 **Summary band** (dark): overall / coach / attendee ratings, would-return %,
 price range (derived from age-group prices) and this-year teams; with zero
@@ -730,8 +755,9 @@ column — it lives on the details page. **Clicking a row opens the internal
 event details page** (`/dashboard/events/[id]`). Premium rows carry the red
 accent spine + warm wash; **Canceled** rows gray out their identity cell. Row
 actions in fixed order: a solid-red **Upgrade** (only on non-premium
-draft/upcoming/ongoing events — it opens the premium-upgrade confirm; the paid
-add-on flow will replace it when built), **Edit** (every status except Canceled
+draft/upcoming/ongoing events — for EDs it opens the coming-soon **Add-on
+Details** preview, §2.4.4; for admins it opens the on-behalf premium-upgrade
+confirm), **Edit** (every status except Canceled
 — **Concluded events stay editable**), and the **"…" overflow**: Duplicate,
 Copy public link, Copy spectator reviews link (the public review-writing URL),
 admin-only QR, then Cancel event (upcoming/ongoing only) and Delete.
@@ -1373,10 +1399,12 @@ Explicitly **not built this sprint**, but modeled or flagged so they can be adde
 without rework:
 
 - **Stripe / payments.** The upgrade-to-premium paywall stays **disabled** (the
-  client is the only ED managing events at launch). Upgrading currently just
-  reveals the premium section rather than routing to checkout. The `cards` and
-  `transactions` tables are stubbed (Stripe tokens/metadata only — never
-  PAN/CVV; RLS owner-only). Payment Methods and Add-on Pricing UIs are parked.
+  client is the only ED managing events at launch). ED-facing Upgrade CTAs
+  route to the coming-soon **Add-on Details** preview (§2.4.4) instead of a
+  checkout; the admin on-behalf flip just reveals the premium section. The
+  `cards` and `transactions` tables are stubbed (Stripe tokens/metadata only —
+  never PAN/CVV; RLS owner-only). Payment Methods and Add-on Pricing UIs are
+  parked.
 - **Notifications delivery.** The `notifications` table and the six per-user
   preference toggles exist, but no in-app/email notification delivery is built
   (defaults off). Only the key transactional emails ship this sprint.

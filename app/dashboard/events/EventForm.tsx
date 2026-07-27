@@ -95,7 +95,13 @@ export type EventFormDefaults = {
  * JSON hidden fields and the server action does the DB work in one
  * pass — see saveEvent in event-actions.ts.
  */
-export function EventForm({ defaults }: { defaults: EventFormDefaults }) {
+export function EventForm({
+  defaults,
+  isAdmin = false,
+}: {
+  defaults: EventFormDefaults;
+  isAdmin?: boolean;
+}) {
   const isEdit = Boolean(defaults.eventId);
   const [state, formAction] = useActionState(saveEvent, INITIAL);
   const { values, capture } = useSubmittedValues();
@@ -213,7 +219,13 @@ export function EventForm({ defaults }: { defaults: EventFormDefaults }) {
           <Button
             type="button"
             variant="accent"
-            onClick={() => setUpgradeOpen(true)}
+            onClick={() =>
+              isAdmin
+                ? setUpgradeOpen(true)
+                : router.push(
+                    `/dashboard/events/${defaults.eventId}/add-ons` as Route,
+                  )
+            }
           >
             Upgrade this event
           </Button>
@@ -637,34 +649,39 @@ export function EventForm({ defaults }: { defaults: EventFormDefaults }) {
         </section>
       )}
 
-      <ConfirmDialog
-        open={upgradeOpen}
-        destructive={false}
-        title="Upgrade this event to premium?"
-        body="We'll unlock video, extra images, roster + registration URLs, and the full feature list. Payments aren't wired yet — the client will manage premium on-behalf while the app launches, so this is a free flip for now."
-        confirmLabel="Yes, upgrade"
-        onClose={() => setUpgradeOpen(false)}
-        onConfirm={async () => {
-          if (!defaults.eventId) return;
-          const res = await upgradeEvent(defaults.eventId);
-          setUpgradeOpen(false);
-          if (res.error) {
-            push("error", res.error);
-            return;
-          }
-          setIsPremium(true);
-          push(
-            "success",
-            "Event upgraded. Premium fields are now editable below.",
-          );
-          setTimeout(() => {
-            premiumSectionRef.current?.scrollIntoView({
-              behavior: "smooth",
-              block: "start",
-            });
-          }, 50);
-        }}
-      />
+      {/* Admin-only: the on-behalf premium flip while payments are
+          deferred. EDs' "Upgrade this event" routes to the coming-soon
+          add-ons preview instead of opening this confirm. */}
+      {isAdmin && (
+        <ConfirmDialog
+          open={upgradeOpen}
+          destructive={false}
+          title="Upgrade this event to premium?"
+          body="We'll unlock video, extra images, roster + registration URLs, and the full feature list. Payments aren't wired yet — the client will manage premium on-behalf while the app launches, so this is a free flip for now."
+          confirmLabel="Yes, upgrade"
+          onClose={() => setUpgradeOpen(false)}
+          onConfirm={async () => {
+            if (!defaults.eventId) return;
+            const res = await upgradeEvent(defaults.eventId);
+            setUpgradeOpen(false);
+            if (res.error) {
+              push("error", res.error);
+              return;
+            }
+            setIsPremium(true);
+            push(
+              "success",
+              "Event upgraded. Premium fields are now editable below.",
+            );
+            setTimeout(() => {
+              premiumSectionRef.current?.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+              });
+            }, 50);
+          }}
+        />
+      )}
 
       <div className="sticky bottom-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white/95 p-4 backdrop-blur">
         <p className="text-xs text-slate-500">

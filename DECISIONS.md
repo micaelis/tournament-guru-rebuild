@@ -3165,3 +3165,30 @@ before touching the app.
 **Why recorded:** the failure looks like a broken save flow but
 reproduces only under the artificial 2.5s network hold; the next person
 who hits it should not bisect the app before reading this.
+### S12.39 · Add-on page ships as a coming-soon preview; ED Upgrade CTAs reroute there
+
+**What:** the approved Add-on Details redesign
+(design/upgrade-addon-redesign.html) is implemented at
+`/dashboard/events/[id]/add-ons` (event-scoped) and `/dashboard/add-ons`
+(sidebar entry) as a COMING-SOON preview: Premium Listing $900 / General
+Ads $300 behind the segmented toggle, device/ad mock previews, feature
+checklists, and price rails — but the Activate slots are disabled
+"Coming soon" stubs, the Stripe reassurance and contact-support CTA are
+dropped, and nothing on the page mutates. Every ED-facing Upgrade CTA
+(events-list row, details action panel, edit-form header prompt) and the
+sidebar "Premium listings → Learn more" now routes here; the admin
+paths (upgrade confirm + General Ads toggle) are untouched.
+
+**Why:** payments are deferred for launch, so the add-on feature can't
+be purchasable — but the page still earns its keep as a preview that
+sets expectations. The ED confirm it replaces was also quietly broken:
+`upgradeEvent` calls the admin-only `admin_set_premium` RPC, so a
+non-admin ED confirming got a raw 42501 — routing EDs to the preview
+fixes a dead-end CTA and the framing at once. The edit-form prompt was
+rewired too (beyond the three named entry points) because leaving any
+ED path into the broken confirm would contradict the coming-soon story.
+The premium checklist says "up to 13 images" (PREMIUM_IMAGE_LIMIT), not
+the mockup's 10 — the page must not undersell the shipped limit.
+**Alternative rejected:** a "contact us to upgrade" inquiry form —
+explicitly out of scope; the page is informational only until payments
+ship.
