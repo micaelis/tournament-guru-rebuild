@@ -671,19 +671,39 @@ Price with a `$` prefix, Field Size 5v5–11v11 — add/edit/delete anytime),
 **Sponsors []** (each requires Name, Link, Logo — add/edit/delete anytime),
 and **Event Images** (≤ 3 free).
 
+**Form layout (S12.46).** The form is a LEFT-aligned ~880px column of flat
+white section cards, each led by an icon section header (38px slate medallion +
+tight title/subtitle) whose right-side slot carries that section's "Add X" CTA,
+count chip ("3 divisions", "2 / 3 used"), or Premium tag. Section order: **The
+basics** (logo as a 132px square tile with Upload + clear under it and the
+paste-a-URL input preserved; title; website; host club; description) → **Dates
+& registration** (start / end / registration deadline) → **Location & season** →
+**Competition** (number of teams this year moved here, then levels + surfaces
+as check-marked red-tint pills) → **Age groups** → **Sponsors** → premium
+sections (§ below) → **Photos**. Age groups and sponsors edit inside ONE
+bordered container with row dividers (no per-row boxes); **age-group gender is
+picked with single-select choice chips (Boys / Girls / Both)** — same
+`team_gender` values as the old dropdown — while age + field size stay compact
+selects. Photos render as a gallery of uniform square tiles with X-on-hover
+plus a dashed "Add photo" tile; a newly added (empty) slot edits through the
+full `ImageUploadField` row until its value lands.
+
 - **Event logo, sponsor logos, and event images** use the shared
   `ImageUploadField`: upload a PNG/JPG straight to the `event-images` bucket OR
   paste a hosted URL, either way rendered through `safeImageSrc` with a
-  placeholder on load failure (DECISIONS S10.4/S10.6).
+  placeholder on load failure (DECISIONS S10.4/S10.6). The event logo uses the
+  `layout="tile"` variant; its empty tile is the calm slate picture-glyph
+  placeholder, never the red Avatar-style initials (S12.46).
 - **Website inputs** show a link-icon container; numeric inputs show a `#` icon
-  container.
+  container; the location input a pin — leading-icon containers are the form's
+  shared input language.
 - **Date fields** (start / end / registration deadline / key-date milestones) are the
-  masked mm/dd/yyyy inputs with the in-house **calendar popover** (S12.22): a calendar
-  glyph inside the input opens a month grid to pick from; typing the date stays fully
-  supported and the native browser picker is never used.
+  masked mm/dd/yyyy inputs with the in-house **calendar popover** (S12.22): a LEADING
+  calendar glyph at the head of the input (S12.46) opens a month grid to pick from;
+  typing the date stays fully supported and the native browser picker is never used.
 - **Free image cap = 3.** On a saved non-premium event the edit form leads with an
-  **upgrade prompt in the form header** (white surface, red upgrade accent + star
-  disc, "Upgrade this event" CTA — S12.18); the images section notes the free-tier
+  **upgrade prompt in the form header** (red-tinted band, white spark disc, red
+  "Upgrade this event" CTA — S12.18/S12.46); the images section notes the free-tier
   cap when it's hit. For EDs the CTA opens the coming-soon **Add-on Details**
   preview (§2.4.4); for admins it opens the on-behalf upgrade confirm, and
   upgrading (Stripe deferred — see §10) reveals a visually distinct **premium section**,

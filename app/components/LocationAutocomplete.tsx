@@ -73,6 +73,7 @@ export function LocationAutocomplete({
   error,
   validate,
   onResolved,
+  icon,
 }: {
   label: string;
   name: string;
@@ -87,6 +88,8 @@ export function LocationAutocomplete({
   error?: string;
   validate?: (value: string) => string | null;
   onResolved?: (place: ResolvedPlace | null) => void;
+  /** Optional leading glyph inside the input (IconInput treatment). */
+  icon?: React.ReactNode;
 }) {
   const inputId = useId();
   const listId = useId();
@@ -229,27 +232,39 @@ export function LocationAutocomplete({
     >
       <label
         htmlFor={inputId}
-        className="mb-1.5 block text-[13px] font-semibold text-slate-800"
+        className="mb-1.5 flex items-center gap-1 text-[13px] font-semibold text-slate-800"
       >
         {label}
+        {required && (
+          <span aria-hidden="true" className="text-red-600">
+            *
+          </span>
+        )}
       </label>
-      <input
-        id={inputId}
-        name={name}
-        type="text"
-        autoComplete="off"
-        role="combobox"
-        aria-expanded={open}
-        aria-controls={listId}
-        aria-autocomplete="list"
-        required={required}
-        placeholder={placeholder}
-        value={value}
-        onChange={(e) => onInput(e.target.value, e.currentTarget)}
-        onKeyDown={onKeyDown}
-        aria-invalid={Boolean(shownError) || undefined}
-        className="tg-control"
-      />
+      <div className="relative">
+        {icon && (
+          <span className="absolute inset-y-0 left-0 flex w-11 items-center justify-center text-slate-500">
+            {icon}
+          </span>
+        )}
+        <input
+          id={inputId}
+          name={name}
+          type="text"
+          autoComplete="off"
+          role="combobox"
+          aria-expanded={open}
+          aria-controls={listId}
+          aria-autocomplete="list"
+          required={required}
+          placeholder={placeholder}
+          value={value}
+          onChange={(e) => onInput(e.target.value, e.currentTarget)}
+          onKeyDown={onKeyDown}
+          aria-invalid={Boolean(shownError) || undefined}
+          className={icon ? "tg-control pl-12" : "tg-control"}
+        />
+      </div>
       {Object.entries(geo).map(([key, v]) => (
         <input
           key={key}

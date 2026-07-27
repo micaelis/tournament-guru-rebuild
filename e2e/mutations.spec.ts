@@ -11,6 +11,7 @@ import {
   deleteEvent,
   deleteSubmittedCsvsForEvent,
   deleteBannedWord,
+  getEventAgeGroups,
   type SeededUser,
 } from "./helpers/db";
 import { signIn } from "./helpers/auth";
@@ -222,9 +223,13 @@ test.describe("Event director — create event", () => {
 
       const title = `E2E Draft Event ${Date.now()}`;
       await page.locator('input[name="title"]').fill(title);
-      // The S12.5 repro: an untouched "+ Add sponsor" scaffold row must
+      // The S12.5 repro: an untouched "Add sponsor" scaffold row must
       // not block a draft ("One of your sponsor logos is invalid").
-      await page.getByRole("button", { name: "+ Add sponsor" }).click();
+      await page.getByRole("button", { name: "Add sponsor" }).click();
+      // The gender choice chips (S12.46) must write team_gender into the
+      // serialized age_groups payload — add a row and flip it to Girls.
+      await page.getByRole("button", { name: "Add age group" }).click();
+      await page.getByRole("button", { name: "Girls", exact: true }).click();
       // A draft only requires a title; saveEvent redirects to the event page.
       await page.getByRole("button", { name: "Save as draft" }).click();
 
@@ -235,6 +240,11 @@ test.describe("Event director — create event", () => {
       await expect(page.getByText(title)).toBeVisible();
       // The redirect hands a FlashToast to the details page (S12.16).
       await expect(page.getByText("Draft saved")).toBeVisible();
+
+      const ageGroups = await getEventAgeGroups(createdEventId!);
+      expect(ageGroups).toEqual([
+        expect.objectContaining({ team_gender: "girls" }),
+      ]);
     } finally {
       if (createdEventId) await deleteEvent(createdEventId);
       if (tournamentId) await deleteTournament(tournamentId);
@@ -319,6 +329,9 @@ test.describe("Event director — create event", () => {
       await page.locator('select[name="season_id"]').selectOption({ index: 1 });
       await page.getByRole("button", { name: "Upper", exact: true }).click();
       await page.getByRole("button", { name: "Grass", exact: true }).click();
+      // Gender chips → age_groups payload, publish path (S12.46).
+      await page.getByRole("button", { name: "Add age group" }).click();
+      await page.getByRole("button", { name: "Both", exact: true }).click();
 
       await page.getByRole("button", { name: "Publish", exact: true }).click();
 
@@ -327,6 +340,11 @@ test.describe("Event director — create event", () => {
       createdEventId = page.url().split("/").pop()?.split("?")[0];
       await expect(page.getByText(title)).toBeVisible();
       await expect(page.getByText("Event published")).toBeVisible();
+
+      const ageGroups = await getEventAgeGroups(createdEventId!);
+      expect(ageGroups).toEqual([
+        expect.objectContaining({ team_gender: "both" }),
+      ]);
     } finally {
       if (createdEventId) await deleteEvent(createdEventId);
       if (tournamentId) await deleteTournament(tournamentId);

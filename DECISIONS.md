@@ -3348,3 +3348,40 @@ read too faint next to the new denser form chrome. Known consequence:
 merging the pair into one variant is a tracked follow-up rather than
 part of this pass. Blast radius re-checked visually on the ED events
 list / account / dashboards as part of the S12.46 gate.
+
+### S12.46 · Event form re-skinned to the approved mockup — presentation pass, contracts untouched
+
+**What:** `EventForm.tsx` restyled in place to
+design/event-form-redesign.html: a left-aligned ~880px column; a new
+**Dates & registration** section (start/end/registration-deadline moved
+out of the basics; number-of-teams moved to Competition); the logo as a
+132px square tile (`ImageUploadField layout="tile"` — Upload + clear
+under the tile, flush right edge); age groups + sponsors edit inside
+one divided container instead of per-row boxes, with the "Add X" CTA,
+division/photo count chips, and the per-team-pricing infotip living in
+the section header's action slot; **age-group gender becomes
+single-select choice chips** (Boys/Girls/Both, red-tint selected) bound
+to the same `team_gender` value — the serialized `age_groups` JSON is
+byte-identical; Photos becomes a tile gallery (square thumbs,
+X-on-hover, dashed "Add photo" tile) whose empty slots still edit
+through the full `ImageUploadField`; the sticky bar CTAs gain
+save/check icons; the upgrade banner adopts the red-tinted band + spark
+disc; `USDateText`'s calendar toggle moves to the LEADING position
+app-wide; `LocationAutocomplete` gains an optional leading icon;
+`.tg-control-sm` is the compact control tier for dense rows.
+
+**Why the mockup was not followed blindly:** (1) the mockup's logo tile
+has no URL input, but paste-a-URL is contract (SCOPE-uploads) and the
+uploads e2e fills `input[name="logo_url"]` — the tile keeps a compact
+URL input under the buttons. (2) The mockup's × row-remove buttons are
+rendered with the established `RemoveIconButton` (trash, red-tint)
+rather than a new hand-rolled × — reuse rule beats glyph fidelity.
+(3) Filled photo tiles are remove-only (edit-in-place of an existing
+image URL is gone; remove + re-add covers it) — the one deliberate
+behavior reduction of the pass. **Event-logo empty tile stays the calm
+slate picture-glyph placeholder — intentionally NOT the red
+Avatar-style initials, so it never fights the red Upgrade CTA above
+it.** e2e now pins the gender-chip → `age_groups` payload on draft and
+publish. Follow-up: hover-lift now covers buttons/chips/pills/tiles in
+the form; toolbar chips elsewhere (search filter chips already have
+their own S12.x treatment) were left as-is.

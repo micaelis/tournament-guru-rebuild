@@ -271,7 +271,7 @@ export function USDateText({
       placeholder={placeholder}
       maxLength={10}
       value={text}
-      className={calendar ? cn(className, "pr-10") : className}
+      className={calendar ? cn(className, "pl-10") : className}
       onChange={(e) => {
         const masked = maskUsDate(e.target.value);
         setText(masked);
@@ -295,12 +295,15 @@ export function USDateText({
   return (
     <div className="relative">
       {input}
+      {/* Leading (left) toggle — the S12.46 event-form language puts the
+          calendar glyph at the head of the input, matching the other
+          leading-icon fields (link, pin, #). */}
       <button
         type="button"
         aria-label="Open calendar"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
-        className="absolute right-1.5 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+        className="absolute left-1.5 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
       >
         <CalendarGlyph />
       </button>

@@ -301,6 +301,32 @@ export async function getEventFields(
   return data as unknown as Record<string, unknown>;
 }
 
+/** Read back an event's age-group rows (service role) — proves what the
+ * form's serialized age_groups payload actually persisted. */
+export async function getEventAgeGroups(
+  eventId: string,
+): Promise<Array<{ team_gender: string; age: string }>> {
+  const { data, error } = await service()
+    .from("event_age_groups")
+    .select("team_gender, age")
+    .eq("event_id", eventId);
+  if (error) throw new Error(`getEventAgeGroups: ${error.message}`);
+  return (data ?? []) as Array<{ team_gender: string; age: string }>;
+}
+
+/** Flip an event's premium flag (service role) — for premium-gated UI
+ * journeys (key dates & deadlines, feature tiles). */
+export async function setEventPremium(
+  id: string,
+  value: boolean,
+): Promise<void> {
+  const { error } = await service()
+    .from("events")
+    .update({ is_premium: value })
+    .eq("id", id);
+  if (error) throw new Error(`setEventPremium: ${error.message}`);
+}
+
 /** Does a tournament row still exist? (delete-journey assertion) */
 export async function tournamentExists(id: string): Promise<boolean> {
   const { data } = await service().from("tournaments").select("id").eq("id", id);

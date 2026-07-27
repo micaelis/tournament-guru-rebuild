@@ -14,6 +14,7 @@ import { Icon, type IconName } from "../icons";
 import { Alert, Field } from "../../(auth)/parts";
 import { LocationAutocomplete } from "@/app/components/LocationAutocomplete";
 import {
+  CheckGlyph,
   IconInput,
   LabeledField,
   MultiSelectPills,
@@ -25,6 +26,7 @@ import {
   EVENT_REGIONS,
   FIELD_SIZES,
   FREE_IMAGE_LIMIT,
+  PREMIUM_IMAGE_LIMIT,
   SURFACES,
   TEAM_GENDERS,
 } from "@/lib/enums";
@@ -35,10 +37,12 @@ import {
   RemoveIconButton,
   useToast,
 } from "@/app/components/ui";
+import { SafeImg } from "@/app/components/ui/SafeImg";
+import { cn } from "@/app/components/ui/cn";
 import { USDateText } from "@/app/components/ui/USDateInput";
 import { useLiveValidation } from "@/app/components/ui/useLiveValidation";
 import { useSubmittedValues } from "@/app/components/ui/useSubmittedValues";
-import { safeExternalUrl } from "@/lib/url";
+import { safeExternalUrl, safeImageSrc } from "@/lib/url";
 import {
   saveEvent,
   upgradeEvent,
@@ -183,12 +187,14 @@ export function EventForm({
         capture(fd);
         formAction(fd);
       }}
-      className="space-y-8"
+      className="space-y-5"
     >
       <input type="hidden" name="tournament_id" value={defaults.tournamentId} />
       {defaults.eventId && (
         <input type="hidden" name="event_id" value={defaults.eventId} />
       )}
+      {/* Serialized child collections — names + payloads are the server
+          contract; the editors below only restyle how they're edited. */}
       <input type="hidden" name="age_groups" value={JSON.stringify(ageGroups)} />
       <input type="hidden" name="sponsors" value={JSON.stringify(sponsors)} />
       <input type="hidden" name="milestones" value={JSON.stringify(milestones)} />
@@ -205,20 +211,20 @@ export function EventForm({
         {state.error && <Alert kind="error">{state.error}</Alert>}
       </div>
 
-      {/* Upgrade prompt lives in the form header — system colors (the
-          red upgrade accent on a white surface), never the old amber
-          slab buried under the images list. */}
+      {/* Upgrade prompt lives in the form header — the red-tinted band
+          with the white spark disc, never the old amber slab buried
+          under the images list. */}
       {!isPremium && defaults.eventId && (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4">
-          <div className="flex min-w-0 items-center gap-3">
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-red-50 text-red-600">
-              <StarGlyph />
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-red-200 bg-red-50/60 p-4">
+          <div className="flex min-w-0 items-center gap-3.5">
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white text-red-600 ring-1 ring-red-100">
+              <Icon name="spark" className="h-6 w-6" />
             </span>
             <div className="min-w-0">
-              <p className="text-[13px] font-bold text-slate-900">
+              <p className="text-[14.5px] font-extrabold text-slate-900">
                 Unlock premium features
               </p>
-              <p className="mt-0.5 text-xs text-slate-500">
+              <p className="mt-0.5 text-[12.5px] text-slate-600">
                 Video, up to 13 images, team roster links, and the full
                 features list.
               </p>
@@ -235,6 +241,7 @@ export function EventForm({
                   )
             }
           >
+            <Icon name="spark" className="h-4 w-4" />
             Upgrade this event
           </Button>
         </div>
@@ -246,54 +253,87 @@ export function EventForm({
           title="The basics"
           subtitle="Show attendees what this event is and where to find it."
         />
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-          <ImageUploadField
-            label="Event logo"
-            name="logo_url"
-            required
-            bucket="event-images"
-            value={logoUrl}
-            onChange={setLogoUrl}
-          />
-          <Field
-            label="Event title"
-            name="title"
-            required
-            defaultValue={values.title ?? defaults.base.title}
-            validate={(v) => (v.trim() ? null : "Title is required.")}
-            error={state.fieldErrors?.title}
-            onInput={(e: React.FormEvent<HTMLInputElement>) =>
-              setLiveTitle(e.currentTarget.value)
-            }
-          />
-          <LabeledField
-            label="Event website"
-            required
-            htmlFor="website_url"
-            error={websiteUrlError}
-          >
-            <IconInput
-              id="website_url"
-              name="website_url"
-              type="url"
-              placeholder="https://…"
-              defaultValue={values.website_url ?? defaults.base.website_url}
-              onInput={(e) => revalidateWebsiteUrl(e.currentTarget)}
-              icon={<LinkGlyph />}
+        <div className="flex flex-col gap-5 sm:flex-row">
+          <div className="flex-none">
+            <ImageUploadField
+              label="Event logo"
+              name="logo_url"
+              required
+              bucket="event-images"
+              layout="tile"
+              value={logoUrl}
+              onChange={setLogoUrl}
+              error={state.fieldErrors?.logo_url}
             />
-          </LabeledField>
-          <Field
-            label="Host club"
-            name="host_club"
-            required
-            defaultValue={values.host_club ?? defaults.base.host_club}
-            validate={(v) => (v.trim() ? null : "Host club is required.")}
-            error={state.fieldErrors?.host_club}
+          </div>
+          <div className="min-w-0 flex-1 space-y-4">
+            <Field
+              label="Event title"
+              name="title"
+              required
+              defaultValue={values.title ?? defaults.base.title}
+              validate={(v) => (v.trim() ? null : "Title is required.")}
+              error={state.fieldErrors?.title}
+              onInput={(e: React.FormEvent<HTMLInputElement>) =>
+                setLiveTitle(e.currentTarget.value)
+              }
+            />
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <LabeledField
+                label="Event website"
+                required
+                htmlFor="website_url"
+                error={websiteUrlError}
+              >
+                <IconInput
+                  id="website_url"
+                  name="website_url"
+                  type="url"
+                  placeholder="https://…"
+                  defaultValue={values.website_url ?? defaults.base.website_url}
+                  onInput={(e) => revalidateWebsiteUrl(e.currentTarget)}
+                  icon={<LinkGlyph />}
+                />
+              </LabeledField>
+              <Field
+                label="Host club"
+                name="host_club"
+                required
+                defaultValue={values.host_club ?? defaults.base.host_club}
+                validate={(v) => (v.trim() ? null : "Host club is required.")}
+                error={state.fieldErrors?.host_club}
+              />
+            </div>
+          </div>
+        </div>
+        <LabeledField
+          label="Description"
+          required
+          htmlFor="description"
+          error={descriptionError}
+        >
+          <textarea
+            id="description"
+            name="description"
+            rows={4}
+            defaultValue={values.description ?? defaults.base.description}
+            onInput={(e) => revalidateDescription(e.currentTarget)}
+            className="tg-control resize-none"
           />
-          {/* Masked mm/dd/yyyy text inputs (USDateText) — native
-              type="date" renders the BROWSER locale's order, which
-              shows dd/mm/yyyy abroad. Convention: dates are always US
-              mm/dd/yyyy (see CLAUDE.md); the form still posts ISO. */}
+        </LabeledField>
+      </section>
+
+      <section className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6">
+        <SectionHeader
+          icon="calendar"
+          title="Dates & registration"
+          subtitle="When your event runs, and the last day teams can sign up."
+        />
+        {/* Masked mm/dd/yyyy text inputs (USDateText) — native
+            type="date" renders the BROWSER locale's order, which
+            shows dd/mm/yyyy abroad. Convention: dates are always US
+            mm/dd/yyyy (see CLAUDE.md); the form still posts ISO. */}
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <LabeledField
             label="Start date"
             required
@@ -345,37 +385,7 @@ export function EventForm({
               }
             />
           </LabeledField>
-          <LabeledField
-            label="Number of teams (this year)"
-            htmlFor="num_teams_this_year"
-          >
-            <IconInput
-              id="num_teams_this_year"
-              name="num_teams_this_year"
-              type="number"
-              min={0}
-              defaultValue={
-                values.num_teams_this_year ?? defaults.base.num_teams_this_year
-              }
-              icon={<HashGlyph />}
-            />
-          </LabeledField>
         </div>
-        <LabeledField
-          label="Description"
-          required
-          htmlFor="description"
-          error={descriptionError}
-        >
-          <textarea
-            id="description"
-            name="description"
-            rows={5}
-            defaultValue={values.description ?? defaults.base.description}
-            onInput={(e) => revalidateDescription(e.currentTarget)}
-            className="tg-control resize-none"
-          />
-        </LabeledField>
       </section>
 
       <section className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6">
@@ -392,6 +402,7 @@ export function EventForm({
             // location_state_abbr, which the default prefix would collide with.
             fieldPrefix="place"
             required
+            icon={<Icon name="pin" className="h-4 w-4" />}
             placeholder="City, State, or Zip Code"
             hint="Full address or city + state — used across search filters."
             defaultValue={
@@ -485,8 +496,25 @@ export function EventForm({
         <SectionHeader
           icon="award"
           title="Competition"
-          subtitle="What levels are welcome, on what surfaces."
+          subtitle="Field size, levels, and how big the event is this year."
         />
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <LabeledField
+            label="Number of teams (this year)"
+            htmlFor="num_teams_this_year"
+          >
+            <IconInput
+              id="num_teams_this_year"
+              name="num_teams_this_year"
+              type="number"
+              min={0}
+              defaultValue={
+                values.num_teams_this_year ?? defaults.base.num_teams_this_year
+              }
+              icon={<HashGlyph />}
+            />
+          </LabeledField>
+        </div>
         <LabeledField
           label="Levels of competition"
           required
@@ -511,11 +539,41 @@ export function EventForm({
         </LabeledField>
       </section>
 
-      <section className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6">
+      <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6">
         <SectionHeader
           icon="users"
           title="Age groups"
-          subtitle="Add one per bracket you offer. Prices are USD."
+          subtitle={
+            <>
+              Add one per bracket you offer. Prices are USD.
+              <InfoTip text="Per-team pricing shows on the public page as a range. Leave a price at $0 to keep that division out of it." />
+            </>
+          }
+          action={
+            <>
+              {ageGroups.length > 0 && (
+                <CountChip
+                  icon="users"
+                  count={ageGroups.length}
+                  label={ageGroups.length === 1 ? "division" : "divisions"}
+                />
+              )}
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() =>
+                  setAgeGroups([
+                    ...ageGroups,
+                    { team_gender: "boys", age: "U10", price: 0, field_size: "7v7" },
+                  ])
+                }
+              >
+                <Icon name="plus" className="h-4 w-4" />
+                Add age group
+              </Button>
+            </>
+          }
         />
         <AgeGroupsEditor
           value={ageGroups}
@@ -524,11 +582,24 @@ export function EventForm({
         />
       </section>
 
-      <section className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6">
+      <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6">
         <SectionHeader
           icon="megaphone"
           title="Sponsors"
           subtitle="Optional — one row per sponsor with name, link, and logo."
+          action={
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() =>
+                setSponsors([...sponsors, { name: "", link: "", logo_url: "" }])
+              }
+            >
+              <Icon name="plus" className="h-4 w-4" />
+              Add sponsor
+            </Button>
+          }
         />
         <SponsorsEditor
           value={sponsors}
@@ -546,11 +617,18 @@ export function EventForm({
         <MilestonesEditor value={milestones} onChange={setMilestones} />
       </section>
 
-      <section className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6">
+      <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6">
         <SectionHeader
           icon="image"
-          title="Images"
+          title="Photos"
           subtitle={`Up to ${FREE_IMAGE_LIMIT} for free events. Premium unlocks 10 more.`}
+          action={
+            <CountChip
+              icon="image"
+              count={images.length}
+              label={`/ ${isPremium ? PREMIUM_IMAGE_LIMIT : FREE_IMAGE_LIMIT} used`}
+            />
+          }
         />
         <ImagesEditor
           value={images}
@@ -722,6 +800,7 @@ export function EventForm({
               formNoValidate
               pendingLabel="Saving…"
             >
+              <Icon name="save" className="h-4 w-4" />
               Save as draft
             </FormButton>
           )}
@@ -734,6 +813,7 @@ export function EventForm({
             disabled={!canPublish}
             pendingLabel="Saving…"
           >
+            <Icon name="check" className="h-4 w-4" />
             {isEdit
               ? defaults.lifecycle === "active"
                 ? "Update"
@@ -780,6 +860,59 @@ function SectionHeader({
   );
 }
 
+/** Slate-fill section count chip ("3 divisions", "2 / 3 used") — the
+ * in-section sibling of the page-header HeaderCountChip. */
+function CountChip({
+  icon,
+  count,
+  label,
+}: {
+  icon: IconName;
+  count: number;
+  label: string;
+}) {
+  return (
+    <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-slate-100 px-3 py-[5px] text-[11.5px] font-bold text-slate-600">
+      <Icon name={icon} className="h-3.5 w-3.5 text-slate-400" />
+      <span className="font-[var(--font-heading)] text-[12px] font-extrabold text-slate-900">
+        {count}
+      </span>{" "}
+      {label}
+    </span>
+  );
+}
+
+/** Hover/focus info bubble for section subtitles — keeps helper copy
+ * out of the layout without clipping it. */
+function InfoTip({ text }: { text: string }) {
+  return (
+    <span className="group/tip relative ml-1.5 inline-flex align-[-3px]">
+      <button
+        type="button"
+        aria-label={text}
+        className="grid h-4 w-4 place-items-center rounded-full bg-slate-200 text-slate-500 transition-colors hover:bg-slate-300 hover:text-slate-700"
+      >
+        <Icon name="info" className="h-3 w-3" />
+      </button>
+      <span
+        role="tooltip"
+        className="pointer-events-none absolute left-0 top-[calc(100%+8px)] z-20 w-60 rounded-xl bg-slate-900 px-3 py-2 text-[11.5px] font-medium leading-relaxed text-white opacity-0 shadow-lg transition-opacity group-focus-within/tip:opacity-100 group-hover/tip:opacity-100"
+      >
+        {text}
+      </span>
+    </span>
+  );
+}
+
+/** Uppercase micro-label for the editor grid headers. */
+function MiniLabel({ children }: { children: ReactNode }) {
+  return (
+    <span className="text-[10px] font-extrabold uppercase tracking-[0.08em] text-slate-400">
+      {children}
+    </span>
+  );
+}
+
 function AgeGroupsEditor({
   value,
   onChange,
@@ -789,117 +922,119 @@ function AgeGroupsEditor({
   onChange: (next: AgeGroupInput[]) => void;
   error?: string;
 }) {
+  const update = (i: number, patch: Partial<AgeGroupInput>) =>
+    onChange(value.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
+  const columns =
+    "md:grid-cols-[minmax(0,1fr)_92px_104px_104px_32px]";
   return (
     <div className="space-y-3">
-      {value.map((row, i) => (
-        <div
-          key={i}
-          className="grid grid-cols-1 items-end gap-3 rounded-xl border border-slate-200 bg-slate-50/60 p-4 md:grid-cols-[1fr_1fr_1fr_1fr_auto]"
-        >
-          <LabeledField label="Gender" htmlFor={`ag_g_${i}`}>
-            <select
-              id={`ag_g_${i}`}
-              className="tg-control tg-select"
-              value={row.team_gender}
-              onChange={(e) =>
-                onChange(
-                  value.map((r, idx) =>
-                    idx === i ? { ...r, team_gender: e.target.value } : r,
-                  ),
-                )
-              }
-            >
-              <option value="">—</option>
-              {TEAM_GENDERS.map((g) => (
-                <option key={g.value} value={g.value}>
-                  {g.label}
-                </option>
-              ))}
-            </select>
-          </LabeledField>
-          <LabeledField label="Age" htmlFor={`ag_a_${i}`}>
-            <select
-              id={`ag_a_${i}`}
-              className="tg-control tg-select"
-              value={row.age}
-              onChange={(e) =>
-                onChange(
-                  value.map((r, idx) =>
-                    idx === i ? { ...r, age: e.target.value } : r,
-                  ),
-                )
-              }
-            >
-              <option value="">—</option>
-              {AGE_BRACKETS.map((a) => (
-                <option key={a} value={a}>
-                  {a}
-                </option>
-              ))}
-            </select>
-          </LabeledField>
-          <LabeledField label="Price" htmlFor={`ag_p_${i}`}>
-            <div className="relative">
-              <span className="absolute inset-y-0 left-0 flex w-11 items-center justify-center font-semibold text-slate-500">
-                $
-              </span>
-              <input
-                id={`ag_p_${i}`}
-                type="number"
-                min={0}
-                className="tg-control pl-12"
-                value={String(row.price)}
-                onChange={(e) =>
-                  onChange(
-                    value.map((r, idx) =>
-                      idx === i
-                        ? { ...r, price: Number(e.target.value) || 0 }
-                        : r,
-                    ),
-                  )
-                }
-              />
-            </div>
-          </LabeledField>
-          <LabeledField label="Field size" htmlFor={`ag_f_${i}`}>
-            <select
-              id={`ag_f_${i}`}
-              className="tg-control tg-select"
-              value={row.field_size}
-              onChange={(e) =>
-                onChange(
-                  value.map((r, idx) =>
-                    idx === i ? { ...r, field_size: e.target.value } : r,
-                  ),
-                )
-              }
-            >
-              <option value="">—</option>
-              {FIELD_SIZES.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-          </LabeledField>
-          <RemoveIconButton
-            label={`Remove age group ${i + 1}`}
-            onClick={() => onChange(value.filter((_, idx) => idx !== i))}
-          />
+      {value.length > 0 && (
+        <div className="overflow-hidden rounded-xl border border-slate-200">
+          <div
+            className={cn(
+              "hidden gap-2.5 bg-slate-50 px-3 py-2 md:grid",
+              columns,
+            )}
+          >
+            <MiniLabel>Gender</MiniLabel>
+            <MiniLabel>Age</MiniLabel>
+            <MiniLabel>Price</MiniLabel>
+            <MiniLabel>Field size</MiniLabel>
+            <span />
+          </div>
+          <div className="divide-y divide-slate-100 md:border-t md:border-slate-100">
+            {value.map((row, i) => (
+              <div
+                key={i}
+                className={cn(
+                  "grid grid-cols-1 items-center gap-2.5 px-3 py-2.5",
+                  columns,
+                )}
+              >
+                {/* Single-select choice chips (STYLE-GUIDE: selectable
+                    blocks for gender, never a dropdown). Same
+                    row.team_gender value — the serialized age_groups
+                    JSON is unchanged. */}
+                <div
+                  className="flex flex-wrap gap-1.5"
+                  role="group"
+                  aria-label={`Age group ${i + 1} gender`}
+                >
+                  {TEAM_GENDERS.map((g) => {
+                    const active = row.team_gender === g.value;
+                    return (
+                      <button
+                        key={g.value}
+                        type="button"
+                        aria-pressed={active}
+                        onClick={() => update(i, { team_gender: g.value })}
+                        className={cn(
+                          "inline-flex items-center gap-1 rounded-full border px-3 py-[5px] text-[12px] font-semibold transition hover:-translate-y-px",
+                          active
+                            ? "border-red-600 bg-red-50 text-red-700"
+                            : "border-slate-300 bg-white text-slate-600 hover:border-slate-400 hover:text-slate-900",
+                        )}
+                      >
+                        {active && <CheckGlyph />}
+                        {g.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <select
+                  aria-label={`Age group ${i + 1} age`}
+                  className="tg-control tg-control-sm tg-select"
+                  value={row.age}
+                  onChange={(e) => update(i, { age: e.target.value })}
+                >
+                  <option value="">—</option>
+                  {AGE_BRACKETS.map((a) => (
+                    <option key={a} value={a}>
+                      {a}
+                    </option>
+                  ))}
+                </select>
+                <div className="relative">
+                  <span
+                    aria-hidden="true"
+                    className="absolute inset-y-0 left-0 flex w-7 items-center justify-center text-[13px] font-bold text-slate-500"
+                  >
+                    $
+                  </span>
+                  <input
+                    aria-label={`Age group ${i + 1} price`}
+                    type="number"
+                    min={0}
+                    className="tg-control tg-control-sm pl-7"
+                    value={String(row.price)}
+                    onChange={(e) =>
+                      update(i, { price: Number(e.target.value) || 0 })
+                    }
+                  />
+                </div>
+                <select
+                  aria-label={`Age group ${i + 1} field size`}
+                  className="tg-control tg-control-sm tg-select"
+                  value={row.field_size}
+                  onChange={(e) => update(i, { field_size: e.target.value })}
+                >
+                  <option value="">—</option>
+                  {FIELD_SIZES.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+                <RemoveIconButton
+                  size="sm"
+                  label={`Remove age group ${i + 1}`}
+                  onClick={() => onChange(value.filter((_, idx) => idx !== i))}
+                />
+              </div>
+            ))}
+          </div>
         </div>
-      ))}
-      <Button
-        type="button"
-        variant="secondary"
-        onClick={() =>
-          onChange([
-            ...value,
-            { team_gender: "boys", age: "U10", price: 0, field_size: "7v7" },
-          ])
-        }
-      >
-        + Add age group
-      </Button>
+      )}
       {error && (
         <p className="text-xs font-medium text-red-600">{error}</p>
       )}
@@ -918,84 +1053,73 @@ function SponsorsEditor({
 }) {
   return (
     <div className="space-y-3">
-      {/* Compact rows: eyebrow + remove up top, name/link on one line,
-          and the logo as a fixed SQUARE tile (thumbSize="sm") — sponsor
-          logos are square with rounded corners, never a stretchy
-          rectangle. */}
-      {value.map((row, i) => (
-        <div
-          key={i}
-          className="rounded-xl border border-slate-200 bg-slate-50/60 p-3.5 transition-colors hover:border-slate-300"
-        >
-          <div className="mb-2.5 flex items-center justify-between gap-3">
-            <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">
-              Sponsor {i + 1}
-            </span>
-            <RemoveIconButton
-              size="sm"
-              label={`Remove sponsor ${i + 1}`}
-              onClick={() => onChange(value.filter((_, idx) => idx !== i))}
-            />
-          </div>
-          <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2">
-            <LabeledField label="Name" htmlFor={`sp_n_${i}`}>
-              <input
-                id={`sp_n_${i}`}
-                className="tg-control"
-                placeholder="Sponsor name"
-                value={row.name}
-                onChange={(e) =>
-                  onChange(
-                    value.map((r, idx) =>
-                      idx === i ? { ...r, name: e.target.value } : r,
-                    ),
-                  )
-                }
-              />
-            </LabeledField>
-            <LabeledField label="Link" htmlFor={`sp_l_${i}`}>
-              <IconInput
-                id={`sp_l_${i}`}
-                type="url"
-                placeholder="https://…"
-                value={row.link}
-                onChange={(e) =>
-                  onChange(
-                    value.map((r, idx) =>
-                      idx === i ? { ...r, link: e.target.value } : r,
-                    ),
-                  )
-                }
-                icon={<LinkGlyph />}
-              />
-            </LabeledField>
-          </div>
-          <div className="mt-2.5">
-            <ImageUploadField
-              label="Logo"
-              bucket="event-images"
-              thumbSize="sm"
-              value={row.logo_url}
-              onChange={(v) =>
-                onChange(
-                  value.map((r, idx) =>
-                    idx === i ? { ...r, logo_url: v } : r,
-                  ),
-                )
-              }
-            />
+      {/* Compact rows sharing one bordered container: name/link up top,
+          the logo as a fixed SQUARE tile (thumbSize="sm" — never a
+          stretchy rectangle), X remove on the row edge. */}
+      {value.length > 0 && (
+        <div className="overflow-hidden rounded-xl border border-slate-200">
+          <div className="divide-y divide-slate-100">
+            {value.map((row, i) => (
+              <div key={i} className="flex items-start gap-3 p-3.5">
+                <div className="grid min-w-0 flex-1 grid-cols-1 gap-2.5 md:grid-cols-2">
+                  <input
+                    aria-label={`Sponsor ${i + 1} name`}
+                    className="tg-control tg-control-sm"
+                    placeholder="Sponsor name"
+                    value={row.name}
+                    onChange={(e) =>
+                      onChange(
+                        value.map((r, idx) =>
+                          idx === i ? { ...r, name: e.target.value } : r,
+                        ),
+                      )
+                    }
+                  />
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 flex w-9 items-center justify-center text-slate-400">
+                      <LinkGlyph />
+                    </span>
+                    <input
+                      aria-label={`Sponsor ${i + 1} link`}
+                      type="url"
+                      placeholder="https://…"
+                      className="tg-control tg-control-sm pl-9"
+                      value={row.link}
+                      onChange={(e) =>
+                        onChange(
+                          value.map((r, idx) =>
+                            idx === i ? { ...r, link: e.target.value } : r,
+                          ),
+                        )
+                      }
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <ImageUploadField
+                      label="Logo"
+                      bucket="event-images"
+                      thumbSize="sm"
+                      value={row.logo_url}
+                      onChange={(v) =>
+                        onChange(
+                          value.map((r, idx) =>
+                            idx === i ? { ...r, logo_url: v } : r,
+                          ),
+                        )
+                      }
+                    />
+                  </div>
+                </div>
+                <RemoveIconButton
+                  size="sm"
+                  label={`Remove sponsor ${i + 1}`}
+                  onClick={() => onChange(value.filter((_, idx) => idx !== i))}
+                />
+              </div>
+            ))}
           </div>
         </div>
-      ))}
-      <Button
-        type="button"
-        variant="secondary"
-        onClick={() =>
-          onChange([...value, { name: "", link: "", logo_url: "" }])
-        }
-      >
-        + Add sponsor
-      </Button>
+      )}
       {error && <p className="text-xs font-medium text-red-600">{error}</p>}
     </div>
   );
@@ -1088,39 +1212,76 @@ function ImagesEditor({
   isPremium: boolean;
   error?: string;
 }) {
-  const cap = isPremium ? 13 : FREE_IMAGE_LIMIT;
+  const cap = isPremium ? PREMIUM_IMAGE_LIMIT : FREE_IMAGE_LIMIT;
   return (
     <div className="space-y-3">
-      {value.map((url, i) => (
-        <div
-          key={i}
-          className="rounded-xl border border-slate-200 bg-slate-50/60 p-4"
-        >
-          {/* onRemove renders the Remove button beside Upload — one
-              control cluster, not a lone button across the row. */}
-          <ImageUploadField
-            label={`Image ${i + 1}`}
-            bucket="event-images"
-            value={url}
-            onChange={(v) =>
-              onChange(value.map((cur, idx) => (idx === i ? v : cur)))
-            }
-            onRemove={() => onChange(value.filter((_, idx) => idx !== i))}
-          />
-        </div>
-      ))}
-      {value.length < cap && (
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={() => onChange([...value, ""])}
-        >
-          + Add image
-        </Button>
+      {/* Uniform square tiles with X-on-hover + a dashed "Add photo"
+          tile. Adding appends an empty slot, which renders below as a
+          full ImageUploadField (upload OR paste-a-URL — the storage
+          flow is untouched) until a value lands and it becomes a tile. */}
+      <div className="flex flex-wrap gap-3">
+        {value.map((url, i) =>
+          url.trim() !== "" ? (
+            <div
+              key={i}
+              className="group relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-50"
+            >
+              <SafeImg
+                src={safeImageSrc(url) ?? undefined}
+                alt=""
+                className="h-full w-full object-cover"
+                fallback={
+                  <span className="grid h-full w-full place-items-center text-slate-300">
+                    <Icon name="image" className="h-6 w-6" />
+                  </span>
+                }
+              />
+              <button
+                type="button"
+                aria-label={`Remove photo ${i + 1}`}
+                onClick={() => onChange(value.filter((_, idx) => idx !== i))}
+                className="absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-lg bg-slate-900/60 text-white opacity-0 transition-opacity focus-visible:opacity-100 group-hover:opacity-100"
+              >
+                <Icon name="close" className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ) : null,
+        )}
+        {value.length < cap && (
+          <button
+            type="button"
+            onClick={() => onChange([...value, ""])}
+            className="flex h-24 w-24 shrink-0 flex-col items-center justify-center gap-1 rounded-xl border-[1.5px] border-dashed border-slate-300 bg-slate-50 text-slate-400 transition hover:-translate-y-px hover:border-red-600 hover:bg-[#fff7f7] hover:text-red-600"
+          >
+            <Icon name="plus" className="h-5 w-5" />
+            <span className="text-[10.5px] font-bold">Add photo</span>
+          </button>
+        )}
+      </div>
+      {value.map((url, i) =>
+        url.trim() === "" ? (
+          <div
+            key={i}
+            className="rounded-xl border border-slate-200 bg-slate-50/60 p-4"
+          >
+            {/* onRemove renders the Remove button beside Upload — one
+                control cluster, not a lone button across the row. */}
+            <ImageUploadField
+              label={`Photo ${i + 1}`}
+              bucket="event-images"
+              value={url}
+              onChange={(v) =>
+                onChange(value.map((cur, idx) => (idx === i ? v : cur)))
+              }
+              onRemove={() => onChange(value.filter((_, idx) => idx !== i))}
+            />
+          </div>
+        ) : null,
       )}
       {!isPremium && value.length >= FREE_IMAGE_LIMIT && (
         <p className="text-xs text-slate-500">
-          You&apos;re at the free-tier cap. Upgrade the event to add up to 13.
+          You&apos;re at the free-tier cap. Upgrade the event to add up to{" "}
+          {PREMIUM_IMAGE_LIMIT}.
         </p>
       )}
       {error && <p className="text-xs font-medium text-red-600">{error}</p>}
@@ -1145,10 +1306,3 @@ function HashGlyph() {
   );
 }
 
-function StarGlyph() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-    </svg>
-  );
-}

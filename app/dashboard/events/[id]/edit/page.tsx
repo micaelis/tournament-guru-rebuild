@@ -100,7 +100,9 @@ export default async function EditEventPage({
   };
 
   return (
-    <div className="space-y-6">
+    // Left-aligned 880px column (the S12.46 form language) — the form
+    // never centers inside the wide dashboard pane.
+    <div className="max-w-[880px] space-y-6">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <div>
           <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-red-600">

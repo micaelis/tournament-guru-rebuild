@@ -3,9 +3,18 @@
 import type { ReactNode } from "react";
 import { cn } from "@/app/components/ui/cn";
 
+export function CheckGlyph() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M5 12l5 5L20 7" />
+    </svg>
+  );
+}
+
 /**
- * Multi-select pill group — one pill per option, click to toggle. Used
- * for competition levels, surfaces, and premium features.
+ * Multi-select pill group — one pill per option, click to toggle;
+ * selected pills lead with a check glyph. Used for competition levels
+ * and surfaces.
  */
 export function MultiSelectPills<T extends string>({
   options,
@@ -38,12 +47,13 @@ export function MultiSelectPills<T extends string>({
               className={cn(
                 // Checked = the app-wide soft red tint (S12.3) — solid
                 // ink is reserved for primary CTAs.
-                "rounded-full border px-3 py-1.5 text-[12.5px] font-semibold transition",
+                "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-semibold transition hover:-translate-y-px",
                 active
                   ? "border-red-600 bg-red-50 text-red-700"
-                  : "border-slate-200 bg-white text-slate-700 hover:border-slate-400",
+                  : "border-slate-300 bg-white text-slate-600 hover:border-slate-400 hover:text-slate-900",
               )}
             >
+              {active && <CheckGlyph />}
               {opt.label}
             </button>
           );

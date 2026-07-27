@@ -41,6 +41,16 @@ function PhotoGlyph() {
   );
 }
 
+function UploadGlyph() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="17 8 12 3 7 8" />
+      <line x1="12" y1="3" x2="12" y2="15" />
+    </svg>
+  );
+}
+
 export function ImageUploadField({
   label,
   value,
@@ -53,6 +63,7 @@ export function ImageUploadField({
   thumbSize = "md",
   thumbShape = "square",
   onRemove,
+  layout = "row",
 }: {
   label: string;
   value: string;
@@ -79,6 +90,13 @@ export function ImageUploadField({
    * supersedes blanking its value).
    */
   onRemove?: () => void;
+  /**
+   * "tile" (the event-logo treatment, S12.46) stacks a 132px square
+   * preview over an Upload + clear row and a compact URL input, all
+   * flush with the tile's edges. Same value contract and upload flow
+   * as the default side-by-side "row" layout.
+   */
+  layout?: "row" | "tile";
 }) {
   const inputId = useId();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -101,6 +119,93 @@ export function ImageUploadField({
     }
     onChange(url);
     if (fileRef.current) fileRef.current.value = ""; // allow re-picking same file
+  }
+
+  if (layout === "tile") {
+    return (
+      <div className="block">
+        <span className="mb-1.5 flex items-center gap-1 text-[13px] font-semibold text-slate-800">
+          {label}
+          {required && <span aria-hidden="true" className="text-red-600">*</span>}
+        </span>
+        <div className="w-[132px] space-y-2">
+          <div className="grid h-[132px] w-[132px] place-items-center overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+            <SafeImg
+              src={preview ?? undefined}
+              alt=""
+              className="h-full w-full object-cover"
+              onError={() => setLoadWarning(true)}
+              fallback={
+                <span className="flex flex-col items-center justify-center gap-1 p-2 text-center text-slate-400">
+                  <span aria-hidden="true" className="text-slate-300">
+                    <PictureGlyph />
+                  </span>
+                  <span className="text-[10px] font-medium">No image</span>
+                </span>
+              }
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/png,image/jpeg,.png,.jpg,.jpeg"
+              className="hidden"
+              onChange={(e) => onPick(e.target.files?.[0])}
+              aria-label={`Upload ${label}`}
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              size="xs"
+              className="flex-1"
+              loading={busy}
+              onClick={() => fileRef.current?.click()}
+            >
+              {!busy && <UploadGlyph />}
+              {busy ? "Uploading…" : "Upload"}
+            </Button>
+            <RemoveIconButton
+              size="sm"
+              label={`Clear ${label}`}
+              onClick={() => {
+                setLoadWarning(false);
+                setUploadError(null);
+                onChange("");
+              }}
+            />
+          </div>
+          <input
+            id={inputId}
+            name={name}
+            type="url"
+            className="tg-control tg-control-sm"
+            placeholder="https://… or upload"
+            value={value}
+            onChange={(e) => {
+              setLoadWarning(false);
+              onChange(e.target.value);
+            }}
+            aria-invalid={Boolean(error) || undefined}
+          />
+          {uploadError && (
+            <span className="block text-xs font-medium text-red-600">
+              {uploadError}
+            </span>
+          )}
+          {error && (
+            <span className="block text-xs font-medium text-red-600">
+              {error}
+            </span>
+          )}
+          {loadWarning && !uploadError && (
+            <span className="block text-xs text-amber-600">
+              We couldn&apos;t load that image — it may not display.
+            </span>
+          )}
+        </div>
+      </div>
+    );
   }
 
   return (

@@ -244,7 +244,8 @@ Build screens from these; don't hand-roll equivalents.
   labelled Field-wrapped variant (onboarding DOB); `USDateText` is bare (filter drawer +
   event form dates). The `calendar` prop (S12.22; default ON for `USDateField`, opt-in on
   `USDateText` — the event form's date fields pass it) adds the **in-house calendar
-  popover**: a glyph toggle inside the input opens a Sunday-first month grid with
+  popover**: a LEADING glyph toggle at the head of the input (S12.46 — matching the
+  link/pin/# leading-icon input language) opens a Sunday-first month grid with
   month/year selects and ‹ › paging; the picked day wears the S12.3 red tint; the masked
   input stays first-class (the calendar is an addition, never a replacement, and never the
   native picker). Bare embeds with their own shells (filter drawer) stay typing-only.
