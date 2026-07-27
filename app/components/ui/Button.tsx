@@ -3,8 +3,16 @@ import { cn } from "./cn";
 import { Spinner } from "./Spinner";
 import { textLinkClass } from "./TextLink";
 
-type Variant = "primary" | "secondary" | "accent" | "ghost" | "danger" | "link";
-type Size = "sm" | "md" | "lg";
+type Variant =
+  | "primary"
+  | "secondary"
+  | "accent"
+  | "ghost"
+  | "danger"
+  | "link"
+  | "outline"
+  | "soft";
+type Size = "xs" | "sm" | "md" | "lg";
 
 /**
  * The button variants used across the app. Primary = slate-900 filled
@@ -20,6 +28,13 @@ type Size = "sm" | "md" | "lg";
  * (tertiary/bail-out). Danger = the unified red-tint destructive
  * treatment (red-50 fill, red-200 border — the RemoveIconButton
  * palette). Link = the canonical inline text-link look.
+ *
+ * Outline + soft are the settled two-tier secondary treatment (S12.35):
+ * outline = white surface + 1px ink-navy border for container-level
+ * actions (a tournament card's Add event / Edit tournament); soft = the
+ * gray-blue fill with no border for the row-level actions subordinate
+ * to them (a row's Edit / "…"). Rolled out on the ED events list only
+ * for now — the app-wide secondary/ghost replacement is a follow-up.
  *
  * `loading` disables the button and swaps in the shared Spinner ahead
  * of the label — pass the pending flag from useActionState /
@@ -39,12 +54,15 @@ export function Button({
   loading?: boolean;
   children: ReactNode;
 } & ButtonHTMLAttributes<HTMLButtonElement>) {
+  // Radius rides the size map (cn doesn't resolve utility conflicts, so
+  // the base can't carry a rounded-* the xs tier needs to shrink).
   const base =
-    "inline-flex items-center justify-center gap-2 rounded-xl font-bold transition-all duration-150 ease-out disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline-none";
+    "inline-flex items-center justify-center font-bold transition-all duration-150 ease-out disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline-none";
   const sizes: Record<Size, string> = {
-    sm: "px-3 py-1.5 text-[12.5px]",
-    md: "px-4 py-2.5 text-sm",
-    lg: "px-5 py-3 text-sm",
+    xs: "gap-1.5 rounded-lg px-2.5 py-1 text-[12px]",
+    sm: "gap-2 rounded-xl px-3 py-1.5 text-[12.5px]",
+    md: "gap-2 rounded-xl px-4 py-2.5 text-sm",
+    lg: "gap-2 rounded-xl px-5 py-3 text-sm",
   };
   const variants: Record<Variant, string> = {
     primary:
@@ -58,6 +76,9 @@ export function Button({
     danger:
       "border border-red-200 bg-red-50 text-red-700 hover:border-red-300 hover:bg-red-100 hover:text-red-800",
     link: textLinkClass,
+    outline:
+      "border border-slate-700 bg-white text-slate-900 hover:border-slate-900 hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-slate-900/25",
+    soft: "bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-900 focus-visible:ring-2 focus-visible:ring-slate-900/15",
   };
   return (
     <button

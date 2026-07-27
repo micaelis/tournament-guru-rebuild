@@ -148,16 +148,21 @@ export function AddFirstEventPrompt({
 
 /**
  * Edit tournament dialog — reuses the create action's shape via a
- * distinct server action so the form can render with defaults.
+ * distinct server action so the form can render with defaults. The
+ * delete flow lives here too: the card surface only carries the two
+ * approved tournament actions (Add event / Edit tournament), so
+ * destroying the tournament is a deliberate step inside Edit.
  */
 export function EditTournamentDialog({
   open,
   onClose,
   tournament,
+  canDelete = false,
 }: {
   open: boolean;
   onClose: () => void;
   tournament: { id: string; title: string; recurring: boolean };
+  canDelete?: boolean;
 }) {
   const [state, formAction] = useActionState(updateTournament, INITIAL);
   const { values, submitted, capture } = useSubmittedValues();
@@ -215,11 +220,21 @@ export function EditTournamentDialog({
               label="Recurring event"
             />
           </div>
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="ghost" onClick={onClose}>
-              Cancel
-            </Button>
-            <FormButton pendingLabel="Saving…">Save changes</FormButton>
+          <div className="flex items-center justify-between gap-2">
+            <span>
+              {canDelete && (
+                <DeleteTournamentButton
+                  tournamentId={tournament.id}
+                  tournamentTitle={tournament.title}
+                />
+              )}
+            </span>
+            <span className="flex gap-2">
+              <Button type="button" variant="ghost" onClick={onClose}>
+                Cancel
+              </Button>
+              <FormButton pendingLabel="Saving…">Save changes</FormButton>
+            </span>
           </div>
         </form>
       </div>
@@ -245,12 +260,13 @@ export function DeleteTournamentButton({
   return (
     <>
       <Button
+        type="button"
         variant="danger"
         size="sm"
         onClick={() => setOpen(true)}
         aria-label={`Delete ${tournamentTitle}`}
       >
-        Delete
+        Delete tournament
       </Button>
       <ConfirmDialog
         open={open}

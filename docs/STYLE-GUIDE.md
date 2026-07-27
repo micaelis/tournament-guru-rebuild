@@ -38,9 +38,10 @@ for ratings and status. Do not introduce new hues outside this set.
 | red / accent | `#dc2626` | primary accent, coach pool, "Guru Review", verified, primary links, upgrade CTA |
 | red-bg / red-bd | `#fef2f2` / `#fecaca` | red pill/tint backgrounds & borders |
 | gold | `#f59e0b` | star ratings (filled), amber emphasis |
-| amber | `#b45309` | attendee pool accent, draft status text |
+| amber | `#b45309` | attendee pool accent |
 | green | `#059669` (bg `#d1fae5`, bd `#6ee7b7`, ink `#065f46`) | open/ongoing/active/published status — the deeper "live" pairing, legible at pill size |
 | blue | `#1d4ed8` (bg `#eff6ff`) | upcoming status |
+| sky | `#0369a1` (bg `#f0f9ff`, bd `#bae6fd`) | draft status, info tints |
 | violet | `#7c3aed` (bg `#f5f3ff`, bd `#ddd6fe`) | Spotlight tag |
 
 **Semantic pairings to memorize:** Coach = **red**, Attendee = **amber/gold**. This split
@@ -105,7 +106,12 @@ Build screens from these; don't hand-roll equivalents.
   border — tertiary/bail-out: Cancel, dialog dismiss), `danger` (the unified red-tint
   destructive treatment: red-50 fill, red-200 border, red-700 text — the
   RemoveIconButton palette; every destructive control shares it), `link` (the
-  TextLink treatment). Sizes: `sm`, `md`, `lg`.
+  TextLink treatment), and the settled **two-tier secondary** pair (S12.35): `outline`
+  (white surface, 1px ink-navy border — container-level actions like a tournament
+  card's Add event / Edit tournament) over `soft` (gray-blue slate-100 fill, no
+  border — the row-level actions subordinate to them: Edit, the "…" trigger). The
+  pair is live on the ED events list only for now; replacing `secondary`/`ghost`
+  app-wide is a tracked follow-up. Sizes: `xs`, `sm`, `md`, `lg`.
   All transitions run 150ms ease-out. `loading` disables the button and prepends the
   shared **Spinner** — pass the pending flag from `useActionState`, or use **FormButton**
   (a submit Button that wires `useFormStatus` automatically, with an optional
@@ -133,11 +139,14 @@ Build screens from these; don't hand-roll equivalents.
   dashboard bg and the white auth cards alike (S12.9). Never a flat green slab. The Toast's
   success tone uses this exact treatment (S12.29) — the two confirmation surfaces are ONE
   style.
-- **StatusPill** — the event lifecycle pill; one color per status (see §6). Also
+- **StatusPill** — the event lifecycle pill; one color per status (see §6), and every
+  lifecycle tone leads with a matching status dot. Also
   carries the badge tones `premium` (solid red) and `spotlight` (violet outline) so
   the event badge pair renders through the same primitive everywhere. The live green
   (`ongoing`/`success`) is the deeper emerald-100 wash + emerald-300 border pairing —
-  the paler emerald-50 tint washed out at pill size.
+  the paler emerald-50 tint washed out at pill size. Draft is the sky tint and
+  Concluded the crisp white-surface ink-outline (S12.36) — never amber (gold belongs
+  to ratings), never violet (Spotlight owns it), never a gray slab.
 - **StarRating** — gold filled stars (`#f59e0b`) on `#e2e8f0` empty, 0.5 step, with the numeric
   value in Bricolage bold and optional `(x reviews)` count. The canonical rating display —
   do not use `react-simple-star-rating`.
@@ -265,11 +274,11 @@ Build screens from these; don't hand-roll equivalents.
 **Event status pill (date-derived; each its own color):**
 | Status | Text / dot | Background |
 |---|---|---|
-| Upcoming | blue `#1d4ed8` | `#eff6ff` |
+| Upcoming | blue `#1d4ed8` / blue dot | `#eff6ff` |
 | Ongoing | green `#065f46` / `#059669` dot | `#d1fae5` |
-| Concluded | slate `#475569` | `#f1f5f9` |
-| Draft | amber `#b45309` / gold dot | `#fffbeb` |
-| Canceled | red `#dc2626` | `#fef2f2` (card also grayed) |
+| Concluded | slate `#334155` / slate dot | white, `1px` slate-400 outline |
+| Draft | sky `#0369a1` / sky dot | `#f0f9ff` |
+| Canceled | red `#dc2626` / red dot | `#fef2f2` (card also grayed) |
 
 **Badges & tags:**
 - **Premium** — solid red pill on the event card (per-event flag; StatusPill tone `premium`).

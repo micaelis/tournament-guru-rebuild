@@ -602,19 +602,36 @@ action is permanent and will also delete all the events within this
 tournament."* — and cascades (see §9.3 for the review/comment retention
 exception).
 
-**Tournaments list**: sorted **A–Z by title** by default, with a search box
-(search events by title) and a sort control (**Creation Date / Average rating /
-Reviews count**, each **ascending or descending**). Applying a sort re-sorts the
-child events too. Each tournament row shows edit/delete CTAs. Empty tournaments
-show a placeholder prompting to add an event.
+**Page layout**: a header row — the **Events** title (admin: "All events") with
+a quiet counts line (**N tournaments · N events · N verified reviews**), a
+one-line subtext, and the **New tournament** CTA pinned top-right — over a slim
+white toolbar card holding the pill search box (search tournaments by title), the
+sort control (**Creation Date / Average rating / Reviews count**, each
+**ascending or descending**; Title A–Z is the default), and the **status tabs**
+(All / Published / Drafts / Concluded / Canceled; Published = Upcoming +
+Ongoing). Search, sort and status all ride URL params. An active status filter
+hides tournaments that have no events; a tournament whose events all fail the
+filter keeps its card with a *"No events match this filter."* line.
 
-**Tournament metrics** (collapsible; shown only if the tournament's events have
-**≥ 1 review** in total — otherwise hidden): **9 cards** — Overall Rating, Coach
-Rating, Attendee Rating, then the 6 review categories (Fields, Facilities,
-Tournament Management, Competition, Diversity, Cost/Value). Each card: a 5-star
-icon with a yellow fill for the average, the **average to 2 decimals (e.g.
-2.33) / 5**, and the total review count across the tournament's events. The
-Coach pool = verified coach reviews; the Attendee pool = non-verified.
+**Tournament cards**: one soft-shadow white card per tournament — a TOURNAMENT
+eyebrow, the title + **Recurring** tag, then one compact meta line (**N events ·
+★ average · N verified reviews · "Ratings breakdown"** toggle, collapsed by
+default, plus a Show/Hide events toggle; admins also see the owner name or
+**Unclaimed** here). Tournament-level actions pack right as white ink-outlined
+buttons: **Add event** and **Edit tournament**. **Deleting a tournament lives
+inside the Edit dialog** (same cascade warning + confirm as before). Empty
+tournaments show a dashed placeholder tile prompting to add the first event.
+
+**Ratings breakdown** (tournament-level AND per-event; collapsed by default;
+rendered only with **≥ 1 review**, with an ✕ to close): one composition at both
+levels — the three audience averages up top (**Overall**; **Coach**, red, on
+premium surfaces only; **Attendee**, amber), each a large 2-decimal value +
+stars with its pool line beneath, then the six category averages (Fields,
+Facilities, Management, Competition, Diversity, Cost/Value) as tiles under a
+**BY CATEGORY** eyebrow. On premium surfaces a seventh tile, **Coach
+Experience**, shows the would-attend-again percentage as a meter (matching the
+internal event-details summary band) — never stars. The Coach pool = verified
+coach reviews; the Attendee pool = non-verified.
 
 **Event create/edit form.** `*` = mandatory to publish; `[]` = accepts a list.
 Mandatory-to-publish fields: **Event logo** (**PNG/JPG/JPEG, ≤10MB** — no SVG;
@@ -703,25 +720,33 @@ Delete, and **Cancel** — cancel requires a **mandatory, character-capped
 reason** shown publicly on the event page. Missing-field feedback scrolls to the
 field with info text.
 
-**Events list under each tournament**: collapsible, **paginated when > 10**,
-sorted by **start date soonest-first**. Columns: Event Name, Host Club, Season,
-Dates, Status, and reviews + average (5-star icons in **0.5 steps**, e.g.
-"2.33/5 — x reviews"). Each event has its own **collapsible metrics** (visible by
-default) showing **only the 6 categories + averages**. Featured events are
-highlighted; non-featured show an **Upgrade Event** CTA. All events offer
-**Edit, Duplicate, Copy Link**. **Duplicate** clones config only (no reviews/
-comments; premium **not** carried over) and opens Add Event. **Copy Link** copies
-the public event URL with a visible confirmation. **Canceled** cards are grayed
-out.
+**Events table under each tournament**: collapsible (admins start collapsed),
+**paginated when > 10**, sorted by **start date soonest-first**. Columns:
+**Event** (logo, title, Premium/Spotlight pills, host club), **Status**,
+**Dates** (compact range + a relative hint + the **Season** chip beneath), and
+**Reviews & rating** (5-star icons in **0.5 steps**, the 2-decimal average, the
+verified count, and the per-event **"Breakdown"** toggle). Location is not a
+column — it lives on the details page. **Clicking a row opens the internal
+event details page** (`/dashboard/events/[id]`). Premium rows carry the red
+accent spine + warm wash; **Canceled** rows gray out their identity cell. Row
+actions in fixed order: a solid-red **Upgrade** (only on non-premium
+draft/upcoming/ongoing events — it opens the premium-upgrade confirm; the paid
+add-on flow will replace it when built), **Edit** (every status except Canceled
+— **Concluded events stay editable**), and the **"…" overflow**: Duplicate,
+Copy public link, Copy spectator reviews link (the public review-writing URL),
+admin-only QR, then Cancel event (upcoming/ongoing only) and Delete.
+**Duplicate** clones config only (no reviews/comments; premium **not** carried
+over). Copies confirm with a toast.
 
 **Admin differences** on the Events page (see also §8): search by title **and
 owner full name**; an extra **Owner** sort key; **CSV export** of exactly the
 on-screen results (enabled only when there is data); tournament/event editing
 gated (add tournament / add event only if admin-created and unclaimed; **editing
-an event is always allowed**); events collapsed by default; extra columns
-**Event Director** (clickable → public ED page) and **Premium Yes/No**; and a
-**QR generator** (400×400 PNG or PDF of the public URL; CTA flips to "Open QR
-Image" once generated; download shows an alert).
+an event is always allowed**); events collapsed by default; the tournament meta
+line names the **owner** (or **Unclaimed**) and each row's **Premium** pill
+carries the premium flag; and the **QR generator** (400×400 PNG or PDF of the
+public URL, in the row's "…" overflow and the details page's Share menu, with a
+download-confirmation toast).
 
 ### 6.2 Reviews
 
@@ -1079,8 +1104,9 @@ auth screen via role-based redirect.
 ### 8.1 Events (admin differences)
 
 See §6.1: title + owner-name search, an Owner sort key, on-screen-only CSV
-export, gated tournament/event editing, collapsed lists, Event Director + Premium
-columns, and QR generation (400×400 PNG/PDF).
+export, gated tournament/event editing, collapsed lists, owner named on the
+tournament meta line + the per-row Premium pill, and QR generation (400×400
+PNG/PDF).
 
 ### 8.2 Reviews (admin differences)
 

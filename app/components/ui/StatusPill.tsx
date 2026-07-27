@@ -13,6 +13,11 @@ import { cn } from "./cn";
  * The "live" green (ongoing/success) runs a register deeper than the
  * other tints — emerald-100 wash, emerald-300 border — so a published/
  * active state stays legible at pill size on white and slate surfaces.
+ *
+ * Lifecycle colors (S12.36): Draft is the sky "blueprint" tint (never
+ * amber — gold belongs to ratings — and never violet, which Spotlight
+ * owns); Concluded is the crisp ink-outline (white surface, slate
+ * border) instead of a gray slab, echoing the outline control chrome.
  */
 export type PillTone =
   | "draft"
@@ -29,10 +34,10 @@ export type PillTone =
   | "spotlight";
 
 const TONE_STYLES: Record<PillTone, string> = {
-  draft: "bg-slate-100 text-slate-700 border-slate-200",
+  draft: "bg-sky-50 text-sky-700 border-sky-200",
   upcoming: "bg-blue-50 text-blue-800 border-blue-200",
   ongoing: "bg-emerald-100 text-emerald-800 border-emerald-300",
-  concluded: "bg-slate-200/70 text-slate-700 border-slate-300",
+  concluded: "bg-white text-slate-700 border-slate-400",
   canceled: "bg-red-50 text-red-700 border-red-200",
   info: "bg-sky-50 text-sky-800 border-sky-200",
   success: "bg-emerald-100 text-emerald-800 border-emerald-300",
@@ -41,6 +46,16 @@ const TONE_STYLES: Record<PillTone, string> = {
   muted: "bg-slate-50 text-slate-500 border-slate-200",
   premium: "bg-red-600 text-white border-red-600",
   spotlight: "bg-violet-50 text-violet-600 border-violet-200",
+};
+
+/** Lifecycle tones carry a leading status dot — the dot is what makes
+ *  the five states scan as one family in dense tables. */
+const DOT_STYLES: Partial<Record<PillTone, string>> = {
+  draft: "bg-sky-500",
+  upcoming: "bg-blue-600",
+  ongoing: "bg-emerald-600",
+  concluded: "bg-slate-400",
+  canceled: "bg-red-600",
 };
 
 /** Maps the DB's derived event display status text to a pill tone. */
@@ -65,21 +80,30 @@ export function StatusPill({
   tone,
   children,
   className,
+  compact = false,
 }: {
   tone: PillTone;
   children: ReactNode;
   className?: string;
+  /** The dense-table register (event-row badge sublines): tighter
+   *  padding + 9px type. A prop, not caller class overrides — cn
+   *  doesn't resolve utility conflicts. */
+  compact?: boolean;
 }) {
+  const dot = DOT_STYLES[tone];
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider",
+        "inline-flex items-center rounded-full border font-bold uppercase",
+        compact
+          ? "gap-1 px-1.5 py-0 text-[9px] tracking-[0.07em]"
+          : "gap-1.5 px-2.5 py-0.5 text-[11px] tracking-wider",
         TONE_STYLES[tone],
         className,
       )}
     >
-      {tone === "ongoing" && (
-        <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
+      {dot && (
+        <span aria-hidden className={cn("h-1.5 w-1.5 rounded-full", dot)} />
       )}
       {children}
     </span>

@@ -41,12 +41,12 @@ test.describe("Event director — tournament lifecycle", () => {
     try {
       ed = await createEventDirector({ completeOnboarding: true });
       // A pre-existing tournament puts the page past the first-run welcome
-      // card, so the toolbar's "+ New tournament" is the control on screen.
+      // card, so the header's "New tournament" is the control on screen.
       existing = await seedTournament(ed.id);
       await signIn(page, ed.email, ed.password);
       await page.goto("/dashboard/events");
 
-      await page.getByRole("button", { name: "+ New tournament" }).click();
+      await page.getByRole("button", { name: "New tournament" }).click();
       await expect(
         page.getByRole("heading", { name: "Add tournament" }),
       ).toBeVisible();
@@ -194,11 +194,16 @@ test.describe("Event director — tournament lifecycle", () => {
       await signIn(page, ed.email, ed.password);
       await page.goto("/dashboard/events");
 
+      // Delete lives inside the Edit tournament dialog (the card surface
+      // only carries Add event / Edit tournament).
+      await page.getByRole("button", { name: "Edit tournament" }).click();
       await page.getByRole("button", { name: `Delete ${title}` }).click();
       await expect(
-        page.getByRole("button", { name: "Delete tournament" }),
+        page.getByRole("button", { name: "Delete tournament", exact: true }),
       ).toBeVisible();
-      await page.getByRole("button", { name: "Delete tournament" }).click();
+      await page
+        .getByRole("button", { name: "Delete tournament", exact: true })
+        .click();
 
       await expect(page.getByText("Tournament deleted.")).toBeVisible();
       expect(await tournamentExists(tournamentId)).toBe(false);
@@ -238,14 +243,30 @@ test.describe("Admin — tournament management affordances (S1.1)", () => {
       await expect(
         page.getByRole("heading", { name: edHeldTitle, exact: true }),
       ).toBeVisible();
-      // ...and the unclaimed one the admin created is manageable.
+      // ...and the unclaimed one the admin created is manageable: its card
+      // offers Edit tournament, and Delete lives inside that dialog.
+      const openCard = page
+        .locator("section")
+        .filter({
+          has: page.getByRole("heading", { name: adminOpenTitle, exact: true }),
+        });
+      await openCard.getByRole("button", { name: "Edit tournament" }).click();
       await expect(
         page.getByRole("button", { name: `Delete ${adminOpenTitle}` }),
       ).toBeVisible();
-      // But the ED-claimed one exposes no Delete (spec: admin manages a
-      // tournament only while it is unclaimed).
+      await page
+        .getByRole("dialog")
+        .getByRole("button", { name: "Cancel", exact: true })
+        .click();
+      // But the ED-claimed one exposes no Edit tournament at all (spec:
+      // admin manages a tournament only while it is unclaimed).
       await expect(
-        page.getByRole("button", { name: `Delete ${edHeldTitle}` }),
+        page
+          .locator("section")
+          .filter({
+            has: page.getByRole("heading", { name: edHeldTitle, exact: true }),
+          })
+          .getByRole("button", { name: "Edit tournament" }),
       ).toHaveCount(0);
     } finally {
       if (claimedId) await deleteTournament(claimedId);

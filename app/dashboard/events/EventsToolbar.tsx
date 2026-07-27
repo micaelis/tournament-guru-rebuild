@@ -2,12 +2,13 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
-import { Button, SearchInput } from "@/app/components/ui";
-import {
-  CreateTournamentDialog,
-  AddFirstEventPrompt,
-} from "./TournamentDialogs";
+import { SearchInput, cn } from "@/app/components/ui";
 import type { TournamentSort } from "./queries";
+import {
+  EVENT_STATUS_FILTERS,
+  LIST_CARD_CLASS,
+  type EventStatusFilter,
+} from "./event-shared";
 
 type Option = { value: TournamentSort; label: string };
 
@@ -26,22 +27,31 @@ const ADMIN_EXTRA_SORT: Option[] = [
   { value: "owner_desc", label: "Owner (Z–A)" },
 ];
 
+const STATUS_LABELS: Record<EventStatusFilter, string> = {
+  all: "All",
+  published: "Published",
+  draft: "Drafts",
+  concluded: "Concluded",
+  canceled: "Canceled",
+};
+
 /**
- * The row above the tournament list: search box, sort dropdown, and
- * the "Add New Tournament" CTA. Search + sort update the URL so the
- * server component re-fetches with the new params (no client-side
- * filtering — RLS + Postgres do the work).
+ * The slim white toolbar card above the tournament list: pill search,
+ * sort dropdown, (admin) CSV export, and the status tabs. Search, sort
+ * and status update the URL so the server component re-fetches /
+ * re-filters with the new params — no client-side filtering; RLS +
+ * Postgres do the work.
  */
 export function EventsToolbar({
   initialSearch,
   initialSort,
-  showAdd,
+  activeStatus,
   isAdmin,
   hasResults,
 }: {
   initialSearch: string;
   initialSort: TournamentSort;
-  showAdd: boolean;
+  activeStatus: EventStatusFilter;
   isAdmin: boolean;
   hasResults: boolean;
 }) {
@@ -50,9 +60,7 @@ export function EventsToolbar({
     : BASE_SORT_OPTIONS;
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [pending, startTransition] = useTransition();
-  const [creating, setCreating] = useState(false);
-  const [createdId, setCreatedId] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
   const [search, setSearch] = useState(initialSearch);
 
   function pushParam(key: string, value: string | null) {
@@ -61,13 +69,18 @@ export function EventsToolbar({
     else next.set(key, value);
     const qs = next.toString();
     startTransition(() => {
-      router.replace(qs ? `?${qs}` : "?" as never);
+      router.replace(qs ? `?${qs}` : ("?" as never));
     });
   }
 
   return (
-    <>
-      <div className="flex flex-wrap items-center gap-3">
+    <div
+      className={cn(
+        LIST_CARD_CLASS,
+        "flex flex-wrap items-center justify-between gap-x-4 gap-y-2.5 px-3.5 py-2.5",
+      )}
+    >
+      <div className="flex min-w-0 flex-wrap items-center gap-2.5">
         <SearchInput
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -75,15 +88,16 @@ export function EventsToolbar({
             if (e.key === "Enter") pushParam("q", search);
           }}
           onBlur={() => pushParam("q", search)}
-          placeholder="Search tournaments…"
+          placeholder="Search your events…"
           aria-label="Search tournaments"
-          className="flex-1 min-w-[240px]"
+          className="w-full min-w-[220px] max-w-[300px] flex-1"
+          inputClassName="rounded-full py-2 text-[13.5px]"
         />
         <select
           defaultValue={initialSort}
           onChange={(e) => pushParam("sort", e.target.value)}
           aria-label="Sort tournaments"
-          className="tg-control tg-select w-auto min-w-[220px] flex-none"
+          className="tg-control tg-select w-auto min-w-[190px] flex-none rounded-full py-2 text-[13px]"
         >
           {sortOptions.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -97,38 +111,49 @@ export function EventsToolbar({
             aria-disabled={!hasResults}
             className={
               hasResults
-                ? "rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-800 hover:border-slate-400"
-                : "pointer-events-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-bold text-slate-400"
+                ? "rounded-full border border-slate-200 bg-white px-3.5 py-2 text-[12.5px] font-bold text-slate-800 transition-colors hover:border-slate-400"
+                : "pointer-events-none rounded-full border border-slate-200 bg-slate-50 px-3.5 py-2 text-[12.5px] font-bold text-slate-400"
             }
-            title={hasResults ? "Download the current view as CSV" : "Nothing to export"}
+            title={
+              hasResults
+                ? "Download the current view as CSV"
+                : "Nothing to export"
+            }
             download
           >
             Export CSV
           </a>
         )}
-        {showAdd && (
-          <Button onClick={() => setCreating(true)} disabled={pending}>
-            + New tournament
-          </Button>
-        )}
       </div>
 
-      <CreateTournamentDialog
-        open={creating}
-        onClose={() => setCreating(false)}
-        onCreated={(id) => {
-          setCreating(false);
-          setCreatedId(id);
-          startTransition(() => router.refresh());
-        }}
-      />
-      {createdId && (
-        <AddFirstEventPrompt
-          tournamentId={createdId}
-          onDismiss={() => setCreatedId(null)}
-        />
-      )}
-    </>
+      <div
+        role="group"
+        aria-label="Filter events by status"
+        className="inline-flex gap-0.5 rounded-full border-[1.5px] border-slate-300 p-[3px]"
+      >
+        {EVENT_STATUS_FILTERS.map((status) => {
+          const active = status === activeStatus;
+          return (
+            <button
+              key={status}
+              type="button"
+              aria-pressed={active}
+              onClick={() =>
+                pushParam("status", status === "all" ? null : status)
+              }
+              className={cn(
+                "rounded-full border px-3 py-1 font-[var(--font-heading)] text-[12px] font-bold transition-colors",
+                active
+                  ? "border-red-600 bg-red-50 text-red-700"
+                  : "border-transparent text-slate-600 hover:text-slate-900",
+              )}
+            >
+              {STATUS_LABELS[status]}
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 

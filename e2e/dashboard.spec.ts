@@ -68,7 +68,7 @@ test.describe("Dashboard — event director", () => {
       await page.goto("/dashboard");
       await expect(page).toHaveURL(/\/dashboard\/events/);
       await expect(
-        page.getByRole("heading", { name: "Your events" }),
+        page.getByRole("heading", { name: "Events", exact: true }),
       ).toBeVisible();
     } finally {
       if (user) await deleteUser(user.id);

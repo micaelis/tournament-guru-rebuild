@@ -4,16 +4,18 @@ import { WelcomeCard } from "./WelcomeCard";
 import { TournamentCard } from "./TournamentCard";
 import { EventsToolbar } from "./EventsToolbar";
 import { FirstRunAddButton } from "./FirstRunAddButton";
+import { NewTournamentButton } from "./NewTournamentButton";
 import {
   fetchTournamentOwnerNames,
   listTournaments,
   type TournamentSort,
 } from "./queries";
+import { listEventsForTournaments, listSeasons } from "./event-queries";
 import {
-  listEventsForTournaments,
-  listSeasons,
+  EVENT_STATUS_FILTERS,
   type EventListRow,
-} from "./event-queries";
+  type EventStatusFilter,
+} from "./event-shared";
 import { EmptyState } from "@/app/components/ui";
 
 type SearchParams = { [key: string]: string | string[] | undefined };
@@ -33,9 +35,9 @@ const VALID_SORTS: TournamentSort[] = [
 /**
  * ED / Admin Events landing. When the user has no tournaments they
  * see the WelcomeCard (empty state); as soon as at least one exists
- * they see the searchable / sortable list of TournamentCards. Admin
- * sees the same page scoped to all tournaments (RLS lets them read
- * everyone's).
+ * they see the searchable / sortable / status-filterable list of
+ * TournamentCards. Admin sees the same page scoped to all tournaments
+ * (RLS lets them read everyone's).
  */
 export default async function EventsDashboardPage({
   searchParams,
@@ -52,6 +54,10 @@ export default async function EventsDashboardPage({
   const sort = (VALID_SORTS as string[]).includes(sortRaw)
     ? (sortRaw as TournamentSort)
     : "title_asc";
+  const statusRaw = typeof sp.status === "string" ? sp.status : "all";
+  const status = (EVENT_STATUS_FILTERS as string[]).includes(statusRaw)
+    ? (statusRaw as EventStatusFilter)
+    : "all";
 
   const isAdmin = profile.user_type === "admin";
   const tournaments = await listTournaments({
@@ -83,19 +89,56 @@ export default async function EventsDashboardPage({
     eventsByTournament.set(ev.tournament_id, bucket);
   }
 
+  // A status filter narrows to tournaments that have events at all; the
+  // per-card "no events match" line handles the has-events-but-none-match
+  // case so the card's identity (title, ratings) never blinks away.
+  const visibleTournaments =
+    status === "all"
+      ? tournaments
+      : tournaments.filter(
+          (t) => (eventsByTournament.get(t.id) ?? []).length > 0,
+        );
+
+  const reviewTotal = tournaments.reduce((sum, t) => sum + t.review_count, 0);
+
   const isEmptyFirstRun =
     tournaments.length === 0 && !search && profile.user_type !== "admin";
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5">
       <div>
-        <h1 className="font-[var(--font-heading)] text-2xl font-extrabold text-slate-900">
-          {profile.user_type === "admin" ? "All events" : "Your events"}
-        </h1>
-        <p className="mt-1.5 text-[13.5px] text-slate-500">
-          {profile.user_type === "admin"
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+          <div className="flex min-w-0 flex-wrap items-baseline gap-x-3.5 gap-y-1">
+            <h1 className="font-[var(--font-heading)] text-2xl font-extrabold tracking-tight text-slate-900">
+              {isAdmin ? "All events" : "Events"}
+            </h1>
+            {tournaments.length > 0 && (
+              <p className="text-[13px] font-medium text-slate-500">
+                <span className="font-bold text-slate-800">
+                  {tournaments.length}
+                </span>{" "}
+                {tournaments.length === 1 ? "tournament" : "tournaments"}
+                <span aria-hidden className="mx-1.5 text-slate-300">
+                  ·
+                </span>
+                <span className="font-bold text-slate-800">
+                  {events.length}
+                </span>{" "}
+                {events.length === 1 ? "event" : "events"}
+                <span aria-hidden className="mx-1.5 text-slate-300">
+                  ·
+                </span>
+                <span className="font-bold text-slate-800">{reviewTotal}</span>{" "}
+                verified {reviewTotal === 1 ? "review" : "reviews"}
+              </p>
+            )}
+          </div>
+          {!isEmptyFirstRun && <NewTournamentButton />}
+        </div>
+        <p className="mt-1 text-[13px] font-medium text-slate-500">
+          {isAdmin
             ? "Every tournament on the platform, in one place."
-            : "Manage your tournaments and the events under them."}
+            : "Every tournament and event you manage — publishing status, dates and verified reviews in one place."}
         </p>
       </div>
 
@@ -109,7 +152,7 @@ export default async function EventsDashboardPage({
           <EventsToolbar
             initialSearch={search}
             initialSort={sort}
-            showAdd
+            activeStatus={status}
             isAdmin={isAdmin}
             hasResults={tournaments.length > 0}
           />
@@ -118,14 +161,17 @@ export default async function EventsDashboardPage({
               compact
               title={<>No tournaments matched &quot;{search}&quot;.</>}
             />
+          ) : visibleTournaments.length === 0 ? (
+            <EmptyState compact title="No events match this filter." />
           ) : (
             <div className="space-y-5">
-              {tournaments.map((t) => (
+              {visibleTournaments.map((t) => (
                 <TournamentCard
                   key={t.id}
                   tournament={t}
                   events={eventsByTournament.get(t.id) ?? []}
                   seasons={seasonLabels}
+                  statusFilter={status}
                   canManage={canManageTournament(profile.user_type, t, user.id)}
                   manageableEventIds={(eventsByTournament.get(t.id) ?? [])
                     .filter((ev) =>
@@ -134,7 +180,9 @@ export default async function EventsDashboardPage({
                     .map((ev) => ev.id)}
                   showEventsByDefault={!isAdmin}
                   ownerName={
-                    isAdmin && t.owner_id ? ownerNames.get(t.owner_id) : undefined
+                    isAdmin && t.owner_id
+                      ? ownerNames.get(t.owner_id)
+                      : undefined
                   }
                   isAdmin={isAdmin}
                 />

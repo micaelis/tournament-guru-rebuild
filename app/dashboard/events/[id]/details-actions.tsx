@@ -9,6 +9,7 @@ import {
   CancelEventDialog,
   DELETE_EVENT_DIALOG_BODY,
   QRDialog,
+  UPGRADE_EVENT_DIALOG_BODY,
 } from "../EventActions";
 import { deleteEvent, duplicateEvent, upgradeEvent } from "../event-actions";
 
@@ -268,7 +269,7 @@ export function DetailsActionPanel({
         open={confirmUpgrade}
         destructive={false}
         title="Upgrade this event to premium?"
-        body="We'll unlock video, extra images, roster + registration URLs, and the full feature list. Payments aren't wired yet — the client will manage premium on-behalf while the app launches, so this is a free flip for now."
+        body={UPGRADE_EVENT_DIALOG_BODY}
         confirmLabel="Yes, upgrade"
         onClose={() => setConfirmUpgrade(false)}
         onConfirm={async () => {

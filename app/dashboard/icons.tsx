@@ -41,7 +41,11 @@ export type IconName =
   | "info"
   | "plus"
   | "image"
-  | "award";
+  | "award"
+  | "dots"
+  | "spark"
+  | "refresh"
+  | "close";
 
 const PATHS: Record<IconName, ReactNode> = {
   calendar: (
@@ -231,6 +235,33 @@ const PATHS: Record<IconName, ReactNode> = {
     <>
       <circle cx="12" cy="8" r="7" />
       <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88" />
+    </>
+  ),
+  dots: (
+    <>
+      <circle cx="5" cy="12" r="1" />
+      <circle cx="12" cy="12" r="1" />
+      <circle cx="19" cy="12" r="1" />
+    </>
+  ),
+  spark: (
+    <>
+      <path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z" />
+      <path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9L19 15z" />
+    </>
+  ),
+  refresh: (
+    <>
+      <path d="M3 12a9 9 0 0 1 9-9 9 9 0 0 1 6.7 3" />
+      <path d="M21 3v6h-6" />
+      <path d="M21 12a9 9 0 0 1-9 9 9 9 0 0 1-6.7-3" />
+      <path d="M3 21v-6h6" />
+    </>
+  ),
+  close: (
+    <>
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
     </>
   ),
 };

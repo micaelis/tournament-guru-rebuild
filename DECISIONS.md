@@ -3030,3 +3030,84 @@ Notable calls:
 - Per-section "Edit …" links all target the one-page editor (it has no
   step anchors); date range renders with collapsed month/year and a
   local-time parse so a date-only ISO never shifts a day west of UTC.
+
+### S12.34 · ED events list rebuilt to the approved compact redesign
+
+**What:** `/dashboard/events` goes from stacked tournament cards +
+metric strips to the approved design
+(`design/ed-events-list-redesign.html` + Danny's settled refinements):
+header with counts + "New tournament" pinned right, a white toolbar
+card (pill search, sort, status tabs — All/Published/Drafts/Concluded/
+Canceled riding a `status` URL param), soft-shadow tournament cards
+(eyebrow, Recurring tag, compact meta line, outline Add event / Edit
+tournament), and a dense aligned events table (logo/title/pills/host ·
+status · dates with relative hint + season chip · reviews & rating).
+Location is no longer a column. Clicking a row opens the internal
+details page. The MetricStrip tiles are replaced at both levels by one
+shared `RatingsBreakdown` (bg #fafafa, ✕ to close): three audience
+averages (Coach red, premium-only; Attendee amber), a BY CATEGORY tile
+grid, and Coach Experience as a would-attend-again METER (the details
+band's meter, never stars). All existing wiring preserved: server
+actions, dialogs, pagination, search/sort semantics, RLS-driven
+`canManage`, admin affordances (owner on the meta line, CSV, QR).
+Notable calls:
+- **Delete tournament moved inside the Edit dialog** — the card
+  surface carries only the two approved actions. ConfirmDialog's
+  buttons became `type="button"` so a dialog nested in the edit form
+  can't submit it.
+- **Row actions in fixed order Upgrade → Edit → "…"**; the dead
+  ★Upgrade no-op now opens the same premium-upgrade confirm the
+  details page uses (`UPGRADE_EVENT_DIALOG_BODY` shared; TODO: route
+  to the paid add-on flow when it exists). Upgrade appears only on
+  non-premium draft/upcoming/ongoing events.
+- **Concluded events stay editable; Canceled drop Edit** (overflow
+  only), and Cancel is offered only on upcoming/ongoing — canceling an
+  already-finished event was a nonsense affordance the old bar allowed.
+- **"Copy spectator reviews link"** copies the existing public
+  review-writing URL (`/events/[id]/review`) — a new affordance over an
+  existing route, no new page.
+- **Per-pool review counts under the Coach/Attendee averages are
+  descriptive lines** ("verified coaches" / "all attendees") — the
+  schema keeps only the total `review_count`; per-pool counts would
+  need a reviews query the list page shouldn't pay for. The
+  tournament-level would-return % is the events' percentages weighted
+  by review count — an approximation, flagged in code.
+- `EVENT_LIST_COLUMNS` gained `logo_url`, `registration_deadline`,
+  `coach_rating`, `would_return_pct` for the new cells; the events e2e
+  selectors and the dashboard heading test were updated to match
+  ("Events" title, delete-via-Edit-dialog).
+
+### S12.35 · Two-tier secondary buttons (outline / soft), events-list-scoped
+
+**What:** `Button` gains the settled two-tier secondary pair + an `xs`
+size: `outline` (white surface, 1px ink-navy border) for
+container-level actions, `soft` (slate-100 gray-blue fill, no border)
+for row-level actions subordinate to them. Used on the ED events list
+only; `secondary`/`ghost` elsewhere are untouched.
+
+**Why:** Danny's latest word on secondary chrome (supersedes the
+S12.31 ink-outline as the *only* secondary register): a page that
+stacks container actions above row actions needs two visibly different
+weights, and the S12.31 1.5px outline everywhere made tournament- and
+row-level controls read as peers. Scoped to this page because an
+app-wide swap is a design pass of its own — pages still on
+`secondary`/`ghost` that the rollout must revisit: dashboard account,
+banned-words, claim-requests, events (form + details), faqs, flagged,
+promo-codes, reviews, users; site event details + review flow; the
+shared reviews components and ui dialogs.
+
+### S12.36 · Status chips: Draft goes sky, Concluded goes ink-outline, every lifecycle pill gets a dot
+
+**What:** the Draft pill moves off the gray/amber family to the sky
+"blueprint" tint (sky-50/sky-700/sky-200); Concluded drops the gray
+slab for a crisp white-surface ink-outline (slate-400 border,
+slate-700 text); all five lifecycle tones now lead with a matching
+status dot. App-wide via the shared StatusPill tone map.
+
+**Why:** the old pair read as two grays at table size, and the amber
+draft treatment in the mockup collided with gold ratings one cell
+over. Sky is in the approved hue set (info tints), clearly distinct
+from Spotlight's violet (the constraint Danny called out) and from
+Upcoming's blue-800 text; the Concluded outline echoes the approved
+crisp-outline control chrome, keeping "finished" quiet without another
+slab. Dots make the five states scan as one family in the dense table.

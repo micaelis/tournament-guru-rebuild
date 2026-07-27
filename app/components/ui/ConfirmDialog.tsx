@@ -75,11 +75,19 @@ function ConfirmDialogInner({
           {title}
         </h3>
         {body && <p className="mt-2 text-sm text-slate-600">{body}</p>}
+        {/* type="button": the dialog can render inside a host <form>
+            (tournament edit) — its controls must never submit it. */}
         <div className="mt-6 flex justify-end gap-2">
-          <Button variant="ghost" onClick={onClose} disabled={pending}>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={onClose}
+            disabled={pending}
+          >
             {cancelLabel}
           </Button>
           <Button
+            type="button"
             variant={destructive ? "danger" : "primary"}
             onClick={handleConfirm}
             loading={pending}

@@ -1,17 +1,15 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
-import {
-  Button,
-  ConfirmDialog,
-  useToast,
-} from "@/app/components/ui";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { Button, ConfirmDialog, cn, useToast } from "@/app/components/ui";
+import { Icon } from "@/app/dashboard/icons";
 import { CANCEL_REASON_MAX } from "@/lib/enums";
 import {
   cancelEvent,
   deleteEvent,
   duplicateEvent,
+  upgradeEvent,
 } from "./event-actions";
 
 /**
@@ -21,90 +19,244 @@ import {
 export const DELETE_EVENT_DIALOG_BODY =
   "This action is permanent. Deleting this event won't remove the reviews people wrote for it — they're kept and stay visible on the reviewers' profiles.";
 
+/** Same single-source rule for the upgrade confirm (row + details page). */
+export const UPGRADE_EVENT_DIALOG_BODY =
+  "We'll unlock video, extra images, roster + registration URLs, and the full feature list. Payments aren't wired yet — the client will manage premium on-behalf while the app launches, so this is a free flip for now.";
+
+const MENU_ITEM_CLASS =
+  "flex w-full items-center gap-2.5 rounded-[9px] px-[11px] py-[9px] text-left text-[13px] font-semibold text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900";
+const MENU_ITEM_DANGER_CLASS =
+  "flex w-full items-center gap-2.5 rounded-[9px] px-[11px] py-[9px] text-left text-[13px] font-semibold text-red-700 transition-colors hover:bg-red-50";
+
 /**
- * Action bar for one event: Edit / Duplicate / Copy link / Upgrade
- * plus the destructive Cancel + Delete (behind confirmation modals).
- * Callers pass `canManage` — attendees never see this, and admins are
- * only shown Delete + Edit when they own (or created) the event.
+ * The row action pack: fixed order Upgrade → Edit → "…" so Edit and the
+ * overflow hold the same position on every row. Upgrade (solid accent
+ * red) appears only on non-premium draft/upcoming/ongoing events —
+ * concluded has nothing left to promote, canceled is read-only. Edit
+ * covers every status except Canceled (concluded events stay editable).
+ * Everything else lives in the overflow menu, adapted per status; all
+ * items wire to the same server actions and dialogs the details page
+ * uses. QR items are admin-only because the qr route itself rejects
+ * non-admins — the affordance mirrors the gate, it doesn't replace it.
  */
 export function EventActions({
   eventId,
   eventTitle,
-  lifecycle,
+  status,
   isPremium,
   canManage,
   isAdmin = false,
-  onUpgradeClick,
 }: {
   eventId: string;
   eventTitle: string;
-  lifecycle: "draft" | "active" | "canceled";
+  status: "Draft" | "Upcoming" | "Ongoing" | "Concluded" | "Canceled";
   isPremium: boolean;
   canManage: boolean;
   isAdmin?: boolean;
-  onUpgradeClick?: () => void;
 }) {
   const router = useRouter();
   const { push } = useToast();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
+  const [confirmUpgrade, setConfirmUpgrade] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuUp, setMenuUp] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
   const [, startTransition] = useTransition();
 
+  useEffect(() => {
+    if (!menuOpen) return;
+    function onPointerDown(e: MouseEvent) {
+      if (!menuRef.current?.contains(e.target as Node)) setMenuOpen(false);
+    }
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setMenuOpen(false);
+    }
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [menuOpen]);
+
+  const isDraft = status === "Draft";
+  const isCanceled = status === "Canceled";
+  const isLive = status === "Upcoming" || status === "Ongoing";
+  const showUpgrade = canManage && !isPremium && (isDraft || isLive);
+
+  async function copyToClipboard(url: string, confirmation: string) {
+    try {
+      await navigator.clipboard.writeText(url);
+      push("success", confirmation);
+    } catch {
+      push("error", "Couldn't copy — check your browser permissions.");
+    }
+  }
+
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <Button
-        size="sm"
-        variant="ghost"
-        onClick={() =>
-          router.push(`/dashboard/events/${eventId}/edit` as never)
-        }
-      >
-        Edit
-      </Button>
-      {canManage && (
+    <>
+      {showUpgrade && (
         <Button
-          size="sm"
-          variant="ghost"
-          onClick={() =>
-            startTransition(async () => {
-              const res = await duplicateEvent(eventId);
-              if (res.error) push("error", res.error);
-            })
-          }
+          variant="accent"
+          size="xs"
+          onClick={() => setConfirmUpgrade(true)}
         >
-          Duplicate
+          <Icon name="spark" className="h-3 w-3" />
+          Upgrade
         </Button>
       )}
-      <CopyLinkButton eventId={eventId} />
-      {canManage && !isPremium && (
-        <Button size="sm" onClick={onUpgradeClick}>
-          ★ Upgrade
-        </Button>
-      )}
-      {canManage && lifecycle === "active" && (
+      {!isCanceled && (
         <Button
-          size="sm"
-          variant="ghost"
-          onClick={() => setConfirmCancel(true)}
+          variant="soft"
+          size="xs"
+          onClick={() => router.push(`/dashboard/events/${eventId}/edit` as never)}
         >
-          Cancel event
+          <Icon name="edit" className="h-3 w-3" />
+          Edit
         </Button>
       )}
-      {isAdmin && (
-        <Button size="sm" variant="ghost" onClick={() => setQrOpen(true)}>
-          QR
-        </Button>
-      )}
-      {canManage && (
-        <Button
-          size="sm"
-          variant="danger"
-          onClick={() => setConfirmDelete(true)}
+      <div ref={menuRef} className="relative">
+        <button
+          type="button"
+          aria-haspopup="menu"
+          aria-expanded={menuOpen}
+          aria-label={`More actions for ${eventTitle}`}
+          onClick={() => {
+            if (!menuOpen) {
+              // Flip upward when the panel would fall below the viewport
+              // (last rows of a long card must never clip their menu).
+              const rect = menuRef.current?.getBoundingClientRect();
+              setMenuUp(
+                rect != null && window.innerHeight - rect.bottom < 320,
+              );
+            }
+            setMenuOpen((o) => !o);
+          }}
+          className={cn(
+            "grid h-[26px] w-[30px] place-items-center rounded-lg bg-slate-100 text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/15",
+            menuOpen && "bg-slate-200 text-slate-900",
+          )}
         >
-          Delete
-        </Button>
-      )}
+          <Icon name="dots" className="h-4 w-4" />
+        </button>
+        {menuOpen && (
+          <div
+            role="menu"
+            className={cn(
+              "absolute right-0 z-50 w-[244px] rounded-[14px] border border-slate-200 bg-white p-1.5 shadow-[0_18px_40px_-12px_rgba(15,23,42,.25)]",
+              menuUp ? "bottom-[calc(100%+6px)]" : "top-[calc(100%+6px)]",
+            )}
+          >
+            {canManage && (
+              <button
+                type="button"
+                role="menuitem"
+                className={MENU_ITEM_CLASS}
+                onClick={() => {
+                  setMenuOpen(false);
+                  startTransition(async () => {
+                    const res = await duplicateEvent(eventId);
+                    if (res?.error) push("error", res.error);
+                  });
+                }}
+              >
+                <Icon name="copy" className="h-[15px] w-[15px] text-slate-400" />
+                Duplicate
+              </button>
+            )}
+            {!isDraft && (
+              <>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className={MENU_ITEM_CLASS}
+                  onClick={() => {
+                    setMenuOpen(false);
+                    void copyToClipboard(
+                      `${window.location.origin}/events/${eventId}`,
+                      "Public link copied to clipboard.",
+                    );
+                  }}
+                >
+                  <Icon
+                    name="link"
+                    className="h-[15px] w-[15px] text-slate-400"
+                  />
+                  Copy public link
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className={MENU_ITEM_CLASS}
+                  onClick={() => {
+                    setMenuOpen(false);
+                    void copyToClipboard(
+                      `${window.location.origin}/events/${eventId}/review`,
+                      "Spectator reviews link copied to clipboard.",
+                    );
+                  }}
+                >
+                  <Icon
+                    name="star"
+                    className="h-[15px] w-[15px] text-slate-400"
+                  />
+                  Copy spectator reviews link
+                </button>
+                {isAdmin && (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className={MENU_ITEM_CLASS}
+                    onClick={() => {
+                      setMenuOpen(false);
+                      setQrOpen(true);
+                    }}
+                  >
+                    <Icon
+                      name="qr"
+                      className="h-[15px] w-[15px] text-slate-400"
+                    />
+                    View QR code
+                  </button>
+                )}
+              </>
+            )}
+            {canManage && (
+              <>
+                <div className="mx-1.5 my-1 h-px bg-slate-100" />
+                {canManage && isLive && (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className={MENU_ITEM_DANGER_CLASS}
+                    onClick={() => {
+                      setMenuOpen(false);
+                      setConfirmCancel(true);
+                    }}
+                  >
+                    <Icon name="ban" className="h-[15px] w-[15px]" />
+                    Cancel event
+                  </button>
+                )}
+                <button
+                  type="button"
+                  role="menuitem"
+                  className={MENU_ITEM_DANGER_CLASS}
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setConfirmDelete(true);
+                  }}
+                >
+                  <Icon name="trash" className="h-[15px] w-[15px]" />
+                  {isDraft ? "Delete draft" : "Delete event"}
+                </button>
+              </>
+            )}
+          </div>
+        )}
+      </div>
 
       <ConfirmDialog
         open={confirmDelete}
@@ -127,6 +279,24 @@ export function EventActions({
         onClose={() => setConfirmCancel(false)}
       />
 
+      {/* TODO: when the paid add-on / checkout flow ships, route there
+          instead of flipping the flag through this confirm. */}
+      <ConfirmDialog
+        open={confirmUpgrade}
+        destructive={false}
+        title="Upgrade this event to premium?"
+        body={UPGRADE_EVENT_DIALOG_BODY}
+        confirmLabel="Yes, upgrade"
+        onClose={() => setConfirmUpgrade(false)}
+        onConfirm={async () => {
+          const res = await upgradeEvent(eventId);
+          setConfirmUpgrade(false);
+          if (res.error) return push("error", res.error);
+          push("success", "Event upgraded to premium.");
+          router.refresh();
+        }}
+      />
+
       {isAdmin && (
         <QRDialog
           open={qrOpen}
@@ -135,7 +305,7 @@ export function EventActions({
           onClose={() => setQrOpen(false)}
         />
       )}
-    </div>
+    </>
   );
 }
 
@@ -190,38 +360,24 @@ export function QRDialog({
             Close
           </Button>
           <div className="flex gap-2">
-            <a href={pngHref} download onClick={() => push("success", "QR PNG downloaded.")}>
+            <a
+              href={pngHref}
+              download
+              onClick={() => push("success", "QR PNG downloaded.")}
+            >
               <Button variant="ghost">Download PNG</Button>
             </a>
-            <a href={pdfHref} download onClick={() => push("success", "QR PDF downloaded.")}>
+            <a
+              href={pdfHref}
+              download
+              onClick={() => push("success", "QR PDF downloaded.")}
+            >
               <Button>Download PDF</Button>
             </a>
           </div>
         </div>
       </div>
     </div>
-  );
-}
-
-/** Client copy-link → clipboard + confirmation toast. */
-function CopyLinkButton({ eventId }: { eventId: string }) {
-  const { push } = useToast();
-  return (
-    <Button
-      size="sm"
-      variant="ghost"
-      onClick={async () => {
-        const url = `${window.location.origin}/events/${eventId}`;
-        try {
-          await navigator.clipboard.writeText(url);
-          push("success", "Public link copied to clipboard.");
-        } catch {
-          push("error", "Couldn't copy — check your browser permissions.");
-        }
-      }}
-    >
-      Copy link
-    </Button>
   );
 }
 

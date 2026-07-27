@@ -6,13 +6,16 @@ import { cn } from "./cn";
  * treatment app-wide. `className` styles the wrapper (widths / flex
  * behavior); every other prop spreads onto the underlying
  * `<input type="search">`, which always carries `tg-control` plus the
- * icon inset.
+ * icon inset. `inputClassName` layers onto the input itself for shape
+ * overrides (the events toolbar's pill rounding).
  */
 export function SearchInput({
   className,
+  inputClassName,
   ...rest
 }: Omit<InputHTMLAttributes<HTMLInputElement>, "type" | "className"> & {
   className?: string;
+  inputClassName?: string;
 }) {
   return (
     <span className={cn("relative block", className)}>
@@ -31,7 +34,11 @@ export function SearchInput({
         <circle cx="11" cy="11" r="8" />
         <path d="M21 21l-4.35-4.35" />
       </svg>
-      <input type="search" {...rest} className="tg-control pl-10" />
+      <input
+        type="search"
+        {...rest}
+        className={cn("tg-control pl-10", inputClassName)}
+      />
     </span>
   );
 }
