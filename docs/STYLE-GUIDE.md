@@ -125,6 +125,13 @@ Build screens from these; don't hand-roll equivalents.
   container for tournaments, events, reviews, panels.
 - **Chip** — small pill: `count` (slate, neutral), `prem` (red, "Premium"), `spons` (violet,
   "Spotlight"), role/eyebrow variants. Uppercase, 10px, weight 800.
+- **HeaderCountChip** — the canonical **page-header count** (S12.41): a white pill beside
+  the page title — 22px circular slate-100 icon medallion, the count in Bricolage 800 ink,
+  quiet slate-500 label, hairline border + subtle shadow. Takes `{icon, count, label}`.
+  EVERY count that sits beside a page `<h1>` renders through it (FAQ answers/topics,
+  My Reviews reviews/published/drafts, ED events tournaments/events/reviews) — never a
+  plain-text "N things" subtext on the title line again. Scope is the PAGE header only:
+  inline sub-counts (a tournament group's "3 events" meta line) stay plain text.
 - **Switch** — the binary on/off toggle (notification channels). Controlled only, and
   deliberately **button-backed** (`role="switch"` + `aria-checked`), not a checkbox:
   React's automatic post-action form reset reverts checkbox DOM state to the page-load

@@ -16,7 +16,8 @@ import {
   type EventListRow,
   type EventStatusFilter,
 } from "./event-shared";
-import { EmptyState } from "@/app/components/ui";
+import { EmptyState, HeaderCountChip } from "@/app/components/ui";
+import { Icon } from "../icons";
 
 type SearchParams = { [key: string]: string | string[] | undefined };
 
@@ -108,29 +109,30 @@ export default async function EventsDashboardPage({
     <div className="space-y-5">
       <div>
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
-          <div className="flex min-w-0 flex-wrap items-baseline gap-x-3.5 gap-y-1">
+          <div className="flex min-w-0 flex-wrap items-center gap-x-3.5 gap-y-2">
             <h1 className="font-[var(--font-heading)] text-2xl font-extrabold tracking-tight text-slate-900">
               {isAdmin ? "All events" : "Events"}
             </h1>
             {tournaments.length > 0 && (
-              <p className="text-[13px] font-medium text-slate-500">
-                <span className="font-bold text-slate-800">
-                  {tournaments.length}
-                </span>{" "}
-                {tournaments.length === 1 ? "tournament" : "tournaments"}
-                <span aria-hidden className="mx-1.5 text-slate-300">
-                  ·
-                </span>
-                <span className="font-bold text-slate-800">
-                  {events.length}
-                </span>{" "}
-                {events.length === 1 ? "event" : "events"}
-                <span aria-hidden className="mx-1.5 text-slate-300">
-                  ·
-                </span>
-                <span className="font-bold text-slate-800">{reviewTotal}</span>{" "}
-                verified {reviewTotal === 1 ? "review" : "reviews"}
-              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <HeaderCountChip
+                  icon={<Icon name="award" className="h-3 w-3" />}
+                  count={tournaments.length}
+                  label={tournaments.length === 1 ? "tournament" : "tournaments"}
+                />
+                <HeaderCountChip
+                  icon={<Icon name="calendar" className="h-3 w-3" />}
+                  count={events.length}
+                  label={events.length === 1 ? "event" : "events"}
+                />
+                <HeaderCountChip
+                  icon={<Icon name="star" className="h-3 w-3" />}
+                  count={reviewTotal}
+                  label={
+                    reviewTotal === 1 ? "verified review" : "verified reviews"
+                  }
+                />
+              </div>
             )}
           </div>
           {!isEmptyFirstRun && <NewTournamentButton />}

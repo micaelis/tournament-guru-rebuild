@@ -4,6 +4,7 @@ export { Switch } from "./Switch";
 export { Card } from "./Card";
 export { ConfirmDialog } from "./ConfirmDialog";
 export { EmptyState } from "./EmptyState";
+export { HeaderCountChip } from "./HeaderCountChip";
 export { FormButton } from "./FormButton";
 export { MetricStrip, MetricTile, type MetricTileData } from "./MetricStrip";
 export { RemoveIconButton } from "./RemoveIconButton";

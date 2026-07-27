@@ -3214,3 +3214,26 @@ exist yet, while "payments powered by" reads as a statement about
 what's coming — consistent with the amber coming-soon banner.
 **Alternative rejected:** keeping the mockup caption verbatim — wrong
 until payments actually ship.
+
+### S12.41 · HeaderCountChip is the app-wide page-header count; ED events header retrofitted
+
+**What:** new `app/components/ui/HeaderCountChip.tsx` — the FAQ mockup's
+`.stat-chip` (white pill, 22px circular slate medallion, Bricolage-800
+count, slate-500 label) as a shared `{icon, count, label}` primitive,
+now the ONE header-count treatment. The shipped ED events-list header
+(`app/dashboard/events/page.tsx`) swaps its plain-text
+"N tournaments · N events · N verified reviews" subtext for three
+chips (`award` / `calendar` / `star`); the `<h1>` and everything below
+the header (toolbar, status tabs, rows, actions) are untouched, and the
+per-tournament GROUP sub-counts ("3 events" inside each TournamentCard)
+deliberately stay plain text — the decision covers page headers only.
+
+**Why:** Danny's 07/27 call: header counts = pill-chips app-wide (FAQ /
+My Reviews / ED events-list share one chip), overriding the "quiet
+subtext" both list mockups had sketched — one treatment, so dashboards
+don't re-diverge. The retrofit keeps all THREE shipped counts as three
+chips rather than the single "[calendar] N events" chip the prompt
+sketched: the shipped header carries tournaments + verified-reviews
+counts too, and a treatment swap must not silently drop information.
+**Alternative rejected:** a bespoke chip per page (the S12.34 events
+header and the My Reviews count pill were already drifting apart).
