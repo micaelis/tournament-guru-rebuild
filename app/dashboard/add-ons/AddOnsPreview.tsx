@@ -261,6 +261,10 @@ function PremiumPanel({
             <CheckItem title="Hyperlinks to team lists">
               Send coaches straight to your registered team lists.
             </CheckItem>
+            <CheckItem title="Key dates & deadlines timeline">
+              Publish the milestone dates families track, right on your event
+              page.
+            </CheckItem>
             <CheckItem title="Weekly Featured Events email listing">
               Your event lands in subscriber inboxes every week.
             </CheckItem>

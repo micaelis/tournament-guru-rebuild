@@ -706,14 +706,25 @@ full `ImageUploadField` row until its value lands.
   "Upgrade this event" CTA — S12.18/S12.46); the images section notes the free-tier
   cap when it's hit. For EDs the CTA opens the coming-soon **Add-on Details**
   preview (§2.4.4); for admins it opens the on-behalf upgrade confirm, and
-  upgrading (Stripe deferred — see §10) reveals a visually distinct **premium section**,
-  scrolls to it, and shows a popup confirming the event is now premium and will
-  appear in top searches. The premium section adds: **Teams** (this-year teams
-  URL, previous-year teams URL, registration URL, teams-attended-previous-year),
-  **Additional Features** (Stay to Play, Restrooms, Concessions, Accessible,
-  Free Wifi, Pet Friendly, Free Parking, Synthetic Turf), **Event Images** (10
-  more, 13 total, no upgrade placeholder), and **Event Video** (≤ 200MB;
-  direct-to-storage; rendered first in the media grid, scaling around images).
+  upgrading (Stripe deferred — see §10) reveals the **premium sections**,
+  scrolls to them, and shows a popup confirming the event is now premium and will
+  appear in top searches. Premium adds three form sections (each a flat card with
+  the solid-red Premium tag in its header — S12.47): **Extras unlocked** (this-year
+  teams URL, previous-year teams URL, registration URL, teams-attended-previous-
+  year, and **Event Video** ≤ 200MB, direct-to-storage, rendered first in the
+  media grid, scaling around images), **Additional features** — selectable icon
+  TILES over the same list (Stay to Play, Restrooms, Concessions, Accessible,
+  Free Wifi, Pet Friendly, Free Parking, Synthetic Turf) — and **Key dates &
+  deadlines** (below). Premium also raises the image cap (**Event Images**: 10
+  more, 13 total, no upgrade placeholder).
+- **Key dates & deadlines are PREMIUM-only (S12.47).** The milestones editor
+  (rows of date + title + optional description) renders only for premium events,
+  and the save action ignores milestone writes for non-premium events — a free
+  event's save persists no milestones regardless of the client payload (app-layer
+  guard over the replace-all RPC; no schema change). When any milestone exists,
+  the editor pins a READ-ONLY **"Tournament Kicks Off"** anchor row marked
+  *Required* — it is the event's **start date**, derived for display, never a
+  stored milestone or a new validation rule; it anchors the public timeline.
 
 **Save vs Publish.** **Draft** requires only the title and is visible only on
 the ED's own dashboard (RLS: draft = creator-only). **Publish** requires all

@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { cn } from "@/app/components/ui/cn";
+import { Icon, type IconName } from "../icons";
 
 export function CheckGlyph() {
   return (
@@ -55,6 +56,101 @@ export function MultiSelectPills<T extends string>({
             >
               {active && <CheckGlyph />}
               {opt.label}
+            </button>
+          );
+        })}
+      </div>
+      {error && (
+        <p className="mt-1 text-xs font-medium text-red-600">{error}</p>
+      )}
+    </div>
+  );
+}
+
+/** Amenity glyph per EVENT_FEATURES value (feature tiles, S12.47). */
+const FEATURE_ICONS: Record<string, IconName> = {
+  stay_to_play: "home",
+  restrooms: "restroom",
+  concessions: "cup",
+  accessible: "accessible",
+  free_wifi: "wifi",
+  pet_friendly: "paw",
+  free_parking: "parking",
+  synthetic_turf: "grass",
+};
+
+/**
+ * Elevated selectable feature tiles (icon + label + check box) over the
+ * EVENT_FEATURES list — the premium "Additional features" treatment.
+ * Same value contract as MultiSelectPills: toggles membership in a
+ * string array; selected = the app-wide red tint (S12.3).
+ */
+export function FeatureTiles<T extends string>({
+  options,
+  value,
+  onChange,
+  error,
+}: {
+  options: readonly { value: T; label: string }[];
+  value: T[];
+  onChange: (next: T[]) => void;
+  error?: string;
+}) {
+  return (
+    <div>
+      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+        {options.map((opt) => {
+          const active = value.includes(opt.value);
+          return (
+            <button
+              key={opt.value}
+              type="button"
+              aria-pressed={active}
+              onClick={() =>
+                onChange(
+                  active
+                    ? value.filter((v) => v !== opt.value)
+                    : [...value, opt.value],
+                )
+              }
+              className={cn(
+                "flex items-center gap-2.5 rounded-xl border p-2.5 pr-3 text-left transition hover:-translate-y-px",
+                active
+                  ? "border-red-600 bg-red-50 hover:shadow-[0_8px_18px_-14px_rgba(220,38,38,.5)]"
+                  : "border-slate-200 bg-white hover:border-slate-300 hover:shadow-[0_8px_18px_-14px_rgba(15,23,42,.4)]",
+              )}
+            >
+              <span
+                className={cn(
+                  "grid h-[30px] w-[30px] flex-none place-items-center rounded-lg",
+                  active
+                    ? "bg-red-100 text-red-600"
+                    : "bg-slate-100 text-slate-500",
+                )}
+              >
+                <Icon
+                  name={FEATURE_ICONS[opt.value] ?? "check"}
+                  className="h-4 w-4"
+                />
+              </span>
+              <span
+                className={cn(
+                  "min-w-0 flex-1 truncate text-[12.5px] font-semibold",
+                  active ? "text-red-700" : "text-slate-700",
+                )}
+              >
+                {opt.label}
+              </span>
+              <span
+                className={cn(
+                  "grid h-[18px] w-[18px] flex-none place-items-center rounded-md border-[1.5px]",
+                  active
+                    ? "border-red-600 bg-red-600 text-white"
+                    : "border-slate-300 text-transparent",
+                )}
+              >
+                <CheckGlyph />
+              </span>
             </button>
           );
         })}

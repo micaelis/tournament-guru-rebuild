@@ -14,6 +14,7 @@ import {
 import {
   collectEventFieldErrors,
   meaningfulSponsors,
+  milestonesForSave,
   type AgeGroupInput,
   type MilestoneInput,
   type SponsorInput,
@@ -166,7 +167,9 @@ export async function saveEvent(
   const lifecycle: "draft" | "active" | null =
     intent === "update" ? null : intent === "publish" ? "active" : "draft";
 
-  const validMilestones = milestones.filter((m) => m.title.trim());
+  // Key dates are premium-only: a non-premium save ignores the client's
+  // milestone payload (the replace-all RPC then persists none).
+  const validMilestones = milestonesForSave(currentPremium, milestones);
 
   // The save_event_graph RPC writes the base row + every child
   // replace-all in one transaction: a late child failure rolls back the

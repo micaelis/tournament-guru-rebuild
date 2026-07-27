@@ -3385,3 +3385,35 @@ it.** e2e now pins the gender-chip → `age_groups` payload on draft and
 publish. Follow-up: hover-lift now covers buttons/chips/pills/tiles in
 the form; toolbar chips elsewhere (search filter chips already have
 their own S12.x treatment) were left as-is.
+
+### S12.47 · Key dates & deadlines become premium-only; Additional features become icon tiles
+
+**What:** The event form's premium block is now three flat-card
+sections (Extras unlocked · Additional features · Key dates &
+deadlines), each carrying the solid-red Premium tag in its header —
+the amber gradient slab is gone. Additional features render as
+elevated selectable icon tiles (amenity glyph + label + check box,
+red-tint selected) over the unchanged `EVENT_FEATURES` values. The
+milestones editor moved inside the premium gate: compact
+date/title/description rows in one divided container, "Add milestone"
+in the header slot, and — whenever any milestone exists — a pinned
+READ-ONLY "Tournament Kicks Off" row marked *Required* that displays
+the event's live start date. The save action mirrors the gate:
+`milestonesForSave` (event-validation.ts, unit-tested) returns `[]`
+for non-premium events, so a free event's save ignores whatever
+milestone payload the client sent. The premium perk copy (form
+banner, admin upgrade confirm, add-ons "What's included") now names
+key dates & deadlines.
+
+**Why:** the baseline schema already declared `event_milestones` a
+premium feature ("Key Dates & Deadlines (premium)") — the form
+offering the editor to everyone was drift, and the mockup review
+locked it behind Premium as an upsell. The kick-off anchor is DERIVED
+from `start_date` (no stored row, no new validation rule) so the
+timeline always has its endpoint without a second source of truth.
+**Known consequence of the replace-all RPC:** a non-premium save
+actively clears any legacy milestones a free event carried from the
+pre-gate form — intended convergence (the editor is hidden, the
+public timeline is premium-only, and pre-launch data makes the loss
+theoretical). e2e pins the section's absence on free events and its
+appearance after the premium flip; the milestone gate is unit-pinned.

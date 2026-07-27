@@ -12,7 +12,9 @@ import { describe, expect, it } from "vitest";
 import {
   collectEventFieldErrors,
   meaningfulSponsors,
+  milestonesForSave,
   type EventBaseFacts,
+  type MilestoneInput,
   type SponsorInput,
 } from "@/app/dashboard/events/event-validation";
 
@@ -154,5 +156,30 @@ describe("collectEventFieldErrors — publish/update", () => {
     ]) {
       expect(errors[key], key).toBeDefined();
     }
+  });
+});
+
+describe("milestonesForSave (S12.47 — key dates are premium-only)", () => {
+  const rows: MilestoneInput[] = [
+    {
+      title: "Early-Bird Pricing Ends",
+      milestone_date: "2027-05-19",
+      description: "Save $50 per team",
+    },
+    { title: "", milestone_date: "", description: "" }, // untouched scaffold
+    { title: "  Registration Deadline  ", milestone_date: "2027-06-12", description: "" },
+  ];
+
+  it("a non-premium save ignores the milestone payload entirely", () => {
+    expect(milestonesForSave(false, rows)).toEqual([]);
+  });
+
+  it("a premium save keeps titled rows (dates/descriptions untouched) and drops blank scaffolds", () => {
+    expect(milestonesForSave(true, rows)).toEqual([rows[0], rows[2]]);
+  });
+
+  it("tolerates a crafted payload with a non-string title", () => {
+    const crafted = [{ milestone_date: "2027-01-01" }] as unknown as MilestoneInput[];
+    expect(milestonesForSave(true, crafted)).toEqual([]);
   });
 });

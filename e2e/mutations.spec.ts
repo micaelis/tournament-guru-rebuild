@@ -8,10 +8,12 @@ import {
   seedTournament,
   deleteTournament,
   seedEvent,
+  seedCompleteEvent,
   deleteEvent,
   deleteSubmittedCsvsForEvent,
   deleteBannedWord,
   getEventAgeGroups,
+  setEventPremium,
   type SeededUser,
 } from "./helpers/db";
 import { signIn } from "./helpers/auth";
@@ -348,6 +350,51 @@ test.describe("Event director — create event", () => {
     } finally {
       if (createdEventId) await deleteEvent(createdEventId);
       if (tournamentId) await deleteTournament(tournamentId);
+      if (ed) await deleteUser(ed.id);
+    }
+  });
+});
+
+test.describe("Event form — premium sections gate", () => {
+  test("Key dates & deadlines hides on free events and appears once premium", async ({
+    page,
+  }) => {
+    let ed: SeededUser | undefined;
+    let seeded: { tournamentId: string; eventId: string } | undefined;
+    try {
+      ed = await createEventDirector({ completeOnboarding: true });
+      seeded = await seedCompleteEvent(ed.id, { lifecycle: "draft" });
+      await signIn(page, ed.email, ed.password);
+
+      // Free event: the premium sections (S12.47) must not render.
+      await page.goto(`/dashboard/events/${seeded.eventId}/edit`);
+      await expect(
+        page.getByRole("heading", { name: "The basics" }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("heading", { name: "Key dates & deadlines" }),
+      ).toHaveCount(0);
+      await expect(
+        page.getByRole("heading", { name: "Additional features" }),
+      ).toHaveCount(0);
+
+      // Premium flip → the sections appear with their header controls.
+      await setEventPremium(seeded.eventId, true);
+      await page.reload();
+      await expect(
+        page.getByRole("heading", { name: "Key dates & deadlines" }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: "Add milestone" }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("heading", { name: "Additional features" }),
+      ).toBeVisible();
+    } finally {
+      if (seeded) {
+        await deleteEvent(seeded.eventId);
+        await deleteTournament(seeded.tournamentId);
+      }
       if (ed) await deleteUser(ed.id);
     }
   });

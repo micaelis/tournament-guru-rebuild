@@ -45,7 +45,25 @@ export type EventBaseFacts = {
 };
 
 /**
- * Sponsor rows with ANY user-entered text. "+ Add sponsor" seeds an
+ * Milestones are a premium feature (the Key dates & deadlines editor
+ * only renders for premium events): the save path ignores whatever
+ * milestone payload a stale or crafted client sends for a non-premium
+ * event and writes the section's canonical state — none — through the
+ * replace-all RPC. Premium saves keep rows with a real title (blank
+ * "Add milestone" scaffolds are dropped, matching the sponsor rule).
+ */
+export function milestonesForSave(
+  isPremium: boolean,
+  rows: MilestoneInput[],
+): MilestoneInput[] {
+  if (!isPremium) return [];
+  return rows.filter(
+    (m) => typeof m.title === "string" && m.title.trim() !== "",
+  );
+}
+
+/**
+ * Sponsor rows with ANY user-entered text. "Add sponsor" seeds an
  * all-blank row; treating that scaffolding as a real sponsor made
  * "Save as draft" fail with "sponsor logo is invalid" on forms with no
  * sponsor at all. Blank rows are never validated and never saved.

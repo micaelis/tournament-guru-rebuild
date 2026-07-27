@@ -15,6 +15,7 @@ import { Alert, Field } from "../../(auth)/parts";
 import { LocationAutocomplete } from "@/app/components/LocationAutocomplete";
 import {
   CheckGlyph,
+  FeatureTiles,
   IconInput,
   LabeledField,
   MultiSelectPills,
@@ -39,7 +40,7 @@ import {
 } from "@/app/components/ui";
 import { SafeImg } from "@/app/components/ui/SafeImg";
 import { cn } from "@/app/components/ui/cn";
-import { USDateText } from "@/app/components/ui/USDateInput";
+import { USDateText, usFromIso } from "@/app/components/ui/USDateInput";
 import { useLiveValidation } from "@/app/components/ui/useLiveValidation";
 import { useSubmittedValues } from "@/app/components/ui/useSubmittedValues";
 import { safeExternalUrl, safeImageSrc } from "@/lib/url";
@@ -155,6 +156,11 @@ export function EventForm({
   const [features, setFeatures] = useState<string[]>(defaults.features);
   const [images, setImages] = useState<string[]>(defaults.images);
   const [liveTitle, setLiveTitle] = useState(defaults.base.title);
+  // Live start date feeds the derived "Tournament Kicks Off" anchor in
+  // the premium Key dates section — display-only, never a stored row.
+  const [liveStartIso, setLiveStartIso] = useState(
+    values.start_date ?? defaults.base.start_date,
+  );
   const [logoUrl, setLogoUrl] = useState(
     values.logo_url ?? defaults.base.logo_url,
   );
@@ -225,8 +231,8 @@ export function EventForm({
                 Unlock premium features
               </p>
               <p className="mt-0.5 text-[12.5px] text-slate-600">
-                Video, up to 13 images, team roster links, and the full
-                features list.
+                Video, up to 13 images, team roster links, key dates &amp;
+                deadlines, and the full features list.
               </p>
             </div>
           </div>
@@ -347,9 +353,10 @@ export function EventForm({
               className="tg-control"
               defaultIso={values.start_date ?? defaults.base.start_date}
               aria-invalid={startDateError ? true : undefined}
-              onIsoChange={(iso) =>
-                revalidateStartDate({ value: iso, checkValidity: () => iso !== "" })
-              }
+              onIsoChange={(iso) => {
+                setLiveStartIso(iso);
+                revalidateStartDate({ value: iso, checkValidity: () => iso !== "" });
+              }}
             />
           </LabeledField>
           <LabeledField
@@ -608,14 +615,144 @@ export function EventForm({
         />
       </section>
 
-      <section className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6">
-        <SectionHeader
-          icon="flag"
-          title="Key dates"
-          subtitle="Optional — milestones like registration open, team assignments, etc."
-        />
-        <MilestonesEditor value={milestones} onChange={setMilestones} />
-      </section>
+      {/* Premium sections — Extras, feature tiles, and Key dates all
+          render only for premium events; the save action mirrors the
+          gate for milestones (milestonesForSave). */}
+      {isPremium && (
+        <>
+          <section
+            ref={premiumSectionRef}
+            className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6"
+          >
+            <SectionHeader
+              icon="spark"
+              title="Extras unlocked"
+              subtitle="Video, roster and registration links, and last year's numbers."
+              action={<PremiumTag />}
+            />
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+              <LabeledField
+                label="Teams this year (URL)"
+                htmlFor="teams_this_year_url"
+                hint="Link to the applied-teams page for this season."
+              >
+                <IconInput
+                  id="teams_this_year_url"
+                  name="teams_this_year_url"
+                  type="url"
+                  defaultValue={
+                    values.teams_this_year_url ??
+                    defaults.base.teams_this_year_url
+                  }
+                  placeholder="https://…"
+                  icon={<span className="text-xs font-bold">→</span>}
+                />
+              </LabeledField>
+              <LabeledField
+                label="Teams last year (URL)"
+                htmlFor="teams_prev_year_url"
+              >
+                <IconInput
+                  id="teams_prev_year_url"
+                  name="teams_prev_year_url"
+                  type="url"
+                  defaultValue={
+                    values.teams_prev_year_url ??
+                    defaults.base.teams_prev_year_url
+                  }
+                  placeholder="https://…"
+                  icon={<span className="text-xs font-bold">→</span>}
+                />
+              </LabeledField>
+              <LabeledField label="Registration URL" htmlFor="registration_url">
+                <IconInput
+                  id="registration_url"
+                  name="registration_url"
+                  type="url"
+                  defaultValue={
+                    values.registration_url ?? defaults.base.registration_url
+                  }
+                  placeholder="https://…"
+                  icon={<span className="text-xs font-bold">→</span>}
+                />
+              </LabeledField>
+              <LabeledField
+                label="Teams last year (count)"
+                htmlFor="teams_attended_prev_year"
+              >
+                <input
+                  id="teams_attended_prev_year"
+                  name="teams_attended_prev_year"
+                  type="number"
+                  min={0}
+                  defaultValue={
+                    values.teams_attended_prev_year ??
+                    defaults.base.teams_attended_prev_year
+                  }
+                  className="tg-control"
+                />
+              </LabeledField>
+              <LabeledField label="Event video (URL)" htmlFor="video_url">
+                <IconInput
+                  id="video_url"
+                  name="video_url"
+                  type="url"
+                  defaultValue={values.video_url ?? defaults.base.video_url}
+                  placeholder="https://…"
+                  icon={<span className="text-xs font-bold">▶</span>}
+                />
+              </LabeledField>
+            </div>
+          </section>
+
+          <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6">
+            <SectionHeader
+              icon="check"
+              title="Additional features"
+              subtitle="On-site amenities shown on your public listing."
+              action={<PremiumTag />}
+            />
+            <FeatureTiles
+              options={EVENT_FEATURES}
+              value={features}
+              onChange={setFeatures}
+              error={state.fieldErrors?.features}
+            />
+          </section>
+
+          <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6">
+            <SectionHeader
+              icon="flag"
+              title="Key dates & deadlines"
+              subtitle="Milestones families track — shown as a timeline on your event page."
+              action={
+                <>
+                  <PremiumTag />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() =>
+                      setMilestones([
+                        ...milestones,
+                        { title: "", milestone_date: "", description: "" },
+                      ])
+                    }
+                  >
+                    <Icon name="plus" className="h-4 w-4" />
+                    Add milestone
+                  </Button>
+                </>
+              }
+            />
+            <MilestonesEditor
+              value={milestones}
+              onChange={setMilestones}
+              startIso={liveStartIso}
+            />
+          </section>
+        </>
+      )}
 
       <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6">
         <SectionHeader
@@ -638,110 +775,6 @@ export function EventForm({
         />
       </section>
 
-      {isPremium && (
-        <section
-          ref={premiumSectionRef}
-          className="space-y-5 rounded-2xl border-2 border-amber-400 bg-gradient-to-br from-amber-50 to-white p-6"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-amber-900">
-                Premium
-              </p>
-              <h2 className="mt-1 font-[var(--font-heading)] text-xl font-extrabold text-slate-900">
-                Extras unlocked
-              </h2>
-              <p className="mt-1 text-sm text-slate-500">
-                Videos, external roster links, and the full features list.
-              </p>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-            <LabeledField
-              label="Teams this year (URL)"
-              htmlFor="teams_this_year_url"
-              hint="Link to the applied-teams page for this season."
-            >
-              <IconInput
-                id="teams_this_year_url"
-                name="teams_this_year_url"
-                type="url"
-                defaultValue={
-                  values.teams_this_year_url ??
-                  defaults.base.teams_this_year_url
-                }
-                placeholder="https://…"
-                icon={<span className="text-xs font-bold">→</span>}
-              />
-            </LabeledField>
-            <LabeledField
-              label="Teams last year (URL)"
-              htmlFor="teams_prev_year_url"
-            >
-              <IconInput
-                id="teams_prev_year_url"
-                name="teams_prev_year_url"
-                type="url"
-                defaultValue={
-                  values.teams_prev_year_url ??
-                  defaults.base.teams_prev_year_url
-                }
-                placeholder="https://…"
-                icon={<span className="text-xs font-bold">→</span>}
-              />
-            </LabeledField>
-            <LabeledField label="Registration URL" htmlFor="registration_url">
-              <IconInput
-                id="registration_url"
-                name="registration_url"
-                type="url"
-                defaultValue={
-                  values.registration_url ?? defaults.base.registration_url
-                }
-                placeholder="https://…"
-                icon={<span className="text-xs font-bold">→</span>}
-              />
-            </LabeledField>
-            <LabeledField
-              label="Teams last year (count)"
-              htmlFor="teams_attended_prev_year"
-            >
-              <input
-                id="teams_attended_prev_year"
-                name="teams_attended_prev_year"
-                type="number"
-                min={0}
-                defaultValue={
-                  values.teams_attended_prev_year ??
-                  defaults.base.teams_attended_prev_year
-                }
-                className="tg-control"
-              />
-            </LabeledField>
-            <LabeledField label="Event video (URL)" htmlFor="video_url">
-              <IconInput
-                id="video_url"
-                name="video_url"
-                type="url"
-                defaultValue={values.video_url ?? defaults.base.video_url}
-                placeholder="https://…"
-                icon={<span className="text-xs font-bold">▶</span>}
-              />
-            </LabeledField>
-          </div>
-          <LabeledField
-            label="Additional features"
-            error={state.fieldErrors?.features}
-          >
-            <MultiSelectPills
-              options={EVENT_FEATURES}
-              value={features}
-              onChange={setFeatures}
-            />
-          </LabeledField>
-        </section>
-      )}
-
       {/* Admin-only: the on-behalf premium flip while payments are
           deferred. EDs' "Upgrade this event" routes to the coming-soon
           add-ons preview instead of opening this confirm. */}
@@ -750,7 +783,7 @@ export function EventForm({
           open={upgradeOpen}
           destructive={false}
           title="Upgrade this event to premium?"
-          body="We'll unlock video, extra images, roster + registration URLs, and the full feature list. Payments aren't wired yet — the client will manage premium on-behalf while the app launches, so this is a free flip for now."
+          body="We'll unlock video, extra images, roster + registration URLs, key dates & deadlines, and the full feature list. Payments aren't wired yet — the client will manage premium on-behalf while the app launches, so this is a free flip for now."
           confirmLabel="Yes, upgrade"
           onClose={() => setUpgradeOpen(false)}
           onConfirm={async () => {
@@ -1125,78 +1158,135 @@ function SponsorsEditor({
   );
 }
 
+/** Solid red premium marker — STYLE-GUIDE §6: violet is reserved for
+ * Spotlight, so premium labels are always red. */
+function PremiumTag() {
+  return (
+    <span className="inline-flex items-center rounded-full bg-red-600 px-2.5 py-[3px] font-[var(--font-heading)] text-[9px] font-extrabold uppercase tracking-[0.07em] text-white">
+      Premium
+    </span>
+  );
+}
+
 function MilestonesEditor({
   value,
   onChange,
+  startIso,
 }: {
   value: MilestoneInput[];
   onChange: (next: MilestoneInput[]) => void;
+  /** The event's live start date (ISO) — feeds the pinned, read-only
+   * "Tournament Kicks Off" anchor row. Derived, never stored. */
+  startIso: string;
 }) {
+  const update = (i: number, patch: Partial<MilestoneInput>) =>
+    onChange(value.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
+  const columns =
+    "md:grid-cols-[150px_minmax(0,1fr)_minmax(0,1fr)_32px]";
   return (
     <div className="space-y-3">
-      {value.map((row, i) => (
-        <div
-          key={i}
-          className="grid grid-cols-1 items-end gap-3 rounded-xl border border-slate-200 bg-slate-50/60 p-4 md:grid-cols-[1fr_auto_1fr_auto]"
-        >
-          <LabeledField label="Title" htmlFor={`ms_t_${i}`}>
-            <input
-              id={`ms_t_${i}`}
-              className="tg-control"
-              value={row.title}
-              onChange={(e) =>
-                onChange(
-                  value.map((r, idx) =>
-                    idx === i ? { ...r, title: e.target.value } : r,
-                  ),
-                )
-              }
-            />
-          </LabeledField>
-          <LabeledField label="Date" htmlFor={`ms_d_${i}`}>
-            <USDateText
-              id={`ms_d_${i}`}
-              calendar
-              className="tg-control"
-              iso={row.milestone_date}
-              onIsoChange={(iso) =>
-                onChange(
-                  value.map((r, idx) =>
-                    idx === i ? { ...r, milestone_date: iso } : r,
-                  ),
-                )
-              }
-            />
-          </LabeledField>
-          <LabeledField label="Description" htmlFor={`ms_desc_${i}`}>
-            <input
-              id={`ms_desc_${i}`}
-              className="tg-control"
-              value={row.description}
-              onChange={(e) =>
-                onChange(
-                  value.map((r, idx) =>
-                    idx === i ? { ...r, description: e.target.value } : r,
-                  ),
-                )
-              }
-            />
-          </LabeledField>
-          <RemoveIconButton
-            label={`Remove milestone ${i + 1}`}
-            onClick={() => onChange(value.filter((_, idx) => idx !== i))}
-          />
-        </div>
-      ))}
-      <Button
-        type="button"
-        variant="secondary"
-        onClick={() =>
-          onChange([...value, { title: "", milestone_date: "", description: "" }])
-        }
-      >
-        + Add milestone
-      </Button>
+      {value.length > 0 && (
+        <>
+          <div className="overflow-hidden rounded-xl border border-slate-200">
+            <div
+              className={cn(
+                "hidden gap-2.5 bg-slate-50 px-3 py-2 md:grid",
+                columns,
+              )}
+            >
+              <MiniLabel>Date</MiniLabel>
+              <MiniLabel>Title</MiniLabel>
+              <MiniLabel>Description</MiniLabel>
+              <span />
+            </div>
+            <div className="divide-y divide-slate-100 md:border-t md:border-slate-100">
+              {value.map((row, i) => (
+                <div
+                  key={i}
+                  className={cn(
+                    "grid grid-cols-1 items-center gap-2.5 px-3 py-2.5",
+                    columns,
+                  )}
+                >
+                  <USDateText
+                    aria-label={`Milestone ${i + 1} date`}
+                    calendar
+                    className="tg-control tg-control-sm"
+                    iso={row.milestone_date}
+                    onIsoChange={(iso) => update(i, { milestone_date: iso })}
+                  />
+                  <input
+                    aria-label={`Milestone ${i + 1} title`}
+                    className="tg-control tg-control-sm"
+                    placeholder="Milestone title"
+                    value={row.title}
+                    onChange={(e) => update(i, { title: e.target.value })}
+                  />
+                  <input
+                    aria-label={`Milestone ${i + 1} description`}
+                    className="tg-control tg-control-sm"
+                    placeholder="Optional description"
+                    value={row.description}
+                    onChange={(e) => update(i, { description: e.target.value })}
+                  />
+                  <RemoveIconButton
+                    size="sm"
+                    label={`Remove milestone ${i + 1}`}
+                    onClick={() =>
+                      onChange(value.filter((_, idx) => idx !== i))
+                    }
+                  />
+                </div>
+              ))}
+              {/* Pinned READ-ONLY anchor: the event's start date shown as
+                  the required kick-off milestone. Derived display — no
+                  stored row, no new validation rule. */}
+              <div
+                className={cn(
+                  "grid grid-cols-1 items-center gap-2.5 bg-red-50/60 px-3 py-2.5",
+                  columns,
+                )}
+              >
+                <div className="relative">
+                  <span
+                    aria-hidden="true"
+                    className="absolute inset-y-0 left-0 grid w-8 place-items-center text-red-600"
+                  >
+                    <Icon name="flag" className="h-4 w-4" />
+                  </span>
+                  <input
+                    aria-label="Tournament kick-off date (the event's start date)"
+                    readOnly
+                    tabIndex={-1}
+                    value={usFromIso(startIso)}
+                    placeholder="mm/dd/yyyy"
+                    className="tg-control tg-control-sm border-red-200 pl-8 font-semibold"
+                  />
+                </div>
+                <div className="flex items-center gap-2 md:col-span-2">
+                  <input
+                    aria-label="Tournament kick-off milestone title"
+                    readOnly
+                    tabIndex={-1}
+                    value="Tournament Kicks Off"
+                    className="tg-control tg-control-sm border-red-200 font-bold"
+                  />
+                  <span className="inline-flex flex-none items-center rounded-full border border-red-200 bg-red-50 px-2.5 py-[3px] font-[var(--font-heading)] text-[9px] font-extrabold uppercase tracking-[0.07em] text-red-700">
+                    Required
+                  </span>
+                </div>
+                <span />
+              </div>
+            </div>
+          </div>
+          <p className="text-[11.5px] text-slate-500">
+            If you add milestones, the{" "}
+            <b className="font-bold text-slate-700">Tournament Kicks Off</b>{" "}
+            date is required — it anchors the timeline on your event page and
+            is always your event&apos;s start date.
+          </p>
+        </>
+      )}
     </div>
   );
 }
