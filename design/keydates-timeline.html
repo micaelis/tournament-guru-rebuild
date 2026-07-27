@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<!--
+  Tournament Guru — KEY DATES & DEADLINES timeline (event-details pages, public + internal ED).
+  Design artifact. Restyles the existing premium-only KeyDatesCard in app/(site)/events/[id]/parts.tsx
+  (and adds the same component to the internal ED page app/dashboard/events/[id]) to match Danny's
+  reference: the ED's entered milestones (title + description) + the derived "Tournament Kicks Off"
+  anchor (= the event's start_date), each with a DATE-DERIVED status badge:
+    Done (past) · Next up (the soonest future) · Upcoming (later future) · Event day (the kick-off).
+  Reuses the real MilestoneDot vocabulary (green check / red ring / gray hollow / red kick-off) and the
+  STYLE-GUIDE status colors. Premium-only (matches the form's premium gating). Design-only.
+-->
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light">
+<title>TG — Key dates timeline</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{--accent:#dc2626;--ink:#0f172a;--body:#475569;--muted:#64748b;--faint:#94a3b8;--line:#e2e8f0;--line2:#f1f5f9;}
+  *{font-family:Inter,ui-sans-serif,system-ui,sans-serif}
+  body{color:var(--ink);-webkit-font-smoothing:antialiased;background:#eef2f6;min-height:100vh}
+  .font-heading{font-family:"Bricolage Grotesque",Inter,sans-serif}
+  .card{background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 1px 2px rgba(15,23,42,.05),0 14px 34px -22px rgba(15,23,42,.16)}
+  .prem-tag{display:inline-flex;align-items:center;gap:5px;border-radius:9999px;background:#dc2626;color:#fff;
+    font-family:"Bricolage Grotesque",Inter,sans-serif;font-size:9px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:3px 9px}
+
+  /* ── timeline ── */
+  .tl{position:relative}
+  .tl-row{display:grid;grid-template-columns:64px 24px minmax(0,1fr) auto;gap:14px;align-items:start;padding-bottom:22px}
+  .tl-row:last-child{padding-bottom:0}
+  .tl-date{text-align:right;padding-top:2px}
+  .tl-day{font-family:"Bricolage Grotesque",Inter,sans-serif;font-size:13.5px;font-weight:800;color:var(--ink);letter-spacing:-.01em;line-height:1.1}
+  .tl-wd{font-size:11px;font-weight:600;color:var(--faint);margin-top:2px}
+  .tl-dotcol{position:relative;display:flex;justify-content:center}
+  .tl-line{position:absolute;left:11px;top:26px;bottom:-22px;width:2px;background:var(--line);border-radius:1px}
+  .tl-row:last-child .tl-line{display:none}
+  .dot{position:relative;z-index:1;display:inline-grid;place-items:center;width:24px;height:24px;border-radius:9999px;flex:none}
+  .dot-done{background:#16a34a;border:3px solid #fff;box-shadow:0 0 0 1px #dcfce7;color:#fff}
+  .dot-next{background:#fff;border:3px solid var(--accent);box-shadow:0 0 0 3px rgba(220,38,38,.14)}
+  .dot-upcoming{background:#fff;border:3px solid var(--line)}
+  .dot-event{background:var(--accent);border:3px solid #fff;box-shadow:0 0 0 3px rgba(220,38,38,.16);color:#fff}
+  .tl-title{font-family:"Bricolage Grotesque",Inter,sans-serif;font-size:14px;font-weight:800;color:var(--ink);letter-spacing:-.005em;line-height:1.25}
+  .tl-desc{margin-top:3px;font-size:12.5px;font-weight:500;color:var(--muted);line-height:1.45}
+
+  .badge{display:inline-flex;align-items:center;gap:5px;border-radius:9999px;font-family:"Bricolage Grotesque",Inter,sans-serif;
+    font-size:9.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;padding:3.5px 9px;white-space:nowrap;border:1px solid transparent}
+  .badge .bdot{width:5px;height:5px;border-radius:9999px;flex:none}
+  .badge-done{background:#d1fae5;color:#065f46;border-color:#6ee7b7}
+  .badge-next{background:#fef2f2;color:#b91c1c;border-color:#fecaca}
+  .badge-next .bdot{background:#dc2626}
+  .badge-upcoming{background:#f1f5f9;color:#64748b;border-color:#e2e8f0}
+  .badge-event{background:var(--accent);color:#fff;border-color:var(--accent)}
+  [data-i] svg{display:block}
+</style></head>
+<body class="antialiased">
+
+<div class="mx-auto max-w-[720px] px-5 py-10">
+  <p class="mb-3 text-[12px] font-semibold uppercase tracking-[0.12em] text-slate-400">Event details page · public &amp; internal ED · premium-only</p>
+
+  <!-- the KeyDatesCard, restyled -->
+  <section class="card p-6">
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <h2 class="font-heading text-[18px] font-extrabold tracking-tight text-slate-900">Key dates &amp; deadlines</h2>
+      <span class="prem-tag">Premium</span>
+    </div>
+
+    <div class="tl mt-5">
+
+      <!-- Done -->
+      <div class="tl-row">
+        <div class="tl-date"><div class="tl-day">May 19</div><div class="tl-wd">Tuesday</div></div>
+        <div class="tl-dotcol"><span class="tl-line"></span>
+          <span class="dot dot-done"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4 10-11"/></svg></span>
+        </div>
+        <div><div class="tl-title">Early-Bird Pricing Ends</div><div class="tl-desc">Lock in the lower team fee before it steps up.</div></div>
+        <div class="pt-0.5"><span class="badge badge-done"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4 10-11"/></svg>Done</span></div>
+      </div>
+
+      <!-- Done -->
+      <div class="tl-row">
+        <div class="tl-date"><div class="tl-day">Jun 12</div><div class="tl-wd">Friday</div></div>
+        <div class="tl-dotcol"><span class="tl-line"></span>
+          <span class="dot dot-done"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4 10-11"/></svg></span>
+        </div>
+        <div><div class="tl-title">Registration Deadline</div><div class="tl-desc">Last day to enter a team in the bracket.</div></div>
+        <div class="pt-0.5"><span class="badge badge-done"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4 10-11"/></svg>Done</span></div>
+      </div>
+
+      <!-- Next up -->
+      <div class="tl-row">
+        <div class="tl-date"><div class="tl-day">Jun 26</div><div class="tl-wd">Friday</div></div>
+        <div class="tl-dotcol"><span class="tl-line"></span><span class="dot dot-next"></span></div>
+        <div><div class="tl-title">Rosters &amp; Documents Due</div><div class="tl-desc">Upload player cards, medical releases, and final rosters.</div></div>
+        <div class="pt-0.5"><span class="badge badge-next"><span class="bdot"></span>Next up</span></div>
+      </div>
+
+      <!-- Upcoming -->
+      <div class="tl-row">
+        <div class="tl-date"><div class="tl-day">Jul 2</div><div class="tl-wd">Thursday</div></div>
+        <div class="tl-dotcol"><span class="tl-line"></span><span class="dot dot-upcoming"></span></div>
+        <div><div class="tl-title">Team Check-In</div><div class="tl-desc">Confirm your team with the tournament director.</div></div>
+        <div class="pt-0.5"><span class="badge badge-upcoming">Upcoming</span></div>
+      </div>
+
+      <!-- Event day (derived kick-off = start_date) -->
+      <div class="tl-row">
+        <div class="tl-date"><div class="tl-day">Jul 3</div><div class="tl-wd">Friday</div></div>
+        <div class="tl-dotcol">
+          <span class="dot dot-event"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg></span>
+        </div>
+        <div><div class="tl-title">Tournament Kicks Off</div><div class="tl-desc">First whistle — group stage begins.</div></div>
+        <div class="pt-0.5"><span class="badge badge-event">Event day</span></div>
+      </div>
+
+    </div>
+  </section>
+
+  <p class="mt-4 text-[12px] leading-relaxed text-slate-500">
+    Status is date-derived: past milestones read <b class="text-slate-700">Done</b>, the soonest future one is
+    <b class="text-slate-700">Next up</b>, later ones <b class="text-slate-700">Upcoming</b>, and the kick-off
+    (the event's start date) is always <b class="text-slate-700">Event day</b>. The ED enters the title, date and
+    (optional) description in the form; the kick-off row is derived and always present.
+  </p>
+</div>
+
+</body></html>
