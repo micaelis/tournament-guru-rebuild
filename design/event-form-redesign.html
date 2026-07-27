@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<!--
+  Tournament Guru — EVENT EDIT FORM re-skin · v4. Design artifact, not wired.
+  Faithful to the real EventForm.tsx structure/fields/copy/order (CSS-only to implement), now
+  addressing Danny's 21-item review. NOTE: built while the device bridge was offline, so the
+  section-header / age-group / sponsor visual language is reconstructed from the v1 mockup
+  (= Downloads/event-form-redesign_2.html) + Danny's written notes; reconcile to _2.html if it differs.
+
+  Key changes in v4:
+   1 left-aligned content   2 tighter section header (title/subtitle)   3 # teams → Competition
+   4/8 secondary button locked-in: off-white bg + 1px navy border, navy text+icon
+   5 logo sized + aligned; 21 calmer (slate) logo color   6 friendlier date copy + LEADING calendar icon
+   7 add-CTA in each section header (age groups / sponsors / key dates)   9/10 smaller age-group + sponsor rows
+   11 v1 header + label + input sizing   12 hover-lift + smooth transitions (app-wide follow-up noted)
+   13 "3 divisions" chip by the add-CTA   14 age groups: gender CHIPS, X remove, wrapped container
+   15 per-team pricing = infotip   16 no Host Contact   17 v1 sponsor design   18 Additional features kept + elevated
+   19 redesigned Photos   20 Key dates & deadlines = PREMIUM section (Tournament-kicks-off required) + perk added
+   21 icons in the bottom CTAs
+  Persona: Miguel Santos · ED · Lou Fusz Athletic — DRAFT, non-premium event. Design-only.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light">
+<title>TG — Edit event · re-skin v4</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = { theme: { extend: {
+    colors: { ink: "#0f172a", accent: "#dc2626" },
+    fontFamily: { sans: ["Inter","ui-sans-serif","system-ui","sans-serif"], heading: ['"Bricolage Grotesque"',"Inter","sans-serif"] },
+  }}};
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{--accent:#dc2626;--accent-dark:#b91c1c;--ink:#0f172a;--body:#475569;--muted:#64748b;--faint:#94a3b8;--line:#e2e8f0;--line2:#f1f5f9;}
+  body{color:var(--ink);-webkit-font-smoothing:antialiased}
+
+  /* smooth transitions app-wide (item 12) */
+  a,button,[role="button"],label[data-c],.chip,.tg-control,input,select,textarea{
+    transition:color .18s ease,background-color .18s ease,border-color .18s ease,box-shadow .18s ease,transform .18s ease}
+
+  /* inputs — v1/_2.html sizing (smaller than the 44px default) */
+  .tg-control{width:100%;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);
+    font-size:13.5px;font-weight:500;line-height:1.4;padding:9px 12px}
+  .tg-control::placeholder{color:#94a3b8}
+  .tg-control:hover:not(:focus):not(:disabled){border-color:#cbd5e1}
+  .tg-control:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(220,38,38,.12)}
+  .tg-control.sm{padding:7px 10px;font-size:13px}
+  .tg-select{appearance:none;-webkit-appearance:none;cursor:pointer;padding-right:34px;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:right 10px center}
+
+  /* buttons */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;font-weight:700;border-radius:10px;
+    cursor:pointer;border:1px solid transparent;white-space:nowrap}
+  .btn:disabled{opacity:.6;cursor:not-allowed}
+  .btn-md{padding:9px 15px;font-size:13.5px}
+  .btn-sm{padding:6px 12px;font-size:12.5px}
+  .btn-xs{padding:5px 10px;font-size:12px;border-radius:9px;gap:5px}
+  .btn-primary{background:var(--ink);color:#fff}
+  .btn-primary:hover:not(:disabled){background:#334155;transform:translateY(-1px);box-shadow:0 8px 18px -8px rgba(15,23,42,.5)}
+  .btn-primary:active{transform:none;box-shadow:none}
+  .btn-accent{background:var(--accent);color:#fff}
+  .btn-accent:hover:not(:disabled){background:var(--accent-dark);transform:translateY(-1px);box-shadow:0 8px 18px -8px rgba(220,38,38,.5)}
+  /* SECONDARY — locked-in (item 8): off-white bg, 1px navy border, navy text+icon */
+  .btn-secondary{background:#f8fafc;border:1px solid var(--ink);color:var(--ink)}
+  .btn-secondary:hover:not(:disabled){background:#eef2f7;transform:translateY(-1px);box-shadow:0 6px 14px -8px rgba(15,23,42,.35)}
+  .btn-secondary:active{transform:none;box-shadow:none}
+  .btn-secondary [data-i]{color:var(--ink)}
+  .btn-ghost{background:transparent;border:1px solid var(--line);color:#334155}
+  .btn-ghost:hover:not(:disabled){border-color:#94a3b8;background:rgba(15,23,42,.03)}
+  button:focus-visible{outline:2px solid rgba(15,23,42,.4);outline-offset:2px}
+
+  /* X remove (item 14) — soft, red on hover */
+  .x-btn{display:grid;place-items:center;height:28px;width:28px;border-radius:8px;background:#f1f5f9;color:#64748b;border:1px solid transparent;cursor:pointer;flex:none}
+  .x-btn:hover{background:#fee2e2;color:#b91c1c}
+
+  /* choice chips — red-tint selected (S12.3) */
+  .chip{display:inline-flex;align-items:center;gap:6px;border-radius:9999px;border:1px solid #cbd5e1;background:#fff;color:#475569;
+    font-size:12px;font-weight:600;padding:5px 12px;cursor:pointer;user-select:none}
+  .chip:hover{border-color:#94a3b8;color:var(--ink);transform:translateY(-1px)}
+  .chip[aria-pressed="true"]{border-color:var(--accent);background:#fef2f2;color:#b91c1c}
+  .chip[aria-pressed="true"]:hover{transform:translateY(-1px)}
+  .chip .ck{width:0;opacity:0;overflow:hidden}
+  .chip[aria-pressed="true"] .ck{width:13px;opacity:1}
+
+  /* count chip (3 divisions) */
+  .count-chip{display:inline-flex;align-items:center;gap:6px;border-radius:9999px;background:#f1f5f9;
+    color:#475569;font-size:11.5px;font-weight:700;padding:5px 12px}
+  .count-chip b{font-family:'Bricolage Grotesque',Inter,sans-serif;font-weight:800;color:var(--ink)}
+  .count-chip [data-i]{color:#94a3b8}
+
+  /* section header (item 2/11 — v1 style, tight) */
+  .sec-ic{display:grid;place-items:center;height:38px;width:38px;border-radius:11px;background:#f1f5f9;color:#475569;flex:none}
+  .sec-title{font-family:'Bricolage Grotesque',Inter,sans-serif;font-size:15.5px;font-weight:800;letter-spacing:-.01em;color:var(--ink);line-height:1.15}
+  .sec-desc{font-size:12.5px;font-weight:500;color:#64748b;margin-top:2px}
+  .flabel{display:block;font-size:12.5px;font-weight:700;color:#334155;margin-bottom:6px}
+  .req{color:var(--accent)}
+  .fhint{margin-top:6px;font-size:11.5px;color:#94a3b8}
+  /* Premium = SOLID red pill (STYLE-GUIDE §6; violet is reserved for Spotlight) */
+  .prem-tag{display:inline-flex;align-items:center;gap:5px;border-radius:9999px;background:#dc2626;color:#fff;border:1px solid #dc2626;
+    font-family:'Bricolage Grotesque',Inter,sans-serif;font-size:9px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:3px 9px}
+
+  /* leading-icon input */
+  .lead-wrap{position:relative}
+  .lead-wrap>.lead{position:absolute;left:0;top:0;bottom:0;width:40px;display:grid;place-items:center;color:#94a3b8}
+  .lead-wrap .tg-control{padding-left:40px}
+  .lead-wrap>.lead.click{pointer-events:auto;cursor:pointer;color:#64748b}
+  .lead-wrap>.lead.click:hover{color:var(--ink)}
+
+  /* logo + photo tiles */
+  .logo-tile{position:relative;height:132px;width:132px;border-radius:16px;overflow:hidden;border:1px solid var(--line);background:#fff;flex:none}
+  .ph-tile{position:relative;height:96px;width:96px;border-radius:12px;overflow:hidden;border:1px solid var(--line);flex:none}
+  .ph-tile .x{position:absolute;top:5px;right:5px;display:grid;place-items:center;height:22px;width:22px;border-radius:7px;background:rgba(15,23,42,.6);color:#fff;border:none;cursor:pointer;opacity:0}
+  .ph-tile:hover .x{opacity:1}
+  .ph-add{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;height:96px;width:96px;border-radius:12px;
+    border:1.5px dashed #cbd5e1;background:#f8fafc;color:#94a3b8;cursor:pointer;flex:none;
+    transition:border-color .18s ease,background .18s ease,color .18s ease,transform .18s ease,box-shadow .18s ease}
+  .ph-add:hover{border-color:var(--accent);background:#fff7f7;color:var(--accent);transform:translateY(-1px)}
+  .sp-logo{height:52px;width:52px;border-radius:12px;overflow:hidden;border:1px solid var(--line);background:#fff;display:grid;place-items:center;flex:none;cursor:pointer}
+  .sp-logo svg,.sp-logo img{height:100%;width:100%;object-fit:contain}
+  .sp-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:52px;width:52px;border-radius:12px;border:1px dashed #cbd5e1;background:#f8fafc;color:#94a3b8;flex:none;cursor:pointer}
+
+  /* feature tiles (item 18 elevated) */
+  .feat{display:flex;align-items:center;gap:9px;border-radius:12px;border:1px solid var(--line);background:#fff;padding:10px 12px;cursor:pointer;user-select:none;transition:border-color .18s ease,background .18s ease,color .18s ease,transform .18s ease,box-shadow .18s ease}
+  .feat:hover{border-color:#cbd5e1;transform:translateY(-1px);box-shadow:0 8px 18px -14px rgba(15,23,42,.4)}
+  .feat .fic{display:grid;place-items:center;height:30px;width:30px;border-radius:9px;background:#f1f5f9;color:#64748b;flex:none}
+  .feat .fname{font-size:12.5px;font-weight:600;color:#334155}
+  .feat .fchk{margin-left:auto;display:grid;place-items:center;height:18px;width:18px;border-radius:6px;border:1.5px solid #cbd5e1;color:transparent;flex:none}
+  .feat[aria-pressed="true"]{border-color:var(--accent);background:#fef2f2}
+  .feat[aria-pressed="true"] .fic{background:#fee2e2;color:var(--accent)}
+  .feat[aria-pressed="true"] .fname{color:#b91c1c}
+  .feat[aria-pressed="true"] .fchk{border-color:var(--accent);background:var(--accent);color:#fff}
+
+  /* age-group + row containers */
+  .row-wrap{overflow:hidden;border-radius:14px;border:1px solid var(--line)}
+  .ag-row{display:grid;gap:10px;align-items:center;padding:9px 12px;border-top:1px solid var(--line2)}
+  @media(min-width:820px){.ag-row{grid-template-columns:auto 88px 96px 96px 28px}}
+  .ag-head{display:none}
+  @media(min-width:820px){.ag-head{display:grid;grid-template-columns:auto 88px 96px 96px 28px;gap:10px;padding:8px 12px;background:#f8fafc}}
+  .mini-label{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#94a3b8}
+  .kd-row{display:grid;gap:10px;align-items:end;padding:11px 12px;border-top:1px solid var(--line2)}
+  @media(min-width:820px){.kd-row{grid-template-columns:150px 1fr 28px}}
+  .sp-row{display:flex;gap:12px;align-items:center;padding:10px 12px;border-top:1px solid var(--line2)}
+
+  /* infotip */
+  .info-tip{position:relative;display:inline-grid;place-items:center;height:16px;width:16px;border-radius:9999px;background:#e2e8f0;color:#64748b;cursor:help;flex:none}
+  .info-tip .bubble{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);width:240px;background:var(--ink);color:#fff;
+    font-size:11.5px;font-weight:500;line-height:1.45;border-radius:10px;padding:9px 11px;opacity:0;pointer-events:none;box-shadow:0 12px 28px -10px rgba(15,23,42,.5);z-index:20}
+  .info-tip:hover .bubble{opacity:1}
+  .info-tip.below .bubble{bottom:auto;top:calc(100% + 8px);left:0;transform:none}
+
+  /* calendar popover */
+  .cal{position:absolute;z-index:40;top:calc(100% + 8px);left:0;width:262px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px;box-shadow:0 18px 44px -14px rgba(15,23,42,.28);display:none}
+  .cal.open{display:block}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+  .cal-dow{font-size:10px;font-weight:800;color:#94a3b8;text-align:center;padding:4px 0;font-family:'Bricolage Grotesque',Inter,sans-serif}
+  .cal-day{display:grid;place-items:center;height:31px;border-radius:8px;font-size:12.5px;font-weight:600;color:#334155;cursor:pointer;border:none;background:none}
+  .cal-day:hover{background:#f1f5f9}
+  .cal-day.muted{color:#cbd5e1;cursor:default}.cal-day.muted:hover{background:none}
+  .cal-day.sel{background:#fef2f2;color:#b91c1c;font-weight:800}
+
+  .tg-menu{position:absolute;right:0;top:calc(100% + 8px);width:220px;display:none;z-index:50;background:#fff;border:1px solid var(--line);border-radius:14px;padding:6px;box-shadow:0 18px 40px -12px rgba(15,23,42,.25)}
+  [data-menu][data-open] .tg-menu{display:block}
+  .tg-menu-item{display:flex;align-items:center;gap:10px;border-radius:9px;padding:8px 11px;font-size:13px;font-weight:600;color:#334155;cursor:pointer;width:100%;background:none;border:none;text-align:left}
+  .tg-menu-item:hover{background:#f1f5f9;color:var(--ink)}
+  .tg-menu-item.danger{color:#b91c1c}.tg-menu-item.danger:hover{background:#fef2f2}
+  .tg-menu-item [data-i]{color:#94a3b8}
+
+  .actionbar{position:sticky;bottom:16px;z-index:30}
+  .spin{width:14px;height:14px;border-radius:9999px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;animation:sp .7s linear infinite}
+  .btn-secondary .spin{border:2px solid rgba(15,23,42,.25);border-top-color:#0f172a}
+  @keyframes sp{to{transform:rotate(360deg)}}
+
+  .tg-scroll-dark{scrollbar-width:thin;scrollbar-color:#334155 transparent}
+  .tg-scroll-dark::-webkit-scrollbar{width:8px}.tg-scroll-dark::-webkit-scrollbar-thumb{background:#334155;border-radius:9999px;border:2px solid #0f172a}
+  [data-i]{display:inline-block;flex:none}[data-i] svg{display:block;width:100%;height:100%}
+  #toast{position:fixed;right:24px;bottom:88px;z-index:80;display:flex;align-items:center;gap:11px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 16px;max-width:340px;box-shadow:0 12px 28px -10px rgba(15,23,42,.25);opacity:0;transform:translateY(10px);pointer-events:none;transition:opacity .2s,transform .2s}
+  #toast.show{opacity:1;transform:none}
+  #toast .disc{display:grid;place-items:center;height:26px;width:26px;border-radius:9999px;background:#d1fae5;color:#059669;flex:none}
+  #toast.ink .disc{background:#e2e8f0;color:#475569}
+  @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body class="font-sans antialiased" style="background:#f8fafc;min-height:100vh">
+
+<div class="mx-auto flex max-w-[1440px]">
+
+  <!-- ink rail (ED, Events active) -->
+  <aside class="sticky top-0 hidden h-dvh w-[260px] flex-none flex-col bg-[#0f172a] md:flex">
+    <div class="flex items-center gap-3 px-5 py-6">
+      <svg viewBox="0 0 295.82 141" class="h-8 w-auto" role="img" aria-label="Tournament Guru"><path fill="#ffffff" d="M264.28,47.3c0.12,1.75,0.19,3.52,0.19,5.31c0,12.32-2.83,23.67-7.6,32.79c-1.13,2.38-2.56,4.66-4.24,6.82c-4.18,5.7-9.26,10.03-14.9,12.49c-9.69,5.44-21.84,8.69-35.04,8.69c-0.7,0-1.4-0.02-2.09-0.04c-0.69,0.02-1.39,0.04-2.09,0.04c-31.66,0-57.33-18.64-57.33-41.63c0-22.99,25.67-41.63,57.33-41.63h54.61h9.61c4.35-0.05,4.35-0.05,4.35-0.05c1.64-1.16,3.37-3.12,5.5-5.58l23.22-24.42H201.8c-51.93,0-94.02,31.93-94.02,71.33s42.09,71.33,94.02,71.33s94.02-31.93,94.02-71.33c0-2.7-0.22-5.36-0.61-7.99L264.28,47.3z"/><polygon fill="#EC2027" points="202.8,38.21 212.53,57.94 234.3,61.1 218.55,76.46 222.27,98.14 202.8,87.9 183.32,98.14 187.04,76.46 171.29,61.1 193.06,57.94"/><path fill="#ED2024" d="M149.52,0.09L94.2,0H64.14H0v30.06h62.2V140.5H94.2V71.42l0.1-10.16c0-0.03,0.03-1.86,0.03-1.89C94.99,41.57,112.28,10.5,149.52,0.09z"/></svg>
+      <span class="font-heading text-[15px] font-extrabold tracking-tight text-white">Tournament Guru</span>
+    </div>
+    <nav class="tg-scroll-dark flex-1 space-y-7 overflow-y-auto px-3 pb-6">
+      <div><p class="mb-2.5 px-3 text-[10.5px] font-bold uppercase tracking-[0.16em] text-white/30">Manage</p>
+        <ul class="space-y-0.5">
+          <li><a class="relative flex items-center gap-3 rounded-xl bg-white/[0.1] px-3 py-2.5 text-[13.5px] font-semibold text-white"><span aria-hidden="true" class="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-full bg-[#dc2626]"></span><span data-i="calendar" class="h-4 w-4"></span>Events</a></li>
+          <li><a class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold text-white/55 transition-colors hover:bg-white/[0.06] hover:text-white/90"><span data-i="star" class="h-4 w-4 opacity-70"></span>Reviews</a></li>
+          <li><a class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold text-white/55 transition-colors hover:bg-white/[0.06] hover:text-white/90"><span data-i="inbox" class="h-4 w-4 opacity-70"></span>Claim Requests</a></li>
+          <li><a class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold text-white/55 transition-colors hover:bg-white/[0.06] hover:text-white/90"><span data-i="tag" class="h-4 w-4 opacity-70"></span>Promo Codes</a></li>
+        </ul></div>
+      <div><p class="mb-2.5 px-3 text-[10.5px] font-bold uppercase tracking-[0.16em] text-white/30">You</p>
+        <ul class="space-y-0.5">
+          <li><a class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold text-white/55 transition-colors hover:bg-white/[0.06] hover:text-white/90"><span data-i="user" class="h-4 w-4 opacity-70"></span>Account</a></li>
+          <li><a class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold text-white/55 transition-colors hover:bg-white/[0.06] hover:text-white/90"><span data-i="help" class="h-4 w-4 opacity-70"></span>FAQ</a></li>
+        </ul></div>
+    </nav>
+    <div class="border-t border-white/[0.08] px-4 py-5">
+      <div class="flex items-center gap-3 rounded-xl border border-white/[0.08] bg-white/[0.06] px-3 py-3">
+        <span class="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-lg bg-white"><svg viewBox="0 0 96 96" class="h-full w-full"><rect width="96" height="96" rx="18" fill="#0f172a"/><text x="46" y="62" text-anchor="middle" font-family="'Bricolage Grotesque',Inter,sans-serif" font-size="36" font-weight="800" fill="#fff">LF</text><circle cx="77" cy="58" r="4.5" fill="#EC2027"/></svg></span>
+        <div class="min-w-0"><p class="truncate text-[12.5px] font-bold text-white">Lou Fusz Athletic</p><p class="truncate text-[11px] font-medium text-white/40">Organization</p></div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="flex min-w-0 flex-1 flex-col">
+    <header class="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
+      <div class="flex h-16 items-center justify-between gap-4 px-5 md:px-10">
+        <div class="flex min-w-0 items-center gap-2 text-[13px]">
+          <span class="hidden font-medium text-slate-400 sm:block">Dashboard</span><span data-i="chevron-right" class="hidden h-3.5 w-3.5 text-slate-300 sm:block"></span>
+          <span class="hidden font-medium text-slate-400 sm:block">Events</span><span data-i="chevron-right" class="hidden h-3.5 w-3.5 text-slate-300 sm:block"></span>
+          <span class="truncate font-semibold text-slate-900">Edit event</span>
+        </div>
+        <div data-menu>
+          <button type="button" data-menu-btn class="flex items-center gap-2.5 rounded-full border border-slate-200 bg-white py-1.5 pl-1.5 pr-2.5 shadow-sm hover:bg-slate-50">
+            <span class="grid h-8 w-8 flex-none place-items-center rounded-full bg-[#dc2626] font-heading text-[12px] font-extrabold text-white ring-2 ring-white">MS</span>
+            <span class="hidden text-left sm:block"><span class="block text-[13px] font-bold leading-tight text-slate-900">Miguel Santos</span><span class="block text-[10.5px] font-bold uppercase tracking-wide leading-tight text-slate-500">Event Director</span></span>
+            <span class="grid h-6 w-6 place-items-center rounded-full bg-slate-100"><span data-i="chevron-down" class="h-3.5 w-3.5 text-slate-500"></span></span>
+          </button>
+          <div class="tg-menu" role="menu">
+            <button class="tg-menu-item" role="menuitem"><span data-i="user" class="h-[15px] w-[15px]"></span>Account</button>
+            <button class="tg-menu-item danger" role="menuitem"><span data-i="logout" class="h-[15px] w-[15px]"></span>Log out</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- item 1: content LEFT-aligned (no mx-auto) -->
+    <main class="flex-1 px-5 py-7 md:px-10 md:py-8">
+      <div class="max-w-[880px] space-y-5">
+
+        <!-- page header -->
+        <div class="flex flex-wrap items-baseline justify-between gap-2">
+          <div>
+            <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-red-600">Draft</p>
+            <h1 class="mt-2 font-heading text-2xl font-extrabold text-slate-900">Gateway Cup Labor Day Classic 2027</h1>
+          </div>
+          <a class="text-sm font-semibold text-slate-700 underline decoration-slate-300 underline-offset-2 hover:text-red-600 hover:decoration-red-300 cursor-pointer" data-mock="Back to event details">Back to event details</a>
+        </div>
+
+        <form class="space-y-5" onsubmit="return false">
+
+          <!-- Unlock premium (perk list now includes Key dates — item 20) -->
+          <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-red-200 bg-red-50/60 p-4">
+            <div class="flex min-w-0 items-center gap-3.5">
+              <span class="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white text-red-600 ring-1 ring-red-100"><span data-i="spark" class="h-6 w-6"></span></span>
+              <div class="min-w-0">
+                <p class="text-[14.5px] font-extrabold text-slate-900">Unlock premium features</p>
+                <p class="mt-0.5 text-[12.5px] text-slate-600">Video, up to 13 images, team roster links, key dates &amp; deadlines, and the full features list.</p>
+              </div>
+            </div>
+            <button type="button" class="btn btn-accent btn-md" data-mock="Upgrade this event — add-ons"><span data-i="spark" class="h-4 w-4"></span>Upgrade this event</button>
+          </div>
+
+          <!-- The basics -->
+          <section class="space-y-5 rounded-2xl border border-slate-200 bg-white p-6">
+            <div class="flex items-start gap-3"><span class="sec-ic"><span data-i="info" class="h-[18px] w-[18px]"></span></span><div><h2 class="sec-title">The basics</h2><p class="sec-desc">Show attendees what this event is and where to find it.</p></div></div>
+            <!-- item 5: logo + right column, tops aligned; item 21: calmer (slate) logo -->
+            <div class="flex flex-col gap-5 sm:flex-row">
+              <div class="flex-none">
+                <label class="flabel">Event logo</label>
+                <div class="logo-tile"><svg viewBox="0 0 96 96" class="h-full w-full"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#475569"/><stop offset="1" stop-color="#0f172a"/></linearGradient></defs><rect width="96" height="96" fill="url(#lg)"/><circle cx="48" cy="6" r="40" fill="#fff" opacity=".08"/><text x="48" y="60" text-anchor="middle" font-family="'Bricolage Grotesque',Inter,sans-serif" font-size="26" font-weight="800" fill="#fff">GC</text></svg></div>
+                <div class="mt-2 flex items-center gap-2" style="width:132px"><button type="button" class="btn btn-secondary btn-xs" style="flex:1" data-mock="Upload logo"><span data-i="upload" class="h-3.5 w-3.5"></span>Upload</button><button type="button" class="x-btn" data-mock="Logo removed" aria-label="Remove logo"><span data-i="close" class="h-4 w-4"></span></button></div>
+              </div>
+              <div class="min-w-0 flex-1 space-y-4">
+                <div><label class="flabel">Event title <span class="req">*</span></label><input class="tg-control" value="Gateway Cup Labor Day Classic 2027"></div>
+                <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div><label class="flabel">Event website</label><div class="lead-wrap"><span class="lead"><span data-i="link" class="h-4 w-4"></span></span><input class="tg-control" type="url" value="https://loufuszsoccer.com" placeholder="https://…"></div></div>
+                  <div><label class="flabel">Host club <span class="req">*</span></label><input class="tg-control" value="Lou Fusz Athletic"></div>
+                </div>
+              </div>
+            </div>
+            <div><label class="flabel">Description <span class="req">*</span></label><textarea class="tg-control" rows="4" style="resize:none">A premier Labor Day weekend showcase for competitive youth clubs across the Midwest — certified referees, college scouts on site, and championship trophies for every division.</textarea></div>
+          </section>
+
+          <!-- Dates & registration (item 6: leading calendar icon + friendlier copy) -->
+          <section class="space-y-5 rounded-2xl border border-slate-200 bg-white p-6">
+            <div class="flex items-start gap-3"><span class="sec-ic"><span data-i="calendar" class="h-[18px] w-[18px]"></span></span><div><h2 class="sec-title">Dates &amp; registration</h2><p class="sec-desc">When your event runs, and the last day teams can sign up.</p></div></div>
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <div><label class="flabel">Start date <span class="req">*</span></label><div class="lead-wrap" data-cal><span class="lead click cal-toggle"><span data-i="calendar" class="h-4 w-4"></span></span><input class="tg-control" data-cal-input value="09/04/2027" placeholder="mm/dd/yyyy" readonly><div class="cal" data-cal-pop></div></div></div>
+              <div><label class="flabel">End date <span class="req">*</span></label><div class="lead-wrap" data-cal><span class="lead click cal-toggle"><span data-i="calendar" class="h-4 w-4"></span></span><input class="tg-control" data-cal-input value="09/06/2027" placeholder="mm/dd/yyyy" readonly><div class="cal" data-cal-pop></div></div></div>
+              <div><label class="flabel">Registration deadline</label><div class="lead-wrap" data-cal><span class="lead click cal-toggle"><span data-i="calendar" class="h-4 w-4"></span></span><input class="tg-control" data-cal-input value="08/21/2027" placeholder="mm/dd/yyyy" readonly><div class="cal" data-cal-pop></div></div></div>
+            </div>
+          </section>
+
+          <!-- Location & season -->
+          <section class="space-y-5 rounded-2xl border border-slate-200 bg-white p-6">
+            <div class="flex items-start gap-3"><span class="sec-ic"><span data-i="pin" class="h-[18px] w-[18px]"></span></span><div><h2 class="sec-title">Location &amp; season</h2><p class="sec-desc">Used for the state filter on search and for the region grouping.</p></div></div>
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div><label class="flabel">Location <span class="req">*</span></label><div class="lead-wrap"><span class="lead"><span data-i="pin" class="h-4 w-4"></span></span><input class="tg-control" value="1 Lou Fusz Dr, St. Louis, MO 63146"></div><p class="fhint">Full address or city + state — used across search filters.</p></div>
+              <div><label class="flabel">State (2-letter)</label><input class="tg-control uppercase" value="MO" maxlength="2"><p class="fhint">Auto-filled when you pick a location; editable.</p></div>
+              <div><label class="flabel">Region <span class="req">*</span></label><select class="tg-control tg-select"><option value="">Choose a region</option><option>Region I</option><option selected>Region II</option><option>Region III</option><option>Region IV</option></select></div>
+              <div><label class="flabel">Season <span class="req">*</span></label><select class="tg-control tg-select"><option value="">Choose a season</option><option>2026–27</option><option selected>2027–28</option><option>2028–29</option></select></div>
+            </div>
+          </section>
+
+          <!-- Competition (item 3: Number of teams moved here) -->
+          <section class="space-y-5 rounded-2xl border border-slate-200 bg-white p-6">
+            <div class="flex items-start gap-3"><span class="sec-ic"><span data-i="award" class="h-[18px] w-[18px]"></span></span><div><h2 class="sec-title">Competition</h2><p class="sec-desc">Field size, levels, and how big the event is this year.</p></div></div>
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div><label class="flabel">Number of teams (this year)</label><div class="lead-wrap"><span class="lead"><span class="text-[14px] font-bold">#</span></span><input class="tg-control" type="number" min="0" value="48"></div></div>
+            </div>
+            <div><label class="flabel">Levels of competition <span class="req">*</span></label>
+              <div class="flex flex-wrap gap-2"><button type="button" class="chip" aria-pressed="true"><span data-i="check" class="ck h-3 w-3"></span>Highest</button><button type="button" class="chip" aria-pressed="true"><span data-i="check" class="ck h-3 w-3"></span>Upper</button><button type="button" class="chip" aria-pressed="true"><span data-i="check" class="ck h-3 w-3"></span>Middle</button><button type="button" class="chip" aria-pressed="false">Lower</button><button type="button" class="chip" aria-pressed="false">Lowest</button></div>
+            </div>
+            <div><label class="flabel">Fields <span class="req">*</span></label>
+              <div class="flex flex-wrap gap-2"><button type="button" class="chip" aria-pressed="true"><span data-i="check" class="ck h-3 w-3"></span>Turf</button><button type="button" class="chip" aria-pressed="true"><span data-i="check" class="ck h-3 w-3"></span>Grass</button></div>
+            </div>
+          </section>
+
+          <!-- Age groups (items 7,9,13,14,15) -->
+          <section class="space-y-4 rounded-2xl border border-slate-200 bg-white p-6">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div class="flex items-start gap-3"><span class="sec-ic"><span data-i="users" class="h-[18px] w-[18px]"></span></span><div><h2 class="sec-title">Age groups</h2><p class="sec-desc">Add one per bracket you offer. Prices are USD. <span class="info-tip below" style="vertical-align:-3px"><span data-i="info" class="h-3.5 w-3.5"></span><span class="bubble">Per-team pricing shows on the public page as a range. Leave a price blank to hide it for that division.</span></span></p></div></div>
+              <div class="flex items-center gap-2.5">
+                <span class="count-chip"><span data-i="users" class="h-3.5 w-3.5"></span><b>3</b> divisions</span>
+                <button type="button" class="btn btn-secondary btn-sm" data-mock="New age group added"><span data-i="plus" class="h-4 w-4"></span>Add age group</button>
+              </div>
+            </div>
+            <div class="row-wrap">
+              <div class="ag-head"><span class="mini-label">Gender</span><span class="mini-label">Age</span><span class="mini-label">Price</span><span class="mini-label">Field size</span><span></span></div>
+              <div class="ag-row" style="border-top:none">
+                <div class="flex gap-1.5"><button type="button" class="chip" aria-pressed="true"><span data-i="check" class="ck h-3 w-3"></span>Boys</button><button type="button" class="chip" aria-pressed="false">Girls</button><button type="button" class="chip" aria-pressed="false">Both</button></div>
+                <select class="tg-control sm tg-select"><option selected>U12</option><option>U13</option><option>U14</option></select>
+                <div class="lead-wrap"><span class="lead" style="width:28px"><span class="text-[13px] font-bold text-slate-500">$</span></span><input class="tg-control sm" style="padding-left:28px" type="number" value="695"></div>
+                <select class="tg-control sm tg-select"><option selected>7v7</option><option>9v9</option><option>11v11</option></select>
+                <button type="button" class="x-btn" data-mock="Age group removed" aria-label="Remove age group 1"><span data-i="close" class="h-4 w-4"></span></button>
+              </div>
+              <div class="ag-row">
+                <div class="flex gap-1.5"><button type="button" class="chip" aria-pressed="false">Boys</button><button type="button" class="chip" aria-pressed="true"><span data-i="check" class="ck h-3 w-3"></span>Girls</button><button type="button" class="chip" aria-pressed="false">Both</button></div>
+                <select class="tg-control sm tg-select"><option>U13</option><option selected>U14</option><option>U15</option></select>
+                <div class="lead-wrap"><span class="lead" style="width:28px"><span class="text-[13px] font-bold text-slate-500">$</span></span><input class="tg-control sm" style="padding-left:28px" type="number" value="725"></div>
+                <select class="tg-control sm tg-select"><option>7v7</option><option selected>9v9</option><option>11v11</option></select>
+                <button type="button" class="x-btn" data-mock="Age group removed" aria-label="Remove age group 2"><span data-i="close" class="h-4 w-4"></span></button>
+              </div>
+              <div class="ag-row">
+                <div class="flex gap-1.5"><button type="button" class="chip" aria-pressed="false">Boys</button><button type="button" class="chip" aria-pressed="false">Girls</button><button type="button" class="chip" aria-pressed="true"><span data-i="check" class="ck h-3 w-3"></span>Both</button></div>
+                <select class="tg-control sm tg-select"><option>U15</option><option selected>U16</option><option>U19</option></select>
+                <div class="lead-wrap"><span class="lead" style="width:28px"><span class="text-[13px] font-bold text-slate-500">$</span></span><input class="tg-control sm" style="padding-left:28px" type="number" value="750"></div>
+                <select class="tg-control sm tg-select"><option>9v9</option><option selected>11v11</option></select>
+                <button type="button" class="x-btn" data-mock="Age group removed" aria-label="Remove age group 3"><span data-i="close" class="h-4 w-4"></span></button>
+              </div>
+            </div>
+          </section>
+
+          <!-- Sponsors (items 7,10,17) -->
+          <section class="space-y-4 rounded-2xl border border-slate-200 bg-white p-6">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div class="flex items-start gap-3"><span class="sec-ic"><span data-i="megaphone" class="h-[18px] w-[18px]"></span></span><div><h2 class="sec-title">Sponsors</h2><p class="sec-desc">Optional — one row per sponsor with name, link, and logo.</p></div></div>
+              <button type="button" class="btn btn-secondary btn-sm" data-mock="New sponsor added"><span data-i="plus" class="h-4 w-4"></span>Add sponsor</button>
+            </div>
+            <div class="row-wrap">
+              <div class="sp-row" style="border-top:none">
+                <label class="sp-logo" data-mock="Choose sponsor logo"><svg viewBox="0 0 52 52"><rect width="52" height="52" rx="12" fill="#0f172a"/><text x="26" y="34" text-anchor="middle" font-family="'Bricolage Grotesque',Inter,sans-serif" font-size="20" font-weight="800" fill="#fff">A</text></svg></label>
+                <div class="grid min-w-0 flex-1 grid-cols-1 gap-2 sm:grid-cols-2">
+                  <input class="tg-control sm" value="Adidas Midwest" placeholder="Sponsor name" aria-label="Sponsor name">
+                  <div class="lead-wrap"><span class="lead" style="width:34px"><span data-i="link" class="h-3.5 w-3.5"></span></span><input class="tg-control sm" style="padding-left:34px" type="url" value="https://adidas.com" placeholder="https://…" aria-label="Sponsor link"></div>
+                </div>
+                <button type="button" class="x-btn" data-mock="Sponsor removed" aria-label="Remove sponsor 1"><span data-i="close" class="h-4 w-4"></span></button>
+              </div>
+              <div class="sp-row">
+                <label class="sp-empty" data-mock="Choose sponsor logo"><span data-i="image" class="h-4 w-4"></span></label>
+                <div class="grid min-w-0 flex-1 grid-cols-1 gap-2 sm:grid-cols-2">
+                  <input class="tg-control sm" value="Schnucks" placeholder="Sponsor name" aria-label="Sponsor name">
+                  <div class="lead-wrap"><span class="lead" style="width:34px"><span data-i="link" class="h-3.5 w-3.5"></span></span><input class="tg-control sm" style="padding-left:34px" type="url" value="https://schnucks.com" placeholder="https://…" aria-label="Sponsor link"></div>
+                </div>
+                <button type="button" class="x-btn" data-mock="Sponsor removed" aria-label="Remove sponsor 2"><span data-i="close" class="h-4 w-4"></span></button>
+              </div>
+            </div>
+          </section>
+
+          <!-- Additional features (item 18: kept + elevated) -->
+          <section class="space-y-4 rounded-2xl border border-slate-200 bg-white p-6">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div class="flex items-start gap-3"><span class="sec-ic"><span data-i="check" class="h-[18px] w-[18px]"></span></span><div><h2 class="sec-title">Additional features</h2><p class="sec-desc">On-site amenities shown on your public listing.</p></div></div>
+              <span class="prem-tag">Premium</span>
+            </div>
+            <div class="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+              <button type="button" class="feat" aria-pressed="true"><span class="fic"><span data-i="parking" class="h-4 w-4"></span></span><span class="fname">Free Parking</span><span class="fchk"><span data-i="check" class="h-3 w-3"></span></span></button>
+              <button type="button" class="feat" aria-pressed="true"><span class="fic"><span data-i="cup" class="h-4 w-4"></span></span><span class="fname">Concessions</span><span class="fchk"><span data-i="check" class="h-3 w-3"></span></span></button>
+              <button type="button" class="feat" aria-pressed="true"><span class="fic"><span data-i="restroom" class="h-4 w-4"></span></span><span class="fname">Restrooms</span><span class="fchk"><span data-i="check" class="h-3 w-3"></span></span></button>
+              <button type="button" class="feat" aria-pressed="false"><span class="fic"><span data-i="wifi" class="h-4 w-4"></span></span><span class="fname">Free Wifi</span><span class="fchk"><span data-i="check" class="h-3 w-3"></span></span></button>
+              <button type="button" class="feat" aria-pressed="false"><span class="fic"><span data-i="accessible" class="h-4 w-4"></span></span><span class="fname">Accessible</span><span class="fchk"><span data-i="check" class="h-3 w-3"></span></span></button>
+              <button type="button" class="feat" aria-pressed="true"><span class="fic"><span data-i="paw" class="h-4 w-4"></span></span><span class="fname">Pet Friendly</span><span class="fchk"><span data-i="check" class="h-3 w-3"></span></span></button>
+              <button type="button" class="feat" aria-pressed="false"><span class="fic"><span data-i="home" class="h-4 w-4"></span></span><span class="fname">Stay to Play</span><span class="fchk"><span data-i="check" class="h-3 w-3"></span></span></button>
+              <button type="button" class="feat" aria-pressed="false"><span class="fic"><span data-i="grass" class="h-4 w-4"></span></span><span class="fname">Synthetic Turf</span><span class="fchk"><span data-i="check" class="h-3 w-3"></span></span></button>
+            </div>
+          </section>
+
+          <!-- Key dates & deadlines (item 20: PREMIUM; Tournament-kicks-off required; add-CTA in header) -->
+          <section class="space-y-4 rounded-2xl border border-slate-200 bg-white p-6">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div class="flex items-start gap-3"><span class="sec-ic"><span data-i="flag" class="h-[18px] w-[18px]"></span></span><div><h2 class="sec-title">Key dates &amp; deadlines</h2><p class="sec-desc">Milestones families track — shown as a timeline on your event page.</p></div></div>
+              <div class="flex items-center gap-2.5"><span class="prem-tag">Premium</span><button type="button" class="btn btn-secondary btn-sm" data-mock="New milestone added"><span data-i="plus" class="h-4 w-4"></span>Add milestone</button></div>
+            </div>
+            <div class="row-wrap">
+              <div class="hidden md:grid" style="grid-template-columns:150px 1fr 28px;gap:10px;padding:8px 12px;background:#f8fafc"><span class="mini-label">Date</span><span class="mini-label">Title</span><span></span></div>
+              <div class="kd-row" style="border-top:none">
+                <div class="lead-wrap" data-cal><span class="lead click cal-toggle"><span data-i="calendar" class="h-4 w-4"></span></span><input class="tg-control sm" data-cal-input value="05/19/2027" readonly></div>
+                <input class="tg-control sm" value="Early-Bird Pricing Ends" placeholder="Milestone title">
+                <button type="button" class="x-btn" data-mock="Milestone removed" aria-label="Remove milestone 1"><span data-i="close" class="h-4 w-4"></span></button>
+              </div>
+              <div class="kd-row">
+                <div class="lead-wrap" data-cal><span class="lead click cal-toggle"><span data-i="calendar" class="h-4 w-4"></span></span><input class="tg-control sm" data-cal-input value="06/12/2027" readonly></div>
+                <input class="tg-control sm" value="Registration Deadline" placeholder="Milestone title">
+                <button type="button" class="x-btn" data-mock="Milestone removed" aria-label="Remove milestone 2"><span data-i="close" class="h-4 w-4"></span></button>
+              </div>
+              <div class="kd-row">
+                <div class="lead-wrap" data-cal><span class="lead click cal-toggle"><span data-i="calendar" class="h-4 w-4"></span></span><input class="tg-control sm" data-cal-input value="" placeholder="mm/dd/yyyy" readonly></div>
+                <input class="tg-control sm" value="" placeholder="Milestone title">
+                <button type="button" class="x-btn" data-mock="Milestone removed" aria-label="Remove milestone 3"><span data-i="close" class="h-4 w-4"></span></button>
+              </div>
+              <!-- required kick-off milestone (pinned) -->
+              <div class="kd-row" style="background:#fef2f2">
+                <div class="lead-wrap" data-cal><span class="lead click cal-toggle" style="color:#dc2626"><span data-i="flag" class="h-4 w-4"></span></span><input class="tg-control sm" data-cal-input value="09/04/2027" readonly style="border-color:#fecaca"></div>
+                <div class="flex items-center gap-2"><input class="tg-control sm" value="Tournament Kicks Off" readonly style="border-color:#fecaca;font-weight:700"><span class="prem-tag" style="background:#fef2f2;color:#b91c1c;border-color:#fecaca">Required</span></div>
+                <span></span>
+              </div>
+            </div>
+            <p class="fhint">If you add milestones, the <b class="text-slate-600">Tournament Kicks Off</b> date is required — it anchors the timeline on your event page.</p>
+          </section>
+
+          <!-- Photos (item 19: redesigned gallery) -->
+          <section class="space-y-4 rounded-2xl border border-slate-200 bg-white p-6">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div class="flex items-start gap-3"><span class="sec-ic"><span data-i="image" class="h-[18px] w-[18px]"></span></span><div><h2 class="sec-title">Photos</h2><p class="sec-desc">Up to 3 for free events. Premium unlocks 10 more.</p></div></div>
+              <span class="count-chip"><span data-i="image" class="h-3.5 w-3.5"></span><b>2</b> / 3 used</span>
+            </div>
+            <div class="flex flex-wrap gap-3">
+              <div class="ph-tile"><svg viewBox="0 0 96 96" class="h-full w-full"><rect width="96" height="96" fill="#34d399"/><rect width="96" height="34" y="62" fill="#10b981"/><circle cx="72" cy="26" r="12" fill="#fef9c3"/></svg><button type="button" class="x" data-mock="Photo removed" aria-label="Remove photo"><span data-i="close" class="h-3.5 w-3.5"></span></button></div>
+              <div class="ph-tile"><svg viewBox="0 0 96 96" class="h-full w-full"><rect width="96" height="96" fill="#60a5fa"/><polygon points="0,96 40,52 66,96" fill="#3b82f6"/><polygon points="52,96 80,60 96,84 96,96" fill="#2563eb"/></svg><button type="button" class="x" data-mock="Photo removed" aria-label="Remove photo"><span data-i="close" class="h-3.5 w-3.5"></span></button></div>
+              <label class="ph-add" data-mock="Photo picker"><span data-i="plus" class="h-5 w-5"></span><span class="text-[10.5px] font-bold">Add photo</span></label>
+            </div>
+          </section>
+
+        </form>
+
+      </div>
+
+      <!-- sticky action bar (item 21: icons in CTAs) -->
+      <div class="actionbar mt-6 max-w-[880px]">
+        <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white/95 p-4 backdrop-blur">
+          <p class="text-xs text-slate-500">Draft saves quietly. Publishing runs the full checklist.</p>
+          <div class="flex gap-2">
+            <button type="button" class="btn btn-ghost btn-md" data-mock="Cancel — back to events">Cancel</button>
+            <button type="button" id="btn-draft" class="btn btn-secondary btn-md"><span data-i="save" class="h-4 w-4"></span><span data-label>Save as draft</span></button>
+            <button type="button" id="btn-publish" class="btn btn-primary btn-md"><span data-i="check" class="h-4 w-4"></span><span data-label>Publish</span></button>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<div id="toast" role="status"><span class="disc"><span data-i="check" class="h-3.5 w-3.5"></span></span><span data-msg></span></div>
+<div class="fixed bottom-5 left-1/2 z-50 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#0f172a]/95 px-4 py-2 text-[11px] font-semibold text-white/60 shadow-xl ring-1 ring-white/10">Design mockup v4 · <span class="text-white">chips, calendars, hovers, menus, Save/Publish all work</span></div>
+
+<script>
+  const I = {
+    calendar:'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+    star:'<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
+    inbox:'<polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
+    tag:'<path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><path d="M7 7h.01"/>',
+    user:'<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+    help:'<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>',
+    flag:'<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/>',
+    users:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+    pin:'<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>',
+    check:'<path d="M5 12l5 5L20 7"/>',
+    'chevron-down':'<polyline points="6 9 12 15 18 9"/>','chevron-right':'<polyline points="9 18 15 12 9 6"/>','chevron-left':'<polyline points="15 18 9 12 15 6"/>',
+    logout:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>',
+    link:'<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
+    info:'<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>',
+    plus:'<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
+    image:'<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>',
+    award:'<circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/>',
+    spark:'<path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9L19 15z"/>',
+    megaphone:'<path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>',
+    close:'<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
+    upload:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>',
+    save:'<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>',
+    /* feature icons (elevated Additional features) */
+    parking:'<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M9 17V7h4a3 3 0 0 1 0 6H9"/>',
+    cup:'<path d="M6 8h12l-1 11a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L6 8z"/><path d="M8 8V5a4 4 0 0 1 8 0v3"/>',
+    restroom:'<line x1="12" y1="3" x2="12" y2="21"/><circle cx="7" cy="5" r="1.5"/><path d="M5.5 9h3l-1 5H6z"/><circle cx="17" cy="5" r="1.5"/><path d="M15.5 9h3v5h-3z"/>',
+    wifi:'<path d="M5 12.5a10 10 0 0 1 14 0"/><path d="M8.5 16a5 5 0 0 1 7 0"/><line x1="12" y1="19.5" x2="12.01" y2="19.5"/>',
+    accessible:'<circle cx="12" cy="4.5" r="1.8"/><path d="M8 8h8"/><path d="M12 8v6h4l2 5"/><path d="M12 14a4 4 0 1 1-4-4"/>',
+    paw:'<circle cx="7" cy="9" r="1.6"/><circle cx="12" cy="7" r="1.6"/><circle cx="17" cy="9" r="1.6"/><path d="M12 12c-3 0-5 2.5-5 5a2 2 0 0 0 2 2c1 0 2-.6 3-.6s2 .6 3 .6a2 2 0 0 0 2-2c0-2.5-2-5-5-5z"/>',
+    home:'<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/>',
+    grass:'<path d="M12 21V9"/><path d="M12 13c-2-1-4-4-4-7 3 0 5 3 5 6"/><path d="M12 15c2-1.5 4-4 4-8-3 0-5 3-5 6"/>',
+  };
+  document.querySelectorAll('[data-i]').forEach(el => el.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(I[el.dataset.i]||'')+'</svg>');
+
+  document.querySelectorAll('.chip, .feat').forEach(c => c.addEventListener('click', () => {
+    const grp = c.closest('[data-single]');
+    if (grp){ grp.querySelectorAll('.chip').forEach(x=>x.setAttribute('aria-pressed','false')); c.setAttribute('aria-pressed','true'); }
+    else c.setAttribute('aria-pressed', c.getAttribute('aria-pressed')==='true'?'false':'true');
+  }));
+
+  document.querySelectorAll('[data-menu-btn]').forEach(btn => btn.addEventListener('click', e => { e.stopPropagation(); const m=btn.closest('[data-menu]'); document.querySelectorAll('[data-menu][data-open]').forEach(x=>{if(x!==m)x.removeAttribute('data-open')}); m.toggleAttribute('data-open'); }));
+
+  const DOW=['S','M','T','W','T','F','S'];
+  function buildCal(pop,input){
+    let m=8,y=2027,selDay=null;const parts=(input.value||'').split('/');
+    if(parts.length===3&&parts[2]){m=(+parts[0])-1;selDay=+parts[1];y=+parts[2];}
+    (function render(){
+      const first=new Date(y,m,1).getDay(),days=new Date(y,m+1,0).getDate(),monthName=new Date(y,m,1).toLocaleString('en-US',{month:'long'});
+      let cells='';for(let i=0;i<first;i++)cells+='<button type="button" class="cal-day muted" disabled></button>';
+      for(let d=1;d<=days;d++)cells+='<button type="button" class="cal-day'+(d===selDay?' sel':'')+'" data-d="'+d+'">'+d+'</button>';
+      pop.innerHTML='<div class="mb-2 flex items-center justify-between"><button type="button" class="x-btn" data-nav="-1" aria-label="Previous month"><span data-i="chevron-left" class="h-3.5 w-3.5"></span></button><span class="font-heading text-[13px] font-extrabold text-slate-900">'+monthName+' '+y+'</span><button type="button" class="x-btn" data-nav="1" aria-label="Next month"><span data-i="chevron-right" class="h-3.5 w-3.5"></span></button></div><div class="cal-grid mb-1">'+DOW.map(d=>'<span class="cal-dow">'+d+'</span>').join('')+'</div><div class="cal-grid">'+cells+'</div>';
+      pop.querySelectorAll('[data-i]').forEach(el=>el.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+(I[el.dataset.i]||'')+'</svg>');
+      pop.querySelectorAll('[data-nav]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();m+=(+b.dataset.nav);if(m<0){m=11;y--}if(m>11){m=0;y++}render();}));
+      pop.querySelectorAll('[data-d]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();const mm=String(m+1).padStart(2,'0'),dd=String(b.dataset.d).padStart(2,'0');input.value=mm+'/'+dd+'/'+y;selDay=+b.dataset.d;pop.classList.remove('open');}));
+    })();
+  }
+  document.querySelectorAll('[data-cal]').forEach(w=>{const i=w.querySelector('[data-cal-input]'),p=w.querySelector('[data-cal-pop]'),t=w.querySelector('.cal-toggle');function open(e){e.stopPropagation();const o=p.classList.contains('open');document.querySelectorAll('[data-cal-pop].open').forEach(x=>x.classList.remove('open'));if(!o){buildCal(p,i);p.classList.add('open');}}i.addEventListener('click',open);if(t)t.addEventListener('click',open);});
+  /* item 2: calendars open on CLICK only — no auto-open on load */
+
+  document.addEventListener('click',()=>{document.querySelectorAll('[data-menu][data-open]').forEach(m=>m.removeAttribute('data-open'));document.querySelectorAll('[data-cal-pop].open').forEach(p=>p.classList.remove('open'));});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'){document.querySelectorAll('[data-cal-pop].open').forEach(p=>p.classList.remove('open'));}});
+
+  const toastEl=document.getElementById('toast'),toastMsg=toastEl.querySelector('[data-msg]');let tt;
+  function toast(msg,ink){toastMsg.textContent=msg;toastEl.classList.toggle('ink',!!ink);toastEl.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>toastEl.classList.remove('show'),2400);}
+  document.querySelectorAll('[data-mock]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();e.preventDefault();toast(b.dataset.mock+' (mockup)',true);}));
+
+  function submitBtn(btn,busy,done){
+    const other=btn.id==='btn-draft'?document.getElementById('btn-publish'):document.getElementById('btn-draft');
+    const label=btn.querySelector('[data-label]'),orig=label.textContent;
+    btn.disabled=true;other.disabled=true;const sp=document.createElement('span');sp.className='spin';sp.setAttribute('data-spin','');btn.insertBefore(sp,label);label.textContent=busy;
+    setTimeout(()=>{toast(done);btn.disabled=false;other.disabled=false;const s=btn.querySelector('[data-spin]');if(s)s.remove();label.textContent=orig;},1000);
+  }
+  document.getElementById('btn-draft').addEventListener('click',function(){submitBtn(this,'Saving…','Draft saved — nothing is public yet.');});
+  document.getElementById('btn-publish').addEventListener('click',function(){submitBtn(this,'Saving…','Event published — it’s live on Tournament Guru.');});
+</script>
+</body>
+</html>
